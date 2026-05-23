@@ -84,12 +84,17 @@ function requireTelegramAuth(req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  const botToken = process.env.GAMES_BOT_TOKEN;
-  if (!botToken) {
-    res.status(503).json({ error: "GAMES_BOT_TOKEN is not configured on this server. Financial operations are disabled." });
+  const candidateTokens = [
+    process.env.GAMES_BOT_TOKEN,
+    process.env.MOTHER_BOT_TOKEN,
+  ].filter((t): t is string => typeof t === "string" && t.length > 0);
+
+  if (candidateTokens.length === 0) {
+    res.status(503).json({ error: "No bot token configured on this server. Financial operations are disabled." });
     return;
   }
-  if (!verifyInitData(initData, botToken)) {
+  const matched = candidateTokens.some((tok) => verifyInitData(initData, tok));
+  if (!matched) {
     res.status(403).json({ error: "Invalid Telegram initData signature" });
     return;
   }
