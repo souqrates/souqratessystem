@@ -831,6 +831,17 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
         .limit(1);
       if (existing) throw Object.assign(new Error("ALREADY_CREDITED"), { status: 409 });
 
+      // Symmetric guard: if the entry was already refunded for this
+      // charge, the game session is terminal and may not be rewarded.
+      // Pairs with the analogous check in /internal/game/refund-entry
+      // so neither (reward→refund) nor (refund→reward) can double-pay.
+      const refundRefId = `refund_${chargeId}`;
+      const [refunded] = await tx.select({ id: transactionsTable.id })
+        .from(transactionsTable)
+        .where(and(eq(transactionsTable.userId, user.id), eq(transactionsTable.referenceId, refundRefId)))
+        .limit(1);
+      if (refunded) throw Object.assign(new Error("ALREADY_REFUNDED"), { status: 409 });
+
       const [txn] = await tx
         .insert(transactionsTable)
         .values({
@@ -869,6 +880,10 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
     const e = err as Error & { status?: number };
     if (e.message === "ALREADY_CREDITED") {
       res.status(409).json({ error: "Reward already credited for this game session" });
+      return;
+    }
+    if (e.message === "ALREADY_REFUNDED") {
+      res.status(409).json({ error: "Game session already refunded — reward refused" });
       return;
     }
     req.log.error({ err }, "credit-reward transaction failed");
@@ -1255,28 +1270,48 @@ router.post("/internal/game/refund-entry", async (req, res): Promise<void> => {
   }
 
   const refundRef = `refund_${chargeId}`;
-
-  // Idempotency check — if we already refunded this charge, just echo back.
-  const [existingRefund] = await db.select().from(transactionsTable)
-    .where(and(
-      eq(transactionsTable.userId, user.id),
-      eq(transactionsTable.referenceId, refundRef),
-    ));
-  if (existingRefund) {
-    const [w] = await db.select({ balanceSkz: walletsTable.balanceSkz })
-      .from(walletsTable).where(eq(walletsTable.userId, user.id));
-    res.json({
-      success: true,
-      alreadyRefunded: true,
-      transactionId: existingRefund.id,
-      refundedAmount: entryFee,
-      newSkzBalance: w?.balanceSkz ?? "0",
-    });
-    return;
-  }
+  const rewardRef = `game_reward_ref_${chargeId}`;
 
   try {
+    // All refund logic runs inside a transaction guarded by a
+    // pg_advisory_xact_lock keyed on the charge id. Two concurrent
+    // refund requests for the same charge will serialize on this lock,
+    // so the "no existing refund / no existing reward" checks below are
+    // race-safe even without a dedicated unique constraint on
+    // transactions.reference_id.
     const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${chargeId})`);
+
+      // (a) Already refunded? Idempotent return.
+      const [existingRefund] = await tx.select().from(transactionsTable)
+        .where(and(
+          eq(transactionsTable.userId, user.id),
+          eq(transactionsTable.referenceId, refundRef),
+        ));
+      if (existingRefund) {
+        const [w] = await tx.select({ balanceSkz: walletsTable.balanceSkz })
+          .from(walletsTable).where(eq(walletsTable.userId, user.id));
+        return {
+          kind: "already" as const,
+          transactionId: existingRefund.id,
+          newSkzBalance: w?.balanceSkz ?? "0",
+        };
+      }
+
+      // (b) CRITICAL: refuse refund if the reward was already credited
+      // for this charge — otherwise a winning user could pocket both
+      // the prize AND their entry fee back.
+      const [alreadyCredited] = await tx.select({ id: transactionsTable.id })
+        .from(transactionsTable)
+        .where(and(
+          eq(transactionsTable.userId, user.id),
+          eq(transactionsTable.referenceId, rewardRef),
+        ));
+      if (alreadyCredited) {
+        return { kind: "rewarded" as const };
+      }
+
+      // (c) Insert refund + credit wallet atomically.
       const [refund] = await tx.insert(transactionsTable).values({
         userId:      user.id,
         type:        "credit",
@@ -1293,11 +1328,26 @@ router.post("/internal/game/refund-entry", async (req, res): Promise<void> => {
       const [wallet] = await tx.update(walletsTable).set({
         balanceSkz: sql`${walletsTable.balanceSkz} + ${entryFee}`,
       }).where(eq(walletsTable.userId, user.id)).returning();
-
       if (!wallet) throw new Error("Wallet not found");
 
-      return { refund, wallet };
+      return { kind: "new" as const, refund, wallet };
     });
+
+    if (result.kind === "rewarded") {
+      res.status(409).json({ error: "Game session already credited — refund refused" });
+      return;
+    }
+
+    if (result.kind === "already") {
+      res.json({
+        success: true,
+        alreadyRefunded: true,
+        transactionId: result.transactionId,
+        refundedAmount: entryFee,
+        newSkzBalance: result.newSkzBalance,
+      });
+      return;
+    }
 
     req.log.info(
       { chargeId, refundId: result.refund.id, botSlug: bot.slug, entryFee },
