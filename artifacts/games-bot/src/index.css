@@ -135,16 +135,16 @@ body {
   flex-direction: column;
   overflow: hidden;
   isolation: isolate;
-  contain: layout style paint;
+  /* NOTE: `contain: layout style paint` removed — broke pointer/touch
+     hit-testing inside iOS Telegram WebView (events were swallowed by
+     the contained subtree, leaving the whole Dashboard unclickable). */
   /* Respect the safe-area so content never goes under status bar */
   padding-top: env(safe-area-inset-top);
-  /* Prevent 300ms tap delay globally */
-  touch-action: manipulation;
-  /* Own compositing layer — prevents flicker when child elements animate */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  /* NOTE: `touch-action: manipulation` removed for the same reason —
+     combined with position:fixed it can prevent click delivery inside
+     Telegram WebView on iOS. Use `auto` (the default) which allows
+     scrolling AND clicking everywhere. */
+  touch-action: auto;
 }
 
 /*
@@ -159,8 +159,10 @@ body {
   -webkit-overflow-scrolling: touch;
   /* Bottom padding so last item isn't hidden behind the nav */
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 16px);
-  /* Contain layout+paint — prevents scroll repaints from propagating up */
-  contain: layout paint;
+  /* Explicitly allow vertical pan + tap on iOS Telegram WebView */
+  touch-action: pan-y;
+  /* NOTE: `contain: layout paint` removed — interfered with iOS WebKit
+     touch event hit-testing inside Telegram WebView. */
 }
 
 main {
