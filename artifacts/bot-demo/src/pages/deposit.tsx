@@ -3,6 +3,7 @@ import { Zap, Copy, Check, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
+import { showTelegramAlert } from "../lib/telegram";
 
 type Method = "usdt" | "stars" | "ton";
 
@@ -168,6 +169,12 @@ export function Deposit() {
             )}
 
             <motion.button disabled={!amount} whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                if (!amount) return;
+                showTelegramAlert(
+                  `Telegram Stars payment will open here.\nAmount: ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ\n\nPayment processor is being finalized — the button will work once Stars is connected.`
+                );
+              }}
               className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
               style={{
                 background: amount ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
@@ -259,11 +266,11 @@ export function Deposit() {
             {/* Warning */}
             <div className="rounded-2xl p-4 space-y-1.5 text-[11px] font-medium"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p className="text-danger font-bold flex items-center gap-2">
+              <div className="text-danger font-bold flex items-center gap-2">
                 <IconBox iconKey="shield" size={12} color="#ef4444" bg="rgba(239,68,68,0.15)"
                   border="rgba(239,68,68,0.2)" boxSize={20} radius={5} />
                 Send only {method.toUpperCase()} on this network
-              </p>
+              </div>
               <p className="text-white/40">
                 Minimum: {method === "usdt" ? `${settings.minDepositUsdt} USDT` : `${settings.minDepositTon} TON`}
               </p>
@@ -274,13 +281,19 @@ export function Deposit() {
             </div>
 
             <motion.button disabled={!amount || parseFloat(amount) <= 0} whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                if (!amount || parseFloat(amount) <= 0) return;
+                showTelegramAlert(
+                  `Deposit registered.\nAmount: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nSend the funds to the address above. Your balance will update automatically once the network confirms the transaction.`
+                );
+              }}
               className="w-full py-4 rounded-2xl font-black text-base text-white"
               style={{
                 background: amount ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
                 boxShadow: amount ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
                 opacity: amount ? 1 : 0.45,
               }}>
-              {amount ? "Confirm Deposit" : "Enter Amount"}
+              {amount ? "I've Sent the Funds" : "Enter Amount"}
             </motion.button>
           </motion.div>
         )}

@@ -4,6 +4,7 @@ import { usePlatformSettings } from "../lib/use-platform-settings";
 import { Zap, AlertCircle, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
+import { showTelegramAlert } from "../lib/telegram";
 
 type Target = "usdt" | "ton";
 
@@ -192,6 +193,12 @@ export function Withdraw() {
 
       {/* Submit */}
       <motion.button disabled={!isValid} whileTap={{ scale: isValid ? 0.97 : 1 }}
+        onClick={() => {
+          if (!isValid) return;
+          showTelegramAlert(
+            `Withdrawal request submitted.\nAmount: ${numSkz.toLocaleString()} SKZ\nYou receive: ${netReal.toFixed(target === "usdt" ? 2 : 4)} ${target.toUpperCase()}\nTo: ${address.slice(0, 8)}...${address.slice(-6)}\n\nYour request is now pending review. You'll be notified once it's processed (usually within 24 hours).`
+          );
+        }}
         className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
         style={{
           background: isValid ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",

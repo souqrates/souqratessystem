@@ -105,7 +105,9 @@ export default function Dashboard() {
   }, [user?.telegram_id]);
 
   const sym         = appConfig?.currency_symbol || 'SKZ';
-  const dashboardCta = appConfig?.dashboard_cta || null;
+  const dashboardCta = (typeof appConfig?.dashboard_cta === 'string' && appConfig.dashboard_cta.trim())
+    ? appConfig.dashboard_cta.trim()
+    : null;
 
   // Feature flags — hide game modes the admin disabled
   const soloEnabled  = appConfig?.solo_games_enabled  !== false;

@@ -25,7 +25,7 @@ import { Check, X, ArrowUpFromLine, Clock } from "lucide-react";
 
 export default function Withdrawals() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<string>("pending");
+  const [status, setStatus] = useState<string>("all");
 
   const [approveId, setApproveId] = useState<number | null>(null);
   const [txHash, setTxHash] = useState("");

@@ -4,6 +4,7 @@ import { usePlatformSettings } from "../lib/use-platform-settings";
 import { Users, Copy, Share2, Check, ChevronLeft, TrendingUp, Star, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox } from "../components/icons";
+import { showTelegramAlert } from "../lib/telegram";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
 const fadeUp = {
@@ -196,7 +197,14 @@ export function Referral() {
             </div>
           ))}
           <div className="divider" />
-          <button className="w-full flex items-center justify-between px-4 py-4 text-sm text-white/40 hover:text-white/60 transition-colors">
+          <button
+            onClick={() =>
+              showTelegramAlert(
+                `You have ${MOCK_REFERRALS.length} friends in this view. Full history pagination is coming soon.`
+              )
+            }
+            className="w-full flex items-center justify-between px-4 py-4 text-sm text-white/40 hover:text-white/60 transition-colors"
+          >
             <span className="font-medium">View All Friends</span>
             <ChevronLeft size={16} />
           </button>

@@ -28,8 +28,15 @@ interface TelegramWebApp {
   close(): void;
   ready(): void;
   showPopup(params: { message: string; title?: string }): void;
+  showAlert(message: string, callback?: () => void): void;
+  showConfirm(message: string, callback?: (ok: boolean) => void): void;
   openTelegramLink(url: string): void;
   openLink(url: string): void;
+  HapticFeedback?: {
+    impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
+    notificationOccurred(type: "error" | "success" | "warning"): void;
+    selectionChanged(): void;
+  };
   setHeaderColor(color: string): void;
   setBackgroundColor(color: string): void;
   setBottomBarColor(color: string): void;

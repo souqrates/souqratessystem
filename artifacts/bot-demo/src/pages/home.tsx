@@ -1,4 +1,4 @@
-import { getTelegramUser } from "../lib/telegram";
+import { getTelegramUser, showTelegramAlert, openTelegramApp } from "../lib/telegram";
 import { MOCK_BALANCES, MOCK_TRANSACTIONS, MOCK_XP, MOCK_ACHIEVEMENTS } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { motion } from "framer-motion";
@@ -14,13 +14,13 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
 };
 
-const BOTS = [
-  { name: "Games",    xp: "+40 XP",  skz: 250  },
-  { name: "Video",    xp: "+10 XP",  skz: 100  },
-  { name: "Voice",    xp: "+20 XP",  skz: 80   },
-  { name: "AI",       xp: "+12 XP",  skz: 50   },
-  { name: "Store",    xp: "+45 XP",  skz: 30   },
-  { name: "Contests", xp: "+200 XP", skz: 500  },
+const BOTS: { name: string; xp: string; skz: number; live?: boolean; url?: string }[] = [
+  { name: "Games",    xp: "+40 XP",  skz: 250, live: true, url: "https://souqrates.com/games-bot/" },
+  { name: "Video",    xp: "+10 XP",  skz: 100 },
+  { name: "Voice",    xp: "+20 XP",  skz: 80  },
+  { name: "AI",       xp: "+12 XP",  skz: 50  },
+  { name: "Store",    xp: "+45 XP",  skz: 30  },
+  { name: "Contests", xp: "+200 XP", skz: 500 },
 ];
 
 export function Home() {
@@ -59,7 +59,7 @@ export function Home() {
               style={{ background: rank.gradient, boxShadow: `0 2px 8px ${rank.glow}`, border: "1.5px solid #060a14" }}
             >
               <IconBox
-                iconKey={import("../components/icons").then ? "zap" : "zap"}
+                iconKey="zap"
                 size={10}
                 color="white"
                 bg="transparent"
@@ -93,6 +93,7 @@ export function Home() {
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
+            onClick={() => showTelegramAlert("You have no new notifications. We'll alert you here when you earn SKZ, level up, or get a referral bonus.")}
             className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center relative"
           >
             <Bell size={17} className="text-white/60" />
@@ -264,8 +265,22 @@ export function Home() {
           {BOTS.map((bot) => {
             const bi = BOT_ICONS[bot.name];
             return (
-              <motion.div key={bot.name} whileTap={{ scale: 0.93 }}
-                className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[72px] pressable">
+              <motion.button
+                key={bot.name}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => {
+                  if (bot.live && bot.url) {
+                    openTelegramApp(bot.url);
+                  } else {
+                    showTelegramAlert(`${bot.name} bot is launching soon. Stay tuned!`);
+                  }
+                }}
+                className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[72px] pressable relative"
+                style={{ border: bot.live ? `1px solid ${bi.color}40` : undefined }}
+              >
+                {bot.live && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                )}
                 <IconBox iconKey={bi.iconKey} size={20} color={bi.color} bg={bi.bg}
                   border={`${bi.color}25`} glow={bi.glow} boxSize={42} radius={12} />
                 <p className="text-[10px] font-bold text-white/80 text-center leading-tight">{bot.name}</p>
@@ -274,9 +289,9 @@ export function Home() {
                     <Zap size={8} style={{ color: bi.color }} />
                     <span className="text-[8px] font-black" style={{ color: bi.color }}>+{bot.skz} SKZ</span>
                   </div>
-                  <span className="text-[8px] font-bold text-white/30">{bot.xp}</span>
+                  <span className="text-[8px] font-bold text-white/30">{bot.live ? "Open" : bot.xp}</span>
                 </div>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>

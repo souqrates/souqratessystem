@@ -16,14 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Bot as BotIcon, Activity, Percent, Key, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState as useLocalState } from "react";
 
 const BOT_ICONS: Record<string, string> = {
   games: "🎮", video: "🎬", voice: "🎙️", ai: "🤖", store: "🛒", contests: "🏆",
 };
 
 function CopyKey({ apiKey }: { apiKey: string }) {
-  const [copied, setCopied] = useLocalState(false);
+  const [copied, setCopied] = useState(false);
   const short = `${apiKey.slice(0, 8)}...${apiKey.slice(-6)}`;
   return (
     <button
