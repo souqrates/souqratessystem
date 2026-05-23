@@ -1,27 +1,43 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getDeviceTier } from '../lib/deviceProfile';
 
-const LOGO_SRC = '/WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg';
+const LOGO_SRC = import.meta.env.BASE_URL + 'WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg';
 const tier = getDeviceTier();
 
 export default function SplashScreen({ onDone }) {
   const [progress, setProgress] = useState(0);
+  // Store onDone in a ref so the timer effect can run exactly once even if
+  // the parent passes a new function reference on every re-render.
+  // Without this, parent re-renders (from store updates: user/balance/config)
+  // would restart the timer, and progress would never reach 100%, leaving the
+  // splash permanently overlaying the app and blocking all interaction.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
 
   useEffect(() => {
     const total = tier === 'high' ? 1800 : tier === 'mid' ? 2200 : 2600;
     const start = performance.now();
     let raf;
+    let doneTimer;
+    let finished = false;
     const tick = (now) => {
       const elapsed = now - start;
       const pct = Math.min(100, Math.round((elapsed / total) * 100));
       setProgress(pct);
-      if (pct < 100) raf = requestAnimationFrame(tick);
-      else setTimeout(onDone, 200);
+      if (pct < 100) {
+        raf = requestAnimationFrame(tick);
+      } else if (!finished) {
+        finished = true;
+        doneTimer = setTimeout(() => onDoneRef.current?.(), 200);
+      }
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [onDone]);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      if (doneTimer) clearTimeout(doneTimer);
+    };
+  }, []);
 
   return (
     <motion.div
