@@ -1,6 +1,7 @@
 import asyncio
 import os
 import logging
+import time
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import (
     Message,
@@ -23,8 +24,19 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
 MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
-MINI_APP_URL     = os.getenv("MINI_APP_URL", "https://souqrates.com/")
-GAMES_APP_URL    = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
+_BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
+_BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
+
+# Cache-buster: forces Telegram WebView to fetch a fresh copy after each deploy
+# (Telegram aggressively caches Mini App pages by URL; query param changes the URL).
+_CACHE_BUSTER = os.getenv("DEPLOY_VERSION") or str(int(time.time()))
+
+def _with_v(url: str) -> str:
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}v={_CACHE_BUSTER}"
+
+MINI_APP_URL  = _with_v(_BASE_MINI_APP_URL)
+GAMES_APP_URL = _with_v(_BASE_GAMES_APP_URL)
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
