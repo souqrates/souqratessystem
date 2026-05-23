@@ -2,6 +2,7 @@ export * from "./generated/api";
 export type {
   ApproveWithdrawalBody,
   CreateBotBody,
+  BotUpdate,
   CreateWithdrawalBody,
   RejectWithdrawalBody,
   DepositBody,
@@ -9,6 +10,10 @@ export type {
   DepositResponse,
   SkzRates,
   SkzRatesInput,
+  PlatformSettings,
+  PlatformSettingsFinancial,
+  PlatformSettingsContent,
+  PlatformSettingsInput,
   Bot,
   BotListResponse,
   Commission,

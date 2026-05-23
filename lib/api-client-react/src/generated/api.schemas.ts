@@ -117,6 +117,56 @@ export interface CreateBotBody {
   commissionRate?: string;
 }
 
+export interface BotUpdate {
+  name?: string;
+  description?: string;
+  /** Commission rate as decimal (e.g. "0.05" = 5%) */
+  commissionRate?: string;
+  isActive?: boolean;
+}
+
+export interface PlatformSettingsFinancial {
+  minDepositUsdt: string;
+  minDepositTon: string;
+  minDepositStars: string;
+  minWithdrawalSkz: string;
+  withdrawalFeeUsdtPercent: string;
+  withdrawalFeeTonPercent: string;
+  referralBonusPercent: string;
+}
+
+export interface PlatformSettingsContent {
+  platformName: string;
+  platformTagline: string;
+  welcomeMessage: string;
+  supportUsername: string;
+  referralMessage: string;
+}
+
+export interface PlatformSettings {
+  skzRates: SkzRates;
+  financial: PlatformSettingsFinancial;
+  content: PlatformSettingsContent;
+}
+
+export interface PlatformSettingsInput {
+  skzPerUsdt?: string;
+  skzPerStar?: string;
+  skzPerTon?: string;
+  minDepositUsdt?: string;
+  minDepositTon?: string;
+  minDepositStars?: string;
+  minWithdrawalSkz?: string;
+  withdrawalFeeUsdtPercent?: string;
+  withdrawalFeeTonPercent?: string;
+  referralBonusPercent?: string;
+  platformName?: string;
+  platformTagline?: string;
+  welcomeMessage?: string;
+  supportUsername?: string;
+  referralMessage?: string;
+}
+
 export interface BotListResponse {
   data: Bot[];
   total: number;

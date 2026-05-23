@@ -211,6 +211,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateBot
+      tags: [bots]
+      summary: Update bot settings (commission rate, name, description, active status)
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotUpdate"
+      responses:
+        "200":
+          description: Bot updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bot"
+        "404":
+          description: Bot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /commissions:
     get:
@@ -360,6 +389,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /settings:
+    get:
+      operationId: getAllSettings
+      tags: [settings]
+      summary: Get all platform settings (SKZ rates, financial limits, content texts)
+      responses:
+        "200":
+          description: All platform settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Batch update platform settings (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformSettingsInput"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
 
   /settings/skz-rates:
     get:
@@ -764,6 +823,113 @@ components:
       required:
         - slug
         - name
+
+    BotUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        commissionRate:
+          type: string
+          description: Commission rate as decimal (e.g. "0.05" = 5%)
+        isActive:
+          type: boolean
+
+    PlatformSettingsFinancial:
+      type: object
+      properties:
+        minDepositUsdt:
+          type: string
+        minDepositTon:
+          type: string
+        minDepositStars:
+          type: string
+        minWithdrawalSkz:
+          type: string
+        withdrawalFeeUsdtPercent:
+          type: string
+        withdrawalFeeTonPercent:
+          type: string
+        referralBonusPercent:
+          type: string
+      required:
+        - minDepositUsdt
+        - minDepositTon
+        - minDepositStars
+        - minWithdrawalSkz
+        - withdrawalFeeUsdtPercent
+        - withdrawalFeeTonPercent
+        - referralBonusPercent
+
+    PlatformSettingsContent:
+      type: object
+      properties:
+        platformName:
+          type: string
+        platformTagline:
+          type: string
+        welcomeMessage:
+          type: string
+        supportUsername:
+          type: string
+        referralMessage:
+          type: string
+      required:
+        - platformName
+        - platformTagline
+        - welcomeMessage
+        - supportUsername
+        - referralMessage
+
+    PlatformSettings:
+      type: object
+      properties:
+        skzRates:
+          $ref: "#/components/schemas/SkzRates"
+        financial:
+          $ref: "#/components/schemas/PlatformSettingsFinancial"
+        content:
+          $ref: "#/components/schemas/PlatformSettingsContent"
+      required:
+        - skzRates
+        - financial
+        - content
+
+    PlatformSettingsInput:
+      type: object
+      properties:
+        skzPerUsdt:
+          type: string
+        skzPerStar:
+          type: string
+        skzPerTon:
+          type: string
+        minDepositUsdt:
+          type: string
+        minDepositTon:
+          type: string
+        minDepositStars:
+          type: string
+        minWithdrawalSkz:
+          type: string
+        withdrawalFeeUsdtPercent:
+          type: string
+        withdrawalFeeTonPercent:
+          type: string
+        referralBonusPercent:
+          type: string
+        platformName:
+          type: string
+        platformTagline:
+          type: string
+        welcomeMessage:
+          type: string
+        supportUsername:
+          type: string
+        referralMessage:
+          type: string
 
     BotListResponse:
       type: object

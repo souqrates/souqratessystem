@@ -14,6 +14,7 @@ import Transactions from "@/pages/transactions";
 import Bots from "@/pages/bots";
 import Commissions from "@/pages/commissions";
 import Withdrawals from "@/pages/withdrawals";
+import SettingsPage from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/bots" component={Bots} />
         <Route path="/commissions" component={Commissions} />
         <Route path="/withdrawals" component={Withdrawals} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

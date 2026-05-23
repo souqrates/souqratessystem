@@ -191,6 +191,33 @@ export const GetBotResponse = zod.object({
 
 
 /**
+ * @summary Update bot settings (commission rate, name, description, active status)
+ */
+export const UpdateBotParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const UpdateBotBody = zod.object({
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "commissionRate": zod.string().optional().describe('Commission rate as decimal (e.g. \"0.05\" = 5%)'),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateBotResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "commissionRate": zod.string(),
+  "isActive": zod.boolean(),
+  "totalVolumeUsdt": zod.string(),
+  "totalCommissionUsdt": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List commissions
  */
 export const listCommissionsQueryPageDefault = 1;
@@ -320,6 +347,82 @@ export const RejectWithdrawalResponse = zod.object({
   "status": zod.string(),
   "rejectedReason": zod.string().nullish(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get all platform settings (SKZ rates, financial limits, content texts)
+ */
+export const GetAllSettingsResponse = zod.object({
+  "skzRates": zod.object({
+  "skzPerUsdt": zod.string().describe('How many SKZ per 1 USDT'),
+  "skzPerStar": zod.string().describe('How many SKZ per 1 Telegram Star'),
+  "skzPerTon": zod.string().describe('How many SKZ per 1 TON'),
+  "updatedAt": zod.coerce.date()
+}),
+  "financial": zod.object({
+  "minDepositUsdt": zod.string(),
+  "minDepositTon": zod.string(),
+  "minDepositStars": zod.string(),
+  "minWithdrawalSkz": zod.string(),
+  "withdrawalFeeUsdtPercent": zod.string(),
+  "withdrawalFeeTonPercent": zod.string(),
+  "referralBonusPercent": zod.string()
+}),
+  "content": zod.object({
+  "platformName": zod.string(),
+  "platformTagline": zod.string(),
+  "welcomeMessage": zod.string(),
+  "supportUsername": zod.string(),
+  "referralMessage": zod.string()
+})
+})
+
+
+/**
+ * @summary Batch update platform settings (admin only)
+ */
+export const UpdateSettingsBody = zod.object({
+  "skzPerUsdt": zod.string().optional(),
+  "skzPerStar": zod.string().optional(),
+  "skzPerTon": zod.string().optional(),
+  "minDepositUsdt": zod.string().optional(),
+  "minDepositTon": zod.string().optional(),
+  "minDepositStars": zod.string().optional(),
+  "minWithdrawalSkz": zod.string().optional(),
+  "withdrawalFeeUsdtPercent": zod.string().optional(),
+  "withdrawalFeeTonPercent": zod.string().optional(),
+  "referralBonusPercent": zod.string().optional(),
+  "platformName": zod.string().optional(),
+  "platformTagline": zod.string().optional(),
+  "welcomeMessage": zod.string().optional(),
+  "supportUsername": zod.string().optional(),
+  "referralMessage": zod.string().optional()
+})
+
+export const UpdateSettingsResponse = zod.object({
+  "skzRates": zod.object({
+  "skzPerUsdt": zod.string().describe('How many SKZ per 1 USDT'),
+  "skzPerStar": zod.string().describe('How many SKZ per 1 Telegram Star'),
+  "skzPerTon": zod.string().describe('How many SKZ per 1 TON'),
+  "updatedAt": zod.coerce.date()
+}),
+  "financial": zod.object({
+  "minDepositUsdt": zod.string(),
+  "minDepositTon": zod.string(),
+  "minDepositStars": zod.string(),
+  "minWithdrawalSkz": zod.string(),
+  "withdrawalFeeUsdtPercent": zod.string(),
+  "withdrawalFeeTonPercent": zod.string(),
+  "referralBonusPercent": zod.string()
+}),
+  "content": zod.object({
+  "platformName": zod.string(),
+  "platformTagline": zod.string(),
+  "welcomeMessage": zod.string(),
+  "supportUsername": zod.string(),
+  "referralMessage": zod.string()
+})
 })
 
 

@@ -23,6 +23,7 @@ import type {
   ApproveWithdrawalBody,
   Bot,
   BotListResponse,
+  BotUpdate,
   CommissionListResponse,
   CreateBotBody,
   CreateWithdrawalBody,
@@ -38,6 +39,8 @@ import type {
   ListTransactionsParams,
   ListUsersParams,
   ListWithdrawalsParams,
+  PlatformSettings,
+  PlatformSettingsInput,
   RejectWithdrawalBody,
   SkzRates,
   SkzRatesInput,
@@ -687,6 +690,78 @@ export function useGetBot<TData = Awaited<ReturnType<typeof getBot>>, TError = E
 
 
 
+export const getUpdateBotUrl = (slug: string,) => {
+
+
+
+
+  return `/api/bots/${slug}`
+}
+
+/**
+ * @summary Update bot settings (commission rate, name, description, active status)
+ */
+export const updateBot = async (slug: string,
+    botUpdate: BotUpdate, options?: RequestInit): Promise<Bot> => {
+
+  return customFetch<Bot>(getUpdateBotUrl(slug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      botUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateBotMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBot>>, TError,{slug: string;data: BodyType<BotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBot>>, TError,{slug: string;data: BodyType<BotUpdate>}, TContext> => {
+
+const mutationKey = ['updateBot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBot>>, {slug: string;data: BodyType<BotUpdate>}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  updateBot(slug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBotMutationResult = NonNullable<Awaited<ReturnType<typeof updateBot>>>
+    export type UpdateBotMutationBody = BodyType<BotUpdate>
+    export type UpdateBotMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update bot settings (commission rate, name, description, active status)
+ */
+export const useUpdateBot = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBot>>, TError,{slug: string;data: BodyType<BotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBot>>,
+        TError,
+        {slug: string;data: BodyType<BotUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateBotMutationOptions(options));
+    }
+
 export const getListCommissionsUrl = (params?: ListCommissionsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1068,6 +1143,154 @@ export const useRejectWithdrawal = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRejectWithdrawalMutationOptions(options));
+    }
+
+export const getGetAllSettingsUrl = () => {
+
+
+
+
+  return `/api/settings`
+}
+
+/**
+ * @summary Get all platform settings (SKZ rates, financial limits, content texts)
+ */
+export const getAllSettings = async ( options?: RequestInit): Promise<PlatformSettings> => {
+
+  return customFetch<PlatformSettings>(getGetAllSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAllSettingsQueryKey = () => {
+    return [
+    `/api/settings`
+    ] as const;
+    }
+
+
+export const getGetAllSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAllSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAllSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllSettings>>> = ({ signal }) => getAllSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAllSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllSettings>>>
+export type GetAllSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all platform settings (SKZ rates, financial limits, content texts)
+ */
+
+export function useGetAllSettings<TData = Awaited<ReturnType<typeof getAllSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAllSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateSettingsUrl = () => {
+
+
+
+
+  return `/api/settings`
+}
+
+/**
+ * @summary Batch update platform settings (admin only)
+ */
+export const updateSettings = async (platformSettingsInput: PlatformSettingsInput, options?: RequestInit): Promise<PlatformSettings> => {
+
+  return customFetch<PlatformSettings>(getUpdateSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      platformSettingsInput,)
+  }
+);}
+
+
+
+
+export const getUpdateSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<PlatformSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<PlatformSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSettings>>, {data: BodyType<PlatformSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateSettings>>>
+    export type UpdateSettingsMutationBody = BodyType<PlatformSettingsInput>
+    export type UpdateSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Batch update platform settings (admin only)
+ */
+export const useUpdateSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,{data: BodyType<PlatformSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSettings>>,
+        TError,
+        {data: BodyType<PlatformSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateSettingsMutationOptions(options));
     }
 
 export const getGetSkzRatesUrl = () => {

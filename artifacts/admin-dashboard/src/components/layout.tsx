@@ -19,6 +19,7 @@ import {
   Bot,
   Percent,
   ArrowUpFromLine,
+  Settings,
 } from "lucide-react";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: "Withdrawals", href: "/withdrawals", icon: ArrowUpFromLine },
   ];
 
+  const settingsNav = [
+    { name: "الإعدادات", href: "/settings", icon: Settings },
+  ];
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -47,6 +52,27 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigation.map((item) => {
+                    const isActive = location === item.href;
+                    return (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
+                          <Link href={item.href} className="flex items-center gap-3">
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-muted-foreground">إدارة</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {settingsNav.map((item) => {
                     const isActive = location === item.href;
                     return (
                       <SidebarMenuItem key={item.name}>
