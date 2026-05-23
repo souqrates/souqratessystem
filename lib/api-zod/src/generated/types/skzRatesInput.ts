@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type ListUsersParams = {
-page?: number;
-limit?: number;
-search?: string;
-};
+export interface SkzRatesInput {
+  skzPerUsdt?: string;
+  skzPerStar?: string;
+  skzPerTon?: string;
+}

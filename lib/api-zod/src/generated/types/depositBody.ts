@@ -5,11 +5,11 @@
  * Mother Bot API - SKZ Financial Hub
  * OpenAPI spec version: 0.2.0
  */
+import type { DepositBodyRealCurrency } from './depositBodyRealCurrency';
 
-export interface DebitBody {
+export interface DepositBody {
   telegramId: string;
-  /** Amount in SKZ */
-  amount: string;
+  realCurrency: DepositBodyRealCurrency;
+  realAmount: string;
   description: string;
-  referenceId?: string;
 }

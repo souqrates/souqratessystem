@@ -3,9 +3,14 @@
 @theme {
   --font-sans: "Tajawal", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   
-  --color-base: #0a0f1e;
+  --color-base: #080c18;
+  --color-surface: #0e1428;
   --color-accent: #00d4ff;
   --color-accent-dark: #0088aa;
+  
+  --color-skz: #a855f7;
+  --color-skz-light: #c084fc;
+  --color-skz-dark: #7c3aed;
   
   --color-usdt: #26d0a0;
   --color-stars: #f5a623;
@@ -13,14 +18,14 @@
   
   --color-glass: rgba(255, 255, 255, 0.05);
   --color-glass-hover: rgba(255, 255, 255, 0.1);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
   
-  --color-danger: #ff4d4f;
+  --color-danger: #ff4d6d;
   --color-success: #26d0a0;
 }
 
 :root {
-  --background: #0a0f1e;
+  --background: #080c18;
   --foreground: #ffffff;
 }
 
@@ -38,14 +43,33 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.glass-card-skz {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(0, 212, 255, 0.08));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(168, 85, 247, 0.15);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #00d4ff, #8a2be2);
+  background: linear-gradient(135deg, #a855f7, #00d4ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #f5a623, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.skz-glow {
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.4), 0 0 48px rgba(168, 85, 247, 0.15);
 }
 
 .safe-bottom {
@@ -55,4 +79,19 @@ body {
 /* Hide scrollbar for clean UI */
 ::-webkit-scrollbar {
   display: none;
+}
+
+/* SKZ coin animation */
+@keyframes skz-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(168, 85, 247, 0.8), 0 0 48px rgba(168, 85, 247, 0.3); }
+}
+
+.skz-coin {
+  animation: skz-pulse 2s ease-in-out infinite;
+}
+
+/* Tab bar */
+.tab-active {
+  color: var(--color-skz-light);
 }

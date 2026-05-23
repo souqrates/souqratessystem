@@ -13,7 +13,7 @@ export default function Wallets() {
   const [telegramId, setTelegramId] = useState("");
 
   const { data: userWithWallet, isLoading, isError } = useGetUserByTelegramId(telegramId, {
-    query: { enabled: !!telegramId }
+    query: { enabled: !!telegramId, queryKey: ["wallet", telegramId] }
   });
 
   const handleSearch = (e: React.FormEvent) => {

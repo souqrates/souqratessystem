@@ -6,9 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface CreditResponse {
+export interface DepositResponse {
   success: boolean;
   transactionId: number;
+  skzCredited: string;
   newSkzBalance: string;
-  commissionDeducted: string;
+  rateUsed: string;
 }

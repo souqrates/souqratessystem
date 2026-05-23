@@ -1,9 +1,8 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: Mother Bot API - Financial Hub for all child bots
+  version: 0.2.0
+  description: Mother Bot API - SKZ Financial Hub
 servers:
   - url: /api
     description: Base API path
@@ -22,6 +21,8 @@ tags:
     description: Commission tracking
   - name: withdrawals
     description: Withdrawal requests
+  - name: settings
+    description: Platform settings and SKZ rates
   - name: internal
     description: Internal API for child bots
 paths:
@@ -360,6 +361,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /settings/skz-rates:
+    get:
+      operationId: getSkzRates
+      tags: [settings]
+      summary: Get current SKZ exchange rates
+      responses:
+        "200":
+          description: Current SKZ rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkzRates"
+    put:
+      operationId: updateSkzRates
+      tags: [settings]
+      summary: Update SKZ exchange rates (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkzRatesInput"
+      responses:
+        "200":
+          description: Rates updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkzRates"
+
   /internal/users/upsert:
     post:
       operationId: internalUpsertUser
@@ -381,11 +412,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserWithWallet"
 
+  /internal/deposit:
+    post:
+      operationId: internalDeposit
+      tags: [internal]
+      summary: Deposit real currency, convert to SKZ (called by mother bot)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositBody"
+      responses:
+        "200":
+          description: Deposit successful, SKZ credited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepositResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /internal/credit:
     post:
       operationId: internalCredit
       tags: [internal]
-      summary: Credit a user wallet (called by child bots after earning)
+      summary: Credit SKZ to a user wallet (called by child bots after earning)
       security:
         - BotApiKey: []
       requestBody:
@@ -412,7 +470,7 @@ paths:
     post:
       operationId: internalDebit
       tags: [internal]
-      summary: Debit a user wallet (called by child bots for purchases)
+      summary: Debit SKZ from a user wallet (called by child bots for purchases)
       security:
         - BotApiKey: []
       requestBody:
@@ -472,6 +530,37 @@ components:
       required:
         - error
 
+    SkzRates:
+      type: object
+      properties:
+        skzPerUsdt:
+          type: string
+          description: How many SKZ per 1 USDT
+        skzPerStar:
+          type: string
+          description: How many SKZ per 1 Telegram Star
+        skzPerTon:
+          type: string
+          description: How many SKZ per 1 TON
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - skzPerUsdt
+        - skzPerStar
+        - skzPerTon
+        - updatedAt
+
+    SkzRatesInput:
+      type: object
+      properties:
+        skzPerUsdt:
+          type: string
+        skzPerStar:
+          type: string
+        skzPerTon:
+          type: string
+
     User:
       type: object
       properties:
@@ -480,23 +569,19 @@ components:
         telegramId:
           type: string
         username:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         firstName:
           type: string
         lastName:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         languageCode:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         isPremium:
           type: boolean
         isBlocked:
           type: boolean
         referrerId:
-          type: integer
-          nullable: true
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
@@ -515,11 +600,18 @@ components:
           type: integer
         userId:
           type: integer
+        balanceSkz:
+          type: string
+          description: Primary SKZ balance (main platform currency)
         balanceStars:
           type: string
         balanceUsdt:
           type: string
         balanceTon:
+          type: string
+        totalEarnedSkz:
+          type: string
+        totalWithdrawnSkz:
           type: string
         totalEarned:
           type: string
@@ -531,9 +623,12 @@ components:
       required:
         - id
         - userId
+        - balanceSkz
         - balanceStars
         - balanceUsdt
         - balanceTon
+        - totalEarnedSkz
+        - totalWithdrawnSkz
         - totalEarned
         - totalWithdrawn
         - updatedAt
@@ -586,14 +681,11 @@ components:
         status:
           type: string
         sourceBot:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         referenceId:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         description:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -636,8 +728,7 @@ components:
         name:
           type: string
         description:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         commissionRate:
           type: string
         isActive:
@@ -763,16 +854,13 @@ components:
         method:
           type: string
         address:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         txHash:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         status:
           type: string
         rejectedReason:
-          type: string
-          nullable: true
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -862,23 +950,58 @@ components:
         - telegramId
         - firstName
 
+    DepositBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        realCurrency:
+          type: string
+          enum: [usdt, stars, ton]
+        realAmount:
+          type: string
+        description:
+          type: string
+      required:
+        - telegramId
+        - realCurrency
+        - realAmount
+        - description
+
+    DepositResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: integer
+        skzCredited:
+          type: string
+        newSkzBalance:
+          type: string
+        rateUsed:
+          type: string
+      required:
+        - success
+        - transactionId
+        - skzCredited
+        - newSkzBalance
+        - rateUsed
+
     CreditBody:
       type: object
       properties:
         telegramId:
           type: string
-        currency:
-          type: string
-          enum: [stars, usdt, ton]
         amount:
           type: string
+          description: Amount in SKZ
         description:
           type: string
         referenceId:
           type: string
       required:
         - telegramId
-        - currency
         - amount
         - description
 
@@ -889,14 +1012,14 @@ components:
           type: boolean
         transactionId:
           type: integer
-        newBalance:
+        newSkzBalance:
           type: string
         commissionDeducted:
           type: string
       required:
         - success
         - transactionId
-        - newBalance
+        - newSkzBalance
         - commissionDeducted
 
     DebitBody:
@@ -904,18 +1027,15 @@ components:
       properties:
         telegramId:
           type: string
-        currency:
-          type: string
-          enum: [stars, usdt, ton]
         amount:
           type: string
+          description: Amount in SKZ
         description:
           type: string
         referenceId:
           type: string
       required:
         - telegramId
-        - currency
         - amount
         - description
 
@@ -926,38 +1046,41 @@ components:
           type: boolean
         transactionId:
           type: integer
-        newBalance:
+        newSkzBalance:
           type: string
       required:
         - success
         - transactionId
-        - newBalance
+        - newSkzBalance
 
     StatsOverview:
       type: object
       properties:
         totalUsers:
           type: integer
+        totalVolumeSkz:
+          type: string
         totalVolumeUsdt:
+          type: string
+        totalCommissionsSkz:
           type: string
         totalCommissionsUsdt:
           type: string
         pendingWithdrawals:
           type: integer
-        pendingWithdrawalsAmountUsdt:
-          type: string
         activeBots:
           type: integer
         todayTransactions:
           type: integer
-        todayVolumeUsdt:
-          type: string
+        skzRates:
+          $ref: "#/components/schemas/SkzRates"
       required:
         - totalUsers
+        - totalVolumeSkz
         - totalVolumeUsdt
+        - totalCommissionsSkz
         - totalCommissionsUsdt
         - pendingWithdrawals
-        - pendingWithdrawalsAmountUsdt
         - activeBots
         - todayTransactions
-        - todayVolumeUsdt
+        - skzRates

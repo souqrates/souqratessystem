@@ -8,6 +8,7 @@ import commissionsRouter from "./commissions";
 import withdrawalsRouter from "./withdrawals";
 import internalRouter from "./internal";
 import statsRouter from "./stats";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(commissionsRouter);
 router.use(withdrawalsRouter);
 router.use(internalRouter);
 router.use(statsRouter);
+router.use(settingsRouter);
 
 export default router;

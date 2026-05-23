@@ -7,20 +7,21 @@ import {
   transactionsTable,
   botsTable,
   commissionsTable,
+  platformSettingsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
 async function getBotByApiKey(apiKey: string) {
-  const [bot] = await db
-    .select()
-    .from(botsTable)
-    .where(eq(botsTable.apiKey, apiKey));
+  const [bot] = await db.select().from(botsTable).where(eq(botsTable.apiKey, apiKey));
   return bot ?? null;
 }
 
-async function requireBot(req: Parameters<Parameters<typeof router.post>[1]>[0], res: Parameters<Parameters<typeof router.post>[1]>[1]): Promise<typeof botsTable.$inferSelect | null> {
+async function requireBot(
+  req: Parameters<Parameters<typeof router.post>[1]>[0],
+  res: Parameters<Parameters<typeof router.post>[1]>[1]
+): Promise<typeof botsTable.$inferSelect | null> {
   const apiKey = req.headers["x-bot-api-key"] as string | undefined;
   if (!apiKey) {
     res.status(401).json({ error: "Missing X-Bot-Api-Key header" });
@@ -34,19 +35,33 @@ async function requireBot(req: Parameters<Parameters<typeof router.post>[1]>[0],
   return bot;
 }
 
+async function getSkzRates(): Promise<{ perUsdt: number; perStar: number; perTon: number }> {
+  const settings = await db.select().from(platformSettingsTable)
+    .where(sql`key IN ('skz_per_usdt', 'skz_per_star', 'skz_per_ton')`);
+  const map: Record<string, number> = {};
+  for (const s of settings) map[s.key] = parseFloat(s.value);
+  return {
+    perUsdt: map["skz_per_usdt"] ?? 100,
+    perStar: map["skz_per_star"] ?? 1,
+    perTon: map["skz_per_ton"] ?? 500,
+  };
+}
+
+// Upsert user (called by child bots on each interaction)
 router.post("/internal/users/upsert", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, username, firstName, lastName, languageCode, isPremium, referrerTelegramId } = req.body as {
-    telegramId: string;
-    username?: string;
-    firstName: string;
-    lastName?: string;
-    languageCode?: string;
-    isPremium?: boolean;
-    referrerTelegramId?: string;
-  };
+  const { telegramId, username, firstName, lastName, languageCode, isPremium, referrerTelegramId } =
+    req.body as {
+      telegramId: string;
+      username?: string;
+      firstName: string;
+      lastName?: string;
+      languageCode?: string;
+      isPremium?: boolean;
+      referrerTelegramId?: string;
+    };
 
   if (!telegramId || !firstName) {
     res.status(400).json({ error: "telegramId and firstName are required" });
@@ -91,26 +106,121 @@ router.post("/internal/users/upsert", async (req, res): Promise<void> => {
     .onConflictDoNothing()
     .returning();
 
-  const finalWallet = wallet ?? (await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id)))[0];
+  const finalWallet =
+    wallet ??
+    (await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id)))[0];
 
-  req.log.info({ telegramId, botSlug: bot.slug }, "User upserted via internal API");
+  req.log.info({ telegramId, botSlug: bot.slug }, "User upserted");
   res.json({ user, wallet: finalWallet });
 });
 
+// Deposit real currency → convert to SKZ (called by mother bot when user deposits)
+router.post("/internal/deposit", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, realCurrency, realAmount, description } = req.body as {
+    telegramId: string;
+    realCurrency: "usdt" | "stars" | "ton";
+    realAmount: string;
+    description: string;
+  };
+
+  if (!telegramId || !realCurrency || !realAmount || !description) {
+    res.status(400).json({ error: "telegramId, realCurrency, realAmount, description are required" });
+    return;
+  }
+
+  const realAmountNum = parseFloat(realAmount);
+  if (isNaN(realAmountNum) || realAmountNum <= 0) {
+    res.status(400).json({ error: "Invalid amount" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found — call /internal/users/upsert first" });
+    return;
+  }
+
+  const rates = await getSkzRates();
+  let skzRate: number;
+  if (realCurrency === "usdt") skzRate = rates.perUsdt;
+  else if (realCurrency === "stars") skzRate = rates.perStar;
+  else skzRate = rates.perTon;
+
+  const skzAmount = realAmountNum * skzRate;
+
+  const [transaction] = await db
+    .insert(transactionsTable)
+    .values({
+      userId: user.id,
+      type: "credit",
+      currency: "skz",
+      amount: String(skzAmount.toFixed(2)),
+      fee: "0",
+      status: "completed",
+      sourceBot: bot.slug,
+      description: `${description} (${realAmountNum} ${realCurrency.toUpperCase()} → ${skzAmount.toFixed(2)} SKZ)`,
+    })
+    .returning();
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
+  if (!wallet) {
+    res.status(500).json({ error: "Wallet not found" });
+    return;
+  }
+
+  const newSkzBalance = (parseFloat(wallet.balanceSkz) + skzAmount).toFixed(2);
+  const newTotalEarned = (parseFloat(wallet.totalEarnedSkz) + skzAmount).toFixed(2);
+
+  // Also store real currency deposit
+  let realBalanceUpdate = {};
+  if (realCurrency === "usdt") {
+    realBalanceUpdate = { balanceUsdt: String((parseFloat(wallet.balanceUsdt) + realAmountNum).toFixed(6)) };
+  } else if (realCurrency === "stars") {
+    realBalanceUpdate = { balanceStars: String(parseFloat(wallet.balanceStars) + realAmountNum) };
+  } else {
+    realBalanceUpdate = { balanceTon: String((parseFloat(wallet.balanceTon) + realAmountNum).toFixed(9)) };
+  }
+
+  await db.update(walletsTable).set({
+    balanceSkz: newSkzBalance,
+    totalEarnedSkz: newTotalEarned,
+    ...realBalanceUpdate,
+  }).where(eq(walletsTable.id, wallet.id));
+
+  req.log.info({ telegramId, realCurrency, realAmount, skzAmount }, "Deposit converted to SKZ");
+
+  res.json({
+    success: true,
+    transactionId: transaction.id,
+    skzCredited: String(skzAmount.toFixed(2)),
+    newSkzBalance,
+    rateUsed: String(skzRate),
+  });
+});
+
+// Credit SKZ to user (child bots give user SKZ for completing tasks/earning)
 router.post("/internal/credit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, currency, amount, description, referenceId } = req.body as {
+  const { telegramId, amount, description, referenceId } = req.body as {
     telegramId: string;
-    currency: "stars" | "usdt" | "ton";
     amount: string;
     description: string;
     referenceId?: string;
   };
 
-  if (!telegramId || !currency || !amount || !description) {
-    res.status(400).json({ error: "telegramId, currency, amount, and description are required" });
+  if (!telegramId || !amount || !description) {
+    res.status(400).json({ error: "telegramId, amount, description are required" });
     return;
   }
 
@@ -120,9 +230,12 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.telegramId, BigInt(telegramId)));
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
   if (!user) {
-    res.status(404).json({ error: "User not found — call /internal/users/upsert first" });
+    res.status(404).json({ error: "User not found" });
     return;
   }
 
@@ -135,9 +248,9 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     .values({
       userId: user.id,
       type: "credit",
-      currency,
-      amount: String(amountNum),
-      fee: String(commissionAmount.toFixed(9)),
+      currency: "skz",
+      amount: String(amountNum.toFixed(2)),
+      fee: String(commissionAmount.toFixed(2)),
       status: "completed",
       sourceBot: bot.slug,
       referenceId: referenceId ?? null,
@@ -145,42 +258,30 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     })
     .returning();
 
-  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
   if (!wallet) {
     res.status(500).json({ error: "Wallet not found" });
     return;
   }
 
-  let newBalance: string;
-  if (currency === "stars") {
-    newBalance = String(parseFloat(wallet.balanceStars) + netAmount);
-    await db.update(walletsTable).set({
-      balanceStars: newBalance,
-      totalEarned: String(parseFloat(wallet.totalEarned) + netAmount),
-    }).where(eq(walletsTable.id, wallet.id));
-  } else if (currency === "usdt") {
-    newBalance = String((parseFloat(wallet.balanceUsdt) + netAmount).toFixed(6));
-    await db.update(walletsTable).set({
-      balanceUsdt: newBalance,
-      totalEarned: String((parseFloat(wallet.totalEarned) + netAmount).toFixed(6)),
-    }).where(eq(walletsTable.id, wallet.id));
-  } else {
-    newBalance = String((parseFloat(wallet.balanceTon) + netAmount).toFixed(9));
-    await db.update(walletsTable).set({
-      balanceTon: newBalance,
-      totalEarned: String((parseFloat(wallet.totalEarned) + netAmount).toFixed(9)),
-    }).where(eq(walletsTable.id, wallet.id));
-  }
+  const newSkzBalance = (parseFloat(wallet.balanceSkz) + netAmount).toFixed(2);
+  await db.update(walletsTable).set({
+    balanceSkz: newSkzBalance,
+    totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + netAmount).toFixed(2)),
+  }).where(eq(walletsTable.id, wallet.id));
 
   await db.insert(commissionsTable).values({
     transactionId: transaction.id,
     botSlug: bot.slug,
     userId: user.id,
-    grossAmount: String(amountNum),
+    grossAmount: String(amountNum.toFixed(2)),
     commissionRate: String(commissionRate),
-    commissionAmount: String(commissionAmount.toFixed(9)),
-    netAmount: String(netAmount.toFixed(9)),
-    currency,
+    commissionAmount: String(commissionAmount.toFixed(2)),
+    netAmount: String(netAmount.toFixed(2)),
+    currency: "skz",
   });
 
   await db.update(botsTable).set({
@@ -188,30 +289,30 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
   }).where(eq(botsTable.id, bot.id));
 
-  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, userId: user.id, amount, currency }, "Credit applied");
+  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount, skzNet: netAmount }, "SKZ credited");
 
   res.json({
     success: true,
     transactionId: transaction.id,
-    newBalance,
-    commissionDeducted: String(commissionAmount.toFixed(9)),
+    newSkzBalance,
+    commissionDeducted: String(commissionAmount.toFixed(2)),
   });
 });
 
+// Debit SKZ from user (child bots charge user SKZ for purchases/games)
 router.post("/internal/debit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, currency, amount, description, referenceId } = req.body as {
+  const { telegramId, amount, description, referenceId } = req.body as {
     telegramId: string;
-    currency: "stars" | "usdt" | "ton";
     amount: string;
     description: string;
     referenceId?: string;
   };
 
-  if (!telegramId || !currency || !amount || !description) {
-    res.status(400).json({ error: "telegramId, currency, amount, and description are required" });
+  if (!telegramId || !amount || !description) {
+    res.status(400).json({ error: "telegramId, amount, description are required" });
     return;
   }
 
@@ -221,25 +322,27 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.telegramId, BigInt(telegramId)));
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
 
-  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
   if (!wallet) {
     res.status(500).json({ error: "Wallet not found" });
     return;
   }
 
-  let currentBalance = 0;
-  if (currency === "stars") currentBalance = parseFloat(wallet.balanceStars);
-  else if (currency === "usdt") currentBalance = parseFloat(wallet.balanceUsdt);
-  else if (currency === "ton") currentBalance = parseFloat(wallet.balanceTon);
-
-  if (currentBalance < amountNum) {
-    res.status(400).json({ error: "Insufficient balance" });
+  const currentSkz = parseFloat(wallet.balanceSkz);
+  if (currentSkz < amountNum) {
+    res.status(400).json({ error: "Insufficient SKZ balance" });
     return;
   }
 
@@ -248,7 +351,7 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     .values({
       userId: user.id,
       type: "debit",
-      currency,
+      currency: "skz",
       amount: String(-amountNum),
       fee: "0",
       status: "completed",
@@ -258,24 +361,15 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     })
     .returning();
 
-  let newBalance: string;
-  if (currency === "stars") {
-    newBalance = String(parseFloat(wallet.balanceStars) - amountNum);
-    await db.update(walletsTable).set({ balanceStars: newBalance }).where(eq(walletsTable.id, wallet.id));
-  } else if (currency === "usdt") {
-    newBalance = String((parseFloat(wallet.balanceUsdt) - amountNum).toFixed(6));
-    await db.update(walletsTable).set({ balanceUsdt: newBalance }).where(eq(walletsTable.id, wallet.id));
-  } else {
-    newBalance = String((parseFloat(wallet.balanceTon) - amountNum).toFixed(9));
-    await db.update(walletsTable).set({ balanceTon: newBalance }).where(eq(walletsTable.id, wallet.id));
-  }
+  const newSkzBalance = (currentSkz - amountNum).toFixed(2);
+  await db.update(walletsTable).set({ balanceSkz: newSkzBalance }).where(eq(walletsTable.id, wallet.id));
 
-  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, userId: user.id, amount, currency }, "Debit applied");
+  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount }, "SKZ debited");
 
   res.json({
     success: true,
     transactionId: transaction.id,
-    newBalance,
+    newSkzBalance,
   });
 });
 
