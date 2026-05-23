@@ -63,4 +63,4 @@ channel = "stable-25_05"
 [userenv.shared]
 MOTHER_BOT_API_KEY = "0760e93a6386f1015f798c507fa545c89b3171c8c2b8014965fd42c23a772067"
 MOTHER_API_URL = "http://localhost:80/api"
-MINI_APP_URL = "https://www.souqrates.com/"
+MINI_APP_URL = "https://souqrates.com/"
