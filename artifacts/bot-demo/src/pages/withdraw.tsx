@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MOCK_BALANCES } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
-import { Zap, AlertCircle, ChevronDown, Check } from "lucide-react";
+import { Zap, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Target = "usdt" | "ton";
@@ -10,7 +10,6 @@ export function Withdraw() {
   const [target, setTarget] = useState<Target>("usdt");
   const [skzAmount, setSkzAmount] = useState("");
   const [address, setAddress] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
   const { settings } = usePlatformSettings();
 
   const getRate = () => (target === "usdt" ? settings.skzPerUsdt : settings.skzPerTon);
@@ -37,8 +36,8 @@ export function Withdraw() {
     <div className="px-4 pt-4 pb-8 space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black">سحب SKZ</h1>
-        <p className="text-[11px] text-white/40 font-medium mt-0.5">حوّل SKZ إلى عملة خارجية</p>
+        <h1 className="text-2xl font-black">Withdraw SKZ</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">Convert SKZ to external currency</p>
       </div>
 
       {/* Balance card */}
@@ -54,8 +53,8 @@ export function Withdraw() {
             S
           </div>
           <div>
-            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">رصيد متاح</p>
-            <p className="text-xl font-black gradient-text">{maxSkz.toLocaleString("ar-SA")}</p>
+            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Available Balance</p>
+            <p className="text-xl font-black gradient-text">{maxSkz.toLocaleString()}</p>
           </div>
         </div>
         <div className="text-right">
@@ -66,7 +65,7 @@ export function Withdraw() {
 
       {/* Target currency */}
       <div>
-        <p className="section-label mb-3">تحويل إلى</p>
+        <p className="section-label mb-3">Convert To</p>
         <div className="grid grid-cols-2 gap-2.5">
           {TARGETS.map((t) => {
             const isActive = target === t.id;
@@ -75,7 +74,7 @@ export function Withdraw() {
                 key={t.id}
                 onClick={() => setTarget(t.id)}
                 whileTap={{ scale: 0.96 }}
-                className="p-4 rounded-2xl text-right transition-all"
+                className="p-4 rounded-2xl text-left transition-all"
                 style={{
                   background: isActive ? `${t.color}12` : "rgba(255,255,255,0.04)",
                   border: isActive ? `1.5px solid ${t.color}40` : "1.5px solid rgba(255,255,255,0.07)",
@@ -100,13 +99,13 @@ export function Withdraw() {
       {/* SKZ amount */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="section-label">المبلغ بـ SKZ</p>
+          <p className="section-label">Amount in SKZ</p>
           <motion.button
             onClick={() => setSkzAmount(maxSkz.toString())}
             whileTap={{ scale: 0.93 }}
             className="chip chip-skz pressable"
           >
-            الكل — {maxSkz.toLocaleString()}
+            Max — {maxSkz.toLocaleString()}
           </motion.button>
         </div>
 
@@ -131,7 +130,7 @@ export function Withdraw() {
               initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="text-[11px] text-danger flex items-center gap-1.5 font-bold"
             >
-              <AlertCircle size={12} /> يتجاوز الرصيد المتاح
+              <AlertCircle size={12} /> Exceeds available balance
             </motion.p>
           )}
           {isBelowMin && (
@@ -139,7 +138,7 @@ export function Withdraw() {
               initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="text-[11px] text-warn flex items-center gap-1.5 font-bold"
             >
-              <AlertCircle size={12} /> الحد الأدنى {minSkz.toLocaleString()} SKZ
+              <AlertCircle size={12} /> Minimum is {minSkz.toLocaleString()} SKZ
             </motion.p>
           )}
         </AnimatePresence>
@@ -147,12 +146,12 @@ export function Withdraw() {
 
       {/* Wallet address */}
       <div className="space-y-2">
-        <p className="section-label">عنوان المحفظة ({target === "usdt" ? "TRC20" : "TON"})</p>
+        <p className="section-label">Wallet Address ({target === "usdt" ? "TRC20" : "TON"})</p>
         <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder={`أدخل عنوان ${target.toUpperCase()}...`}
+          placeholder={`Enter ${target.toUpperCase()} address...`}
           className="premium-input w-full px-4 py-3.5 text-sm font-mono text-left"
           dir="ltr"
         />
@@ -170,9 +169,9 @@ export function Withdraw() {
           >
             <div className="p-1">
               {[
-                { label: "المبلغ (SKZ)", value: `${numSkz.toLocaleString("ar-SA")} SKZ`, color: "rgba(255,255,255,0.85)" },
-                { label: "يُعادل", value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
-                { label: `رسوم الشبكة (${(feePercent * 100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`, color: "#f87171" },
+                { label: "Amount (SKZ)",                           value: `${numSkz.toLocaleString()} SKZ`,           color: "rgba(255,255,255,0.85)" },
+                { label: "Equivalent",                             value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
+                { label: `Network Fee (${(feePercent*100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`,  color: "#f87171" },
               ].map((row, i) => (
                 <div key={i} className="flex justify-between items-center px-4 py-3">
                   <span className="text-[12px] text-white/45 font-medium">{row.label}</span>
@@ -181,7 +180,7 @@ export function Withdraw() {
               ))}
               <div className="divider mx-3" />
               <div className="flex justify-between items-center px-4 py-3.5">
-                <span className="text-sm font-bold text-white/70">صافي الاستلام</span>
+                <span className="text-sm font-bold text-white/70">You Receive</span>
                 <span className="text-lg font-black text-success">
                   {netReal.toFixed(target === "usdt" ? 2 : 4)} {target.toUpperCase()}
                 </span>
@@ -202,7 +201,7 @@ export function Withdraw() {
           opacity: isValid ? 1 : 0.4,
         }}
       >
-        {isValid ? `سحب ${netReal.toFixed(2)} ${target.toUpperCase()}` : "أدخل التفاصيل"}
+        {isValid ? `Withdraw ${netReal.toFixed(2)} ${target.toUpperCase()}` : "Enter Details"}
       </motion.button>
     </div>
   );

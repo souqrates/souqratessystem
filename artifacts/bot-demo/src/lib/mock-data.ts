@@ -1,6 +1,6 @@
 export const MOCK_USER = {
-  firstName: "أحمد",
-  lastName: "محمد",
+  firstName: "Ahmed",
+  lastName: "M.",
   username: "ahmed_m",
   isPremium: true,
   avatarUrl: null,
@@ -22,15 +22,15 @@ export const SKZ_RATES = {
 };
 
 export const MOCK_TRANSACTIONS = [
-  { id: "1", type: "credit", bot: "الألعاب", botIcon: "🎮", amount: "+250", currency: "SKZ", date: "اليوم 14:30" },
-  { id: "2", type: "credit", bot: "الفيديو", botIcon: "🎬", amount: "+500", currency: "SKZ", date: "اليوم 10:15" },
-  { id: "3", type: "debit", bot: "سحب", botIcon: "📤", amount: "-1000", currency: "SKZ", date: "أمس 18:45" },
-  { id: "4", type: "credit", bot: "المتجر", botIcon: "🛒", amount: "+150", currency: "SKZ", date: "أمس 09:20" },
-  { id: "5", type: "credit", bot: "إيداع", botIcon: "📥", amount: "+1250", currency: "SKZ", date: "منذ يومين 11:00" },
+  { id: "1", type: "credit", bot: "Games",   botIcon: "🎮", amount: "+250",  currency: "SKZ", date: "Today 14:30" },
+  { id: "2", type: "credit", bot: "Video",   botIcon: "🎬", amount: "+500",  currency: "SKZ", date: "Today 10:15" },
+  { id: "3", type: "debit",  bot: "Withdraw",botIcon: "📤", amount: "-1000", currency: "SKZ", date: "Yesterday 18:45" },
+  { id: "4", type: "credit", bot: "Store",   botIcon: "🛒", amount: "+150",  currency: "SKZ", date: "Yesterday 09:20" },
+  { id: "5", type: "credit", bot: "Deposit", botIcon: "📥", amount: "+1250", currency: "SKZ", date: "2 days ago 11:00" },
 ];
 
 export const MOCK_REFERRALS = [
-  { id: "1", name: "خالد س.", earnings: "120 SKZ", date: "انضم منذ يومين" },
-  { id: "2", name: "سارة م.", earnings: "80 SKZ", date: "انضمت منذ أسبوع" },
-  { id: "3", name: "عمر ف.", earnings: "40 SKZ", date: "انضم منذ شهر" },
+  { id: "1", name: "Khalid S.", earnings: "120 SKZ", date: "Joined 2 days ago" },
+  { id: "2", name: "Sara M.",   earnings: "80 SKZ",  date: "Joined a week ago" },
+  { id: "3", name: "Omar F.",   earnings: "40 SKZ",  date: "Joined a month ago" },
 ];

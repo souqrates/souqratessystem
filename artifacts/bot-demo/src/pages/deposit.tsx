@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, CircleDollarSign, Gem, Copy, Check, Zap, ChevronLeft } from "lucide-react";
+import { Star, CircleDollarSign, Gem, Copy, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 
@@ -21,7 +21,7 @@ export function Deposit() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: "✓ تم النسخ" });
+      window.Telegram.WebApp.showPopup({ message: "✓ Copied!" });
     }
   };
 
@@ -56,11 +56,9 @@ export function Deposit() {
   return (
     <div className="px-4 pt-4 pb-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-black">إيداع SKZ</h1>
-          <p className="text-[11px] text-white/40 font-medium mt-0.5">أودع وحوّل تلقائياً إلى SKZ</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-black">Deposit SKZ</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">Deposit and auto-convert to SKZ</p>
       </div>
 
       {/* Conversion banner */}
@@ -73,14 +71,14 @@ export function Deposit() {
           <span className="text-white font-black text-sm">S</span>
         </div>
         <div>
-          <p className="text-sm font-bold text-skz-light">يُحوَّل تلقائياً إلى SKZ</p>
-          <p className="text-[11px] text-white/40">بالمعدل الحالي المحدد من الإدارة</p>
+          <p className="text-sm font-bold text-skz-light">Auto-converted to SKZ</p>
+          <p className="text-[11px] text-white/40">At the current rate set by the admin</p>
         </div>
       </div>
 
       {/* Method tabs */}
       <div>
-        <p className="section-label mb-3">اختر طريقة الإيداع</p>
+        <p className="section-label mb-3">Select Deposit Method</p>
         <div className="space-y-2.5">
           {METHODS.map((m) => {
             const isActive = method === m.id;
@@ -138,7 +136,7 @@ export function Deposit() {
             className="space-y-4"
           >
             <div className="divider" />
-            <p className="section-label">اختر عدد النجوم</p>
+            <p className="section-label">Select Star Amount</p>
             <div className="grid grid-cols-3 gap-2">
               {STAR_AMOUNTS.map((val) => {
                 const isSelected = amount === val.toString();
@@ -167,10 +165,10 @@ export function Deposit() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="glass-card-skz rounded-2xl p-4 flex items-center justify-between"
               >
-                <p className="text-sm text-white/60">ستحصل على</p>
+                <p className="text-sm text-white/60">You will receive</p>
                 <div className="flex items-center gap-2">
                   <Zap size={15} className="text-skz-light" />
-                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString("ar-SA")}</p>
+                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
                   <p className="text-sm text-white/40 font-bold">SKZ</p>
                 </div>
               </motion.div>
@@ -187,8 +185,8 @@ export function Deposit() {
               }}
             >
               {amount
-                ? `ادفع ${parseInt(amount).toLocaleString()} ⭐ ← ${skzPreview?.toLocaleString()} SKZ`
-                : "اختر عدد النجوم"}
+                ? `Pay ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ`
+                : "Select Star Amount"}
             </motion.button>
           </motion.div>
         )}
@@ -206,7 +204,7 @@ export function Deposit() {
 
             {/* Amount input */}
             <div className="space-y-2">
-              <p className="section-label">المبلغ ({method.toUpperCase()})</p>
+              <p className="section-label">Amount ({method.toUpperCase()})</p>
               <div className="relative">
                 <input
                   type="number"
@@ -228,10 +226,10 @@ export function Deposit() {
                     exit={{ opacity: 0, height: 0 }}
                     className="glass-card-skz rounded-2xl p-3.5 flex items-center justify-between"
                   >
-                    <p className="text-sm text-white/50">ستحصل على</p>
+                    <p className="text-sm text-white/50">You will receive</p>
                     <div className="flex items-center gap-2">
                       <Zap size={14} className="text-skz-light" />
-                      <p className="font-black text-xl gradient-text">{skzPreview.toLocaleString("ar-SA")}</p>
+                      <p className="font-black text-xl gradient-text">{skzPreview.toLocaleString()}</p>
                       <span className="text-[11px] text-white/40 font-bold">SKZ</span>
                     </div>
                   </motion.div>
@@ -249,7 +247,7 @@ export function Deposit() {
                   <div className="absolute bottom-0 left-0 w-8 h-8 bg-gray-700 rounded-sm" />
                 </div>
               </div>
-              <p className="text-[11px] text-white/35 font-medium">امسح QR لنسخ العنوان</p>
+              <p className="text-[11px] text-white/35 font-medium">Scan QR to copy address</p>
             </div>
 
             {/* Address */}
@@ -257,7 +255,7 @@ export function Deposit() {
               className="rounded-2xl p-4 relative"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              <p className="section-label mb-2">عنوان الإيداع ({method === "usdt" ? "TRC20" : "TON Network"})</p>
+              <p className="section-label mb-2">Deposit Address ({method === "usdt" ? "TRC20" : "TON Network"})</p>
               <p className="font-mono text-sm text-white/70 break-all pr-12 leading-relaxed text-left" dir="ltr">
                 {method === "usdt" ? address : tonAddress}
               </p>
@@ -278,10 +276,10 @@ export function Deposit() {
               className="rounded-2xl p-4 space-y-1.5 text-[11px] font-medium"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <p className="text-danger font-bold">⚠ أرسل فقط {method.toUpperCase()} على هذه الشبكة</p>
-              <p className="text-white/40">الحد الأدنى: {method === "usdt" ? `${settings.minDepositUsdt} USDT` : `${settings.minDepositTon} TON`}</p>
-              <p className="text-white/40">يُضاف تلقائياً بـ SKZ بعد تأكيد الشبكة</p>
-              <p style={{ color: selected.color }}>معدل اليوم: 1 {method.toUpperCase()} = {getRate()} SKZ</p>
+              <p className="text-danger font-bold">⚠ Send only {method.toUpperCase()} on this network</p>
+              <p className="text-white/40">Minimum: {method === "usdt" ? `${settings.minDepositUsdt} USDT` : `${settings.minDepositTon} TON`}</p>
+              <p className="text-white/40">Auto-credited in SKZ after network confirmation</p>
+              <p style={{ color: selected.color }}>Today's rate: 1 {method.toUpperCase()} = {getRate()} SKZ</p>
             </div>
 
             <motion.button
@@ -294,7 +292,7 @@ export function Deposit() {
                 opacity: amount ? 1 : 0.45,
               }}
             >
-              {amount ? `تأكيد الإيداع` : "أدخل المبلغ"}
+              {amount ? "Confirm Deposit" : "Enter Amount"}
             </motion.button>
           </motion.div>
         )}

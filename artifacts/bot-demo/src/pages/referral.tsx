@@ -22,7 +22,7 @@ export function Referral() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
     if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: "✓ تم نسخ الرابط" });
+      window.Telegram.WebApp.showPopup({ message: "✓ Link copied!" });
     }
   };
 
@@ -37,9 +37,9 @@ export function Referral() {
   };
 
   const TIERS = [
-    { level: "L1", pct: settings.referralBonusPercent, label: "الجيل الأول",  color: "#a855f7", glow: "rgba(168,85,247,0.3)", icon: "👥" },
-    { level: "L2", pct: settings.referralL2Percent,    label: "الجيل الثاني", color: "#22d3ee", glow: "rgba(34,211,238,0.3)",  icon: "🌊" },
-    { level: "L3", pct: settings.referralL3Percent,    label: "الجيل الثالث", color: "#10b981", glow: "rgba(16,185,129,0.3)",  icon: "🌱" },
+    { level: "L1", pct: settings.referralBonusPercent, label: "Generation 1", color: "#a855f7", glow: "rgba(168,85,247,0.3)", icon: "👥" },
+    { level: "L2", pct: settings.referralL2Percent,    label: "Generation 2", color: "#22d3ee", glow: "rgba(34,211,238,0.3)",  icon: "🌊" },
+    { level: "L3", pct: settings.referralL3Percent,    label: "Generation 3", color: "#10b981", glow: "rgba(16,185,129,0.3)",  icon: "🌱" },
   ];
 
   return (
@@ -63,11 +63,11 @@ export function Referral() {
           >
             <Users size={28} className="text-skz-light" />
           </div>
-          <h1 className="text-2xl font-black mb-2">نظام الإحالة</h1>
+          <h1 className="text-2xl font-black mb-2">Referral System</h1>
           <p className="text-[12px] text-white/50 leading-relaxed max-w-[260px] mx-auto">
-            ادعُ أصدقاءك واكسب حتى{" "}
+            Invite friends and earn up to{" "}
             <span className="text-skz-light font-bold">{settings.referralBonusPercent}%</span>
-            {" "}من أرباحهم بـ SKZ — مدى الحياة
+            {" "}of their SKZ earnings — for life
           </p>
         </div>
       </motion.div>
@@ -79,7 +79,7 @@ export function Referral() {
           style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}
         >
           <div>
-            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">إجمالي أرباح الإحالات</p>
+            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Total Referral Earnings</p>
             <div className="flex items-center gap-2 mt-1">
               <Zap size={16} className="text-skz-light" />
               <p className="text-2xl font-black gradient-text">240</p>
@@ -87,7 +87,7 @@ export function Referral() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-white/40 font-medium">الأصدقاء</p>
+            <p className="text-[10px] text-white/40 font-medium">Friends</p>
             <p className="text-3xl font-black text-white">{MOCK_REFERRALS.length}</p>
           </div>
         </div>
@@ -95,7 +95,7 @@ export function Referral() {
 
       {/* Commission tiers */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">مستويات العمولة</p>
+        <p className="section-label mb-3">Commission Tiers</p>
         <div className="grid grid-cols-3 gap-2">
           {TIERS.map((tier) => (
             <div
@@ -117,17 +117,13 @@ export function Referral() {
 
       {/* Referral link card */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">رابط الدعوة</p>
+        <p className="section-label mb-3">Your Invite Link</p>
         <div
           className="rounded-2xl overflow-hidden"
           style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}
         >
-          {/* Link display */}
           <div className="px-4 py-4 flex items-center justify-between gap-3">
-            <p
-              className="font-mono text-[12px] text-white/60 truncate flex-1 text-left"
-              dir="ltr"
-            >
+            <p className="font-mono text-[12px] text-white/60 truncate flex-1 text-left" dir="ltr">
               {refLink}
             </p>
             <motion.button
@@ -146,7 +142,6 @@ export function Referral() {
 
           <div className="divider mx-0" />
 
-          {/* Share button */}
           <motion.button
             onClick={handleShare}
             whileTap={{ scale: 0.97 }}
@@ -154,7 +149,7 @@ export function Referral() {
             style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", color: "white" }}
           >
             <Share2 size={18} />
-            مشاركة الرابط
+            Share Link
           </motion.button>
         </div>
       </motion.div>
@@ -162,10 +157,10 @@ export function Referral() {
       {/* Friends list */}
       <motion.div variants={fadeUp}>
         <div className="flex items-center justify-between mb-3">
-          <p className="section-label">أصدقاؤك ({MOCK_REFERRALS.length})</p>
+          <p className="section-label">Your Friends ({MOCK_REFERRALS.length})</p>
           <div className="flex items-center gap-1">
             <TrendingUp size={11} className="text-success" />
-            <span className="text-[11px] text-success font-bold">نشط</span>
+            <span className="text-[11px] text-success font-bold">Active</span>
           </div>
         </div>
 
@@ -196,7 +191,7 @@ export function Referral() {
           ))}
           <div className="divider" />
           <button className="w-full flex items-center justify-between px-4 py-4 text-sm text-white/40 hover:text-white/60 transition-colors">
-            <span className="font-medium">عرض جميع الأصدقاء</span>
+            <span className="font-medium">View All Friends</span>
             <ChevronLeft size={16} />
           </button>
         </div>
@@ -204,12 +199,12 @@ export function Referral() {
 
       {/* How it works */}
       <motion.div variants={fadeUp} className="pb-4">
-        <p className="section-label mb-4">كيف يعمل؟</p>
+        <p className="section-label mb-4">How It Works</p>
         <div className="space-y-3">
           {[
-            { step: "01", text: "شارك رابط الإحالة مع أصدقائك.", color: "#a855f7" },
-            { step: "02", text: "يسجلون ويبدأون استخدام البوتات المختلفة.", color: "#22d3ee" },
-            { step: "03", text: `تحصل على ${settings.referralBonusPercent}% من الجيل 1، ${settings.referralL2Percent}% من 2، ${settings.referralL3Percent}% من 3 — بـ SKZ تلقائياً.`, color: "#10b981" },
+            { step: "01", text: "Share your referral link with friends.", color: "#a855f7" },
+            { step: "02", text: "They sign up and start using the bots.", color: "#22d3ee" },
+            { step: "03", text: `Earn ${settings.referralBonusPercent}% from Gen 1, ${settings.referralL2Percent}% from Gen 2, ${settings.referralL3Percent}% from Gen 3 — in SKZ automatically.`, color: "#10b981" },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 items-start">
               <div

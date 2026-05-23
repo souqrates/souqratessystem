@@ -22,8 +22,8 @@ export function Wallet() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black">المحفظة</h1>
-          <p className="text-[11px] text-white/40 font-medium mt-0.5">جميع أرصدتك في مكان واحد</p>
+          <h1 className="text-2xl font-black">Wallet</h1>
+          <p className="text-[11px] text-white/40 font-medium mt-0.5">All your balances in one place</p>
         </div>
         <div className="chip chip-skz">
           <Zap size={10} />
@@ -48,13 +48,13 @@ export function Wallet() {
                 S
               </div>
               <div>
-                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">الرصيد الأساسي</p>
+                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Main Balance</p>
                 <p className="text-[11px] text-white/30 font-medium">≈ ${usdtEquiv} USDT</p>
               </div>
             </div>
 
             <h2 className="text-5xl font-black gradient-text tracking-tight mb-6">
-              {MOCK_BALANCES.skz.toLocaleString("ar-SA")}
+              {MOCK_BALANCES.skz.toLocaleString()}
               <span className="text-xl text-white/40 ml-2">SKZ</span>
             </h2>
 
@@ -66,7 +66,7 @@ export function Wallet() {
                   style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", boxShadow: "0 4px 20px rgba(147,51,234,0.4)" }}
                 >
                   <Download size={16} />
-                  إيداع
+                  Deposit
                 </motion.button>
               </Link>
               <Link href="/withdraw">
@@ -75,7 +75,7 @@ export function Wallet() {
                   className="w-full glass-card flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
                 >
                   <Upload size={16} className="text-white/60" />
-                  <span className="text-white/80">سحب</span>
+                  <span className="text-white/80">Withdraw</span>
                 </motion.button>
               </Link>
             </div>
@@ -86,8 +86,8 @@ export function Wallet() {
       {/* Stats row */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
         {[
-          { icon: TrendingUp, label: "إجمالي المكتسب", value: MOCK_BALANCES.totalEarnedSkz, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-          { icon: ArrowUpRight, label: "محول للخارج",    value: MOCK_BALANCES.totalWithdrawnSkz, color: "rgba(255,255,255,0.5)", bg: "rgba(255,255,255,0.05)" },
+          { icon: TrendingUp,  label: "Total Earned",  value: MOCK_BALANCES.totalEarnedSkz,    color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+          { icon: ArrowUpRight, label: "Withdrawn",    value: MOCK_BALANCES.totalWithdrawnSkz, color: "rgba(255,255,255,0.5)", bg: "rgba(255,255,255,0.05)" },
         ].map((s) => (
           <div key={s.label} className="glass-card rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2.5">
@@ -96,7 +96,7 @@ export function Wallet() {
               </div>
               <p className="text-[11px] text-white/45 font-medium">{s.label}</p>
             </div>
-            <p className="text-xl font-black" style={{ color: s.color }}>{s.value.toLocaleString("ar-SA")}</p>
+            <p className="text-xl font-black" style={{ color: s.color }}>{s.value.toLocaleString()}</p>
             <p className="text-[10px] text-white/25 mt-0.5 font-medium">SKZ</p>
           </div>
         ))}
@@ -104,7 +104,7 @@ export function Wallet() {
 
       {/* Currency sources */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">مصادر الإيداع</p>
+        <p className="section-label mb-3">Deposit Sources</p>
         <div className="space-y-2.5">
           {[
             {
@@ -163,7 +163,7 @@ export function Wallet() {
 
       {/* Transaction history */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">سجل المعاملات</p>
+        <p className="section-label mb-3">Transaction History</p>
         <div className="glass-card rounded-3xl overflow-hidden">
           {MOCK_TRANSACTIONS.map((tx, i) => (
             <div key={tx.id}>

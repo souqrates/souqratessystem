@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 
 const NAV_ITEMS = [
-  { href: "/referral", icon: Users,    label: "إحالة",   color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
-  { href: "/withdraw", icon: Upload,   label: "سحب",     color: "#f87171", glow: "rgba(239,68,68,0.4)"  },
-  { href: "/",         icon: Home,     label: "الرئيسية", color: "#22d3ee", glow: "rgba(34,211,238,0.4)" },
-  { href: "/deposit",  icon: Download, label: "إيداع",   color: "#34d399", glow: "rgba(16,185,129,0.4)" },
-  { href: "/wallet",   icon: Wallet,   label: "محفظة",   color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
+  { href: "/referral", icon: Users,    label: "Referral", color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
+  { href: "/withdraw", icon: Upload,   label: "Withdraw", color: "#f87171", glow: "rgba(239,68,68,0.4)"  },
+  { href: "/",         icon: Home,     label: "Home",     color: "#22d3ee", glow: "rgba(34,211,238,0.4)" },
+  { href: "/deposit",  icon: Download, label: "Deposit",  color: "#34d399", glow: "rgba(16,185,129,0.4)" },
+  { href: "/wallet",   icon: Wallet,   label: "Wallet",   color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
 ];
 
 const pageVariants = {

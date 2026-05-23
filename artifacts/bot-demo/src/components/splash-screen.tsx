@@ -10,7 +10,6 @@ export function SplashScreen({ onDone }: Props) {
   const [phase, setPhase] = useState<"in" | "count" | "out">("in");
 
   useEffect(() => {
-    // After logo fades in, start counting
     const inTimer = setTimeout(() => {
       setPhase("count");
     }, 600);
@@ -20,7 +19,6 @@ export function SplashScreen({ onDone }: Props) {
   useEffect(() => {
     if (phase !== "count") return;
 
-    // Count from 0 → 100 over ~1.8s with easing
     const duration = 1800;
     const steps = 100;
     const interval = duration / steps;
@@ -28,15 +26,11 @@ export function SplashScreen({ onDone }: Props) {
 
     const timer = setInterval(() => {
       current += 1;
-      // Ease-out: slower near 100
-      const eased = Math.round(
-        100 * (1 - Math.pow(1 - current / steps, 2))
-      );
+      const eased = Math.round(100 * (1 - Math.pow(1 - current / steps, 2)));
       setCount(eased);
 
       if (current >= steps) {
         clearInterval(timer);
-        // Short pause then exit
         setTimeout(() => {
           setPhase("out");
           setTimeout(onDone, 600);
@@ -66,8 +60,7 @@ export function SplashScreen({ onDone }: Props) {
           <div
             className="absolute w-72 h-72 rounded-full pointer-events-none"
             style={{
-              background:
-                "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)",
+              background: "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)",
               filter: "blur(40px)",
               top: "50%",
               left: "50%",
@@ -79,28 +72,18 @@ export function SplashScreen({ onDone }: Props) {
           <motion.div
             initial={{ scale: 0.75, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{
-              delay: 0.1,
-              duration: 0.65,
-              ease: [0.22, 1, 0.36, 1],
-            }}
+            transition={{ delay: 0.1, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             className="relative mb-10"
           >
-            {/* Outer glow ring */}
             <div
               className="absolute inset-0 rounded-full"
-              style={{
-                boxShadow:
-                  "0 0 40px rgba(168,85,247,0.45), 0 0 80px rgba(168,85,247,0.18)",
-              }}
+              style={{ boxShadow: "0 0 40px rgba(168,85,247,0.45), 0 0 80px rgba(168,85,247,0.18)" }}
             />
             <img
               src={`${import.meta.env.BASE_URL}logo.jpg`}
               alt="Logo"
               className="w-44 h-44 rounded-full object-cover relative z-10"
-              style={{
-                border: "2px solid rgba(168,85,247,0.5)",
-              }}
+              style={{ border: "2px solid rgba(168,85,247,0.5)" }}
             />
           </motion.div>
 
@@ -111,13 +94,11 @@ export function SplashScreen({ onDone }: Props) {
             transition={{ duration: 0.3 }}
             className="flex flex-col items-center gap-3"
           >
-            {/* Percentage number */}
             <div className="relative flex items-baseline gap-1">
               <span
                 className="text-5xl font-black tabular-nums"
                 style={{
-                  background:
-                    "linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #22d3ee 100%)",
+                  background: "linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #22d3ee 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -130,14 +111,12 @@ export function SplashScreen({ onDone }: Props) {
               <span className="text-2xl font-black text-white/30">%</span>
             </div>
 
-            {/* Progress bar */}
             <div className="w-48 h-1 rounded-full overflow-hidden bg-white/[0.07]">
               <motion.div
                 className="h-full rounded-full"
                 style={{
                   width: `${count}%`,
-                  background:
-                    "linear-gradient(90deg, #7c3aed, #a855f7, #22d3ee)",
+                  background: "linear-gradient(90deg, #7c3aed, #a855f7, #22d3ee)",
                   boxShadow: "0 0 8px rgba(168,85,247,0.6)",
                   transition: "width 0.04s linear",
                 }}
@@ -145,7 +124,7 @@ export function SplashScreen({ onDone }: Props) {
             </div>
 
             <p className="text-[11px] font-medium text-white/30 tracking-widest uppercase mt-1">
-              جارٍ التحميل
+              Loading
             </p>
           </motion.div>
         </motion.div>
