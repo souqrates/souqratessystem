@@ -1,0 +1,36 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://toncenter.com https://mainnet.tonhubapi.com https://api.telegram.org; img-src 'self' data: blob: https:; worker-src blob:
+
+/*.jsx
+  Content-Type: text/javascript; charset=utf-8
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpeg
+  Cache-Control: public, max-age=31536000
+
+/*.webmanifest
+  Cache-Control: public, max-age=3600
+  Content-Type: application/manifest+json
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manager.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/influencers.html
+  Cache-Control: public, max-age=0, must-revalidate

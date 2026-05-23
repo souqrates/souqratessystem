@@ -138,6 +138,11 @@ router.post("/withdrawals/:id/approve", async (req, res): Promise<void> => {
         balanceTon: String(parseFloat(wallet.balanceTon) - amountNum),
         totalWithdrawn: String(parseFloat(wallet.totalWithdrawn) + amountNum),
       }).where(eq(walletsTable.id, wallet.id));
+    } else if (withdrawal.currency === "skz") {
+      await db.update(walletsTable).set({
+        balanceSkz: String((parseFloat(wallet.balanceSkz) - amountNum).toFixed(2)),
+        totalWithdrawnSkz: String((parseFloat(wallet.totalWithdrawnSkz) + amountNum).toFixed(2)),
+      }).where(eq(walletsTable.id, wallet.id));
     }
   }
 

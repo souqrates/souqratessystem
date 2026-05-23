@@ -9,6 +9,7 @@ import withdrawalsRouter from "./withdrawals";
 import internalRouter from "./internal";
 import statsRouter from "./stats";
 import settingsRouter from "./settings";
+import gamesRouter from "./games";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(withdrawalsRouter);
 router.use(internalRouter);
 router.use(statsRouter);
 router.use(settingsRouter);
+router.use(gamesRouter);
 
 export default router;

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, inArray } from "drizzle-orm";
+import crypto from "crypto";
+import { eq, sql, inArray, desc, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   usersTable,
@@ -8,8 +9,10 @@ import {
   botsTable,
   commissionsTable,
   platformSettingsTable,
+  withdrawalsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
 
 const router: IRouter = Router();
 
@@ -35,101 +38,11 @@ async function requireBot(
   return bot;
 }
 
-async function getSkzRates(): Promise<{ perUsdt: number; perStar: number; perTon: number }> {
-  const settings = await db.select().from(platformSettingsTable)
-    .where(sql`key IN ('skz_per_usdt', 'skz_per_star', 'skz_per_ton')`);
-  const map: Record<string, number> = {};
-  for (const s of settings) map[s.key] = parseFloat(s.value);
-  return {
-    perUsdt: map["skz_per_usdt"] ?? 100,
-    perStar: map["skz_per_star"] ?? 1,
-    perTon: map["skz_per_ton"] ?? 500,
-  };
-}
+// getSkzRates, getReferralRates, distributeReferralBonuses are imported from ../lib/finance
 
-async function getReferralRates(): Promise<number[]> {
-  const rows = await db.select().from(platformSettingsTable)
-    .where(inArray(platformSettingsTable.key, ["referral_l1_percent", "referral_l2_percent", "referral_l3_percent"]));
-  const map: Record<string, number> = {};
-  for (const r of rows) map[r.key] = parseFloat(r.value);
-  return [
-    (map["referral_l1_percent"] ?? 5) / 100,
-    (map["referral_l2_percent"] ?? 2) / 100,
-    (map["referral_l3_percent"] ?? 1) / 100,
-  ];
-}
-
-/**
- * Walk up the referral chain and distribute bonuses.
- * Returns a summary of bonuses paid per level.
- */
-async function distributeReferralBonuses(
-  sourceUserId: number,
-  netEarned: number,
-  sourceTransactionId: number,
-  botSlug: string,
-  rates: number[]
-): Promise<Array<{ level: number; referrerId: number; bonus: number }>> {
-  const paid: Array<{ level: number; referrerId: number; bonus: number }> = [];
-  let currentUserId = sourceUserId;
-
-  for (let level = 0; level < rates.length; level++) {
-    const rate = rates[level];
-    if (!rate || rate <= 0) break;
-
-    // Fetch the referrer of currentUserId
-    const [currentUser] = await db
-      .select({ referrerId: usersTable.referrerId })
-      .from(usersTable)
-      .where(eq(usersTable.id, currentUserId));
-
-    if (!currentUser?.referrerId) break; // No more referrers in chain
-
-    const referrerId = currentUser.referrerId;
-    const bonus = parseFloat((netEarned * rate).toFixed(2));
-    if (bonus <= 0) break;
-
-    // Fetch referrer's wallet
-    const [referrerWallet] = await db
-      .select()
-      .from(walletsTable)
-      .where(eq(walletsTable.userId, referrerId));
-
-    if (!referrerWallet) {
-      currentUserId = referrerId;
-      continue;
-    }
-
-    const newBalance = (parseFloat(referrerWallet.balanceSkz) + bonus).toFixed(2);
-    const newTotalEarned = (parseFloat(referrerWallet.totalEarnedSkz) + bonus).toFixed(2);
-
-    // Update wallet
-    await db.update(walletsTable).set({
-      balanceSkz: newBalance,
-      totalEarnedSkz: newTotalEarned,
-    }).where(eq(walletsTable.id, referrerWallet.id));
-
-    // Record referral bonus transaction
-    await db.insert(transactionsTable).values({
-      userId: referrerId,
-      type: "referral_bonus",
-      currency: "skz",
-      amount: String(bonus),
-      fee: "0",
-      status: "completed",
-      sourceBot: botSlug,
-      referenceId: String(sourceTransactionId),
-      description: `إحالة مستوى ${level + 1} — مكافأة ${rate * 100}% من ربح مُحالك`,
-    });
-
-    paid.push({ level: level + 1, referrerId, bonus });
-    currentUserId = referrerId; // Move up the chain
-  }
-
-  return paid;
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
 // Upsert user (called by child bots on each interaction)
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/internal/users/upsert", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
@@ -196,7 +109,87 @@ router.post("/internal/users/upsert", async (req, res): Promise<void> => {
   res.json({ user, wallet: finalWallet });
 });
 
-// Deposit real currency → convert to SKZ (called by mother bot when user deposits)
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /internal/balance/:telegramId — fetch wallet balances by Telegram ID
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/internal/balance/:telegramId", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const rawId = Array.isArray(req.params.telegramId) ? req.params.telegramId[0] : req.params.telegramId;
+
+  let bigId: bigint;
+  try { bigId = BigInt(rawId); } catch {
+    res.status(400).json({ error: "Invalid telegramId" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.telegramId, bigId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+  if (!wallet) {
+    res.status(404).json({ error: "Wallet not found" });
+    return;
+  }
+
+  res.json({
+    telegramId: String(user.telegramId),
+    userId: user.id,
+    balanceSkz: wallet.balanceSkz,
+    balanceStars: wallet.balanceStars,
+    balanceTon: wallet.balanceTon,
+    balanceUsdt: wallet.balanceUsdt,
+    totalEarnedSkz: wallet.totalEarnedSkz,
+    totalWithdrawnSkz: wallet.totalWithdrawnSkz,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /internal/ledger/:telegramId — transaction history by Telegram ID
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/internal/ledger/:telegramId", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const rawId = Array.isArray(req.params.telegramId) ? req.params.telegramId[0] : req.params.telegramId;
+
+  let bigId: bigint;
+  try { bigId = BigInt(rawId); } catch {
+    res.status(400).json({ error: "Invalid telegramId" });
+    return;
+  }
+
+  const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10), 100);
+  const offset = parseInt(String(req.query.offset ?? "0"), 10);
+
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, bigId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const conditions = [
+    eq(transactionsTable.userId, user.id),
+    eq(transactionsTable.sourceBot, bot.slug),
+  ];
+
+  const transactions = await db.select()
+    .from(transactionsTable)
+    .where(and(...conditions))
+    .orderBy(desc(transactionsTable.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ data: transactions, limit, offset });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/deposit — deposit real currency → SKZ
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/internal/deposit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
@@ -286,17 +279,19 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
   });
 });
 
-// Credit SKZ to user (child bots give user SKZ for completing tasks/earning)
-// Automatically deducts platform commission AND distributes multi-level referral bonuses
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/credit — credit SKZ with commission + referral bonuses
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/internal/credit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, amount, description, referenceId } = req.body as {
+  const { telegramId, amount, description, referenceId, metadata } = req.body as {
     telegramId: string;
     amount: string;
     description: string;
     referenceId?: string;
+    metadata?: Record<string, unknown>;
   };
 
   if (!telegramId || !amount || !description) {
@@ -319,7 +314,6 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     return;
   }
 
-  // --- 1. Platform commission deduction ---
   const commissionRate = parseFloat(String(bot.commissionRate));
   const commissionAmount = amountNum * commissionRate;
   const netAmount = amountNum - commissionAmount;
@@ -336,6 +330,7 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
       sourceBot: bot.slug,
       referenceId: referenceId ?? null,
       description,
+      metadata: metadata ? JSON.stringify(metadata) : null,
     })
     .returning();
 
@@ -354,7 +349,6 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + netAmount).toFixed(2)),
   }).where(eq(walletsTable.id, wallet.id));
 
-  // Record platform commission
   await db.insert(commissionsTable).values({
     transactionId: transaction.id,
     botSlug: bot.slug,
@@ -371,8 +365,6 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
   }).where(eq(botsTable.id, bot.id));
 
-  // --- 2. Multi-level referral bonuses ---
-  // Bonuses are calculated from netAmount (what the user actually receives)
   const referralRates = await getReferralRates();
   const referralBonuses = await distributeReferralBonuses(
     user.id,
@@ -400,16 +392,19 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
   });
 });
 
-// Debit SKZ from user (child bots charge user SKZ for purchases/games)
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/debit — debit SKZ from user wallet
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/internal/debit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, amount, description, referenceId } = req.body as {
+  const { telegramId, amount, description, referenceId, metadata } = req.body as {
     telegramId: string;
     amount: string;
     description: string;
     referenceId?: string;
+    metadata?: Record<string, unknown>;
   };
 
   if (!telegramId || !amount || !description) {
@@ -459,6 +454,7 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
       sourceBot: bot.slug,
       referenceId: referenceId ?? null,
       description,
+      metadata: metadata ? JSON.stringify(metadata) : null,
     })
     .returning();
 
@@ -471,6 +467,723 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     success: true,
     transactionId: transaction.id,
     newSkzBalance,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/game/charge-entry — debit for game entry with game metadata
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * POST /internal/game/charge-entry
+ * Body: { telegramId, gameId, amount }
+ *
+ * Security: `amount` must match one of the server-configured tier fees.
+ * The expected prize (entryFee × multiplier) is stored in metadata so the
+ * credit-reward endpoint can look it up — the client never supplies the prize.
+ */
+router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, gameId, amount } = req.body as {
+    telegramId: string;
+    gameId: string | number;
+    amount: string | number;
+  };
+
+  if (!telegramId || gameId === undefined || gameId === null || amount === undefined) {
+    res.status(400).json({ error: "telegramId, gameId, amount are required" });
+    return;
+  }
+
+  const amountNum = parseFloat(String(amount));
+  if (isNaN(amountNum) || amountNum <= 0) {
+    res.status(400).json({ error: "Invalid amount" });
+    return;
+  }
+
+  // ── Validate amount against server-configured tier fees ──────────────────
+  const tierSettings = await db.select().from(platformSettingsTable)
+    .where(inArray(platformSettingsTable.key, [
+      "solo_entry_fee_easy", "solo_entry_fee_medium", "solo_entry_fee_hard", "solo_multiplier",
+    ]));
+  const tsMap: Record<string, string> = {};
+  for (const r of tierSettings) tsMap[r.key] = r.value;
+  const multiplier   = parseFloat(tsMap["solo_multiplier"] ?? "3");
+  const allowedFees  = [
+    parseFloat(tsMap["solo_entry_fee_easy"]   ?? "5"),
+    parseFloat(tsMap["solo_entry_fee_medium"] ?? "10"),
+    parseFloat(tsMap["solo_entry_fee_hard"]   ?? "15"),
+  ];
+  const matchedFee   = allowedFees.find(f => Math.abs(f - amountNum) < 0.001);
+  if (matchedFee === undefined) {
+    res.status(400).json({ error: `amount must be one of the configured tier fees: ${allowedFees.join(", ")} SKZ` });
+    return;
+  }
+  const entryFee      = matchedFee;
+  const expectedPrize = parseFloat((entryFee * multiplier).toFixed(2));
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
+  if (!wallet) {
+    res.status(500).json({ error: "Wallet not found" });
+    return;
+  }
+
+  const currentSkz = parseFloat(wallet.balanceSkz);
+  if (currentSkz < entryFee) {
+    res.status(400).json({ error: "insufficient_balance" });
+    return;
+  }
+
+  // Determine minimum game duration from tier difficulty (stored server-side, immutable)
+  const easyFee   = parseFloat(tsMap["solo_entry_fee_easy"]   ?? "5");
+  const hardFee   = parseFloat(tsMap["solo_entry_fee_hard"]   ?? "15");
+  const difficulty = Math.abs(entryFee - easyFee) < 0.001 ? "Easy"
+                   : Math.abs(entryFee - hardFee) < 0.001 ? "Hard"
+                   : "Medium";
+  const minDurationMs = difficulty === "Easy" ? 25_000 : difficulty === "Hard" ? 45_000 : 35_000;
+  const minWinScore   = 1; // any positive score proves the game was actually played
+
+  const [transaction] = await db
+    .insert(transactionsTable)
+    .values({
+      userId:      user.id,
+      type:        "debit",
+      currency:    "skz",
+      amount:      String(-entryFee),
+      fee:         "0",
+      status:      "completed",
+      sourceBot:   bot.slug,
+      referenceId: `game_entry_${gameId}_${Date.now()}`,
+      description: `رسوم دخول لعبة #${gameId}`,
+      metadata:    JSON.stringify({
+        gameId:         String(gameId),
+        action:         "entry",
+        entryFee,
+        expectedPrize,
+        multiplier,
+        difficulty,
+        minDurationMs, // minimum elapsed time before result can be validated
+        minWinScore,   // minimum score (server-side win condition)
+      }),
+    })
+    .returning();
+
+  const newSkzBalance = (currentSkz - entryFee).toFixed(2);
+  await db.update(walletsTable)
+    .set({ balanceSkz: newSkzBalance })
+    .where(eq(walletsTable.id, wallet.id));
+
+  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, gameId, entryFee, expectedPrize }, "Game entry charged");
+
+  res.json({
+    success:       true,
+    transactionId: transaction.id,
+    entryFee,
+    expectedPrize,
+    newSkzBalance,
+  });
+});
+
+// ─── Result token helpers (bind a game win to a specific charge + user) ──────
+
+function getResultTokenSecret(): string {
+  const s = process.env.SESSION_SECRET;
+  if (!s) throw Object.assign(new Error("SESSION_SECRET is not configured"), { status: 503 });
+  return s;
+}
+
+function issueResultToken(chargeId: number, userId: number): string {
+  const secret = getResultTokenSecret();
+  const exp = Date.now() + 10 * 60 * 1000; // 10-minute window
+  const payload = `${chargeId}:${userId}:${exp}`;
+  const hmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  return `${payload}:${hmac}`;
+}
+
+function verifyResultToken(token: string, chargeId: number, userId: number): boolean {
+  try {
+    const secret = getResultTokenSecret();
+    const parts = token.split(":");
+    if (parts.length !== 4) return false;
+    const [cStr, uStr, expStr, hmac] = parts;
+    if (parseInt(cStr, 10) !== chargeId) return false;
+    if (parseInt(uStr, 10) !== userId) return false;
+    if (Date.now() > parseInt(expStr, 10)) return false; // expired
+    const expected = crypto.createHmac("sha256", secret).update(`${cStr}:${uStr}:${expStr}`).digest("hex");
+    const hBuf = Buffer.from(hmac, "hex");
+    const eBuf = Buffer.from(expected, "hex");
+    if (hBuf.length !== eBuf.length) return false;
+    return crypto.timingSafeEqual(hBuf, eBuf);
+  } catch {
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/game/validate-result
+// Body: { telegramId, chargeTransactionId, score? }
+//
+// Called by the game client after the game ends. Verifies the charge belongs
+// to the user and has not already been credited, then issues a short-lived
+// signed resultToken that is required by /internal/game/credit-reward.
+// Without this token, credit-reward rejects the request.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/game/validate-result", async (req, res): Promise<void> => {
+  // Fail closed if SESSION_SECRET is missing — no financial ops without it
+  if (!process.env.SESSION_SECRET) {
+    res.status(503).json({ error: "Server misconfiguration: SESSION_SECRET is required" });
+    return;
+  }
+
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, chargeTransactionId, score } = req.body as {
+    telegramId: string;
+    chargeTransactionId: number | string;
+    score?: number | string;
+  };
+
+  if (!telegramId || chargeTransactionId === undefined || chargeTransactionId === null) {
+    res.status(400).json({ error: "telegramId and chargeTransactionId are required" });
+    return;
+  }
+  const chargeId    = parseInt(String(chargeTransactionId), 10);
+  const scoreNum    = score !== undefined && score !== null ? parseInt(String(score), 10) : NaN;
+  if (isNaN(chargeId) || chargeId <= 0) {
+    res.status(400).json({ error: "Invalid chargeTransactionId" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [chargeTxn] = await db.select().from(transactionsTable)
+    .where(eq(transactionsTable.id, chargeId));
+  if (!chargeTxn) {
+    res.status(404).json({ error: "Charge transaction not found" });
+    return;
+  }
+  if (chargeTxn.userId !== user.id) {
+    res.status(403).json({ error: "Transaction does not belong to calling user" });
+    return;
+  }
+  if (chargeTxn.sourceBot !== bot.slug) {
+    res.status(400).json({ error: "Transaction is not from this bot" });
+    return;
+  }
+
+  let meta: Record<string, unknown> = {};
+  try { meta = JSON.parse(chargeTxn.metadata ?? "{}"); } catch { /* ignore */ }
+  if (meta.action !== "entry") {
+    res.status(400).json({ error: "Transaction is not a game entry charge" });
+    return;
+  }
+
+  // ── Server-side win conditions (values stored at charge time, immutable) ──
+  const minWinScore   = typeof meta.minWinScore   === "number" ? meta.minWinScore   : 1;
+  const minDurationMs = typeof meta.minDurationMs === "number" ? meta.minDurationMs : 25_000;
+
+  // 1. Score must meet server-stored win threshold
+  if (isNaN(scoreNum) || scoreNum < minWinScore) {
+    res.status(403).json({
+      error: `Win condition not met: score must be at least ${minWinScore}`,
+      minWinScore,
+    });
+    return;
+  }
+
+  // 2. Minimum game duration must have elapsed since charge (prevents instant farming)
+  const chargeAgeMs = Date.now() - new Date(chargeTxn.createdAt).getTime();
+  if (chargeAgeMs < minDurationMs) {
+    const remainingMs = minDurationMs - chargeAgeMs;
+    res.status(403).json({
+      error: `Game duration not met: ${Math.ceil(remainingMs / 1000)}s remaining`,
+      remainingMs,
+    });
+    return;
+  }
+
+  // 3. Not already credited
+  const creditRefId = `game_reward_ref_${chargeId}`;
+  const [alreadyCredited] = await db.select({ id: transactionsTable.id })
+    .from(transactionsTable)
+    .where(and(eq(transactionsTable.userId, user.id), eq(transactionsTable.referenceId, creditRefId)))
+    .limit(1);
+  if (alreadyCredited) {
+    res.status(409).json({ error: "Game session already credited" });
+    return;
+  }
+
+  const resultToken = issueResultToken(chargeId, user.id);
+  req.log.info(
+    { chargeId, userId: user.id, botSlug: bot.slug, score: scoreNum, chargeAgeMs },
+    "Game result token issued",
+  );
+  res.json({ ok: true, resultToken });
+});
+
+/**
+ * POST /internal/game/credit-reward
+ * Body: { telegramId, chargeTransactionId, score?, resultToken }
+ *
+ * Security guards:
+ *   1. resultToken must be a valid HMAC-signed token from /validate-result (10-min TTL).
+ *   2. chargeTransactionId must belong to telegramId's user account.
+ *   3. Transaction must be a game "entry" debit with expectedPrize in metadata.
+ *   4. Atomic: double-claim prevented with pg_advisory_xact_lock + db.transaction().
+ *
+ * Prize is read from stored charge metadata — never from the client.
+ * Commission and referral bonuses applied automatically.
+ */
+router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, chargeTransactionId, score, resultToken } = req.body as {
+    telegramId: string;
+    chargeTransactionId: number | string;
+    score?: number;
+    resultToken?: string;
+  };
+
+  if (!telegramId || chargeTransactionId === undefined || chargeTransactionId === null) {
+    res.status(400).json({ error: "telegramId and chargeTransactionId are required" });
+    return;
+  }
+  if (!resultToken) {
+    res.status(400).json({ error: "resultToken is required — call /internal/game/validate-result first to prove game completion" });
+    return;
+  }
+
+  const chargeId = parseInt(String(chargeTransactionId), 10);
+  if (isNaN(chargeId) || chargeId <= 0) {
+    res.status(400).json({ error: "Invalid chargeTransactionId" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  // ── 1. Verify result token (proves game completed, binds chargeId + userId) ─
+  if (!verifyResultToken(resultToken, chargeId, user.id)) {
+    res.status(403).json({ error: "Invalid or expired resultToken" });
+    return;
+  }
+
+  // ── 2. Fetch + validate charge transaction ────────────────────────────────
+  const [chargeTxn] = await db.select().from(transactionsTable)
+    .where(eq(transactionsTable.id, chargeId));
+
+  if (!chargeTxn) {
+    res.status(404).json({ error: "Charge transaction not found" });
+    return;
+  }
+  if (chargeTxn.userId !== user.id) {
+    res.status(403).json({ error: "Transaction does not belong to calling user" });
+    return;
+  }
+  if (chargeTxn.sourceBot !== bot.slug) {
+    res.status(400).json({ error: "Transaction is not from this bot" });
+    return;
+  }
+
+  // ── 3. Extract server-stored prize from metadata ──────────────────────────
+  let meta: Record<string, unknown> = {};
+  try { meta = JSON.parse(chargeTxn.metadata ?? "{}"); } catch { /* ignore */ }
+  if (meta.action !== "entry" || typeof meta.expectedPrize !== "number") {
+    res.status(400).json({ error: "Transaction is not a valid game entry charge" });
+    return;
+  }
+  const grossPrize = meta.expectedPrize as number;
+  const gameId     = meta.gameId ?? "?";
+
+  // ── 4. Commission ─────────────────────────────────────────────────────────
+  const commissionRate   = parseFloat(String(bot.commissionRate));
+  const commissionAmount = parseFloat((grossPrize * commissionRate).toFixed(2));
+  const netAmount        = parseFloat((grossPrize - commissionAmount).toFixed(2));
+
+  const creditRefId = `game_reward_ref_${chargeId}`;
+
+  // ── 5. Atomic check + insert + wallet update (advisory lock prevents races) ─
+  let transaction: typeof transactionsTable.$inferSelect;
+  let newSkzBalance: string;
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // Serialize concurrent credits for the same game session
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${chargeId})`);
+
+      const [existing] = await tx.select({ id: transactionsTable.id })
+        .from(transactionsTable)
+        .where(and(eq(transactionsTable.userId, user.id), eq(transactionsTable.referenceId, creditRefId)))
+        .limit(1);
+      if (existing) throw Object.assign(new Error("ALREADY_CREDITED"), { status: 409 });
+
+      const [txn] = await tx
+        .insert(transactionsTable)
+        .values({
+          userId:      user.id,
+          type:        "credit",
+          currency:    "skz",
+          amount:      String(grossPrize.toFixed(2)),
+          fee:         String(commissionAmount.toFixed(2)),
+          status:      "completed",
+          sourceBot:   bot.slug,
+          referenceId: creditRefId,
+          description: `جائزة لعبة #${gameId}${score != null ? ` — نقاط: ${score}` : ""}`,
+          metadata:    JSON.stringify({
+            gameId, action: "reward",
+            grossPrize, commissionRate, commissionAmount, netAmount,
+            score: score ?? null, chargeTransactionId: chargeId,
+          }),
+        })
+        .returning();
+
+      const [wlt] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+      if (!wlt) throw new Error("WALLET_NOT_FOUND");
+
+      const bal = (parseFloat(wlt.balanceSkz) + netAmount).toFixed(2);
+      await tx.update(walletsTable).set({
+        balanceSkz:     bal,
+        totalEarnedSkz: String((parseFloat(wlt.totalEarnedSkz) + netAmount).toFixed(2)),
+      }).where(eq(walletsTable.id, wlt.id));
+
+      return { txn, newBalance: bal };
+    });
+
+    transaction   = result.txn;
+    newSkzBalance = result.newBalance;
+  } catch (err: unknown) {
+    const e = err as Error & { status?: number };
+    if (e.message === "ALREADY_CREDITED") {
+      res.status(409).json({ error: "Reward already credited for this game session" });
+      return;
+    }
+    req.log.error({ err }, "credit-reward transaction failed");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+
+  // ── 6. Record commission ──────────────────────────────────────────────────
+  await db.insert(commissionsTable).values({
+    transactionId:    transaction.id,
+    botSlug:          bot.slug,
+    userId:           user.id,
+    grossAmount:      String(grossPrize.toFixed(2)),
+    commissionRate:   String(commissionRate),
+    commissionAmount: String(commissionAmount.toFixed(2)),
+    netAmount:        String(netAmount.toFixed(2)),
+    currency:         "skz",
+  });
+
+  await db.update(botsTable).set({
+    totalVolumeUsdt:     sql`${botsTable.totalVolumeUsdt}     + ${grossPrize}`,
+    totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
+  }).where(eq(botsTable.id, bot.id));
+
+  // ── 7. Distribute referral bonuses ────────────────────────────────────────
+  const referralRates   = await getReferralRates();
+  const referralBonuses = await distributeReferralBonuses(
+    user.id, netAmount, transaction.id, bot.slug, referralRates,
+  );
+
+  req.log.info(
+    { transactionId: transaction.id, botSlug: bot.slug, gameId, grossPrize, netAmount, score, referralBonuses: referralBonuses.length },
+    "Game reward credited",
+  );
+
+  res.json({
+    success:            true,
+    transactionId:      transaction.id,
+    newSkzBalance,
+    commissionDeducted: String(commissionAmount.toFixed(2)),
+    netRewarded:        String(netAmount.toFixed(2)),
+    referralBonuses:    referralBonuses.map(b => ({ level: b.level, bonusSkz: String(b.bonus) })),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /internal/game/tiers — solo fee tiers (no bot auth required — public info)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/internal/game/tiers", async (_req, res): Promise<void> => {
+  try {
+    const rows = await db.select().from(platformSettingsTable)
+      .where(inArray(platformSettingsTable.key, [
+        "solo_entry_fee_easy", "solo_entry_fee_medium", "solo_entry_fee_hard", "solo_multiplier",
+      ]));
+    const map: Record<string, string> = {};
+    for (const r of rows) map[r.key] = r.value;
+    const multiplier = parseFloat(map["solo_multiplier"] ?? "3");
+    const tiers = [
+      { difficulty: "Easy",   entryFee: parseFloat(map["solo_entry_fee_easy"]   ?? "5"),  multiplier, isDefault: false },
+      { difficulty: "Medium", entryFee: parseFloat(map["solo_entry_fee_medium"] ?? "10"), multiplier, isDefault: true  },
+      { difficulty: "Hard",   entryFee: parseFloat(map["solo_entry_fee_hard"]   ?? "15"), multiplier, isDefault: false },
+    ];
+    res.json({ tiers });
+  } catch (err) {
+    logger.error({ err }, "internal: game tiers failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/stars-invoice — create Telegram Stars deposit invoice
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/stars-invoice", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, amountStars } = req.body as {
+    telegramId: string;
+    amountStars: number;
+  };
+
+  if (!telegramId || !amountStars) {
+    res.status(400).json({ error: "telegramId and amountStars are required" });
+    return;
+  }
+
+  const starsNum = parseInt(String(amountStars), 10);
+  if (isNaN(starsNum) || starsNum <= 0) {
+    res.status(400).json({ error: "Invalid amountStars" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const botToken = process.env.MOTHER_BOT_TOKEN;
+  if (!botToken) {
+    res.status(503).json({ error: "Bot token not configured" });
+    return;
+  }
+
+  const rates = await getSkzRates();
+  const skzAmount = starsNum * rates.perStar;
+
+  const payload = `stars_dep_${user.id}_${Date.now()}`;
+  const invoiceBody = {
+    chat_id: String(telegramId),
+    title: "SKZ Top-up",
+    description: `${starsNum} Telegram Stars → ${skzAmount.toFixed(0)} SKZ`,
+    payload,
+    currency: "XTR",
+    prices: [{ label: "SKZ Top-up", amount: starsNum }],
+  };
+
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invoiceBody),
+    });
+    const tgData = await tgRes.json() as { ok: boolean; result?: string; description?: string };
+    if (!tgData.ok) {
+      req.log.warn({ tgError: tgData.description }, "Failed to create Telegram Stars invoice");
+      res.status(502).json({ error: tgData.description ?? "Failed to create invoice" });
+      return;
+    }
+
+    await db.insert(transactionsTable).values({
+      userId: user.id,
+      type: "deposit",
+      currency: "stars",
+      amount: String(starsNum),
+      fee: "0",
+      status: "pending",
+      sourceBot: bot.slug,
+      referenceId: payload,
+      description: `فاتورة Stars: ${starsNum} نجمة → ${skzAmount.toFixed(0)} SKZ`,
+      metadata: JSON.stringify({ amountStars: starsNum, expectedSkz: skzAmount, payload }),
+    });
+
+    req.log.info({ telegramId, starsNum, skzAmount, payload }, "Stars invoice created");
+
+    res.json({
+      ok: true,
+      invoiceLink: tgData.result,
+      payload,
+      expectedSkz: String(skzAmount.toFixed(2)),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Stars invoice creation failed");
+    res.status(500).json({ error: "Failed to create Stars invoice" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/ton-deposit-intent — create TON deposit intent with unique memo
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, amountTon } = req.body as {
+    telegramId: string;
+    amountTon: number;
+  };
+
+  if (!telegramId || !amountTon) {
+    res.status(400).json({ error: "telegramId and amountTon are required" });
+    return;
+  }
+
+  const tonNum = parseFloat(String(amountTon));
+  if (isNaN(tonNum) || tonNum <= 0) {
+    res.status(400).json({ error: "Invalid amountTon" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const rates = await getSkzRates();
+  const expectedSkz = tonNum * rates.perTon;
+
+  const memo = `SKZ${user.id}T${Date.now().toString(36).toUpperCase()}`;
+  const depositAddress = process.env.TON_HOT_WALLET ?? "";
+
+  const [transaction] = await db.insert(transactionsTable).values({
+    userId: user.id,
+    type: "deposit",
+    currency: "ton",
+    amount: String(tonNum),
+    fee: "0",
+    status: "pending",
+    sourceBot: bot.slug,
+    referenceId: memo,
+    description: `TON إيداع: ${tonNum} TON → ${expectedSkz.toFixed(0)} SKZ`,
+    metadata: JSON.stringify({ amountTon: tonNum, expectedSkz, memo, depositAddress }),
+  }).returning();
+
+  req.log.info({ telegramId, tonNum, expectedSkz, memo }, "TON deposit intent created");
+
+  res.json({
+    ok: true,
+    intentId: transaction.id,
+    memo,
+    depositAddress,
+    amountTon: tonNum,
+    expectedSkz: String(expectedSkz.toFixed(2)),
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/withdraw — create a pending withdrawal request for a user
+// Accepts: { telegramId, methodCode, amountSkz, destination? }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/withdraw", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, methodCode, amountSkz, destination } = req.body as {
+    telegramId: string;
+    methodCode: string;
+    amountSkz: string | number;
+    destination?: Record<string, unknown>;
+  };
+
+  if (!telegramId || !methodCode || amountSkz === undefined || amountSkz === null) {
+    res.status(400).json({ error: "telegramId, methodCode, amountSkz are required" });
+    return;
+  }
+
+  const amountNum = parseFloat(String(amountSkz));
+  if (isNaN(amountNum) || amountNum <= 0) {
+    res.status(400).json({ error: "Invalid amountSkz" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
+  if (!wallet) {
+    res.status(500).json({ error: "Wallet not found" });
+    return;
+  }
+
+  const currentSkz = parseFloat(wallet.balanceSkz);
+  if (currentSkz < amountNum) {
+    res.status(400).json({ error: "Insufficient SKZ balance" });
+    return;
+  }
+
+  // Do NOT pre-deduct — balance is deducted when admin approves the withdrawal.
+  // This prevents permanent fund loss if the withdrawal is rejected.
+  const addressStr = destination && Object.keys(destination).length > 0
+    ? JSON.stringify(destination)
+    : null;
+
+  const [withdrawal] = await db
+    .insert(withdrawalsTable)
+    .values({
+      userId: user.id,
+      currency: "skz",
+      amount: String(amountNum.toFixed(2)),
+      fee: "0",
+      netAmount: String(amountNum.toFixed(2)),
+      method: methodCode,
+      address: addressStr,
+      status: "pending",
+    })
+    .returning();
+
+  req.log.info(
+    { withdrawalId: withdrawal.id, botSlug: bot.slug, telegramId, amountNum, methodCode },
+    "Internal withdrawal request created"
+  );
+
+  res.status(201).json({
+    success: true,
+    withdrawalId: withdrawal.id,
+    status: "pending",
   });
 });
 

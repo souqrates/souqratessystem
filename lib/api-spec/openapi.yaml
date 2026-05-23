@@ -552,6 +552,238 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /internal/balance/{telegramId}:
+    get:
+      operationId: internalGetBalance
+      tags: [internal]
+      summary: Get wallet balances by Telegram ID (called by child bots)
+      security:
+        - BotApiKey: []
+      parameters:
+        - in: path
+          name: telegramId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Wallet balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalBalanceResponse"
+        "404":
+          description: User or wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/ledger/{telegramId}:
+    get:
+      operationId: internalGetLedger
+      tags: [internal]
+      summary: Get transaction history by Telegram ID (called by child bots)
+      security:
+        - BotApiKey: []
+      parameters:
+        - in: path
+          name: telegramId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalLedgerResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/game/charge-entry:
+    post:
+      operationId: internalGameChargeEntry
+      tags: [internal]
+      summary: Charge game entry fee (debit with game metadata)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameChargeEntryBody"
+      responses:
+        "200":
+          description: Entry fee charged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DebitResponse"
+        "400":
+          description: Insufficient balance or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/game/validate-result:
+    post:
+      operationId: internalGameValidateResult
+      tags: [internal]
+      summary: Validate game completion and issue a signed resultToken (10-min TTL)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameValidateResultBody"
+      responses:
+        "200":
+          description: Result token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameValidateResultResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Session already credited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/game/credit-reward:
+    post:
+      operationId: internalGameCreditReward
+      tags: [internal]
+      summary: Credit game reward (credit with commission + referral + game metadata)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameCreditRewardBody"
+      responses:
+        "200":
+          description: Reward credited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameCreditRewardResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/stars-invoice:
+    post:
+      operationId: internalCreateStarsInvoice
+      tags: [internal]
+      summary: Create Telegram Stars deposit invoice
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StarsInvoiceBody"
+      responses:
+        "200":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StarsInvoiceResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/ton-deposit-intent:
+    post:
+      operationId: internalCreateTonDepositIntent
+      tags: [internal]
+      summary: Create TON deposit intent with unique memo
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TonDepositIntentBody"
+      responses:
+        "200":
+          description: Deposit intent created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TonDepositIntentResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/withdraw:
+    post:
+      operationId: internalWithdraw
+      tags: [internal]
+      summary: Create a pending SKZ withdrawal request (no pre-deduction; balance deducted on admin approve)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalWithdrawBody"
+      responses:
+        "201":
+          description: Withdrawal request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalWithdrawResponse"
+        "400":
+          description: Insufficient balance or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /stats/overview:
     get:
       operationId: getStatsOverview
@@ -1237,6 +1469,235 @@ components:
         - success
         - transactionId
         - newSkzBalance
+
+    InternalBalanceResponse:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        userId:
+          type: integer
+        balanceSkz:
+          type: string
+        balanceStars:
+          type: string
+        balanceTon:
+          type: string
+        balanceUsdt:
+          type: string
+        totalEarnedSkz:
+          type: string
+        totalWithdrawnSkz:
+          type: string
+      required:
+        - telegramId
+        - userId
+        - balanceSkz
+        - balanceStars
+        - balanceTon
+        - balanceUsdt
+        - totalEarnedSkz
+        - totalWithdrawnSkz
+
+    InternalLedgerResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - data
+        - limit
+        - offset
+
+    GameChargeEntryBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        gameId:
+          type: string
+        amount:
+          type: string
+          description: Amount in SKZ to charge for game entry
+      required:
+        - telegramId
+        - gameId
+        - amount
+
+    GameValidateResultBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        chargeTransactionId:
+          type: integer
+          description: ID of the charge transaction returned by /internal/game/charge-entry
+        score:
+          type: integer
+          description: Player's final score — server validates against stored minWinScore and minDurationMs
+      required:
+        - telegramId
+        - chargeTransactionId
+        - score
+
+    GameValidateResultResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        resultToken:
+          type: string
+          description: Signed HMAC token (10-min TTL) required by /internal/game/credit-reward
+      required:
+        - ok
+        - resultToken
+
+    GameCreditRewardBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        chargeTransactionId:
+          type: integer
+          description: ID of the charge transaction returned by /internal/game/charge-entry
+        resultToken:
+          type: string
+          description: Signed token from /internal/game/validate-result proving game was played
+        score:
+          type: integer
+          description: Player's score for this game session
+      required:
+        - telegramId
+        - chargeTransactionId
+        - resultToken
+
+    GameCreditRewardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: integer
+        newSkzBalance:
+          type: string
+        commissionDeducted:
+          type: string
+        netRewarded:
+          type: string
+      required:
+        - success
+        - transactionId
+        - newSkzBalance
+        - commissionDeducted
+        - netRewarded
+
+    StarsInvoiceBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        amountStars:
+          type: integer
+          description: Number of Telegram Stars to charge
+      required:
+        - telegramId
+        - amountStars
+
+    StarsInvoiceResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        invoiceLink:
+          type: string
+        payload:
+          type: string
+        expectedSkz:
+          type: string
+      required:
+        - ok
+        - invoiceLink
+        - payload
+        - expectedSkz
+
+    TonDepositIntentBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        amountTon:
+          type: number
+          description: Amount of TON to deposit
+      required:
+        - telegramId
+        - amountTon
+
+    TonDepositIntentResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        intentId:
+          type: integer
+        memo:
+          type: string
+        depositAddress:
+          type: string
+        amountTon:
+          type: number
+        expectedSkz:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - ok
+        - intentId
+        - memo
+        - depositAddress
+        - amountTon
+        - expectedSkz
+        - expiresAt
+
+    InternalWithdrawBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        methodCode:
+          type: string
+          description: Withdrawal method (e.g. "ton")
+        amountSkz:
+          type: string
+          description: Amount of SKZ to withdraw
+        destination:
+          type: object
+          additionalProperties: true
+          description: Method-specific destination details (e.g. { tonAddress })
+      required:
+        - telegramId
+        - methodCode
+        - amountSkz
+
+    InternalWithdrawResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        withdrawalId:
+          type: integer
+        status:
+          type: string
+      required:
+        - success
+        - withdrawalId
+        - status
 
     StatsOverview:
       type: object

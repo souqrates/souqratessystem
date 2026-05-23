@@ -309,6 +309,112 @@ export interface DebitResponse {
   newSkzBalance: string;
 }
 
+export interface InternalBalanceResponse {
+  telegramId: string;
+  userId: number;
+  balanceSkz: string;
+  balanceStars: string;
+  balanceTon: string;
+  balanceUsdt: string;
+  totalEarnedSkz: string;
+  totalWithdrawnSkz: string;
+}
+
+export interface InternalLedgerResponse {
+  data: Transaction[];
+  limit: number;
+  offset: number;
+}
+
+export interface GameChargeEntryBody {
+  telegramId: string;
+  gameId: string;
+  /** Amount in SKZ to charge for game entry */
+  amount: string;
+}
+
+export interface GameValidateResultBody {
+  telegramId: string;
+  /** ID of the charge transaction returned by /internal/game/charge-entry */
+  chargeTransactionId: number;
+  /** Player's final score — server validates against stored minWinScore and minDurationMs */
+  score: number;
+}
+
+export interface GameValidateResultResponse {
+  ok: boolean;
+  /** Signed HMAC token (10-min TTL) required by /internal/game/credit-reward */
+  resultToken: string;
+}
+
+export interface GameCreditRewardBody {
+  telegramId: string;
+  /** ID of the charge transaction returned by /internal/game/charge-entry */
+  chargeTransactionId: number;
+  /** Signed token from /internal/game/validate-result proving game was played */
+  resultToken: string;
+  /** Player's score for this game session */
+  score?: number;
+}
+
+export interface GameCreditRewardResponse {
+  success: boolean;
+  transactionId: number;
+  newSkzBalance: string;
+  commissionDeducted: string;
+  netRewarded: string;
+}
+
+export interface StarsInvoiceBody {
+  telegramId: string;
+  /** Number of Telegram Stars to charge */
+  amountStars: number;
+}
+
+export interface StarsInvoiceResponse {
+  ok: boolean;
+  invoiceLink: string;
+  payload: string;
+  expectedSkz: string;
+}
+
+export interface TonDepositIntentBody {
+  telegramId: string;
+  /** Amount of TON to deposit */
+  amountTon: number;
+}
+
+export interface TonDepositIntentResponse {
+  ok: boolean;
+  intentId: number;
+  memo: string;
+  depositAddress: string;
+  amountTon: number;
+  expectedSkz: string;
+  expiresAt: string;
+}
+
+/**
+ * Method-specific destination details (e.g. { tonAddress })
+ */
+export type InternalWithdrawBodyDestination = { [key: string]: unknown };
+
+export interface InternalWithdrawBody {
+  telegramId: string;
+  /** Withdrawal method (e.g. "ton") */
+  methodCode: string;
+  /** Amount of SKZ to withdraw */
+  amountSkz: string;
+  /** Method-specific destination details (e.g. { tonAddress }) */
+  destination?: InternalWithdrawBodyDestination;
+}
+
+export interface InternalWithdrawResponse {
+  success: boolean;
+  withdrawalId: number;
+  status: string;
+}
+
 export interface StatsOverview {
   totalUsers: number;
   totalVolumeSkz: string;
@@ -348,5 +454,10 @@ userId?: number;
 status?: string;
 page?: number;
 limit?: number;
+};
+
+export type InternalGetLedgerParams = {
+limit?: number;
+offset?: number;
 };
 

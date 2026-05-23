@@ -560,6 +560,155 @@ export const InternalDebitResponse = zod.object({
 
 
 /**
+ * @summary Get wallet balances by Telegram ID (called by child bots)
+ */
+export const InternalGetBalanceParams = zod.object({
+  "telegramId": zod.coerce.string()
+})
+
+export const InternalGetBalanceResponse = zod.object({
+  "telegramId": zod.string(),
+  "userId": zod.number(),
+  "balanceSkz": zod.string(),
+  "balanceStars": zod.string(),
+  "balanceTon": zod.string(),
+  "balanceUsdt": zod.string(),
+  "totalEarnedSkz": zod.string(),
+  "totalWithdrawnSkz": zod.string()
+})
+
+
+/**
+ * @summary Get transaction history by Telegram ID (called by child bots)
+ */
+export const InternalGetLedgerParams = zod.object({
+  "telegramId": zod.coerce.string()
+})
+
+export const internalGetLedgerQueryLimitDefault = 50;
+export const internalGetLedgerQueryOffsetDefault = 0;
+
+export const InternalGetLedgerQueryParams = zod.object({
+  "limit": zod.coerce.number().default(internalGetLedgerQueryLimitDefault),
+  "offset": zod.coerce.number().default(internalGetLedgerQueryOffsetDefault)
+})
+
+export const InternalGetLedgerResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "type": zod.string(),
+  "currency": zod.string(),
+  "amount": zod.string(),
+  "fee": zod.string(),
+  "status": zod.string(),
+  "sourceBot": zod.string().nullish(),
+  "referenceId": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "limit": zod.number(),
+  "offset": zod.number()
+})
+
+
+/**
+ * @summary Charge game entry fee (debit with game metadata)
+ */
+export const InternalGameChargeEntryBody = zod.object({
+  "telegramId": zod.string(),
+  "gameId": zod.string(),
+  "amount": zod.string().describe('Amount in SKZ to charge for game entry')
+})
+
+export const InternalGameChargeEntryResponse = zod.object({
+  "success": zod.boolean(),
+  "transactionId": zod.number(),
+  "newSkzBalance": zod.string()
+})
+
+
+/**
+ * @summary Validate game completion and issue a signed resultToken (10-min TTL)
+ */
+export const InternalGameValidateResultBody = zod.object({
+  "telegramId": zod.string(),
+  "chargeTransactionId": zod.number().describe('ID of the charge transaction returned by \/internal\/game\/charge-entry'),
+  "score": zod.number().describe('Player\'s final score — server validates against stored minWinScore and minDurationMs')
+})
+
+export const InternalGameValidateResultResponse = zod.object({
+  "ok": zod.boolean(),
+  "resultToken": zod.string().describe('Signed HMAC token (10-min TTL) required by \/internal\/game\/credit-reward')
+})
+
+
+/**
+ * @summary Credit game reward (credit with commission + referral + game metadata)
+ */
+export const InternalGameCreditRewardBody = zod.object({
+  "telegramId": zod.string(),
+  "chargeTransactionId": zod.number().describe('ID of the charge transaction returned by \/internal\/game\/charge-entry'),
+  "resultToken": zod.string().describe('Signed token from \/internal\/game\/validate-result proving game was played'),
+  "score": zod.number().optional().describe('Player\'s score for this game session')
+})
+
+export const InternalGameCreditRewardResponse = zod.object({
+  "success": zod.boolean(),
+  "transactionId": zod.number(),
+  "newSkzBalance": zod.string(),
+  "commissionDeducted": zod.string(),
+  "netRewarded": zod.string()
+})
+
+
+/**
+ * @summary Create Telegram Stars deposit invoice
+ */
+export const InternalCreateStarsInvoiceBody = zod.object({
+  "telegramId": zod.string(),
+  "amountStars": zod.number().describe('Number of Telegram Stars to charge')
+})
+
+export const InternalCreateStarsInvoiceResponse = zod.object({
+  "ok": zod.boolean(),
+  "invoiceLink": zod.string(),
+  "payload": zod.string(),
+  "expectedSkz": zod.string()
+})
+
+
+/**
+ * @summary Create TON deposit intent with unique memo
+ */
+export const InternalCreateTonDepositIntentBody = zod.object({
+  "telegramId": zod.string(),
+  "amountTon": zod.number().describe('Amount of TON to deposit')
+})
+
+export const InternalCreateTonDepositIntentResponse = zod.object({
+  "ok": zod.boolean(),
+  "intentId": zod.number(),
+  "memo": zod.string(),
+  "depositAddress": zod.string(),
+  "amountTon": zod.number(),
+  "expectedSkz": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create a pending SKZ withdrawal request (no pre-deduction; balance deducted on admin approve)
+ */
+export const InternalWithdrawBody = zod.object({
+  "telegramId": zod.string(),
+  "methodCode": zod.string().describe('Withdrawal method (e.g. \"ton\")'),
+  "amountSkz": zod.string().describe('Amount of SKZ to withdraw'),
+  "destination": zod.record(zod.string(), zod.unknown()).optional().describe('Method-specific destination details (e.g. { tonAddress })')
+})
+
+
+/**
  * @summary Platform-wide financial stats
  */
 export const GetStatsOverviewResponse = zod.object({

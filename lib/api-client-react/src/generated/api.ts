@@ -34,7 +34,17 @@ import type {
   DepositBody,
   DepositResponse,
   ErrorResponse,
+  GameChargeEntryBody,
+  GameCreditRewardBody,
+  GameCreditRewardResponse,
+  GameValidateResultBody,
+  GameValidateResultResponse,
   HealthStatus,
+  InternalBalanceResponse,
+  InternalGetLedgerParams,
+  InternalLedgerResponse,
+  InternalWithdrawBody,
+  InternalWithdrawResponse,
   ListCommissionsParams,
   ListTransactionsParams,
   ListUsersParams,
@@ -44,7 +54,11 @@ import type {
   RejectWithdrawalBody,
   SkzRates,
   SkzRatesInput,
+  StarsInvoiceBody,
+  StarsInvoiceResponse,
   StatsOverview,
+  TonDepositIntentBody,
+  TonDepositIntentResponse,
   TransactionListResponse,
   UpsertUserBody,
   UserListResponse,
@@ -1723,6 +1737,598 @@ export const useInternalDebit = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getInternalDebitMutationOptions(options));
+    }
+
+export const getInternalGetBalanceUrl = (telegramId: string,) => {
+
+
+
+
+  return `/api/internal/balance/${telegramId}`
+}
+
+/**
+ * @summary Get wallet balances by Telegram ID (called by child bots)
+ */
+export const internalGetBalance = async (telegramId: string, options?: RequestInit): Promise<InternalBalanceResponse> => {
+
+  return customFetch<InternalBalanceResponse>(getInternalGetBalanceUrl(telegramId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInternalGetBalanceQueryKey = (telegramId: string,) => {
+    return [
+    `/api/internal/balance/${telegramId}`
+    ] as const;
+    }
+
+
+export const getInternalGetBalanceQueryOptions = <TData = Awaited<ReturnType<typeof internalGetBalance>>, TError = ErrorType<ErrorResponse>>(telegramId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof internalGetBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInternalGetBalanceQueryKey(telegramId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof internalGetBalance>>> = ({ signal }) => internalGetBalance(telegramId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(telegramId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof internalGetBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type InternalGetBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof internalGetBalance>>>
+export type InternalGetBalanceQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get wallet balances by Telegram ID (called by child bots)
+ */
+
+export function useInternalGetBalance<TData = Awaited<ReturnType<typeof internalGetBalance>>, TError = ErrorType<ErrorResponse>>(
+ telegramId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof internalGetBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getInternalGetBalanceQueryOptions(telegramId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getInternalGetLedgerUrl = (telegramId: string,
+    params?: InternalGetLedgerParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/internal/ledger/${telegramId}?${stringifiedParams}` : `/api/internal/ledger/${telegramId}`
+}
+
+/**
+ * @summary Get transaction history by Telegram ID (called by child bots)
+ */
+export const internalGetLedger = async (telegramId: string,
+    params?: InternalGetLedgerParams, options?: RequestInit): Promise<InternalLedgerResponse> => {
+
+  return customFetch<InternalLedgerResponse>(getInternalGetLedgerUrl(telegramId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInternalGetLedgerQueryKey = (telegramId: string,
+    params?: InternalGetLedgerParams,) => {
+    return [
+    `/api/internal/ledger/${telegramId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getInternalGetLedgerQueryOptions = <TData = Awaited<ReturnType<typeof internalGetLedger>>, TError = ErrorType<ErrorResponse>>(telegramId: string,
+    params?: InternalGetLedgerParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof internalGetLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInternalGetLedgerQueryKey(telegramId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof internalGetLedger>>> = ({ signal }) => internalGetLedger(telegramId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(telegramId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof internalGetLedger>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type InternalGetLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof internalGetLedger>>>
+export type InternalGetLedgerQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get transaction history by Telegram ID (called by child bots)
+ */
+
+export function useInternalGetLedger<TData = Awaited<ReturnType<typeof internalGetLedger>>, TError = ErrorType<ErrorResponse>>(
+ telegramId: string,
+    params?: InternalGetLedgerParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof internalGetLedger>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getInternalGetLedgerQueryOptions(telegramId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getInternalGameChargeEntryUrl = () => {
+
+
+
+
+  return `/api/internal/game/charge-entry`
+}
+
+/**
+ * @summary Charge game entry fee (debit with game metadata)
+ */
+export const internalGameChargeEntry = async (gameChargeEntryBody: GameChargeEntryBody, options?: RequestInit): Promise<DebitResponse> => {
+
+  return customFetch<DebitResponse>(getInternalGameChargeEntryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      gameChargeEntryBody,)
+  }
+);}
+
+
+
+
+export const getInternalGameChargeEntryMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameChargeEntry>>, TError,{data: BodyType<GameChargeEntryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalGameChargeEntry>>, TError,{data: BodyType<GameChargeEntryBody>}, TContext> => {
+
+const mutationKey = ['internalGameChargeEntry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalGameChargeEntry>>, {data: BodyType<GameChargeEntryBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalGameChargeEntry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalGameChargeEntryMutationResult = NonNullable<Awaited<ReturnType<typeof internalGameChargeEntry>>>
+    export type InternalGameChargeEntryMutationBody = BodyType<GameChargeEntryBody>
+    export type InternalGameChargeEntryMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Charge game entry fee (debit with game metadata)
+ */
+export const useInternalGameChargeEntry = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameChargeEntry>>, TError,{data: BodyType<GameChargeEntryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalGameChargeEntry>>,
+        TError,
+        {data: BodyType<GameChargeEntryBody>},
+        TContext
+      > => {
+      return useMutation(getInternalGameChargeEntryMutationOptions(options));
+    }
+
+export const getInternalGameValidateResultUrl = () => {
+
+
+
+
+  return `/api/internal/game/validate-result`
+}
+
+/**
+ * @summary Validate game completion and issue a signed resultToken (10-min TTL)
+ */
+export const internalGameValidateResult = async (gameValidateResultBody: GameValidateResultBody, options?: RequestInit): Promise<GameValidateResultResponse> => {
+
+  return customFetch<GameValidateResultResponse>(getInternalGameValidateResultUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      gameValidateResultBody,)
+  }
+);}
+
+
+
+
+export const getInternalGameValidateResultMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameValidateResult>>, TError,{data: BodyType<GameValidateResultBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalGameValidateResult>>, TError,{data: BodyType<GameValidateResultBody>}, TContext> => {
+
+const mutationKey = ['internalGameValidateResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalGameValidateResult>>, {data: BodyType<GameValidateResultBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalGameValidateResult(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalGameValidateResultMutationResult = NonNullable<Awaited<ReturnType<typeof internalGameValidateResult>>>
+    export type InternalGameValidateResultMutationBody = BodyType<GameValidateResultBody>
+    export type InternalGameValidateResultMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Validate game completion and issue a signed resultToken (10-min TTL)
+ */
+export const useInternalGameValidateResult = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameValidateResult>>, TError,{data: BodyType<GameValidateResultBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalGameValidateResult>>,
+        TError,
+        {data: BodyType<GameValidateResultBody>},
+        TContext
+      > => {
+      return useMutation(getInternalGameValidateResultMutationOptions(options));
+    }
+
+export const getInternalGameCreditRewardUrl = () => {
+
+
+
+
+  return `/api/internal/game/credit-reward`
+}
+
+/**
+ * @summary Credit game reward (credit with commission + referral + game metadata)
+ */
+export const internalGameCreditReward = async (gameCreditRewardBody: GameCreditRewardBody, options?: RequestInit): Promise<GameCreditRewardResponse> => {
+
+  return customFetch<GameCreditRewardResponse>(getInternalGameCreditRewardUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      gameCreditRewardBody,)
+  }
+);}
+
+
+
+
+export const getInternalGameCreditRewardMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameCreditReward>>, TError,{data: BodyType<GameCreditRewardBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalGameCreditReward>>, TError,{data: BodyType<GameCreditRewardBody>}, TContext> => {
+
+const mutationKey = ['internalGameCreditReward'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalGameCreditReward>>, {data: BodyType<GameCreditRewardBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalGameCreditReward(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalGameCreditRewardMutationResult = NonNullable<Awaited<ReturnType<typeof internalGameCreditReward>>>
+    export type InternalGameCreditRewardMutationBody = BodyType<GameCreditRewardBody>
+    export type InternalGameCreditRewardMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Credit game reward (credit with commission + referral + game metadata)
+ */
+export const useInternalGameCreditReward = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalGameCreditReward>>, TError,{data: BodyType<GameCreditRewardBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalGameCreditReward>>,
+        TError,
+        {data: BodyType<GameCreditRewardBody>},
+        TContext
+      > => {
+      return useMutation(getInternalGameCreditRewardMutationOptions(options));
+    }
+
+export const getInternalCreateStarsInvoiceUrl = () => {
+
+
+
+
+  return `/api/internal/stars-invoice`
+}
+
+/**
+ * @summary Create Telegram Stars deposit invoice
+ */
+export const internalCreateStarsInvoice = async (starsInvoiceBody: StarsInvoiceBody, options?: RequestInit): Promise<StarsInvoiceResponse> => {
+
+  return customFetch<StarsInvoiceResponse>(getInternalCreateStarsInvoiceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      starsInvoiceBody,)
+  }
+);}
+
+
+
+
+export const getInternalCreateStarsInvoiceMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalCreateStarsInvoice>>, TError,{data: BodyType<StarsInvoiceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalCreateStarsInvoice>>, TError,{data: BodyType<StarsInvoiceBody>}, TContext> => {
+
+const mutationKey = ['internalCreateStarsInvoice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalCreateStarsInvoice>>, {data: BodyType<StarsInvoiceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalCreateStarsInvoice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalCreateStarsInvoiceMutationResult = NonNullable<Awaited<ReturnType<typeof internalCreateStarsInvoice>>>
+    export type InternalCreateStarsInvoiceMutationBody = BodyType<StarsInvoiceBody>
+    export type InternalCreateStarsInvoiceMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create Telegram Stars deposit invoice
+ */
+export const useInternalCreateStarsInvoice = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalCreateStarsInvoice>>, TError,{data: BodyType<StarsInvoiceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalCreateStarsInvoice>>,
+        TError,
+        {data: BodyType<StarsInvoiceBody>},
+        TContext
+      > => {
+      return useMutation(getInternalCreateStarsInvoiceMutationOptions(options));
+    }
+
+export const getInternalCreateTonDepositIntentUrl = () => {
+
+
+
+
+  return `/api/internal/ton-deposit-intent`
+}
+
+/**
+ * @summary Create TON deposit intent with unique memo
+ */
+export const internalCreateTonDepositIntent = async (tonDepositIntentBody: TonDepositIntentBody, options?: RequestInit): Promise<TonDepositIntentResponse> => {
+
+  return customFetch<TonDepositIntentResponse>(getInternalCreateTonDepositIntentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      tonDepositIntentBody,)
+  }
+);}
+
+
+
+
+export const getInternalCreateTonDepositIntentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalCreateTonDepositIntent>>, TError,{data: BodyType<TonDepositIntentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalCreateTonDepositIntent>>, TError,{data: BodyType<TonDepositIntentBody>}, TContext> => {
+
+const mutationKey = ['internalCreateTonDepositIntent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalCreateTonDepositIntent>>, {data: BodyType<TonDepositIntentBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalCreateTonDepositIntent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalCreateTonDepositIntentMutationResult = NonNullable<Awaited<ReturnType<typeof internalCreateTonDepositIntent>>>
+    export type InternalCreateTonDepositIntentMutationBody = BodyType<TonDepositIntentBody>
+    export type InternalCreateTonDepositIntentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create TON deposit intent with unique memo
+ */
+export const useInternalCreateTonDepositIntent = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalCreateTonDepositIntent>>, TError,{data: BodyType<TonDepositIntentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalCreateTonDepositIntent>>,
+        TError,
+        {data: BodyType<TonDepositIntentBody>},
+        TContext
+      > => {
+      return useMutation(getInternalCreateTonDepositIntentMutationOptions(options));
+    }
+
+export const getInternalWithdrawUrl = () => {
+
+
+
+
+  return `/api/internal/withdraw`
+}
+
+/**
+ * @summary Create a pending SKZ withdrawal request (no pre-deduction; balance deducted on admin approve)
+ */
+export const internalWithdraw = async (internalWithdrawBody: InternalWithdrawBody, options?: RequestInit): Promise<InternalWithdrawResponse> => {
+
+  return customFetch<InternalWithdrawResponse>(getInternalWithdrawUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      internalWithdrawBody,)
+  }
+);}
+
+
+
+
+export const getInternalWithdrawMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalWithdraw>>, TError,{data: BodyType<InternalWithdrawBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof internalWithdraw>>, TError,{data: BodyType<InternalWithdrawBody>}, TContext> => {
+
+const mutationKey = ['internalWithdraw'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof internalWithdraw>>, {data: BodyType<InternalWithdrawBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  internalWithdraw(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InternalWithdrawMutationResult = NonNullable<Awaited<ReturnType<typeof internalWithdraw>>>
+    export type InternalWithdrawMutationBody = BodyType<InternalWithdrawBody>
+    export type InternalWithdrawMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a pending SKZ withdrawal request (no pre-deduction; balance deducted on admin approve)
+ */
+export const useInternalWithdraw = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof internalWithdraw>>, TError,{data: BodyType<InternalWithdrawBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof internalWithdraw>>,
+        TError,
+        {data: BodyType<InternalWithdrawBody>},
+        TContext
+      > => {
+      return useMutation(getInternalWithdrawMutationOptions(options));
     }
 
 export const getGetStatsOverviewUrl = () => {

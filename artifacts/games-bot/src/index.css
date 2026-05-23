@@ -1,0 +1,689 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   DESIGN TOKEN PALETTE
+   Primary:   #0891b2  cyan-600
+   Accent:    #22d3ee  cyan-400
+   Bright:    #67e8f9  cyan-300
+   Gold:      #f59e0b  amber-500
+   Emerald:   #10b981
+   Rose:      #f43f5e
+   Base:      #04030a  (near-black)
+   Surface:   #0d0b16
+   Card:      #120f1f
+───────────────────────────────────────────── */
+
+:root {
+  --tg-viewport-height: 100dvh;
+  --nav-height: 56px;    /* bottom nav */
+  --header-height: 48px; /* top navbar content row */
+  --glass-blur: 20px;
+  --glass-saturate: 140%;
+}
+
+html.device-high {
+  --glass-blur: 20px;
+  --glass-saturate: 140%;
+}
+
+html.device-mid {
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+}
+
+html.device-low {
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin { animation: spin 1s linear infinite; }
+
+/* Force any game rendered inside .game-play-area to respect the
+   available height so HUD/controls never disappear below the fold.
+   Direct child = root element of each game component. */
+.game-play-area > div > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.game-play-area canvas,
+.game-play-area svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Game modal body — stable paint layer, no layout shifts between phases */
+.game-modal-body {
+  contain: layout style;
+  will-change: auto;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Lock the document — no body scroll, only internal scroll areas */
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+  background: #04030a;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  /* Prevent white flash on initial paint before React hydrates */
+  color-scheme: dark;
+}
+
+/* When a game is being played, lock ALL touch/scroll on the entire document.
+   This is set by GameModal when phase === 'playing'. */
+body.game-locked {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+body.game-locked .scroll-area { overflow: hidden !important; }
+/* When game is playing, lock touch-action on every descendant of the modal */
+body.game-locked .game-modal-body,
+body.game-locked .game-modal-body * {
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+
+/* Game-area class — apply to canvas/game roots so touch never scrolls */
+.game-area, .game-canvas {
+  touch-action: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #e2e8f0;
+}
+
+/*
+ * app-shell: fixed, fills exactly the Telegram WebApp viewport.
+ * Uses flex-column so children stack: header → scrollable main → nav bar.
+ * overflow:hidden prevents any bleed-through.
+ */
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  contain: layout style paint;
+  /* Respect the safe-area so content never goes under status bar */
+  padding-top: env(safe-area-inset-top);
+  /* Prevent 300ms tap delay globally */
+  touch-action: manipulation;
+  /* Own compositing layer — prevents flicker when child elements animate */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/*
+ * scroll-area: fills the remaining space between the header and bottom nav.
+ * Only this element scrolls — everything else is locked.
+ */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Bottom padding so last item isn't hidden behind the nav */
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 16px);
+  /* Contain layout+paint — prevents scroll repaints from propagating up */
+  contain: layout paint;
+}
+
+main {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+[data-motion-animate] {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+/* #root just holds the app-shell div — no layout of its own */
+#root { height: 100%; }
+
+/* ── Static background orbs — no animation to prevent GPU flash ── */
+.app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 100% 70% at -5% 0%,   rgba(8, 145, 178, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 80%  60% at 105% 10%,  rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 70%  80% at 50%  110%, rgba(14, 116, 144, 0.12) 0%, transparent 55%);
+  will-change: auto;
+  pointer-events: none;
+}
+
+/* ── Subtle noise grain overlay ── */
+.app-shell::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   GLASSMORPHISM VARIANTS
+───────────────────────────────────────────── */
+
+/* Hero / large feature card */
+.glass-hero {
+  background: linear-gradient(135deg,
+    rgba(18, 10, 35, 0.92) 0%,
+    rgba(12,  8, 24, 0.88) 100%
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 40px rgba(109, 40, 217, 0.04);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Standard card */
+.glass-card {
+  background: rgba(15, 10, 28, 0.80);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Stat tile (small inset card) */
+.stat-tile {
+  background: rgba(109, 40, 217, 0.06);
+  border: 1px solid rgba(168, 85, 247, 0.12);
+  box-shadow: inset 0 0 24px rgba(109, 40, 217, 0.05);
+}
+
+/* Input field */
+.glass-input {
+  background: rgba(10, 7, 20, 0.70);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
+}
+
+/* ─────────────────────────────────────────────
+   GLOW — BOX SHADOW
+───────────────────────────────────────────── */
+.glow-violet { box-shadow: 0 0 24px rgba(124, 58, 237, 0.55), 0 0 60px rgba(124, 58, 237, 0.18); }
+.glow-purple { box-shadow: 0 0 24px rgba(168, 85, 247, 0.50), 0 0 60px rgba(168, 85, 247, 0.15); }
+.glow-gold   { box-shadow: 0 0 24px rgba(245, 158, 11, 0.50), 0 0 60px rgba(245, 158, 11, 0.14); }
+.glow-green  { box-shadow: 0 0 20px rgba(16, 185, 129, 0.45), 0 0 50px rgba(16, 185, 129, 0.12); }
+.glow-rose   { box-shadow: 0 0 20px rgba(244, 63, 94, 0.45),  0 0 50px rgba(244, 63, 94, 0.12);  }
+
+/* ─────────────────────────────────────────────
+   GLOW — TEXT SHADOW
+───────────────────────────────────────────── */
+.tg-violet { text-shadow: 0 0 18px rgba(124, 58, 237, 0.9), 0 0 40px rgba(124, 58, 237, 0.4); }
+.tg-purple { text-shadow: 0 0 18px rgba(168, 85, 247, 0.9), 0 0 40px rgba(168, 85, 247, 0.4); }
+.tg-gold   { text-shadow: 0 0 18px rgba(245, 158, 11, 0.9), 0 0 40px rgba(245, 158, 11, 0.4); }
+.tg-green  { text-shadow: 0 0 14px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.3); }
+.tg-rose   { text-shadow: 0 0 14px rgba(244, 63, 94, 0.8),  0 0 30px rgba(244, 63, 94, 0.3);  }
+
+/* ─────────────────────────────────────────────
+   ICON GLOW (drop-shadow)
+───────────────────────────────────────────── */
+.ig-violet { filter: drop-shadow(0 0 8px rgba(124, 58, 237, 1)); }
+.ig-purple { filter: drop-shadow(0 0 8px rgba(168, 85, 247, 1)); }
+.ig-gold   { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 1)); }
+.ig-green  { filter: drop-shadow(0 0 7px rgba(16, 185, 129, 1)); }
+.ig-rose   { filter: drop-shadow(0 0 7px rgba(244, 63, 94,  1)); }
+
+/* ─────────────────────────────────────────────
+   AVATAR RING — spinning gradient border
+───────────────────────────────────────────── */
+.avatar-ring-wrap {
+  padding: 2.5px;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, #0891b2, #22d3ee, #67e8f9, #0891b2);
+  box-shadow: 0 0 24px rgba(8, 145, 178, 0.5), 0 0 60px rgba(8, 145, 178, 0.15);
+  animation: ringRotate 5s linear infinite;
+  will-change: transform;
+}
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+.avatar-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: #0a0d14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────────
+   PLAY BUTTON PULSE
+───────────────────────────────────────────── */
+@keyframes playPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(124, 58, 237, 0.7),
+      0 0 80px rgba(124, 58, 237, 0.25),
+      0 0 0px  rgba(168, 85, 247, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 50px rgba(124, 58, 237, 0.95),
+      0 0 120px rgba(124, 58, 237, 0.40),
+      0 0 200px rgba(168, 85, 247, 0.15);
+  }
+}
+.play-pulse { animation: playPulse 4s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────
+   SHIMMER TEXT
+───────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -300% center; }
+  100% { background-position:  300% center; }
+}
+
+.shimmer-gold {
+  background: linear-gradient(90deg, #f59e0b 0%, #fde68a 25%, #f59e0b 55%, #fbbf24 80%, #f59e0b 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+.shimmer-purple {
+  background: linear-gradient(90deg, #0891b2 0%, #67e8f9 30%, #0891b2 60%, #22d3ee 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3.5s linear infinite;
+}
+
+/* ─────────────────────────────────────────────
+   GRADIENT BUTTON
+───────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #0e7490 0%, #0891b2 40%, #06b6d4 100%);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.08em;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+.btn-primary:active { transform: scale(0.97); }
+
+/* Shimmer sweep on button */
+@keyframes btnSweep {
+  0%   { left: -60%; }
+  100% { left: 130%;  }
+}
+.btn-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  animation: btnSweep 2.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────
+   CARD HOVER / GAME TILE PULSE
+───────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.card-hover:active { transform: scale(0.975); }
+
+@keyframes hotGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.25), 0 8px 32px rgba(0,0,0,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(245, 158, 11, 0.55), 0 8px 32px rgba(0,0,0,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+}
+.hot-pulse { animation: hotGlow 4s ease-in-out infinite; }
+
+@keyframes violetGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.25), 0 8px 32px rgba(0,0,0,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(124, 58, 237, 0.55), 0 8px 32px rgba(0,0,0,0.45),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+}
+.violet-pulse { animation: violetGlow 3s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────
+   ACTIVITY LOG ROW
+───────────────────────────────────────────── */
+.log-row { transition: background 0.15s ease, transform 0.15s ease; }
+.log-row:hover { background: rgba(109, 40, 217, 0.06); transform: translateX(2px); }
+
+/* ─────────────────────────────────────────────
+   TOP ACCENT LINE (navbar / bottom nav)
+───────────────────────────────────────────── */
+.accent-line-top {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(8, 145, 178, 0.7), rgba(34, 211, 238, 0.5), transparent);
+}
+.accent-line-bottom {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(8, 145, 178, 0.5), rgba(34, 211, 238, 0.35), transparent);
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────── */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(124,58,237,0.5), rgba(168,85,247,0.3));
+  border-radius: 4px;
+}
+
+select option { background: #0d0b16; color: #e2e8f0; }
+
+/* ─────────────────────────────────────────────
+   DIFFICULTY BADGES — higher contrast for WCAG AA
+───────────────────────────────────────────── */
+.badge-easy   { background: rgba(16,185,129,0.18); border: 1px solid rgba(16,185,129,0.40); color: #6ee7b7; font-weight: 800; }
+.badge-medium { background: rgba(245,158,11,0.18); border: 1px solid rgba(245,158,11,0.40); color: #fcd34d; font-weight: 800; }
+.badge-hard   { background: rgba(124,58,237,0.22); border: 1px solid rgba(168,85,247,0.45); color: #d8b4fe; font-weight: 800; }
+
+/* ─────────────────────────────────────────────
+   SKELETON LOADER
+───────────────────────────────────────────── */
+@keyframes skeletonShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(124, 58, 237, 0.06) 0%,
+    rgba(168, 85, 247, 0.14) 50%,
+    rgba(124, 58, 237, 0.06) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s linear infinite;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 85, 247, 0.08);
+}
+
+/* ─────────────────────────────────────────────
+   ENTRANCE ANIMATIONS
+───────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.92); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.pop-in { animation: popIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Smooth state transitions on interactive elements.
+   No opacity transition — Framer Motion owns opacity on motion.button elements.
+   Mixing CSS opacity with Framer Motion causes double-animation flicker. */
+button, [role="button"] {
+  transition: transform 0.12s ease, box-shadow 0.18s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button:active:not(:disabled) { transform: scale(0.97); }
+
+/* ─────────────────────────────────────────────
+   PERFORMANCE: pause expensive animations when
+   the document is hidden (tab/app backgrounded).
+───────────────────────────────────────────── */
+html:has(body.is-hidden) *,
+body.is-hidden * {
+  animation-play-state: paused !important;
+}
+
+/* ─────────────────────────────────────────────
+   ACHIEVEMENT UNLOCK PULSE
+───────────────────────────────────────────── */
+@keyframes achievePop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.06); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.achieve-pop { animation: achievePop 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ─────────────────────────────────────────────
+   STREAK FIRE FLICKER
+───────────────────────────────────────────── */
+@keyframes fireFlicker {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(249,115,22,0.9)) drop-shadow(0 0 14px rgba(245,158,11,0.5)); }
+  50%       { filter: drop-shadow(0 0 10px rgba(249,115,22,1))  drop-shadow(0 0 22px rgba(245,158,11,0.7)); }
+}
+.fire-flicker { animation: fireFlicker 3s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────
+   TROPHY GLOW PULSE
+───────────────────────────────────────────── */
+@keyframes trophyPulse {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(245,158,11,0.9)); }
+  50%       { filter: drop-shadow(0 0 16px rgba(245,158,11,1)) drop-shadow(0 0 32px rgba(245,158,11,0.5)); }
+}
+.trophy-pulse { animation: trophyPulse 3.5s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────
+   RANK BADGE GLOW
+───────────────────────────────────────────── */
+.rank-badge-glow {
+  box-shadow: 0 0 16px var(--rank-glow, rgba(245,158,11,0.5)), 0 0 40px var(--rank-glow, rgba(245,158,11,0.2));
+}
+
+/* ─────────────────────────────────────────────
+   SHIMMER CYAN (for profile card)
+───────────────────────────────────────────── */
+.shimmer-cyan {
+  background: linear-gradient(90deg, #22d3ee 0%, #67e8f9 30%, #22d3ee 60%, #06b6d4 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Honor user's reduced-motion preference globally */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* On low-DPR / small phones, lower the cost of stacked backdrop-filters */
+@media (max-width: 480px) {
+  :root {
+    --glass-blur: 10px;
+    --glass-saturate: 120%;
+  }
+  .glass-input {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .app-shell::after { display: none; }
+}
+
+/* ─────────────────────────────────────────────
+   ANNOUNCEMENT BANNER SHEEN
+───────────────────────────────────────────── */
+@keyframes bannerSheen {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(350%); }
+}
+html.device-low .banner-sheen,
+html.device-mid .banner-sheen { animation: none !important; }
+
+/* ─────────────────────────────────────────────
+   LOBBY SPINNER — exempt from device overrides
+───────────────────────────────────────────── */
+@keyframes lobbySpin {
+  to { transform: rotate(360deg); }
+}
+.lobby-spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,212,255,0.6);
+  border-top-color: transparent;
+  animation: lobbySpin 0.9s linear infinite !important;
+}
+
+/* ─────────────────────────────────────────────
+   LOW-END DEVICE OVERRIDES
+   Applied via device-low class on <html>,
+   set by main.jsx from deviceProfile.js
+───────────────────────────────────────────── */
+html.device-low *,
+html.device-low *::before,
+html.device-low *::after {
+  animation: none !important;
+  transition-duration: 0.08s !important;
+}
+html.device-low .glass-hero,
+html.device-low .glass-card,
+html.device-low .glass-input {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.device-low .app-shell::before { animation: none !important; opacity: 0.5; }
+html.device-low .app-shell::after { display: none !important; }
+html.device-low .avatar-ring-wrap { animation: none !important; }
+html.device-low .play-pulse { animation: none !important; box-shadow: 0 0 20px rgba(124,58,237,0.5); }
+html.device-low .shimmer-gold,
+html.device-low .shimmer-purple,
+html.device-low .shimmer-cyan { animation: none !important; }
+html.device-low .hot-pulse,
+html.device-low .violet-pulse { animation: none !important; }
+html.device-low .fire-flicker { animation: none !important; filter: none !important; }
+html.device-low .trophy-pulse { animation: none !important; filter: none !important; }
+html.device-low .ig-violet,
+html.device-low .ig-purple,
+html.device-low .ig-gold,
+html.device-low .ig-green,
+html.device-low .ig-rose { filter: none !important; }
+html.device-low .skeleton { animation: none !important; }
+html.device-low .btn-sweep::after { animation: none !important; display: none; }
+html.device-low .lobby-spinner { animation: lobbySpin 0.9s linear infinite !important; }
+html.device-low * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   MID-END DEVICE OVERRIDES
+   Disable all infinite/expensive animations
+───────────────────────────────────────────── */
+html.device-mid .glass-hero,
+html.device-mid .glass-card,
+html.device-mid .glass-input {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.device-mid * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html.device-mid .app-shell::before { opacity: 0.4; }
+html.device-mid .app-shell::after { display: none !important; }
+html.device-mid .avatar-ring-wrap { animation: none !important; }
+html.device-mid .play-pulse { animation: none !important; box-shadow: 0 0 20px rgba(8,145,178,0.5); }
+html.device-mid .shimmer-gold,
+html.device-mid .shimmer-purple,
+html.device-mid .shimmer-cyan { animation: none !important; }
+html.device-mid .hot-pulse,
+html.device-mid .violet-pulse { animation: none !important; }
+html.device-mid .fire-flicker { animation: none !important; filter: drop-shadow(0 0 6px rgba(249,115,22,0.7)); }
+html.device-mid .trophy-pulse { animation: none !important; }
+html.device-mid .skeleton { animation: none !important; }
+html.device-mid .btn-sweep::after { animation: none !important; display: none; }
