@@ -65,7 +65,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {/* Platform nav */}
             <SidebarGroup>
               <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest text-muted-foreground/50 uppercase px-4 mb-1">
-                Platform
+                المنصة
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5 px-2">
