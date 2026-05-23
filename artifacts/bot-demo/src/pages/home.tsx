@@ -270,6 +270,13 @@ export function Home() {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => {
                   if (bot.live && bot.url) {
+                    try {
+                      const target = new URL(bot.url);
+                      if (target.origin === window.location.origin) {
+                        window.location.href = target.pathname + target.search + target.hash;
+                        return;
+                      }
+                    } catch {}
                     openTelegramApp(bot.url);
                   } else {
                     showTelegramAlert(`${bot.name} bot is launching soon. Stay tuned!`);
