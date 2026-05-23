@@ -12,7 +12,6 @@ import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import NotificationSystem from './components/NotificationSystem';
 import AdminAnnouncementBanner from './components/AdminAnnouncementBanner';
-import DebugTouchOverlay from './components/DebugTouchOverlay';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import { SkeletonCard, SkeletonRow } from './components/Skeleton';
@@ -277,13 +276,17 @@ export default function App() {
 
   return (
     <div className="app-shell text-white select-none" style={{ background: '#04030a' }}>
-      <DebugTouchOverlay />
       {/* Main app shell is ALWAYS mounted underneath the splash.
           When splash fades out, the app is already painted — no mass-mount flash. */}
       {inMaintenance ? (
         <MaintenanceScreen appConfig={appConfig} />
       ) : (
-        <div>
+        <>
+          {/* Use Fragment, NOT a wrapping <div>. The wrapping div broke
+              flex:1 on <main className="scroll-area">: a non-flex parent
+              meant main grew to its natural content height instead of
+              filling the remaining viewport, so overflow-y:auto never
+              activated and the entire page became unscrollable on mobile. */}
           <NotificationSystem />
           <AdminAnnouncementBanner />
           <Navbar />
@@ -307,7 +310,7 @@ export default function App() {
             </AppErrorBoundary>
           </main>
           <BottomNav />
-        </div>
+        </>
       )}
 
       {/* Splash overlays everything; fades out over app that's already mounted */}
