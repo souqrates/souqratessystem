@@ -3,20 +3,33 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Mother Bot API - Financial Hub for all child bots
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User management
+  - name: wallets
+    description: Wallet operations
+  - name: transactions
+    description: Transaction history
+  - name: bots
+    description: Child bot management
+  - name: commissions
+    description: Commission tracking
+  - name: withdrawals
+    description: Withdrawal requests
+  - name: internal
+    description: Internal API for child bots
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +37,424 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+  /users/{telegramId}:
+    get:
+      operationId: getUserByTelegramId
+      tags: [users]
+      summary: Get user by Telegram ID
+      parameters:
+        - in: path
+          name: telegramId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithWallet"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /wallets/{userId}:
+    get:
+      operationId: getWallet
+      tags: [wallets]
+      summary: Get wallet for a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Wallet details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "404":
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List transactions
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: sourceBot
+          schema:
+            type: string
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionListResponse"
+
+  /bots:
+    get:
+      operationId: listBots
+      tags: [bots]
+      summary: List all registered child bots
+      responses:
+        "200":
+          description: List of bots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotListResponse"
+    post:
+      operationId: createBot
+      tags: [bots]
+      summary: Register a new child bot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBotBody"
+      responses:
+        "201":
+          description: Bot created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bot"
+
+  /bots/{slug}:
+    get:
+      operationId: getBot
+      tags: [bots]
+      summary: Get bot details
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bot"
+        "404":
+          description: Bot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commissions:
+    get:
+      operationId: listCommissions
+      tags: [commissions]
+      summary: List commissions
+      parameters:
+        - in: query
+          name: botSlug
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of commissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionListResponse"
+
+  /withdrawals:
+    get:
+      operationId: listWithdrawals
+      tags: [withdrawals]
+      summary: List withdrawals
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of withdrawals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawalListResponse"
+    post:
+      operationId: createWithdrawal
+      tags: [withdrawals]
+      summary: Create a withdrawal request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWithdrawalBody"
+      responses:
+        "201":
+          description: Withdrawal created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+        "400":
+          description: Invalid request or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /withdrawals/{id}/approve:
+    post:
+      operationId: approveWithdrawal
+      tags: [withdrawals]
+      summary: Approve a withdrawal request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveWithdrawalBody"
+      responses:
+        "200":
+          description: Withdrawal approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /withdrawals/{id}/reject:
+    post:
+      operationId: rejectWithdrawal
+      tags: [withdrawals]
+      summary: Reject a withdrawal request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectWithdrawalBody"
+      responses:
+        "200":
+          description: Withdrawal rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Withdrawal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/users/upsert:
+    post:
+      operationId: internalUpsertUser
+      tags: [internal]
+      summary: Create or update a user (called by child bots)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertUserBody"
+      responses:
+        "200":
+          description: User upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithWallet"
+
+  /internal/credit:
+    post:
+      operationId: internalCredit
+      tags: [internal]
+      summary: Credit a user wallet (called by child bots after earning)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditBody"
+      responses:
+        "200":
+          description: Credit applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /internal/debit:
+    post:
+      operationId: internalDebit
+      tags: [internal]
+      summary: Debit a user wallet (called by child bots for purchases)
+      security:
+        - BotApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DebitBody"
+      responses:
+        "200":
+          description: Debit applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DebitResponse"
+        "400":
+          description: Insufficient balance or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats/overview:
+    get:
+      operationId: getStatsOverview
+      tags: [internal]
+      summary: Platform-wide financial stats
+      responses:
+        "200":
+          description: Stats overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOverview"
+
 components:
+  securitySchemes:
+    BotApiKey:
+      type: apiKey
+      in: header
+      name: X-Bot-Api-Key
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +464,500 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        username:
+          type: string
+          nullable: true
+        firstName:
+          type: string
+        lastName:
+          type: string
+          nullable: true
+        languageCode:
+          type: string
+          nullable: true
+        isPremium:
+          type: boolean
+        isBlocked:
+          type: boolean
+        referrerId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - telegramId
+        - firstName
+        - isPremium
+        - isBlocked
+        - createdAt
+
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        balanceStars:
+          type: string
+        balanceUsdt:
+          type: string
+        balanceTon:
+          type: string
+        totalEarned:
+          type: string
+        totalWithdrawn:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - balanceStars
+        - balanceUsdt
+        - balanceTon
+        - totalEarned
+        - totalWithdrawn
+        - updatedAt
+
+    UserWithWallet:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        wallet:
+          $ref: "#/components/schemas/Wallet"
+      required:
+        - user
+        - wallet
+
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+        currency:
+          type: string
+        amount:
+          type: string
+        fee:
+          type: string
+        status:
+          type: string
+        sourceBot:
+          type: string
+          nullable: true
+        referenceId:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - type
+        - currency
+        - amount
+        - fee
+        - status
+        - createdAt
+
+    TransactionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    Bot:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        commissionRate:
+          type: string
+        isActive:
+          type: boolean
+        totalVolumeUsdt:
+          type: string
+        totalCommissionUsdt:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - name
+        - commissionRate
+        - isActive
+        - totalVolumeUsdt
+        - totalCommissionUsdt
+        - createdAt
+
+    CreateBotBody:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        commissionRate:
+          type: string
+      required:
+        - slug
+        - name
+
+    BotListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bot"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    Commission:
+      type: object
+      properties:
+        id:
+          type: integer
+        transactionId:
+          type: integer
+        botSlug:
+          type: string
+        userId:
+          type: integer
+        grossAmount:
+          type: string
+        commissionRate:
+          type: string
+        commissionAmount:
+          type: string
+        netAmount:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - transactionId
+        - botSlug
+        - userId
+        - grossAmount
+        - commissionRate
+        - commissionAmount
+        - netAmount
+        - currency
+        - status
+        - createdAt
+
+    CommissionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Commission"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    Withdrawal:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        currency:
+          type: string
+        amount:
+          type: string
+        fee:
+          type: string
+        netAmount:
+          type: string
+        method:
+          type: string
+        address:
+          type: string
+          nullable: true
+        txHash:
+          type: string
+          nullable: true
+        status:
+          type: string
+        rejectedReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - currency
+        - amount
+        - fee
+        - netAmount
+        - method
+        - status
+        - createdAt
+
+    CreateWithdrawalBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        currency:
+          type: string
+        amount:
+          type: string
+        method:
+          type: string
+        address:
+          type: string
+      required:
+        - userId
+        - currency
+        - amount
+        - method
+
+    ApproveWithdrawalBody:
+      type: object
+      properties:
+        txHash:
+          type: string
+      required:
+        - txHash
+
+    RejectWithdrawalBody:
+      type: object
+      properties:
+        reason:
+          type: string
+      required:
+        - reason
+
+    WithdrawalListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Withdrawal"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    UpsertUserBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        languageCode:
+          type: string
+        isPremium:
+          type: boolean
+        referrerTelegramId:
+          type: string
+      required:
+        - telegramId
+        - firstName
+
+    CreditBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        currency:
+          type: string
+          enum: [stars, usdt, ton]
+        amount:
+          type: string
+        description:
+          type: string
+        referenceId:
+          type: string
+      required:
+        - telegramId
+        - currency
+        - amount
+        - description
+
+    CreditResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: integer
+        newBalance:
+          type: string
+        commissionDeducted:
+          type: string
+      required:
+        - success
+        - transactionId
+        - newBalance
+        - commissionDeducted
+
+    DebitBody:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        currency:
+          type: string
+          enum: [stars, usdt, ton]
+        amount:
+          type: string
+        description:
+          type: string
+        referenceId:
+          type: string
+      required:
+        - telegramId
+        - currency
+        - amount
+        - description
+
+    DebitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: integer
+        newBalance:
+          type: string
+      required:
+        - success
+        - transactionId
+        - newBalance
+
+    StatsOverview:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalVolumeUsdt:
+          type: string
+        totalCommissionsUsdt:
+          type: string
+        pendingWithdrawals:
+          type: integer
+        pendingWithdrawalsAmountUsdt:
+          type: string
+        activeBots:
+          type: integer
+        todayTransactions:
+          type: integer
+        todayVolumeUsdt:
+          type: string
+      required:
+        - totalUsers
+        - totalVolumeUsdt
+        - totalCommissionsUsdt
+        - pendingWithdrawals
+        - pendingWithdrawalsAmountUsdt
+        - activeBots
+        - todayTransactions
+        - todayVolumeUsdt

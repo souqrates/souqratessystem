@@ -1,6 +1,6 @@
-# [Project name]
+# البوت الأم - Mother Bot Platform
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+منصة بوتات تيليغرام متكاملة تضم 6 بوتات فرعية مرتبطة ببوت أم مالي مركزي.
 
 ## Run & Operate
 
@@ -9,37 +9,79 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `python3 artifacts/mother-bot/src/bot.py` — run the mother Telegram bot
+- `python3 artifacts/mother-bot/src/seed_bots.py` — seed 6 child bots into DB
+- Required env: `DATABASE_URL` — Postgres connection string (auto-set)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- API: Express 5 (artifacts/api-server)
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Admin Dashboard: React + Vite + Tailwind (artifacts/admin-dashboard)
+- Mother Bot: Python + aiogram 3 (artifacts/mother-bot)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
+- `lib/db/src/schema/` — DB schema (users, wallets, transactions, bots, commissions, withdrawals)
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `artifacts/admin-dashboard/src/` — Admin dashboard React app
+- `artifacts/mother-bot/src/bot.py` — Mother Telegram bot (Python/aiogram)
+- `artifacts/mother-bot/src/client.py` — SDK for child bots to use
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Contract-first API**: OpenAPI spec gates all codegen; never hand-write types
+- **Bot API key auth**: Each child bot has a unique API key stored in `bots` table; all internal financial ops require `X-Bot-Api-Key` header
+- **Commission auto-deduction**: Every `credit` call automatically deducts commission and records it in `commissions` table; child bots receive gross, users receive net
+- **Atomic wallet updates**: Balance updates happen in-memory after transaction insert; no distributed transactions needed
+- **Single financial hub**: All 6 child bots share one wallet per user via `telegramId` lookup — no per-bot wallets
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+### البوت الأم (Mother Bot)
+- محفظة موحدة لكل مستخدم (USDT + Stars + TON)
+- ربط مالي بين 6 بوتات فرعية
+- نظام عمولة تلقائي قابل للضبط لكل بوت
+- سحب الأرباح بعدة طرق
+- نظام إحالة
+
+### البوتات الفرعية المخططة
+1. **بوت الألعاب** (games-bot) — ألعاب مهارات مع رهانات
+2. **بوت الفيديو** (video-bot) — TikTok-like مع أرباح للمنشئين
+3. **بوت الغرف الصوتية** (voice-bot) — غرف صوتية مدفوعة
+4. **بوت الذكاء الاصطناعي** (ai-bot) — توليد نصوص/صور/فيديو
+5. **المتجر الرقمي** (store-bot) — بيع منتجات رقمية
+6. **بوت المسابقات** (contests-bot) — مسابقات وجوائز
+
+### لوحة التحكم الإدارية
+- إحصاءات مالية شاملة
+- إدارة المستخدمين والمحافظ
+- سجل المعاملات والعمولات
+- إدارة طلبات السحب (قبول/رفض)
+- إدارة البوتات الفرعية
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- لغة التطوير: يفضل أعلى أداء ممكن
+- الدفع: Telegram Stars + Crypto (USDT/TON)
+- البناء: بوت بوت بشكل تدريجي
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- أضف `SESSION_SECRET` كـ secret في Replit
+- لتشغيل بوت التيليغرام: أضف `MOTHER_BOT_TOKEN` كـ secret
+- سجّل البوت الأم أولاً عبر `POST /api/bots` للحصول على API key
+- استخدم `client.py` في كل بوت فرعي للتواصل مع البوت الأم
+- الـ API الداخلية تتطلب `X-Bot-Api-Key` header
+- عند تغيير OpenAPI spec: أعد تشغيل `pnpm --filter @workspace/api-spec run codegen`
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Internal API docs: GET /api/healthz for server health
+- Child bot SDK: artifacts/mother-bot/src/client.py
