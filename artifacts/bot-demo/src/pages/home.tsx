@@ -1,11 +1,15 @@
 import { getTelegramUser } from "../lib/telegram";
-import { MOCK_BALANCES, MOCK_TRANSACTIONS, SKZ_RATES } from "../lib/mock-data";
+import { MOCK_BALANCES, MOCK_TRANSACTIONS } from "../lib/mock-data";
+import { usePlatformSettings } from "../lib/use-platform-settings";
 import { motion } from "framer-motion";
-import { Star, TrendingUp, Zap } from "lucide-react";
+import { Star, TrendingUp, Zap, Settings2 } from "lucide-react";
 
 export function Home() {
   const user = getTelegramUser();
-  const initials = `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ''}`;
+  const { settings } = usePlatformSettings();
+  const initials = `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ""}`;
+
+  const usdtEquiv = (MOCK_BALANCES.skz / settings.skzPerUsdt).toFixed(2);
 
   return (
     <div className="p-4 space-y-5">
@@ -35,6 +39,15 @@ export function Home() {
         </div>
       </header>
 
+      {/* Platform Name Banner */}
+      <div className="glass-card rounded-2xl px-4 py-2.5 flex items-center gap-2">
+        <Settings2 size={12} className="text-white/30" />
+        <p className="text-xs text-white/50 flex-1">
+          <span className="text-white/70 font-semibold">{settings.platformName}</span>
+          {" — "}{settings.platformTagline}
+        </p>
+      </div>
+
       {/* Primary SKZ Balance Card */}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
@@ -42,12 +55,14 @@ export function Home() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="glass-card-skz rounded-3xl p-6 relative overflow-hidden"
       >
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-skz rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent rounded-full blur-[80px] opacity-15 pointer-events-none"></div>
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-skz rounded-full blur-[80px] opacity-20 pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent rounded-full blur-[80px] opacity-15 pointer-events-none" />
 
         <div className="relative z-10 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-skz to-skz-dark flex items-center justify-center text-white font-black text-xs">S</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-skz to-skz-dark flex items-center justify-center text-white font-black text-xs">
+              S
+            </div>
             <p className="text-sm font-medium text-white/60">رصيد SKZ</p>
           </div>
           <h2 className="text-6xl font-black gradient-text tracking-tight mb-1">
@@ -55,7 +70,9 @@ export function Home() {
           </h2>
           <p className="text-base font-bold text-white/50 mb-4">SKZ</p>
           <p className="text-xs text-white/40">
-            ≈ ${(MOCK_BALANCES.skz / SKZ_RATES.perUsdt).toFixed(2)} USDT
+            ≈ ${usdtEquiv} USDT
+            <span className="text-white/20 mx-1">·</span>
+            سعر الصرف: {settings.skzPerUsdt} SKZ/USDT
           </p>
         </div>
       </motion.div>
@@ -67,7 +84,9 @@ export function Home() {
             <TrendingUp size={14} className="text-success" />
             <p className="text-xs text-white/50">إجمالي المكتسب</p>
           </div>
-          <p className="font-black text-lg text-success">{MOCK_BALANCES.totalEarnedSkz.toLocaleString("ar")}</p>
+          <p className="font-black text-lg text-success">
+            {MOCK_BALANCES.totalEarnedSkz.toLocaleString("ar")}
+          </p>
           <p className="text-[10px] text-white/30">SKZ</p>
         </div>
         <div className="glass-card rounded-2xl p-4">
@@ -75,19 +94,39 @@ export function Home() {
             <Star size={14} className="text-stars fill-stars" />
             <p className="text-xs text-white/50">محول للخارج</p>
           </div>
-          <p className="font-black text-lg text-white/70">{MOCK_BALANCES.totalWithdrawnSkz.toLocaleString("ar")}</p>
+          <p className="font-black text-lg text-white/70">
+            {MOCK_BALANCES.totalWithdrawnSkz.toLocaleString("ar")}
+          </p>
           <p className="text-[10px] text-white/30">SKZ</p>
         </div>
       </div>
 
-      {/* Deposit source mini cards */}
+      {/* Currency mini cards — rates from API */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: "USDT", val: `${MOCK_BALANCES.usdt.toFixed(1)}`, color: "text-usdt", bg: "bg-usdt/10", note: `= ${MOCK_BALANCES.usdt * SKZ_RATES.perUsdt} SKZ` },
-          { label: "Stars ⭐", val: `${MOCK_BALANCES.stars}`, color: "text-stars", bg: "bg-stars/10", note: `= ${MOCK_BALANCES.stars * SKZ_RATES.perStar} SKZ` },
-          { label: "TON", val: `${MOCK_BALANCES.ton.toFixed(2)}`, color: "text-ton", bg: "bg-ton/10", note: `= ${MOCK_BALANCES.ton * SKZ_RATES.perTon} SKZ` },
+          {
+            label: "USDT",
+            val: `${MOCK_BALANCES.usdt.toFixed(1)}`,
+            color: "text-usdt",
+            bg: "bg-usdt/10",
+            note: `= ${Math.round(MOCK_BALANCES.usdt * settings.skzPerUsdt)} SKZ`,
+          },
+          {
+            label: "Stars ⭐",
+            val: `${MOCK_BALANCES.stars}`,
+            color: "text-stars",
+            bg: "bg-stars/10",
+            note: `= ${Math.round(MOCK_BALANCES.stars * settings.skzPerStar)} SKZ`,
+          },
+          {
+            label: "TON",
+            val: `${MOCK_BALANCES.ton.toFixed(2)}`,
+            color: "text-ton",
+            bg: "bg-ton/10",
+            note: `= ${Math.round(MOCK_BALANCES.ton * settings.skzPerTon)} SKZ`,
+          },
         ].map((item, i) => (
-          <div key={i} className={`glass-card rounded-2xl p-3 flex flex-col items-center gap-1`}>
+          <div key={i} className="glass-card rounded-2xl p-3 flex flex-col items-center gap-1">
             <p className={`text-[10px] font-bold ${item.color}`}>{item.label}</p>
             <p className="font-black text-sm">{item.val}</p>
             <p className="text-[9px] text-white/30">{item.note}</p>
@@ -98,7 +137,10 @@ export function Home() {
       {/* Bots Grid */}
       <section>
         <h3 className="text-sm font-bold mb-3 px-1 text-white/70">البوتات</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
+        <div
+          className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
+          style={{ scrollbarWidth: "none" }}
+        >
           {[
             { icon: "🎮", name: "الألعاب", skz: "+250" },
             { icon: "🎬", name: "الفيديو", skz: "+100" },
@@ -107,21 +149,42 @@ export function Home() {
             { icon: "🛒", name: "المتجر", skz: "+30" },
             { icon: "🏆", name: "مسابقات", skz: "+500" },
           ].map((bot, i) => (
-            <div key={i} className="snap-start shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 w-[76px]">
+            <div
+              key={i}
+              className="snap-start shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 w-[76px]"
+            >
               <span className="text-2xl">{bot.icon}</span>
-              <span className="text-[10px] font-bold text-white/80 text-center leading-tight">{bot.name}</span>
+              <span className="text-[10px] font-bold text-white/80 text-center leading-tight">
+                {bot.name}
+              </span>
               <span className="text-[9px] font-black text-skz-light">{bot.skz}</span>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Referral promo */}
+      <div className="glass-card rounded-2xl p-4 border border-skz/20">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-base">🎁</span>
+          <p className="text-xs font-bold text-skz-light">
+            ادعُ أصدقاءك واكسب {settings.referralBonusPercent}% من أرباحهم
+          </p>
+        </div>
+        <p className="text-[10px] text-white/40 leading-relaxed">
+          {settings.referralMessage}
+        </p>
+      </div>
+
       {/* Recent Transactions */}
       <section className="pb-8">
         <h3 className="text-sm font-bold mb-3 px-1 text-white/70">آخر المعاملات</h3>
         <div className="glass-card rounded-3xl p-2 flex flex-col gap-1">
           {MOCK_TRANSACTIONS.map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-colors">
+            <div
+              key={tx.id}
+              className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl">
                   {tx.botIcon}
@@ -131,8 +194,13 @@ export function Home() {
                   <p className="text-[10px] text-white/30">{tx.date}</p>
                 </div>
               </div>
-              <div className={`font-black text-sm ${tx.type === 'credit' ? 'text-skz-light' : 'text-white/60'}`}>
-                {tx.amount} <span className="text-[10px] font-bold opacity-70">{tx.currency}</span>
+              <div
+                className={`font-black text-sm ${
+                  tx.type === "credit" ? "text-skz-light" : "text-white/60"
+                }`}
+              >
+                {tx.amount}{" "}
+                <span className="text-[10px] font-bold opacity-70">{tx.currency}</span>
               </div>
             </div>
           ))}

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { MOCK_REFERRALS } from "../lib/mock-data";
+import { usePlatformSettings } from "../lib/use-platform-settings";
 import { Users, Copy, Share2, Check, ChevronLeft, Zap } from "lucide-react";
 
 export function Referral() {
   const [copied, setCopied] = useState(false);
+  const { settings } = usePlatformSettings();
   const refLink = "t.me/MotherBot?start=ref_482917";
 
   const handleCopy = () => {
@@ -18,7 +20,7 @@ export function Referral() {
   const handleShare = () => {
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(
-        `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent("انضم إلي في البوت الأم واكسب SKZ من جميع البوتات!")}`
+        `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(settings.referralMessage)}`
       );
     } else {
       handleCopy();
@@ -33,8 +35,10 @@ export function Referral() {
           <Users size={30} className="text-skz-light" />
         </div>
         <h1 className="text-3xl font-black mb-2">نظام الإحالة</h1>
-        <p className="text-white/50 text-sm max-w-[240px] mx-auto leading-relaxed">
-          اكسب <span className="text-skz-light font-bold">5%</span> من أرباح أصدقائك بـ
+        <p className="text-white/50 text-sm max-w-[260px] mx-auto leading-relaxed">
+          اكسب <span className="text-skz-light font-bold">{settings.referralBonusPercent}%</span> من أرباح أصدقائك و
+          <span className="text-sky-400 font-bold"> {settings.referralL2Percent}%</span> من الجيل الثاني و
+          <span className="text-violet-400 font-bold"> {settings.referralL3Percent}%</span> من الثالث بـ
           <span className="gradient-text font-bold"> SKZ</span> مدى الحياة.
         </p>
       </div>
@@ -111,7 +115,7 @@ export function Referral() {
           {[
             "شارك رابط الإحالة مع أصدقائك أو مجتمعك.",
             "يسجل أصدقاؤك ويبدأون في استخدام البوتات المختلفة.",
-            "تحصل على 5% من أرباحهم بـ SKZ تلقائياً في محفظتك.",
+            `تحصل على ${settings.referralBonusPercent}% من أرباح الجيل الأول، ${settings.referralL2Percent}% من الثاني، ${settings.referralL3Percent}% من الثالث — بـ SKZ تلقائياً.`,
           ].map((step, i) => (
             <div key={i} className="flex gap-4">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-skz to-skz-dark text-white font-bold text-xs flex items-center justify-center shrink-0">

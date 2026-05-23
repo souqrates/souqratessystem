@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { MOCK_BALANCES, SKZ_RATES } from "../lib/mock-data";
+import { MOCK_BALANCES } from "../lib/mock-data";
+import { usePlatformSettings } from "../lib/use-platform-settings";
 import { Zap, AlertCircle } from "lucide-react";
 
 type Target = "usdt" | "ton";
@@ -8,16 +9,22 @@ export function Withdraw() {
   const [target, setTarget] = useState<Target>("usdt");
   const [skzAmount, setSkzAmount] = useState("");
   const [address, setAddress] = useState("");
+  const { settings } = usePlatformSettings();
 
-  const getRate = () => target === "usdt" ? SKZ_RATES.perUsdt : SKZ_RATES.perTon;
+  const getRate = () => target === "usdt" ? settings.skzPerUsdt : settings.skzPerTon;
+  const feePercent = target === "usdt"
+    ? parseFloat(settings.withdrawalFeeUsdtPercent) / 100
+    : parseFloat(settings.withdrawalFeeTonPercent) / 100;
   const maxSkz = MOCK_BALANCES.skz;
+  const minSkz = parseFloat(settings.minWithdrawalSkz);
   const numSkz = parseFloat(skzAmount || "0");
   const isOverMax = numSkz > maxSkz;
+  const isBelowMin = numSkz > 0 && numSkz < minSkz;
   const realAmount = numSkz / getRate();
-  const fee = target === "usdt" ? 1 : 0.05; // in real currency
+  const fee = realAmount * feePercent;
   const feeSkz = fee * getRate();
   const netReal = Math.max(0, realAmount - fee);
-  const isValid = numSkz > feeSkz && !isOverMax && address.length > 10;
+  const isValid = numSkz >= minSkz && !isOverMax && address.length > 10;
 
   return (
     <div className="p-4 space-y-5 pb-24">
@@ -34,7 +41,7 @@ export function Withdraw() {
             <p className="font-black text-xl gradient-text">{maxSkz.toLocaleString("ar")}</p>
           </div>
         </div>
-        <p className="text-xs text-white/30">≈ ${(maxSkz / SKZ_RATES.perUsdt).toFixed(2)}</p>
+        <p className="text-xs text-white/30">≈ ${(maxSkz / settings.skzPerUsdt).toFixed(2)}</p>
       </div>
 
       {/* Target Currency */}
@@ -42,8 +49,8 @@ export function Withdraw() {
         <p className="text-xs font-bold text-white/40 mb-2 px-1">تحويل إلى</p>
         <div className="grid grid-cols-2 gap-2">
           {([
-            { id: "usdt" as Target, label: "USDT", sub: `${SKZ_RATES.perUsdt} SKZ = 1 USDT`, border: "border-usdt", bg: "bg-usdt/10" },
-            { id: "ton" as Target, label: "TON", sub: `${SKZ_RATES.perTon} SKZ = 1 TON`, border: "border-ton", bg: "bg-ton/10" },
+            { id: "usdt" as Target, label: "USDT", sub: `${settings.skzPerUsdt} SKZ = 1 USDT`, border: "border-usdt", bg: "bg-usdt/10" },
+            { id: "ton" as Target, label: "TON", sub: `${settings.skzPerTon} SKZ = 1 TON`, border: "border-ton", bg: "bg-ton/10" },
           ] as const).map((t) => (
             <button
               key={t.id}
@@ -86,6 +93,11 @@ export function Withdraw() {
             <AlertCircle size={12} /> المبلغ يتجاوز الرصيد المتاح
           </p>
         )}
+        {isBelowMin && (
+          <p className="text-xs text-danger flex items-center gap-1">
+            <AlertCircle size={12} /> الحد الأدنى للسحب: {minSkz.toLocaleString()} SKZ
+          </p>
+        )}
       </div>
 
       {/* Wallet Address */}
@@ -115,8 +127,8 @@ export function Withdraw() {
             <span className="font-bold">{realAmount.toFixed(target === "usdt" ? 2 : 3)} {target.toUpperCase()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-white/50">رسوم الشبكة</span>
-            <span className="text-danger font-bold">-{fee} {target.toUpperCase()} ({feeSkz} SKZ)</span>
+            <span className="text-white/50">رسوم الشبكة ({feePercent * 100}%)</span>
+            <span className="text-danger font-bold">-{fee.toFixed(target === "usdt" ? 2 : 3)} {target.toUpperCase()} ({feeSkz.toFixed(0)} SKZ)</span>
           </div>
           <div className="h-px bg-white/10" />
           <div className="flex justify-between text-base font-black">

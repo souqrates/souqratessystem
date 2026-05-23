@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Star, CircleDollarSign, Gem, Copy, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SKZ_RATES } from "../lib/mock-data";
+import { usePlatformSettings } from "../lib/use-platform-settings";
 
 type Method = "stars" | "usdt" | "ton";
 
@@ -9,6 +9,7 @@ export function Deposit() {
   const [method, setMethod] = useState<Method>("usdt");
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
+  const { settings } = usePlatformSettings();
 
   const address = "TRX9xKmN4pQ8vLs2wYjF7bDcAeR6hZmU1";
   const tonAddress = "UQCk...Xm8k";
@@ -23,26 +24,26 @@ export function Deposit() {
   };
 
   const getRate = () => {
-    if (method === "usdt") return SKZ_RATES.perUsdt;
-    if (method === "stars") return SKZ_RATES.perStar;
-    return SKZ_RATES.perTon;
+    if (method === "usdt") return settings.skzPerUsdt;
+    if (method === "stars") return settings.skzPerStar;
+    return settings.skzPerTon;
   };
 
   const skzPreview = amount ? (parseFloat(amount) * getRate()).toFixed(0) : null;
 
   const methods: { id: Method; label: string; sub: string; icon: React.ReactNode; border: string; bg: string }[] = [
     {
-      id: "usdt", label: "USDT", sub: `1 USDT = ${SKZ_RATES.perUsdt} SKZ`,
+      id: "usdt", label: "USDT", sub: `1 USDT = ${settings.skzPerUsdt} SKZ`,
       icon: <CircleDollarSign size={20} className="text-usdt" />,
       border: "border-usdt", bg: "bg-usdt/8",
     },
     {
-      id: "stars", label: "Telegram Stars ⭐", sub: `1 Star = ${SKZ_RATES.perStar} SKZ`,
+      id: "stars", label: "Telegram Stars ⭐", sub: `1 Star = ${settings.skzPerStar} SKZ`,
       icon: <Star size={20} className="text-stars fill-stars" />,
       border: "border-stars", bg: "bg-stars/8",
     },
     {
-      id: "ton", label: "TON", sub: `1 TON = ${SKZ_RATES.perTon} SKZ`,
+      id: "ton", label: "TON", sub: `1 TON = ${settings.skzPerTon} SKZ`,
       icon: <Gem size={20} className="text-ton" />,
       border: "border-ton", bg: "bg-ton/8",
     },
@@ -189,7 +190,7 @@ export function Deposit() {
 
             <div className="glass-card p-4 rounded-2xl text-xs text-white/50 space-y-1.5">
               <p className="text-danger font-bold">• أرسل فقط {method.toUpperCase()} إلى هذا العنوان.</p>
-              <p>• الحد الأدنى: {method === "usdt" ? "5 USDT" : "0.5 TON"}.</p>
+              <p>• الحد الأدنى: {method === "usdt" ? `${settings.minDepositUsdt} USDT` : `${settings.minDepositTon} TON`}.</p>
               <p>• سيُضاف الرصيد تلقائياً بعد التأكيد بـ SKZ.</p>
               <p className="text-skz-light font-medium">• معدل اليوم: 1 {method.toUpperCase()} = {getRate()} SKZ</p>
             </div>
