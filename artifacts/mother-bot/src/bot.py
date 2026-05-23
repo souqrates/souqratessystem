@@ -7,7 +7,7 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
-    LabeledPrice,
+    WebAppInfo,
     PreCheckoutQuery,
 )
 from aiogram.filters import CommandStart, Command
@@ -20,13 +20,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("MOTHER_BOT_TOKEN", "")
-MOTHER_API_URL = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
+BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
+MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
-ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
+MINI_APP_URL     = os.getenv("MINI_APP_URL", "https://www.souqrates.com/")
+ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
 
+
+# ── API helpers ──────────────────────────────────────────────────────────────
 
 async def api_upsert_user(user) -> dict:
     async with httpx.AsyncClient() as client:
@@ -37,7 +40,7 @@ async def api_upsert_user(user) -> dict:
                 "username": user.username,
                 "firstName": user.first_name or "User",
                 "lastName": user.last_name,
-                "languageCode": user.language_code or "ar",
+                "languageCode": user.language_code or "en",
                 "isPremium": getattr(user, "is_premium", False),
             },
             headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
@@ -47,7 +50,7 @@ async def api_upsert_user(user) -> dict:
         return resp.json()
 
 
-async def api_get_wallet(telegram_id: str) -> dict:
+async def api_get_wallet(telegram_id: str) -> dict | None:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{MOTHER_API_URL}/users/{telegram_id}",
@@ -60,52 +63,71 @@ async def api_get_wallet(telegram_id: str) -> dict:
         return resp.json()
 
 
-def wallet_keyboard() -> InlineKeyboardMarkup:
+# ── Keyboards ────────────────────────────────────────────────────────────────
+
+def main_keyboard() -> InlineKeyboardMarkup:
+    """Main menu — big open-app button on top, quick actions below."""
     return InlineKeyboardMarkup(inline_keyboard=[
+        # ① Launch the full Mini App
         [
-            InlineKeyboardButton(text="💰 رصيدي", callback_data="wallet"),
-            InlineKeyboardButton(text="📊 معاملاتي", callback_data="transactions"),
+            InlineKeyboardButton(
+                text="🚀 Open SKZ Platform",
+                web_app=WebAppInfo(url=MINI_APP_URL),
+            )
+        ],
+        # ② Quick text shortcuts
+        [
+            InlineKeyboardButton(text="💰 Balance",      callback_data="wallet"),
+            InlineKeyboardButton(text="📊 Transactions", callback_data="transactions"),
         ],
         [
-            InlineKeyboardButton(text="💸 سحب", callback_data="withdraw"),
-            InlineKeyboardButton(text="🤝 إحالة", callback_data="referral"),
+            InlineKeyboardButton(text="💸 Withdraw",     callback_data="withdraw"),
+            InlineKeyboardButton(text="🤝 Referral",     callback_data="referral"),
         ],
         [
-            InlineKeyboardButton(text="ℹ️ مساعدة", callback_data="help"),
+            InlineKeyboardButton(text="ℹ️ Help",         callback_data="help"),
         ],
     ])
 
 
 def back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 رجوع", callback_data="menu")]
+        [
+            InlineKeyboardButton(
+                text="🚀 Open App",
+                web_app=WebAppInfo(url=MINI_APP_URL),
+            ),
+            InlineKeyboardButton(text="🔙 Back", callback_data="menu"),
+        ]
     ])
 
+
+# ── Handlers ─────────────────────────────────────────────────────────────────
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     try:
         data = await api_upsert_user(message.from_user)
-        user = data["user"]
-        wallet = data["wallet"]
+        user   = data["user"]
+        wallet = data.get("wallet")
     except Exception as e:
         logger.error(f"Error upserting user: {e}")
-        user = {"firstName": message.from_user.first_name}
+        user   = {"firstName": message.from_user.first_name}
         wallet = None
 
-    balance_usdt = float(wallet["balanceUsdt"]) if wallet else 0
-    balance_stars = float(wallet["balanceStars"]) if wallet else 0
+    skz_bal   = int(float(wallet["balanceSkz"]))   if wallet else 0
+    usdt_bal  = float(wallet["balanceUsdt"])        if wallet else 0
 
     text = (
-        f"👋 مرحباً <b>{user['firstName']}</b>!\n\n"
-        f"🏦 <b>محفظتك الرئيسية:</b>\n"
-        f"├ 💵 USDT: <code>{balance_usdt:.4f}</code>\n"
-        f"├ ⭐ Stars: <code>{int(balance_stars)}</code>\n\n"
-        f"هذا البوت الأم يربط جميع البوتات الأخرى.\n"
-        f"يمكنك إدارة أموالك وسحب أرباحك من هنا."
+        f"👋 Welcome, <b>{user['firstName']}</b>!\n\n"
+        f"🏦 <b>Your SKZ Wallet</b>\n"
+        f"├ ⚡ SKZ: <code>{skz_bal:,}</code>\n"
+        f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
+        f"Tap <b>Open SKZ Platform</b> to access your full dashboard, "
+        f"manage balances, play games, and more."
     )
 
-    await message.answer(text, parse_mode="HTML", reply_markup=wallet_keyboard())
+    await message.answer(text, parse_mode="HTML", reply_markup=main_keyboard())
 
 
 @router.callback_query(F.data == "menu")
@@ -115,22 +137,19 @@ async def cb_menu(callback: CallbackQuery):
     except Exception:
         data = None
 
-    wallet = data["wallet"] if data else None
-    user_name = callback.from_user.first_name
-
-    balance_usdt = float(wallet["balanceUsdt"]) if wallet else 0
-    balance_stars = float(wallet["balanceStars"]) if wallet else 0
+    wallet    = data["wallet"] if data else None
+    skz_bal   = int(float(wallet["balanceSkz"]))  if wallet else 0
+    usdt_bal  = float(wallet["balanceUsdt"])       if wallet else 0
 
     text = (
-        f"👋 مرحباً <b>{user_name}</b>!\n\n"
-        f"🏦 <b>محفظتك الرئيسية:</b>\n"
-        f"├ 💵 USDT: <code>{balance_usdt:.4f}</code>\n"
-        f"├ ⭐ Stars: <code>{int(balance_stars)}</code>\n\n"
-        f"هذا البوت الأم يربط جميع البوتات الأخرى.\n"
-        f"يمكنك إدارة أموالك وسحب أرباحك من هنا."
+        f"👋 Welcome back, <b>{callback.from_user.first_name}</b>!\n\n"
+        f"🏦 <b>Your SKZ Wallet</b>\n"
+        f"├ ⚡ SKZ: <code>{skz_bal:,}</code>\n"
+        f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
+        f"Tap <b>Open SKZ Platform</b> to access the full app."
     )
 
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=wallet_keyboard())
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=main_keyboard())
     await callback.answer()
 
 
@@ -138,29 +157,31 @@ async def cb_menu(callback: CallbackQuery):
 async def cb_wallet(callback: CallbackQuery):
     try:
         data = await api_get_wallet(str(callback.from_user.id))
-    except Exception as e:
-        await callback.answer("❌ خطأ في جلب البيانات", show_alert=True)
+    except Exception:
+        await callback.answer("❌ Error fetching data", show_alert=True)
         return
 
     if not data:
-        await callback.answer("❌ لم يتم العثور على محفظة", show_alert=True)
+        await callback.answer("❌ Wallet not found", show_alert=True)
         return
 
     wallet = data["wallet"]
-    balance_usdt = float(wallet["balanceUsdt"])
-    balance_stars = float(wallet["balanceStars"])
-    balance_ton = float(wallet["balanceTon"])
-    total_earned = float(wallet["totalEarned"])
-    total_withdrawn = float(wallet["totalWithdrawn"])
+    skz   = int(float(wallet["balanceSkz"]))
+    usdt  = float(wallet["balanceUsdt"])
+    stars = int(float(wallet["balanceStars"]))
+    ton   = float(wallet["balanceTon"])
+    earned    = int(float(wallet["totalEarned"]))
+    withdrawn = int(float(wallet["totalWithdrawn"]))
 
     text = (
-        f"💰 <b>محفظتك الرئيسية</b>\n\n"
-        f"<b>الأرصدة الحالية:</b>\n"
-        f"├ 💵 USDT: <code>{balance_usdt:.6f}</code>\n"
-        f"├ ⭐ Stars: <code>{int(balance_stars)}</code>\n"
-        f"└ 💎 TON: <code>{balance_ton:.9f}</code>\n\n"
-        f"<b>إجمالي الأرباح:</b> <code>{total_earned:.6f}</code> USDT\n"
-        f"<b>إجمالي المسحوبات:</b> <code>{total_withdrawn:.6f}</code> USDT"
+        f"💰 <b>Your Wallet</b>\n\n"
+        f"<b>Balances:</b>\n"
+        f"├ ⚡ SKZ:   <code>{skz:,}</code>\n"
+        f"├ 💵 USDT:  <code>{usdt:.4f}</code>\n"
+        f"├ ⭐ Stars:  <code>{stars:,}</code>\n"
+        f"└ 💎 TON:   <code>{ton:.4f}</code>\n\n"
+        f"<b>Total Earned:</b>    <code>{earned:,}</code> SKZ\n"
+        f"<b>Total Withdrawn:</b> <code>{withdrawn:,}</code> SKZ"
     )
 
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
@@ -172,7 +193,7 @@ async def cb_transactions(callback: CallbackQuery):
     try:
         data = await api_get_wallet(str(callback.from_user.id))
         if not data:
-            await callback.answer("❌ لا توجد بيانات", show_alert=True)
+            await callback.answer("❌ No data found", show_alert=True)
             return
 
         user_id = data["user"]["id"]
@@ -185,20 +206,20 @@ async def cb_transactions(callback: CallbackQuery):
             transactions = resp.json()["data"]
     except Exception as e:
         logger.error(f"Error fetching transactions: {e}")
-        await callback.answer("❌ خطأ في جلب المعاملات", show_alert=True)
+        await callback.answer("❌ Error fetching transactions", show_alert=True)
         return
 
     if not transactions:
-        text = "📊 <b>سجل المعاملات</b>\n\nلا توجد معاملات بعد."
+        text = "📊 <b>Transaction History</b>\n\nNo transactions yet."
     else:
-        lines = ["📊 <b>آخر 10 معاملات:</b>\n"]
+        lines = ["📊 <b>Last 10 Transactions:</b>\n"]
         for tx in transactions:
-            icon = "📥" if tx["type"] == "credit" else "📤"
+            icon   = "📥" if tx["type"] == "credit" else "📤"
             amount = float(tx["amount"])
-            sign = "+" if amount > 0 else ""
+            sign   = "+" if tx["type"] == "credit" else "-"
             lines.append(
-                f"{icon} <code>{sign}{amount:.4f}</code> {tx['currency'].upper()} "
-                f"— {tx.get('description', '')[:30]}"
+                f"{icon} <code>{sign}{abs(amount):.0f}</code> {tx['currency'].upper()} "
+                f"— {tx.get('description', '')[:28]}"
             )
         text = "\n".join(lines)
 
@@ -209,14 +230,12 @@ async def cb_transactions(callback: CallbackQuery):
 @router.callback_query(F.data == "withdraw")
 async def cb_withdraw(callback: CallbackQuery):
     text = (
-        "💸 <b>سحب الأرباح</b>\n\n"
-        "لسحب أرباحك، يرجى التواصل مع الإدارة.\n\n"
-        "📌 <b>الحد الأدنى للسحب:</b>\n"
-        "├ 💵 USDT: 10\n"
-        "├ ⭐ Stars: 1000\n"
-        "└ 💎 TON: 5\n\n"
-        "⚠️ رسوم السحب: 1%\n\n"
-        "لإرسال طلب سحب يدوي، تواصل مع @admin"
+        "💸 <b>Withdraw Earnings</b>\n\n"
+        "Use the <b>Open App</b> button to withdraw directly from the platform.\n\n"
+        "📌 <b>Minimums:</b>\n"
+        "├ 💵 USDT: 5\n"
+        "├ 💎 TON: 1\n\n"
+        "⚡ Converted from your SKZ balance automatically."
     )
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()
@@ -224,16 +243,15 @@ async def cb_withdraw(callback: CallbackQuery):
 
 @router.callback_query(F.data == "referral")
 async def cb_referral(callback: CallbackQuery):
-    user_id = callback.from_user.id
     bot_info = await callback.bot.get_me()
-    referral_link = f"https://t.me/{bot_info.username}?start=ref{user_id}"
+    ref_link = f"https://t.me/{bot_info.username}?start=ref{callback.from_user.id}"
 
     text = (
-        f"🤝 <b>نظام الإحالة</b>\n\n"
-        f"شارك رابطك الخاص واكسب مكافآت!\n\n"
-        f"🔗 <b>رابطك:</b>\n"
-        f"<code>{referral_link}</code>\n\n"
-        f"💡 كل من ينضم عبر رابطك تحصل على جزء من أرباحه!"
+        f"🤝 <b>Referral Program</b>\n\n"
+        f"Invite friends and earn <b>up to 15%</b> of their SKZ earnings — for life!\n\n"
+        f"🔗 <b>Your link:</b>\n"
+        f"<code>{ref_link}</code>\n\n"
+        f"Tiers: L1 → 10% · L2 → 3% · L3 → 2%"
     )
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()
@@ -242,16 +260,15 @@ async def cb_referral(callback: CallbackQuery):
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery):
     text = (
-        "ℹ️ <b>مساعدة</b>\n\n"
-        "البوت الأم هو المركز المالي لجميع البوتات.\n\n"
-        "<b>البوتات المتصلة:</b>\n"
-        "🎮 بوت الألعاب\n"
-        "🎬 بوت الفيديو\n"
-        "🎤 بوت الغرف الصوتية\n"
-        "🤖 بوت الذكاء الاصطناعي\n"
-        "🛒 المتجر الرقمي\n"
-        "🏆 بوت المسابقات\n\n"
-        "جميع أرباحك من هذه البوتات تُجمع في محفظتك الرئيسية هنا."
+        "ℹ️ <b>About SKZ Platform</b>\n\n"
+        "SKZ is your unified financial hub across 6 bots:\n\n"
+        "🎮 <b>Games Bot</b> — skill games with prizes\n"
+        "🎬 <b>Video Bot</b> — earn from watching\n"
+        "🎤 <b>Voice Bot</b> — paid voice rooms\n"
+        "🤖 <b>AI Bot</b> — text/image generation\n"
+        "🛒 <b>Store Bot</b> — digital products\n"
+        "🏆 <b>Contests Bot</b> — competitions & prizes\n\n"
+        "All earnings across every bot flow into one SKZ wallet here."
     )
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()
@@ -262,40 +279,46 @@ async def cmd_balance(message: Message):
     try:
         data = await api_get_wallet(str(message.from_user.id))
         if not data:
-            await message.answer("❌ لا توجد محفظة لهذا المستخدم")
+            await message.answer("❌ No wallet found. Use /start first.")
             return
-        wallet = data["wallet"]
+        w = data["wallet"]
         await message.answer(
-            f"💰 رصيدك:\n"
-            f"USDT: {float(wallet['balanceUsdt']):.6f}\n"
-            f"Stars: {int(float(wallet['balanceStars']))}\n"
-            f"TON: {float(wallet['balanceTon']):.9f}"
+            f"⚡ SKZ: {int(float(w['balanceSkz'])):,}\n"
+            f"💵 USDT: {float(w['balanceUsdt']):.4f}\n"
+            f"⭐ Stars: {int(float(w['balanceStars'])):,}\n"
+            f"💎 TON: {float(w['balanceTon']):.4f}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="🚀 Open Full App", web_app=WebAppInfo(url=MINI_APP_URL))
+            ]])
         )
-    except Exception as e:
-        await message.answer("❌ خطأ في جلب الرصيد")
+    except Exception:
+        await message.answer("❌ Error fetching balance.")
 
 
 @router.message(Command("admin"))
 async def cmd_admin(message: Message):
     if message.from_user.id not in ADMIN_IDS:
-        await message.answer("❌ ليس لديك صلاحية")
+        await message.answer("❌ No permission.")
         return
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{MOTHER_API_URL}/stats/overview", timeout=10.0)
-        stats = resp.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{MOTHER_API_URL}/stats/overview", timeout=10.0)
+            stats = resp.json()
 
-    text = (
-        f"📊 <b>إحصاءات المنصة</b>\n\n"
-        f"👥 إجمالي المستخدمين: <code>{stats['totalUsers']}</code>\n"
-        f"💵 إجمالي الحجم: <code>{float(stats['totalVolumeUsdt']):.2f}</code> USDT\n"
-        f"💰 إجمالي العمولات: <code>{float(stats['totalCommissionsUsdt']):.2f}</code> USDT\n"
-        f"⏳ طلبات السحب: <code>{stats['pendingWithdrawals']}</code>\n"
-        f"🤖 البوتات النشطة: <code>{stats['activeBots']}</code>\n"
-        f"📈 معاملات اليوم: <code>{stats['todayTransactions']}</code>\n"
-        f"💹 حجم اليوم: <code>{float(stats['todayVolumeUsdt']):.2f}</code> USDT"
-    )
-    await message.answer(text, parse_mode="HTML")
+        text = (
+            f"📊 <b>Platform Stats</b>\n\n"
+            f"👥 Total Users:      <code>{stats['totalUsers']}</code>\n"
+            f"💵 Total Volume:     <code>${float(stats['totalVolumeUsdt']):.2f}</code> USDT\n"
+            f"💰 Total Commission: <code>${float(stats['totalCommissionsUsdt']):.2f}</code> USDT\n"
+            f"⏳ Pending Withdrawals: <code>{stats['pendingWithdrawals']}</code>\n"
+            f"🤖 Active Bots:      <code>{stats['activeBots']}</code>\n"
+            f"📈 Today's Txns:     <code>{stats['todayTransactions']}</code>\n"
+            f"💹 Today's Volume:   <code>${float(stats['todayVolumeUsdt']):.2f}</code> USDT"
+        )
+        await message.answer(text, parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"❌ Error: {e}")
 
 
 async def main():
@@ -303,11 +326,12 @@ async def main():
         logger.error("MOTHER_BOT_TOKEN is not set!")
         return
 
+    logger.info(f"Mini App URL: {MINI_APP_URL}")
     bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher(storage=MemoryStorage())
+    dp  = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
 
-    logger.info("Starting mother bot...")
+    logger.info("Starting mother bot polling...")
     await dp.start_polling(bot)
 
 
