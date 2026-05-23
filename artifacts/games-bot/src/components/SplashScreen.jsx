@@ -17,34 +17,64 @@ export default function SplashScreen({ onDone }) {
 
   useEffect(() => {
     const total = tier === 'high' ? 1800 : tier === 'mid' ? 2200 : 2600;
-    const start = performance.now();
+    const start = Date.now();
     let raf;
     let doneTimer;
+    let intervalId;
     let finished = false;
-    const tick = (now) => {
-      const elapsed = now - start;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      setProgress(100);
+      doneTimer = setTimeout(() => onDoneRef.current?.(), 150);
+    };
+
+    // Primary driver: requestAnimationFrame (smooth on active tabs)
+    const tick = () => {
+      const elapsed = Date.now() - start;
       const pct = Math.min(100, Math.round((elapsed / total) * 100));
       setProgress(pct);
       if (pct < 100) {
         raf = requestAnimationFrame(tick);
-      } else if (!finished) {
-        finished = true;
-        doneTimer = setTimeout(() => onDoneRef.current?.(), 200);
+      } else {
+        finish();
       }
     };
     raf = requestAnimationFrame(tick);
+
+    // Backup driver: setInterval (fires even when rAF is throttled,
+    // e.g. some Telegram WebView edge cases on iOS/Android)
+    intervalId = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, Math.round((elapsed / total) * 100));
+      setProgress((prev) => (pct > prev ? pct : prev));
+      if (pct >= 100) finish();
+    }, 100);
+
+    // Hard safety valve: absolutely guarantee onDone fires within 4s
+    // no matter what (broken rAF, frozen interval, throwing handlers, etc.)
+    const hardTimeout = setTimeout(finish, 4000);
+
     return () => {
       if (raf) cancelAnimationFrame(raf);
       if (doneTimer) clearTimeout(doneTimer);
+      if (intervalId) clearInterval(intervalId);
+      clearTimeout(hardTimeout);
     };
   }, []);
+
+  // Tap-to-skip — last-resort manual escape so user is never trapped
+  const skip = () => onDoneRef.current?.();
 
   return (
     <motion.div
       className="fixed inset-0 z-[200] overflow-hidden"
-      style={{ background: '#04030a' }}
+      style={{ background: '#04030a', cursor: 'pointer' }}
       exit={{ opacity: 0, scale: 1.04 }}
-      transition={{ duration: 0.35, ease: 'easeIn' }}
+      transition={{ duration: 0.25, ease: 'easeIn' }}
+      onClick={skip}
+      onTouchEnd={skip}
     >
       {/* Deep background radial — midnight blue matching logo */}
       <div style={{

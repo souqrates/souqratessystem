@@ -94,6 +94,14 @@ const PAGES = { dashboard: Dashboard, games: Games, contests: Contests, leaderbo
 
 export default function App() {
   const [appReady, setAppReady] = useState(false);
+
+  // App-level safety valve: even if SplashScreen never calls onDone
+  // (broken timers, JS error in splash, etc.), force the app to become
+  // interactive within 5 seconds so the user is never trapped on splash.
+  useEffect(() => {
+    const t = setTimeout(() => setAppReady(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
   const [openGame, setOpenGame] = useState(null);
   const [openGameTiers, setOpenGameTiers] = useState(null);
   const [pendingRoom, setPendingRoom] = useState(null);
@@ -273,7 +281,7 @@ export default function App() {
       {inMaintenance ? (
         <MaintenanceScreen appConfig={appConfig} />
       ) : (
-        <div style={{ visibility: appReady ? 'visible' : 'hidden' }}>
+        <div>
           <NotificationSystem />
           <AdminAnnouncementBanner />
           <Navbar />
