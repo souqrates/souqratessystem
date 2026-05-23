@@ -262,26 +262,26 @@ export default function App() {
 
   return (
     <div className="app-shell text-white select-none" style={{ background: '#04030a' }}>
-      <AnimatePresence initial={false}>{!appReady && <SplashScreen onDone={() => setAppReady(true)} />}</AnimatePresence>
-
-      {appReady && inMaintenance && <MaintenanceScreen appConfig={appConfig} />}
-
-      {appReady && !inMaintenance && (
-        <>
+      {/* Main app shell is ALWAYS mounted underneath the splash.
+          When splash fades out, the app is already painted — no mass-mount flash. */}
+      {inMaintenance ? (
+        <MaintenanceScreen appConfig={appConfig} />
+      ) : (
+        <div style={{ visibility: appReady ? 'visible' : 'hidden' }}>
           <NotificationSystem />
           <AdminAnnouncementBanner />
           <Navbar />
           <main className="scroll-area max-w-xl mx-auto w-full">
             <AppErrorBoundary>
-              {/* No mode="wait" — new page fades in immediately over old page, zero blank frames */}
-              <AnimatePresence initial={false}>
+              {/* mode="wait" prevents two pages overlapping during transition */}
+              <AnimatePresence initial={false} mode="wait">
                 <motion.div
                   key={currentPage}
                   variants={pageVariants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  style={{ position: 'relative' }}
+                  style={{ position: 'relative', background: '#04030a' }}
                 >
                   <Suspense fallback={<PageSkeleton />}>
                     <Page onOpenGame={(g, tiers) => { setOpenGame(g); setOpenGameTiers(tiers || null); }} />
@@ -291,8 +291,13 @@ export default function App() {
             </AppErrorBoundary>
           </main>
           <BottomNav />
-        </>
+        </div>
       )}
+
+      {/* Splash overlays everything; fades out over app that's already mounted */}
+      <AnimatePresence initial={false}>
+        {!appReady && <SplashScreen onDone={() => setAppReady(true)} />}
+      </AnimatePresence>
 
       {openGame && createPortal(
         <GameModalErrorBoundary key={openGame.id} onClose={() => { setOpenGame(null); setPendingRoom(null); setOpenGameTiers(null); }}>

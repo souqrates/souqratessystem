@@ -1,15 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="background:#04030a;color-scheme:dark;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Skill Games</title>
     <meta name="description" content="Compete in skill-based mini-games on Telegram and win real rewards." />
     <meta name="theme-color" content="#04030a" />
-    <style>html,body,#root{background:#04030a;margin:0;padding:0;}</style>
+    <meta name="color-scheme" content="dark" />
+    <style>
+      html,body,#root{background:#04030a !important;margin:0;padding:0;color-scheme:dark;}
+      html{overflow:hidden;}
+      /* Pre-paint Telegram WebApp colors before JS loads */
+    </style>
+    <script>
+      // Apply Telegram colors as the VERY first JS — beats React mount by ~50ms,
+      // eliminating the viewport "jump" flash when expand() is called later.
+      (function(){
+        try{
+          var wa = window.Telegram && window.Telegram.WebApp;
+          if(wa){
+            wa.ready && wa.ready();
+            wa.expand && wa.expand();
+          }
+        }catch(_){}
+      })();
+    </script>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
     <link rel="preload" as="image" href="/WhatsApp_Image_2026-05-11_at_5.53.33_PM_(1).jpeg" fetchpriority="high" />
+    <link rel="preload" as="image" href="/WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg" fetchpriority="high" />
     <meta property="og:title" content="Skill Games" />
     <meta property="og:description" content="Compete in skill-based mini-games on Telegram and win real rewards." />
     <meta property="og:type" content="website" />

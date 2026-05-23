@@ -4,19 +4,17 @@ export const getTelegramWebApp = () =>
 export const initTelegramWebApp = () => {
   const wa = getTelegramWebApp();
   if (!wa) return wa;
-  wa.ready();
+  // ready/expand are idempotent — safe to call again even if the inline
+  // bootstrap in index.html already ran them. Acts as a fallback in case
+  // telegram-web-app.js (defer) hadn't loaded yet during the inline call.
+  try { wa.ready?.(); } catch { /* ignore */ }
+  try { wa.expand?.(); } catch { /* ignore */ }
   try { wa.disableVerticalSwipes?.(); } catch { /* older clients */ }
   try { wa.lockOrientation?.(); } catch { /* not supported */ }
   try { wa.enableClosingConfirmation?.(); } catch { /* ignore */ }
-  // Single deferred expand — avoids double viewport resize that causes flash
-  setTimeout(() => {
-    wa.expand();
-    try { wa.disableVerticalSwipes?.(); } catch { /* ignore */ }
-    if (typeof wa.isVersionAtLeast === 'function' && wa.isVersionAtLeast('8.0')) {
-      try { wa.requestFullscreen?.(); } catch { /* ignore */ }
-    }
-  }, 50);
-
+  if (typeof wa.isVersionAtLeast === 'function' && wa.isVersionAtLeast('8.0')) {
+    try { wa.requestFullscreen?.(); } catch { /* ignore */ }
+  }
   return wa;
 };
 
