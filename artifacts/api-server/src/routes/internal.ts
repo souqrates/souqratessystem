@@ -253,20 +253,17 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
     })
     .returning();
 
-  const [wallet] = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.userId, user.id));
+  // Atomic balance increment via SQL — defeats lost-update races between
+  // concurrent deposits/credits/debits on the same wallet row.
+  const [wallet] = await db.update(walletsTable).set({
+    balanceSkz:     sql`${walletsTable.balanceSkz}     + ${skzAmount}`,
+    totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${skzAmount}`,
+  }).where(eq(walletsTable.userId, user.id)).returning();
   if (!wallet) {
     res.status(500).json({ error: "Wallet not found" });
     return;
   }
-
-  const newSkzBalance = (parseFloat(wallet.balanceSkz) + skzAmount).toFixed(2);
-  await db.update(walletsTable).set({
-    balanceSkz: newSkzBalance,
-    totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + skzAmount).toFixed(2)),
-  }).where(eq(walletsTable.id, wallet.id));
+  const newSkzBalance = wallet.balanceSkz;
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, currency, amount, skzAmount }, "Deposit processed");
 
@@ -334,20 +331,16 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     })
     .returning();
 
-  const [wallet] = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.userId, user.id));
+  // Atomic SQL increment — safe under concurrent credits.
+  const [wallet] = await db.update(walletsTable).set({
+    balanceSkz:     sql`${walletsTable.balanceSkz}     + ${netAmount}`,
+    totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${netAmount}`,
+  }).where(eq(walletsTable.userId, user.id)).returning();
   if (!wallet) {
     res.status(500).json({ error: "Wallet not found" });
     return;
   }
-
-  const newSkzBalance = (parseFloat(wallet.balanceSkz) + netAmount).toFixed(2);
-  await db.update(walletsTable).set({
-    balanceSkz: newSkzBalance,
-    totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + netAmount).toFixed(2)),
-  }).where(eq(walletsTable.id, wallet.id));
+  const newSkzBalance = wallet.balanceSkz;
 
   await db.insert(commissionsTable).values({
     transactionId: transaction.id,
@@ -427,17 +420,17 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     return;
   }
 
-  const [wallet] = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.userId, user.id));
+  // Atomic conditional debit: only succeeds when balance is sufficient.
+  // This single SQL statement defeats the time-of-check/time-of-use race
+  // that would otherwise let two concurrent debits both pass an in-memory
+  // balance check and overdraw the wallet.
+  const [wallet] = await db.update(walletsTable).set({
+    balanceSkz: sql`${walletsTable.balanceSkz} - ${amountNum}`,
+  }).where(and(
+    eq(walletsTable.userId, user.id),
+    sql`${walletsTable.balanceSkz} >= ${amountNum}`,
+  )).returning();
   if (!wallet) {
-    res.status(500).json({ error: "Wallet not found" });
-    return;
-  }
-
-  const currentSkz = parseFloat(wallet.balanceSkz);
-  if (currentSkz < amountNum) {
     res.status(400).json({ error: "Insufficient SKZ balance" });
     return;
   }
@@ -458,8 +451,7 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     })
     .returning();
 
-  const newSkzBalance = (currentSkz - amountNum).toFixed(2);
-  await db.update(walletsTable).set({ balanceSkz: newSkzBalance }).where(eq(walletsTable.id, wallet.id));
+  const newSkzBalance = wallet.balanceSkz;
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount }, "SKZ debited");
 
@@ -532,17 +524,16 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     return;
   }
 
-  const [wallet] = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.userId, user.id));
+  // Atomic conditional debit for entry fee — fails fast with
+  // insufficient_balance if the wallet can't cover the fee, with no
+  // window for a concurrent debit to overdraw.
+  const [wallet] = await db.update(walletsTable).set({
+    balanceSkz: sql`${walletsTable.balanceSkz} - ${entryFee}`,
+  }).where(and(
+    eq(walletsTable.userId, user.id),
+    sql`${walletsTable.balanceSkz} >= ${entryFee}`,
+  )).returning();
   if (!wallet) {
-    res.status(500).json({ error: "Wallet not found" });
-    return;
-  }
-
-  const currentSkz = parseFloat(wallet.balanceSkz);
-  if (currentSkz < entryFee) {
     res.status(400).json({ error: "insufficient_balance" });
     return;
   }
@@ -581,10 +572,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     })
     .returning();
 
-  const newSkzBalance = (currentSkz - entryFee).toFixed(2);
-  await db.update(walletsTable)
-    .set({ balanceSkz: newSkzBalance })
-    .where(eq(walletsTable.id, wallet.id));
+  const newSkzBalance = wallet.balanceSkz;
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, gameId, entryFee, expectedPrize }, "Game entry charged");
 
@@ -1185,6 +1173,147 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
     withdrawalId: withdrawal.id,
     status: "pending",
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/game/refund-entry — refund a game entry fee
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * POST /internal/game/refund-entry
+ * Body: { telegramId, chargeTransactionId }
+ *
+ * Refunds an entry fee back to the user's SKZ wallet. Used by the client
+ * when the player legitimately won but the server failed to credit the
+ * reward (validate succeeded → no token, or credit retries exhausted).
+ *
+ * Safety:
+ *   - Verifies the charge transaction belongs to the calling bot AND the
+ *     calling Telegram user.
+ *   - Verifies the charge was actually a game entry (type=debit,
+ *     currency=skz, metadata.action='entry').
+ *   - Idempotent: a unique referenceId (`refund_${chargeTransactionId}`)
+ *     means duplicate calls return the existing refund instead of
+ *     double-paying. We probe for the existing refund up-front AND rely
+ *     on the unique-violation as the last line of defence.
+ *   - Atomic: wallet credit is a single SQL increment.
+ */
+router.post("/internal/game/refund-entry", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, chargeTransactionId } = req.body as {
+    telegramId: string;
+    chargeTransactionId: number | string;
+  };
+
+  if (!telegramId || chargeTransactionId === undefined || chargeTransactionId === null) {
+    res.status(400).json({ error: "telegramId and chargeTransactionId are required" });
+    return;
+  }
+
+  const chargeId = parseInt(String(chargeTransactionId), 10);
+  if (isNaN(chargeId)) {
+    res.status(400).json({ error: "Invalid chargeTransactionId" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const [charge] = await db.select().from(transactionsTable)
+    .where(eq(transactionsTable.id, chargeId));
+  if (!charge) {
+    res.status(404).json({ error: "Charge transaction not found" });
+    return;
+  }
+
+  if (charge.userId !== user.id || charge.sourceBot !== bot.slug) {
+    res.status(403).json({ error: "Charge does not belong to this user/bot" });
+    return;
+  }
+  if (charge.type !== "debit" || charge.currency !== "skz") {
+    res.status(400).json({ error: "Charge is not a SKZ debit" });
+    return;
+  }
+
+  let meta: Record<string, unknown> = {};
+  try { meta = charge.metadata ? JSON.parse(charge.metadata) : {}; }
+  catch { meta = {}; }
+  if (meta.action !== "entry") {
+    res.status(400).json({ error: "Charge is not a game entry" });
+    return;
+  }
+
+  const entryFee = parseFloat(String(meta.entryFee ?? Math.abs(parseFloat(charge.amount))));
+  if (isNaN(entryFee) || entryFee <= 0) {
+    res.status(400).json({ error: "Could not determine entry fee for refund" });
+    return;
+  }
+
+  const refundRef = `refund_${chargeId}`;
+
+  // Idempotency check — if we already refunded this charge, just echo back.
+  const [existingRefund] = await db.select().from(transactionsTable)
+    .where(and(
+      eq(transactionsTable.userId, user.id),
+      eq(transactionsTable.referenceId, refundRef),
+    ));
+  if (existingRefund) {
+    const [w] = await db.select({ balanceSkz: walletsTable.balanceSkz })
+      .from(walletsTable).where(eq(walletsTable.userId, user.id));
+    res.json({
+      success: true,
+      alreadyRefunded: true,
+      transactionId: existingRefund.id,
+      refundedAmount: entryFee,
+      newSkzBalance: w?.balanceSkz ?? "0",
+    });
+    return;
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [refund] = await tx.insert(transactionsTable).values({
+        userId:      user.id,
+        type:        "credit",
+        currency:    "skz",
+        amount:      String(entryFee.toFixed(2)),
+        fee:         "0",
+        status:      "completed",
+        sourceBot:   bot.slug,
+        referenceId: refundRef,
+        description: `استرداد رسوم لعبة #${meta.gameId ?? ""}`,
+        metadata:    JSON.stringify({ action: "refund", chargeTransactionId: chargeId, ...meta }),
+      }).returning();
+
+      const [wallet] = await tx.update(walletsTable).set({
+        balanceSkz: sql`${walletsTable.balanceSkz} + ${entryFee}`,
+      }).where(eq(walletsTable.userId, user.id)).returning();
+
+      if (!wallet) throw new Error("Wallet not found");
+
+      return { refund, wallet };
+    });
+
+    req.log.info(
+      { chargeId, refundId: result.refund.id, botSlug: bot.slug, entryFee },
+      "Game entry refunded"
+    );
+
+    res.json({
+      success: true,
+      transactionId: result.refund.id,
+      refundedAmount: entryFee,
+      newSkzBalance: result.wallet.balanceSkz,
+    });
+  } catch (err) {
+    req.log.error({ err, chargeId }, "Refund failed");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Refund failed" });
+  }
 });
 
 export default router;

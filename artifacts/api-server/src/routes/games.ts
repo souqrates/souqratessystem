@@ -401,6 +401,26 @@ router.post("/games/credit-reward", requireTelegramAuth, async (req: Request, re
 });
 
 /**
+ * POST /api/games/refund-entry
+ * Refund a game entry fee — used when the user legitimately won but the
+ * server could not credit the reward. Forwards to /internal/game/refund-entry.
+ * Body: { chargeTransactionId }
+ * Returns: { success, transactionId, refundedAmount, newSkzBalance, alreadyRefunded? }
+ */
+router.post("/games/refund-entry", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  const { telegramId } = req as AuthedRequest;
+  const { chargeTransactionId } = req.body as { chargeTransactionId?: number | string };
+  if (chargeTransactionId === undefined || chargeTransactionId === null) {
+    res.status(400).json({ error: "chargeTransactionId is required" });
+    return;
+  }
+  await forwardPost(req, res, "/internal/game/refund-entry", {
+    telegramId: String(telegramId),
+    chargeTransactionId,
+  });
+});
+
+/**
  * POST /api/games/stars-invoice
  * Create a Telegram Stars deposit invoice. Forwards to /internal/stars-invoice.
  * Body: { amountStars }

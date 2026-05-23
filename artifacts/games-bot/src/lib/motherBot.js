@@ -96,6 +96,18 @@ export async function creditReward(chargeTransactionId, score, resultToken) {
 }
 
 /**
+ * Refund a game entry fee — used by the client when the server fails to
+ * credit a legitimate game win. Idempotent server-side: repeated calls
+ * for the same chargeTransactionId return the existing refund.
+ * Returns { success, transactionId, refundedAmount, newSkzBalance, alreadyRefunded? }.
+ */
+export async function refundEntry(chargeTransactionId) {
+  return call('POST', '/api/games/refund-entry', {
+    chargeTransactionId: Number(chargeTransactionId),
+  });
+}
+
+/**
  * Create a Telegram Stars deposit invoice.
  * Returns { ok, invoiceLink, expectedSkz, payload }.
  */

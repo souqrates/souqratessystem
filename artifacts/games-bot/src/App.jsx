@@ -114,6 +114,12 @@ export default function App() {
 
   const handleBack = useCallback(() => {
     if (openGameRef.current) {
+      // Give the active game a chance to intercept (and show a confirm
+      // dialog) before we tear it down. GameModal listens for this
+      // cancelable event during 'playing' and calls preventDefault.
+      const ev = new CustomEvent('game-modal-back', { cancelable: true });
+      const proceed = window.dispatchEvent(ev);
+      if (!proceed) return;
       setOpenGame(null);
       setPendingRoom(null);
       refreshBalance();

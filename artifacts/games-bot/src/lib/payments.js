@@ -4,6 +4,7 @@ import {
   chargeEntry as mbChargeEntry,
   creditReward as mbCreditReward,
   validateResult as mbValidateResult,
+  refundEntry as mbRefundEntry,
   requestWithdrawal as mbRequestWithdrawal,
   getTiers as mbGetTiers,
   createStarsInvoice as mbCreateStarsInvoice,
@@ -88,6 +89,22 @@ export async function creditSoloReward(gameId, chargeTransactionId, score, resul
     ok:           true,
     new_balance:  Number(data.newSkzBalance),
     net_rewarded: Number(data.netRewarded),
+  };
+}
+
+/**
+ * Refund a game entry fee — called when the player legitimately won but
+ * the server could not credit the reward. Server is idempotent.
+ */
+export async function refundSoloEntry(chargeTransactionId) {
+  if (!chargeTransactionId) throw new Error('missing_charge_transaction_id');
+  const data = await mbRefundEntry(chargeTransactionId);
+  return {
+    ok:              !!data?.success,
+    transactionId:   data?.transactionId,
+    refundedAmount:  Number(data?.refundedAmount ?? 0),
+    new_balance:     Number(data?.newSkzBalance ?? 0),
+    alreadyRefunded: !!data?.alreadyRefunded,
   };
 }
 

@@ -3,10 +3,11 @@ import { eq, sql, desc, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { withdrawalsTable, walletsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../lib/admin-auth";
 
 const router: IRouter = Router();
 
-router.get("/withdrawals", async (req, res): Promise<void> => {
+router.get("/withdrawals", requireAdmin, async (req, res): Promise<void> => {
   const page = parseInt(String(req.query.page ?? "1"), 10);
   const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10), 100);
   const offset = (page - 1) * limit;
@@ -36,7 +37,11 @@ router.get("/withdrawals", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/withdrawals", async (req, res): Promise<void> => {
+// Note: end-users create withdrawal requests via the bot-scoped
+// /internal/withdraw endpoint (authed with X-Bot-Api-Key). The raw
+// /withdrawals POST below is an admin-only convenience for manual
+// adjustments — gated with requireAdmin.
+router.post("/withdrawals", requireAdmin, async (req, res): Promise<void> => {
   const { userId, currency, amount, method, address } = req.body as {
     userId: number;
     currency: string;
@@ -70,6 +75,7 @@ router.post("/withdrawals", async (req, res): Promise<void> => {
   if (currency === "stars") currentBalance = parseFloat(wallet.balanceStars);
   else if (currency === "usdt") currentBalance = parseFloat(wallet.balanceUsdt);
   else if (currency === "ton") currentBalance = parseFloat(wallet.balanceTon);
+  else if (currency === "skz") currentBalance = parseFloat(wallet.balanceSkz);
 
   if (currentBalance < amountNum) {
     res.status(400).json({ error: "Insufficient balance" });
@@ -94,81 +100,144 @@ router.post("/withdrawals", async (req, res): Promise<void> => {
   res.status(201).json(withdrawal);
 });
 
-router.post("/withdrawals/:id/approve", async (req, res): Promise<void> => {
+/**
+ * POST /withdrawals/:id/approve (admin-only).
+ *
+ * Atomically transitions a pending withdrawal → approved AND debits the
+ * user's wallet. Wrapped in a transaction so a partial failure can never
+ * leave a row marked "approved" with funds still in the user's wallet.
+ *
+ * The status guard runs inside the transaction to defeat double-approve
+ * races between two concurrent admin clicks.
+ */
+router.post("/withdrawals/:id/approve", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const { txHash } = req.body as { txHash: string };
 
-  const [withdrawal] = await db
-    .select()
-    .from(withdrawalsTable)
-    .where(eq(withdrawalsTable.id, id));
-
-  if (!withdrawal) {
-    res.status(404).json({ error: "Withdrawal not found" });
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid withdrawal id" });
     return;
   }
 
-  if (withdrawal.status !== "pending") {
-    res.status(400).json({ error: "Can only approve pending withdrawals" });
-    return;
-  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      // Atomic state transition: only succeeds if status is still pending.
+      const [updated] = await tx
+        .update(withdrawalsTable)
+        .set({ status: "approved", txHash, processedAt: new Date() })
+        .where(
+          and(
+            eq(withdrawalsTable.id, id),
+            eq(withdrawalsTable.status, "pending"),
+          ),
+        )
+        .returning();
 
-  const [updated] = await db
-    .update(withdrawalsTable)
-    .set({ status: "approved", txHash, processedAt: new Date() })
-    .where(eq(withdrawalsTable.id, id))
-    .returning();
+      if (!updated) {
+        // Either not found or not pending — distinguish with a follow-up read.
+        const [exists] = await tx
+          .select({ id: withdrawalsTable.id, status: withdrawalsTable.status })
+          .from(withdrawalsTable)
+          .where(eq(withdrawalsTable.id, id));
+        return { error: exists ? "Can only approve pending withdrawals" : "Withdrawal not found", updated: null };
+      }
 
-  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, withdrawal.userId));
-  if (wallet) {
-    const amountNum = parseFloat(withdrawal.amount);
-    if (withdrawal.currency === "stars") {
-      await db.update(walletsTable).set({
-        balanceStars: String(parseFloat(wallet.balanceStars) - amountNum),
-        totalWithdrawn: String(parseFloat(wallet.totalWithdrawn) + amountNum),
-      }).where(eq(walletsTable.id, wallet.id));
-    } else if (withdrawal.currency === "usdt") {
-      await db.update(walletsTable).set({
-        balanceUsdt: String(parseFloat(wallet.balanceUsdt) - amountNum),
-        totalWithdrawn: String(parseFloat(wallet.totalWithdrawn) + amountNum),
-      }).where(eq(walletsTable.id, wallet.id));
-    } else if (withdrawal.currency === "ton") {
-      await db.update(walletsTable).set({
-        balanceTon: String(parseFloat(wallet.balanceTon) - amountNum),
-        totalWithdrawn: String(parseFloat(wallet.totalWithdrawn) + amountNum),
-      }).where(eq(walletsTable.id, wallet.id));
-    } else if (withdrawal.currency === "skz") {
-      await db.update(walletsTable).set({
-        balanceSkz: String((parseFloat(wallet.balanceSkz) - amountNum).toFixed(2)),
-        totalWithdrawnSkz: String((parseFloat(wallet.totalWithdrawnSkz) + amountNum).toFixed(2)),
-      }).where(eq(walletsTable.id, wallet.id));
+      const amountNum = parseFloat(updated.amount);
+
+      // Debit the user's wallet atomically using SQL arithmetic. The
+      // `WHERE balance >= amount` guard makes this safe against any
+      // racing debit elsewhere — if the row doesn't update we abort the
+      // transaction so the status flip is rolled back.
+      let walletUpdated;
+      if (updated.currency === "stars") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceStars:   sql`${walletsTable.balanceStars}   - ${amountNum}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amountNum}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceStars} >= ${amountNum}`,
+        )).returning();
+      } else if (updated.currency === "usdt") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceUsdt:    sql`${walletsTable.balanceUsdt}    - ${amountNum}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amountNum}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceUsdt} >= ${amountNum}`,
+        )).returning();
+      } else if (updated.currency === "ton") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceTon:     sql`${walletsTable.balanceTon}     - ${amountNum}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amountNum}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceTon} >= ${amountNum}`,
+        )).returning();
+      } else if (updated.currency === "skz") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceSkz:        sql`${walletsTable.balanceSkz}        - ${amountNum}`,
+          totalWithdrawnSkz: sql`${walletsTable.totalWithdrawnSkz} + ${amountNum}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceSkz} >= ${amountNum}`,
+        )).returning();
+      } else {
+        throw new Error(`Unsupported currency: ${updated.currency}`);
+      }
+
+      if (!walletUpdated) {
+        throw new Error("Insufficient wallet balance at approval time");
+      }
+
+      return { error: null, updated };
+    });
+
+    if (result.error || !result.updated) {
+      const status = result.error === "Withdrawal not found" ? 404 : 400;
+      res.status(status).json({ error: result.error ?? "Approval failed" });
+      return;
     }
-  }
 
-  res.json(updated);
+    res.json(result.updated);
+  } catch (err) {
+    req.log.error({ err, id }, "Withdrawal approve failed");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
+  }
 });
 
-router.post("/withdrawals/:id/reject", async (req, res): Promise<void> => {
+router.post("/withdrawals/:id/reject", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   const { reason } = req.body as { reason: string };
 
-  const [withdrawal] = await db
-    .select()
-    .from(withdrawalsTable)
-    .where(eq(withdrawalsTable.id, id));
-
-  if (!withdrawal) {
-    res.status(404).json({ error: "Withdrawal not found" });
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid withdrawal id" });
     return;
   }
 
+  // Atomic transition: only pending rows may be rejected.
   const [updated] = await db
     .update(withdrawalsTable)
     .set({ status: "rejected", rejectedReason: reason, processedAt: new Date() })
-    .where(eq(withdrawalsTable.id, id))
+    .where(
+      and(
+        eq(withdrawalsTable.id, id),
+        eq(withdrawalsTable.status, "pending"),
+      ),
+    )
     .returning();
+
+  if (!updated) {
+    const [exists] = await db
+      .select({ id: withdrawalsTable.id })
+      .from(withdrawalsTable)
+      .where(eq(withdrawalsTable.id, id));
+    res.status(exists ? 400 : 404).json({
+      error: exists ? "Can only reject pending withdrawals" : "Withdrawal not found",
+    });
+    return;
+  }
 
   res.json(updated);
 });

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import { AdminLayout } from "@/components/layout";
+import { AuthGuard } from "@/components/auth-guard";
 
 // Import pages
 import Dashboard from "@/pages/dashboard";
@@ -41,9 +42,11 @@ function App() {
     <ThemeProvider defaultTheme="dark">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <AuthGuard>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </AuthGuard>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

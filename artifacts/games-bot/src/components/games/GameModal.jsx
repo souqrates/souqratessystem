@@ -7,7 +7,7 @@ import ResultOverlay from './games/ResultOverlay';
 import useAppStore from '../../store/appStore';
 import { recordGameEnd } from '../../lib/gamification';
 import { xpRewardFor } from '../../lib/ranks';
-import { chargeSoloEntry, creditSoloReward, validateGameResult, getSoloFeeTiers } from '../../lib/payments';
+import { chargeSoloEntry, creditSoloReward, validateGameResult, getSoloFeeTiers, refundSoloEntry } from '../../lib/payments';
 import SoloGameIntro from './SoloGameIntro';
 import { getSessionId, warmSession } from '../../lib/session';
 
@@ -178,19 +178,41 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
             // If validation fails (loss or instant call), resultToken is null → credit will also fail.
             const validateRes = await validateGameResult(chargeTransactionIdRef.current, finalScore).catch(() => null);
             const resultToken = validateRes?.resultToken ?? null;
-            // Step 2: Credit reward — token required server-side
+            // Step 2: Credit reward — token required server-side. Skip
+            // if validate didn't return a token (server rejected the win
+            // as too-fast / score-too-low / etc — treat as forfeit).
             let creditOk = false;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              try { await creditSoloReward(game.id, chargeTransactionIdRef.current, finalScore, resultToken); creditOk = true; break; }
-              catch { if (attempt < 2) await new Promise(r => setTimeout(r, 600)); }
+            if (resultToken) {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                try { await creditSoloReward(game.id, chargeTransactionIdRef.current, finalScore, resultToken); creditOk = true; break; }
+                catch { if (attempt < 2) await new Promise(r => setTimeout(r, 600)); }
+              }
             }
+
+            // Step 3: If validate succeeded but credit failed (rare —
+            // network/DB blip), refund the entry fee so the user is made
+            // whole. Server is idempotent for refunds.
+            let refundedAfterFailure = false;
+            if (resultToken && !creditOk && chargeTransactionIdRef.current) {
+              try {
+                const r = await refundSoloEntry(chargeTransactionIdRef.current);
+                if (r?.ok) refundedAfterFailure = true;
+              } catch { /* surface generic error below */ }
+            }
+
             await Promise.allSettled([
               refreshBalance?.(),
               user?.telegram_id ? recordGameEnd(user.telegram_id, isWin, game?.difficulty || 'Medium') : Promise.resolve(),
             ]);
             if (!mountedRef.current) return;
             setSettling(false);
-            if (!creditOk) setEntryError('Prize credit failed — contact support if SKZ was not added.');
+            if (!creditOk) {
+              setEntryError(
+                refundedAfterFailure
+                  ? 'Could not credit the prize — your entry fee was refunded automatically.'
+                  : 'Prize credit failed — contact support if SKZ was not added.'
+              );
+            }
           } catch {
             if (!mountedRef.current) return;
             setSettling(false);
@@ -217,6 +239,22 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
     }
     setPhase(p);
   }, [phase, game, activeFee, activePrize, refreshBalance, user?.telegram_id, wallet?.trial_active, wallet?.sc_balance]);
+
+  // Intercept Telegram BackButton during play so users don't accidentally
+  // forfeit their entry fee with a single back-tap. The dispatcher in
+  // App.jsx fires a cancelable 'game-modal-back' event; we preventDefault
+  // and show the same confirm dialog the close (X) button uses.
+  useEffect(() => {
+    function onBack(ev) {
+      if (phase === 'playing' && activeFee > 0 && !wallet?.trial_active) {
+        ev.preventDefault();
+        triggerHaptic('warning');
+        setConfirmExit(true);
+      }
+    }
+    window.addEventListener('game-modal-back', onBack);
+    return () => window.removeEventListener('game-modal-back', onBack);
+  }, [phase, activeFee, wallet?.trial_active]);
 
   // ── Guard: render nothing if game is invalid ───────────────────────────────
   if (!game?.id) return null;

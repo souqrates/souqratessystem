@@ -145,7 +145,7 @@ async def cb_menu(callback: CallbackQuery):
     except Exception:
         data = None
 
-    wallet    = data["wallet"] if data else None
+    wallet    = (data or {}).get("wallet") if isinstance(data, dict) else None
     skz_bal   = int(float(wallet["balanceSkz"]))  if wallet else 0
     usdt_bal  = float(wallet["balanceUsdt"])       if wallet else 0
 

@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, ArrowUpFromLine, Clock } from "lucide-react";
+import { withAdminAuth } from "@/lib/admin-token";
 
 export default function Withdrawals() {
   const [page, setPage] = useState(1);
@@ -49,11 +50,11 @@ export default function Withdrawals() {
     e.preventDefault();
     if (!approveId || !txHash) return;
     try {
-      const res = await fetch(`/api/withdrawals/${approveId}/approve`, {
+      const res = await fetch(`/api/withdrawals/${approveId}/approve`, withAdminAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ txHash }),
-      });
+      }));
       if (!res.ok) throw new Error();
       toast({ title: "✓ تمت الموافقة على طلب السحب" });
       setApproveId(null);
@@ -68,11 +69,11 @@ export default function Withdrawals() {
     e.preventDefault();
     if (!rejectId || !rejectReason) return;
     try {
-      const res = await fetch(`/api/withdrawals/${rejectId}/reject`, {
+      const res = await fetch(`/api/withdrawals/${rejectId}/reject`, withAdminAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: rejectReason }),
-      });
+      }));
       if (!res.ok) throw new Error();
       toast({ title: "✓ تم رفض طلب السحب" });
       setRejectId(null);

@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { botsTable } from "@workspace/db";
 import { randomBytes } from "crypto";
+import { requireAdmin } from "../lib/admin-auth";
 
 const router: IRouter = Router();
 
@@ -12,7 +13,7 @@ router.get("/bots", async (_req, res): Promise<void> => {
     db.select({ count: sql<number>`count(*)` }).from(botsTable),
   ]);
 
-  const safeBots = bots.map(({ webhookSecret: _s, ...rest }) => rest);
+  const safeBots = bots.map(({ webhookSecret: _s, apiKey: _k, ...rest }) => rest);
 
   res.json({
     data: safeBots,
@@ -37,7 +38,14 @@ router.get("/bots/:slug", async (req, res): Promise<void> => {
   res.json(safeBot);
 });
 
-router.post("/bots", async (req, res): Promise<void> => {
+/**
+ * POST /api/bots — register a new bot (admin-only).
+ *
+ * Idempotent: if a bot with the same slug already exists, we return 409
+ * with the existing record (without apiKey) rather than minting a fresh
+ * apiKey and silently breaking the running deployment.
+ */
+router.post("/bots", requireAdmin, async (req, res): Promise<void> => {
   const { slug, name, description, commissionRate } = req.body as {
     slug: string;
     name: string;
@@ -47,6 +55,20 @@ router.post("/bots", async (req, res): Promise<void> => {
 
   if (!slug || !name) {
     res.status(400).json({ error: "slug and name are required" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(botsTable)
+    .where(eq(botsTable.slug, slug));
+
+  if (existing) {
+    const { apiKey: _k, webhookSecret: _s, ...safeBot } = existing;
+    res.status(409).json({
+      error: "Bot with this slug already exists",
+      bot: safeBot,
+    });
     return;
   }
 
@@ -65,11 +87,12 @@ router.post("/bots", async (req, res): Promise<void> => {
     })
     .returning();
 
+  // Only echo apiKey on first creation — never again.
   const { webhookSecret: _s, ...safeBot } = bot;
   res.status(201).json({ ...safeBot, apiKey: bot.apiKey });
 });
 
-router.patch("/bots/:slug", async (req, res): Promise<void> => {
+router.patch("/bots/:slug", requireAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
 
   const { name, description, commissionRate, isActive } = req.body as {

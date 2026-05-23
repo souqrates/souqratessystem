@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { platformSettingsTable } from "@workspace/db";
+import { requireAdmin } from "../lib/admin-auth";
 
 const router: IRouter = Router();
 
@@ -82,8 +83,8 @@ router.get("/settings", async (_req, res): Promise<void> => {
   res.json(await buildSettingsResponse());
 });
 
-// PUT /settings — batch update any settings
-router.put("/settings", async (req, res): Promise<void> => {
+// PUT /settings — batch update any settings (admin-only)
+router.put("/settings", requireAdmin, async (req, res): Promise<void> => {
   const body = req.body as Record<string, string | undefined>;
 
   const keyMap: Record<string, string> = {
@@ -142,8 +143,8 @@ router.get("/settings/skz-rates", async (_req, res): Promise<void> => {
   });
 });
 
-// PUT /settings/skz-rates
-router.put("/settings/skz-rates", async (req, res): Promise<void> => {
+// PUT /settings/skz-rates (admin-only)
+router.put("/settings/skz-rates", requireAdmin, async (req, res): Promise<void> => {
   const { skzPerUsdt, skzPerStar, skzPerTon } = req.body as {
     skzPerUsdt?: string;
     skzPerStar?: string;
