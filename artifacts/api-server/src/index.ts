@@ -1,3 +1,8 @@
+// Allow BigInt fields (e.g. telegramId) to be JSON-serialised as strings
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return this.toString();
+};
+
 import app from "./app";
 import { logger } from "./lib/logger";
 
