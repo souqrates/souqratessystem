@@ -1,14 +1,11 @@
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import {
-  levelFromXp,
-  xpProgress,
-  xpInLevel,
-  xpToNextLevel,
-  xpForLevelSpan,
-  getRankForLevel,
+  levelFromXp, xpProgress, xpInLevel, xpToNextLevel,
+  xpForLevelSpan, getRankForLevel,
 } from "../lib/xp-system";
 import { MOCK_XP } from "../lib/mock-data";
+import { IconBox, RANK_ICONS } from "./icons";
 
 export function XpBar() {
   const { totalXp, streak } = MOCK_XP;
@@ -18,36 +15,50 @@ export function XpBar() {
   const inLevel = xpInLevel(totalXp);
   const toNext = xpToNextLevel(totalXp);
   const span = xpForLevelSpan(level);
+  const rankIconKey = RANK_ICONS[rank.name]?.iconKey ?? "zap";
+  const nextRank = getRankForLevel(level + 1);
 
   return (
     <div
       className="rounded-2xl px-4 py-3 relative overflow-hidden"
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.07)",
-      }}
+      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
     >
       {/* Subtle rank glow */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at 5% 50%, ${rank.glow} 0%, transparent 60%)`,
-        }}
+        style={{ background: `radial-gradient(ellipse at 5% 50%, ${rank.glow} 0%, transparent 60%)` }}
       />
 
       <div className="relative z-10 flex items-center gap-3">
 
-        {/* Rank badge */}
-        <div
-          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative"
-          style={{ background: rank.gradient, boxShadow: `0 4px 16px ${rank.glow}` }}
-        >
-          <span className="text-base leading-none">{rank.icon}</span>
-          <span
-            className="text-[8px] font-black text-white/80 leading-none mt-0.5"
+        {/* Rank badge — icon version */}
+        <div className="relative flex-shrink-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center relative overflow-hidden"
+            style={{ background: rank.gradient, boxShadow: `0 4px 16px ${rank.glow}` }}
           >
-            {level}
-          </span>
+            <IconBox
+              iconKey={rankIconKey}
+              size={17}
+              color="rgba(255,255,255,0.95)"
+              bg="transparent"
+              border="transparent"
+              boxSize={40}
+              radius={12}
+            />
+          </div>
+          {/* Level number pill */}
+          <div
+            className="absolute -bottom-1.5 -right-1.5 px-1.5 rounded-md flex items-center justify-center"
+            style={{
+              background: rank.gradient,
+              border: "2px solid #060a14",
+              minWidth: 18,
+              height: 14,
+            }}
+          >
+            <span className="text-[8px] font-black text-white leading-none">{level}</span>
+          </div>
         </div>
 
         {/* Progress area */}
@@ -57,9 +68,7 @@ export function XpBar() {
               <span className="text-[11px] font-black" style={{ color: rank.color }}>
                 {rank.name}
               </span>
-              <span className="text-[10px] text-white/30 font-medium">
-                · Lv {level}
-              </span>
+              <span className="text-[10px] text-white/30 font-medium">· Lv {level}</span>
             </div>
             <span className="text-[10px] font-bold text-white/40">
               {inLevel.toLocaleString()} / {span.toLocaleString()} XP
@@ -73,10 +82,7 @@ export function XpBar() {
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(progress * 100, 100)}%` }}
               transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-              style={{
-                background: rank.gradient,
-                boxShadow: `0 0 8px ${rank.glow}`,
-              }}
+              style={{ background: rank.gradient, boxShadow: `0 0 8px ${rank.glow}` }}
             />
           </div>
 
@@ -84,10 +90,9 @@ export function XpBar() {
             <span className="text-[9px] text-white/25 font-medium">
               {toNext.toLocaleString()} XP to Lv {level + 1}
             </span>
-            {/* Next rank preview */}
             {level < 50 && (
               <span className="text-[9px] text-white/20 font-medium">
-                Next: {getRankForLevel(level + 1).name}
+                Next: {nextRank.name}
               </span>
             )}
           </div>
@@ -95,12 +100,9 @@ export function XpBar() {
 
         {/* Streak badge */}
         {streak > 0 && (
-          <div
-            className="flex flex-col items-center gap-0.5 flex-shrink-0"
-            style={{ minWidth: 36 }}
-          >
+          <div className="flex flex-col items-center gap-0.5 flex-shrink-0" style={{ minWidth: 36 }}>
             <div
-              className="w-9 h-9 rounded-xl flex flex-col items-center justify-center"
+              className="w-9 h-9 rounded-xl flex flex-col items-center justify-center gap-0.5"
               style={{
                 background: streak >= 7
                   ? "linear-gradient(135deg,#f59e0b,#ef4444)"
@@ -110,7 +112,7 @@ export function XpBar() {
               }}
             >
               <Flame
-                size={14}
+                size={13}
                 style={{ color: streak >= 7 ? "white" : "#f59e0b" }}
                 className={streak >= 7 ? "fill-white" : ""}
               />
