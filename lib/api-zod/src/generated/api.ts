@@ -367,7 +367,9 @@ export const GetAllSettingsResponse = zod.object({
   "minWithdrawalSkz": zod.string(),
   "withdrawalFeeUsdtPercent": zod.string(),
   "withdrawalFeeTonPercent": zod.string(),
-  "referralBonusPercent": zod.string()
+  "referralBonusPercent": zod.string().describe('Level 1 referral bonus percent'),
+  "referralL2Percent": zod.string().describe('Level 2 referral bonus percent'),
+  "referralL3Percent": zod.string().describe('Level 3 referral bonus percent')
 }),
   "content": zod.object({
   "platformName": zod.string(),
@@ -392,7 +394,9 @@ export const UpdateSettingsBody = zod.object({
   "minWithdrawalSkz": zod.string().optional(),
   "withdrawalFeeUsdtPercent": zod.string().optional(),
   "withdrawalFeeTonPercent": zod.string().optional(),
-  "referralBonusPercent": zod.string().optional(),
+  "referralBonusPercent": zod.string().optional().describe('Level 1 referral bonus percent'),
+  "referralL2Percent": zod.string().optional().describe('Level 2 referral bonus percent'),
+  "referralL3Percent": zod.string().optional().describe('Level 3 referral bonus percent'),
   "platformName": zod.string().optional(),
   "platformTagline": zod.string().optional(),
   "welcomeMessage": zod.string().optional(),
@@ -414,7 +418,9 @@ export const UpdateSettingsResponse = zod.object({
   "minWithdrawalSkz": zod.string(),
   "withdrawalFeeUsdtPercent": zod.string(),
   "withdrawalFeeTonPercent": zod.string(),
-  "referralBonusPercent": zod.string()
+  "referralBonusPercent": zod.string().describe('Level 1 referral bonus percent'),
+  "referralL2Percent": zod.string().describe('Level 2 referral bonus percent'),
+  "referralL3Percent": zod.string().describe('Level 3 referral bonus percent')
 }),
   "content": zod.object({
   "platformName": zod.string(),

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   usersTable,
@@ -45,6 +45,88 @@ async function getSkzRates(): Promise<{ perUsdt: number; perStar: number; perTon
     perStar: map["skz_per_star"] ?? 1,
     perTon: map["skz_per_ton"] ?? 500,
   };
+}
+
+async function getReferralRates(): Promise<number[]> {
+  const rows = await db.select().from(platformSettingsTable)
+    .where(inArray(platformSettingsTable.key, ["referral_l1_percent", "referral_l2_percent", "referral_l3_percent"]));
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.key] = parseFloat(r.value);
+  return [
+    (map["referral_l1_percent"] ?? 5) / 100,
+    (map["referral_l2_percent"] ?? 2) / 100,
+    (map["referral_l3_percent"] ?? 1) / 100,
+  ];
+}
+
+/**
+ * Walk up the referral chain and distribute bonuses.
+ * Returns a summary of bonuses paid per level.
+ */
+async function distributeReferralBonuses(
+  sourceUserId: number,
+  netEarned: number,
+  sourceTransactionId: number,
+  botSlug: string,
+  rates: number[]
+): Promise<Array<{ level: number; referrerId: number; bonus: number }>> {
+  const paid: Array<{ level: number; referrerId: number; bonus: number }> = [];
+  let currentUserId = sourceUserId;
+
+  for (let level = 0; level < rates.length; level++) {
+    const rate = rates[level];
+    if (!rate || rate <= 0) break;
+
+    // Fetch the referrer of currentUserId
+    const [currentUser] = await db
+      .select({ referrerId: usersTable.referrerId })
+      .from(usersTable)
+      .where(eq(usersTable.id, currentUserId));
+
+    if (!currentUser?.referrerId) break; // No more referrers in chain
+
+    const referrerId = currentUser.referrerId;
+    const bonus = parseFloat((netEarned * rate).toFixed(2));
+    if (bonus <= 0) break;
+
+    // Fetch referrer's wallet
+    const [referrerWallet] = await db
+      .select()
+      .from(walletsTable)
+      .where(eq(walletsTable.userId, referrerId));
+
+    if (!referrerWallet) {
+      currentUserId = referrerId;
+      continue;
+    }
+
+    const newBalance = (parseFloat(referrerWallet.balanceSkz) + bonus).toFixed(2);
+    const newTotalEarned = (parseFloat(referrerWallet.totalEarnedSkz) + bonus).toFixed(2);
+
+    // Update wallet
+    await db.update(walletsTable).set({
+      balanceSkz: newBalance,
+      totalEarnedSkz: newTotalEarned,
+    }).where(eq(walletsTable.id, referrerWallet.id));
+
+    // Record referral bonus transaction
+    await db.insert(transactionsTable).values({
+      userId: referrerId,
+      type: "referral_bonus",
+      currency: "skz",
+      amount: String(bonus),
+      fee: "0",
+      status: "completed",
+      sourceBot: botSlug,
+      referenceId: String(sourceTransactionId),
+      description: `إحالة مستوى ${level + 1} — مكافأة ${rate * 100}% من ربح مُحالك`,
+    });
+
+    paid.push({ level: level + 1, referrerId, bonus });
+    currentUserId = referrerId; // Move up the chain
+  }
+
+  return paid;
 }
 
 // Upsert user (called by child bots on each interaction)
@@ -119,21 +201,28 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, realCurrency, realAmount, description } = req.body as {
+  const { telegramId, currency, amount, description, referenceId } = req.body as {
     telegramId: string;
-    realCurrency: "usdt" | "stars" | "ton";
-    realAmount: string;
-    description: string;
+    currency: "usdt" | "stars" | "ton";
+    amount: string;
+    description?: string;
+    referenceId?: string;
   };
 
-  if (!telegramId || !realCurrency || !realAmount || !description) {
-    res.status(400).json({ error: "telegramId, realCurrency, realAmount, description are required" });
+  if (!telegramId || !currency || !amount) {
+    res.status(400).json({ error: "telegramId, currency, amount are required" });
     return;
   }
 
-  const realAmountNum = parseFloat(realAmount);
-  if (isNaN(realAmountNum) || realAmountNum <= 0) {
+  const amountNum = parseFloat(amount);
+  if (isNaN(amountNum) || amountNum <= 0) {
     res.status(400).json({ error: "Invalid amount" });
+    return;
+  }
+
+  const validCurrencies = ["usdt", "stars", "ton"];
+  if (!validCurrencies.includes(currency)) {
+    res.status(400).json({ error: "currency must be usdt, stars, or ton" });
     return;
   }
 
@@ -142,29 +231,32 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
     .from(usersTable)
     .where(eq(usersTable.telegramId, BigInt(telegramId)));
   if (!user) {
-    res.status(404).json({ error: "User not found — call /internal/users/upsert first" });
+    res.status(404).json({ error: "User not found" });
     return;
   }
 
   const rates = await getSkzRates();
-  let skzRate: number;
-  if (realCurrency === "usdt") skzRate = rates.perUsdt;
-  else if (realCurrency === "stars") skzRate = rates.perStar;
-  else skzRate = rates.perTon;
-
-  const skzAmount = realAmountNum * skzRate;
+  const rateMap: Record<string, number> = {
+    usdt: rates.perUsdt,
+    stars: rates.perStar,
+    ton: rates.perTon,
+  };
+  const skzRate = rateMap[currency]!;
+  const skzAmount = amountNum * skzRate;
 
   const [transaction] = await db
     .insert(transactionsTable)
     .values({
       userId: user.id,
-      type: "credit",
+      type: "deposit",
       currency: "skz",
       amount: String(skzAmount.toFixed(2)),
       fee: "0",
       status: "completed",
       sourceBot: bot.slug,
-      description: `${description} (${realAmountNum} ${realCurrency.toUpperCase()} → ${skzAmount.toFixed(2)} SKZ)`,
+      referenceId: referenceId ?? null,
+      description: description ?? `إيداع ${amountNum} ${currency.toUpperCase()} = ${skzAmount.toFixed(0)} SKZ`,
+      metadata: JSON.stringify({ originalCurrency: currency, originalAmount: amountNum, skzRate }),
     })
     .returning();
 
@@ -178,25 +270,12 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
   }
 
   const newSkzBalance = (parseFloat(wallet.balanceSkz) + skzAmount).toFixed(2);
-  const newTotalEarned = (parseFloat(wallet.totalEarnedSkz) + skzAmount).toFixed(2);
-
-  // Also store real currency deposit
-  let realBalanceUpdate = {};
-  if (realCurrency === "usdt") {
-    realBalanceUpdate = { balanceUsdt: String((parseFloat(wallet.balanceUsdt) + realAmountNum).toFixed(6)) };
-  } else if (realCurrency === "stars") {
-    realBalanceUpdate = { balanceStars: String(parseFloat(wallet.balanceStars) + realAmountNum) };
-  } else {
-    realBalanceUpdate = { balanceTon: String((parseFloat(wallet.balanceTon) + realAmountNum).toFixed(9)) };
-  }
-
   await db.update(walletsTable).set({
     balanceSkz: newSkzBalance,
-    totalEarnedSkz: newTotalEarned,
-    ...realBalanceUpdate,
+    totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + skzAmount).toFixed(2)),
   }).where(eq(walletsTable.id, wallet.id));
 
-  req.log.info({ telegramId, realCurrency, realAmount, skzAmount }, "Deposit converted to SKZ");
+  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, currency, amount, skzAmount }, "Deposit processed");
 
   res.json({
     success: true,
@@ -208,6 +287,7 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
 });
 
 // Credit SKZ to user (child bots give user SKZ for completing tasks/earning)
+// Automatically deducts platform commission AND distributes multi-level referral bonuses
 router.post("/internal/credit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
@@ -239,6 +319,7 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     return;
   }
 
+  // --- 1. Platform commission deduction ---
   const commissionRate = parseFloat(String(bot.commissionRate));
   const commissionAmount = amountNum * commissionRate;
   const netAmount = amountNum - commissionAmount;
@@ -273,6 +354,7 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     totalEarnedSkz: String((parseFloat(wallet.totalEarnedSkz) + netAmount).toFixed(2)),
   }).where(eq(walletsTable.id, wallet.id));
 
+  // Record platform commission
   await db.insert(commissionsTable).values({
     transactionId: transaction.id,
     botSlug: bot.slug,
@@ -289,13 +371,32 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
   }).where(eq(botsTable.id, bot.id));
 
-  req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount, skzNet: netAmount }, "SKZ credited");
+  // --- 2. Multi-level referral bonuses ---
+  // Bonuses are calculated from netAmount (what the user actually receives)
+  const referralRates = await getReferralRates();
+  const referralBonuses = await distributeReferralBonuses(
+    user.id,
+    netAmount,
+    transaction.id,
+    bot.slug,
+    referralRates
+  );
+
+  req.log.info(
+    { transactionId: transaction.id, botSlug: bot.slug, amount, skzNet: netAmount, referralBonuses },
+    "SKZ credited with referral bonuses distributed"
+  );
 
   res.json({
     success: true,
     transactionId: transaction.id,
     newSkzBalance,
     commissionDeducted: String(commissionAmount.toFixed(2)),
+    referralBonuses: referralBonuses.map((b) => ({
+      level: b.level,
+      bonusSkz: String(b.bonus),
+      percent: String((referralRates[b.level - 1]! * 100).toFixed(1)),
+    })),
   });
 });
 

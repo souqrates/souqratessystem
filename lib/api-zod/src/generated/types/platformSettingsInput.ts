@@ -16,7 +16,12 @@ export interface PlatformSettingsInput {
   minWithdrawalSkz?: string;
   withdrawalFeeUsdtPercent?: string;
   withdrawalFeeTonPercent?: string;
+  /** Level 1 referral bonus percent */
   referralBonusPercent?: string;
+  /** Level 2 referral bonus percent */
+  referralL2Percent?: string;
+  /** Level 3 referral bonus percent */
+  referralL3Percent?: string;
   platformName?: string;
   platformTagline?: string;
   welcomeMessage?: string;

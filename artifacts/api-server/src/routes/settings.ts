@@ -54,6 +54,8 @@ async function buildSettingsResponse() {
       withdrawalFeeUsdtPercent: map["withdrawal_fee_usdt_percent"],
       withdrawalFeeTonPercent: map["withdrawal_fee_ton_percent"],
       referralBonusPercent: map["referral_bonus_percent"],
+      referralL2Percent: map["referral_l2_percent"] ?? "2",
+      referralL3Percent: map["referral_l3_percent"] ?? "1",
     },
     content: {
       platformName: map["platform_name"],
@@ -95,6 +97,8 @@ router.put("/settings", async (req, res): Promise<void> => {
     withdrawalFeeUsdtPercent: "withdrawal_fee_usdt_percent",
     withdrawalFeeTonPercent: "withdrawal_fee_ton_percent",
     referralBonusPercent: "referral_bonus_percent",
+    referralL2Percent: "referral_l2_percent",
+    referralL3Percent: "referral_l3_percent",
     platformName: "platform_name",
     platformTagline: "platform_tagline",
     welcomeMessage: "welcome_message",

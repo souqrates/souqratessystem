@@ -854,6 +854,13 @@ components:
           type: string
         referralBonusPercent:
           type: string
+          description: Level 1 referral bonus percent
+        referralL2Percent:
+          type: string
+          description: Level 2 referral bonus percent
+        referralL3Percent:
+          type: string
+          description: Level 3 referral bonus percent
       required:
         - minDepositUsdt
         - minDepositTon
@@ -862,6 +869,8 @@ components:
         - withdrawalFeeUsdtPercent
         - withdrawalFeeTonPercent
         - referralBonusPercent
+        - referralL2Percent
+        - referralL3Percent
 
     PlatformSettingsContent:
       type: object
@@ -920,6 +929,13 @@ components:
           type: string
         referralBonusPercent:
           type: string
+          description: Level 1 referral bonus percent
+        referralL2Percent:
+          type: string
+          description: Level 2 referral bonus percent
+        referralL3Percent:
+          type: string
+          description: Level 3 referral bonus percent
         platformName:
           type: string
         platformTagline:
