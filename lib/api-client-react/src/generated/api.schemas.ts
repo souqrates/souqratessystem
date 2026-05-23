@@ -108,6 +108,8 @@ export interface Bot {
   totalVolumeUsdt: string;
   totalCommissionUsdt: string;
   createdAt: string;
+  /** API key for bot authentication (only returned for admin endpoints and on creation) */
+  apiKey?: string;
 }
 
 export interface CreateBotBody {

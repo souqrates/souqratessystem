@@ -799,6 +799,9 @@ components:
         createdAt:
           type: string
           format: date-time
+        apiKey:
+          type: string
+          description: API key for bot authentication (only returned for admin endpoints and on creation)
       required:
         - id
         - slug

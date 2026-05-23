@@ -17,4 +17,6 @@ export interface Bot {
   totalVolumeUsdt: string;
   totalCommissionUsdt: string;
   createdAt: Date;
+  /** API key for bot authentication (only returned for admin endpoints and on creation) */
+  apiKey?: string;
 }

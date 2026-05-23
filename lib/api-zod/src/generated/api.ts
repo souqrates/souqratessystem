@@ -153,7 +153,8 @@ export const ListBotsResponse = zod.object({
   "isActive": zod.boolean(),
   "totalVolumeUsdt": zod.string(),
   "totalCommissionUsdt": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "apiKey": zod.string().optional().describe('API key for bot authentication (only returned for admin endpoints and on creation)')
 })),
   "total": zod.number()
 })
@@ -186,7 +187,8 @@ export const GetBotResponse = zod.object({
   "isActive": zod.boolean(),
   "totalVolumeUsdt": zod.string(),
   "totalCommissionUsdt": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "apiKey": zod.string().optional().describe('API key for bot authentication (only returned for admin endpoints and on creation)')
 })
 
 
@@ -213,7 +215,8 @@ export const UpdateBotResponse = zod.object({
   "isActive": zod.boolean(),
   "totalVolumeUsdt": zod.string(),
   "totalCommissionUsdt": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "apiKey": zod.string().optional().describe('API key for bot authentication (only returned for admin endpoints and on creation)')
 })
 
 

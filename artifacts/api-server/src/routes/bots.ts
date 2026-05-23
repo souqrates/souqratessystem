@@ -12,7 +12,7 @@ router.get("/bots", async (_req, res): Promise<void> => {
     db.select({ count: sql<number>`count(*)` }).from(botsTable),
   ]);
 
-  const safeBots = bots.map(({ apiKey: _k, webhookSecret: _s, ...rest }) => rest);
+  const safeBots = bots.map(({ webhookSecret: _s, ...rest }) => rest);
 
   res.json({
     data: safeBots,
