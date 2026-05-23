@@ -12,6 +12,7 @@ import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import NotificationSystem from './components/NotificationSystem';
 import AdminAnnouncementBanner from './components/AdminAnnouncementBanner';
+import DebugTouchOverlay from './components/DebugTouchOverlay';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import { SkeletonCard, SkeletonRow } from './components/Skeleton';
@@ -276,6 +277,7 @@ export default function App() {
 
   return (
     <div className="app-shell text-white select-none" style={{ background: '#04030a' }}>
+      <DebugTouchOverlay />
       {/* Main app shell is ALWAYS mounted underneath the splash.
           When splash fades out, the app is already painted — no mass-mount flash. */}
       {inMaintenance ? (
