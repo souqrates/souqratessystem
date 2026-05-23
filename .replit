@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
+modules = ["nodejs-24", "postgresql-16", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -10,6 +10,26 @@ env = { "CI" = "true" }
 
 [workflows]
 runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mother Bot (Telegram)"
+
+[[workflows.workflow]]
+name = "Mother Bot (Telegram)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 artifacts/mother-bot/src/bot.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -37,3 +57,9 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+MOTHER_BOT_API_KEY = "0760e93a6386f1015f798c507fa545c89b3171c8c2b8014965fd42c23a772067"
+MOTHER_API_URL = "http://localhost:80/api"
