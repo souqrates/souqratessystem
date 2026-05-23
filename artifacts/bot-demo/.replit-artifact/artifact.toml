@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/bot-demo/"
+previewPath = "/"
 title = "محاكاة البوت - عرض المستخدم"
 version = "1.0.0"
 id = "artifacts/bot-demo"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/bot-demo/" ]
+paths = [ "/" ]
 localPort = 21905
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "21905"
-BASE_PATH = "/bot-demo/"
+BASE_PATH = "/"
