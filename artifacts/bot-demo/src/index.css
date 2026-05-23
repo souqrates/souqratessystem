@@ -1,8 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Core palette */
   --color-base: #060a14;
