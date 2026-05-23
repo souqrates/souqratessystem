@@ -2,210 +2,296 @@ import { getTelegramUser } from "../lib/telegram";
 import { MOCK_BALANCES, MOCK_TRANSACTIONS } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { motion } from "framer-motion";
-import { Star, TrendingUp, Zap, Settings2 } from "lucide-react";
+import { Star, TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload } from "lucide-react";
+import { Link } from "wouter";
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
+};
+const fadeUp = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+};
 
 export function Home() {
   const user = getTelegramUser();
   const { settings } = usePlatformSettings();
   const initials = `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ""}`;
-
   const usdtEquiv = (MOCK_BALANCES.skz / settings.skzPerUsdt).toFixed(2);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "صباح الخير" : hour < 18 ? "مرحباً" : "مساء الخير";
 
   return (
-    <div className="p-4 space-y-5">
-      {/* Header */}
-      <header className="flex justify-between items-center pt-2">
+    <motion.div variants={stagger} initial="initial" animate="animate" className="px-4 pt-3 space-y-4">
+
+      {/* ── Top bar ── */}
+      <motion.header variants={fadeUp} className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-skz to-accent p-[2px] skz-coin">
-            <div className="w-full h-full rounded-full bg-base flex items-center justify-center overflow-hidden">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-lg font-bold">{initials}</span>
-              )}
+          <div className="relative">
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-base text-white overflow-hidden skz-coin"
+              style={{
+                background: "linear-gradient(135deg, #9333ea 0%, #7c3aed 50%, #0891b2 100%)",
+              }}
+            >
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                : initials}
             </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-base" />
           </div>
           <div>
-            <h1 className="text-lg font-bold flex items-center gap-1">
-              {user.firstName} {user.lastName}
-              {user.isPremium && <Star size={14} className="text-stars fill-stars" />}
+            <p className="text-[11px] text-white/40 font-medium">{greeting}</p>
+            <h1 className="text-base font-black leading-tight flex items-center gap-1">
+              {user.firstName}
+              {user.isPremium && <Star size={12} className="text-stars fill-stars" />}
             </h1>
-            <p className="text-xs text-white/40">@{user.username}</p>
           </div>
         </div>
-        <div className="glass-card rounded-xl px-3 py-1.5 flex items-center gap-1.5">
-          <Zap size={12} className="text-skz" />
-          <span className="text-xs font-bold text-skz-light">مُتصل</span>
-        </div>
-      </header>
 
-      {/* Platform Name Banner */}
-      <div className="glass-card rounded-2xl px-4 py-2.5 flex items-center gap-2">
-        <Settings2 size={12} className="text-white/30" />
-        <p className="text-xs text-white/50 flex-1">
-          <span className="text-white/70 font-semibold">{settings.platformName}</span>
-          {" — "}{settings.platformTagline}
-        </p>
-      </div>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          className="w-10 h-10 rounded-2xl glass-card flex items-center justify-center relative"
+        >
+          <Bell size={18} className="text-white/60" />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-skz" />
+        </motion.button>
+      </motion.header>
 
-      {/* Primary SKZ Balance Card */}
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="glass-card-skz rounded-3xl p-6 relative overflow-hidden"
-      >
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-skz rounded-full blur-[80px] opacity-20 pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-accent rounded-full blur-[80px] opacity-15 pointer-events-none" />
+      {/* ── Hero Balance Card ── */}
+      <motion.div variants={fadeUp}>
+        <div className="hero-card rounded-3xl p-6 relative overflow-hidden noise">
+          {/* Floating orbs */}
+          <div className="orb-1 absolute -top-14 -right-14 w-44 h-44 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)" }} />
+          <div className="orb-2 absolute -bottom-14 -left-14 w-44 h-44 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(34,211,238,0.25) 0%, transparent 70%)" }} />
 
-        <div className="relative z-10 text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-skz to-skz-dark flex items-center justify-center text-white font-black text-xs">
-              S
+          <div className="relative z-10">
+            {/* Platform badge */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="chip chip-skz">
+                <Zap size={10} className="text-skz" />
+                {settings.platformName}
+              </div>
+              <Link href="/wallet">
+                <motion.div
+                  whileTap={{ scale: 0.9 }}
+                  className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                >
+                  التفاصيل
+                  <ChevronRight size={12} />
+                </motion.div>
+              </Link>
             </div>
-            <p className="text-sm font-medium text-white/60">رصيد SKZ</p>
+
+            {/* Big number */}
+            <div className="text-center mb-5">
+              <p className="text-[11px] text-white/40 font-medium mb-1.5 tracking-wide uppercase">رصيد SKZ</p>
+              <motion.h2
+                className="text-[58px] font-black gradient-text tracking-tighter leading-none mb-1"
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {MOCK_BALANCES.skz.toLocaleString("ar-SA")}
+              </motion.h2>
+              <p className="text-sm font-bold text-white/30">
+                ≈ <span className="text-white/50">${usdtEquiv}</span> USDT
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/deposit">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm text-white"
+                  style={{
+                    background: "linear-gradient(135deg, #9333ea, #7c3aed)",
+                    boxShadow: "0 4px 20px rgba(147,51,234,0.4)",
+                  }}
+                >
+                  <Download size={16} />
+                  إيداع
+                </motion.button>
+              </Link>
+              <Link href="/withdraw">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm glass-card"
+                >
+                  <Upload size={16} className="text-white/70" />
+                  <span className="text-white/80">سحب</span>
+                </motion.button>
+              </Link>
+            </div>
           </div>
-          <h2 className="text-6xl font-black gradient-text tracking-tight mb-1">
-            {MOCK_BALANCES.skz.toLocaleString("ar")}
-          </h2>
-          <p className="text-base font-bold text-white/50 mb-4">SKZ</p>
-          <p className="text-xs text-white/40">
-            ≈ ${usdtEquiv} USDT
-            <span className="text-white/20 mx-1">·</span>
-            سعر الصرف: {settings.skzPerUsdt} SKZ/USDT
-          </p>
         </div>
       </motion.div>
 
-      {/* SKZ Stats Row */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* ── Mini stats ── */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
         <div className="glass-card rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={14} className="text-success" />
-            <p className="text-xs text-white/50">إجمالي المكتسب</p>
-          </div>
-          <p className="font-black text-lg text-success">
-            {MOCK_BALANCES.totalEarnedSkz.toLocaleString("ar")}
-          </p>
-          <p className="text-[10px] text-white/30">SKZ</p>
-        </div>
-        <div className="glass-card rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Star size={14} className="text-stars fill-stars" />
-            <p className="text-xs text-white/50">محول للخارج</p>
-          </div>
-          <p className="font-black text-lg text-white/70">
-            {MOCK_BALANCES.totalWithdrawnSkz.toLocaleString("ar")}
-          </p>
-          <p className="text-[10px] text-white/30">SKZ</p>
-        </div>
-      </div>
-
-      {/* Currency mini cards — rates from API */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          {
-            label: "USDT",
-            val: `${MOCK_BALANCES.usdt.toFixed(1)}`,
-            color: "text-usdt",
-            bg: "bg-usdt/10",
-            note: `= ${Math.round(MOCK_BALANCES.usdt * settings.skzPerUsdt)} SKZ`,
-          },
-          {
-            label: "Stars ⭐",
-            val: `${MOCK_BALANCES.stars}`,
-            color: "text-stars",
-            bg: "bg-stars/10",
-            note: `= ${Math.round(MOCK_BALANCES.stars * settings.skzPerStar)} SKZ`,
-          },
-          {
-            label: "TON",
-            val: `${MOCK_BALANCES.ton.toFixed(2)}`,
-            color: "text-ton",
-            bg: "bg-ton/10",
-            note: `= ${Math.round(MOCK_BALANCES.ton * settings.skzPerTon)} SKZ`,
-          },
-        ].map((item, i) => (
-          <div key={i} className="glass-card rounded-2xl p-3 flex flex-col items-center gap-1">
-            <p className={`text-[10px] font-bold ${item.color}`}>{item.label}</p>
-            <p className="font-black text-sm">{item.val}</p>
-            <p className="text-[9px] text-white/30">{item.note}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Bots Grid */}
-      <section>
-        <h3 className="text-sm font-bold mb-3 px-1 text-white/70">البوتات</h3>
-        <div
-          className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {[
-            { icon: "🎮", name: "الألعاب", skz: "+250" },
-            { icon: "🎬", name: "الفيديو", skz: "+100" },
-            { icon: "🎙", name: "الصوت", skz: "+80" },
-            { icon: "🤖", name: "الذكاء", skz: "+50" },
-            { icon: "🛒", name: "المتجر", skz: "+30" },
-            { icon: "🏆", name: "مسابقات", skz: "+500" },
-          ].map((bot, i) => (
-            <div
-              key={i}
-              className="snap-start shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 w-[76px]"
-            >
-              <span className="text-2xl">{bot.icon}</span>
-              <span className="text-[10px] font-bold text-white/80 text-center leading-tight">
-                {bot.name}
-              </span>
-              <span className="text-[9px] font-black text-skz-light">{bot.skz}</span>
+            <div className="w-6 h-6 rounded-lg bg-success/15 flex items-center justify-center">
+              <TrendingUp size={12} className="text-success" />
             </div>
+            <p className="text-[11px] text-white/50 font-medium">إجمالي المكتسب</p>
+          </div>
+          <p className="text-xl font-black text-success">{MOCK_BALANCES.totalEarnedSkz.toLocaleString("ar-SA")}</p>
+          <p className="text-[10px] text-white/25 font-medium mt-0.5">SKZ</p>
+        </div>
+        <div className="glass-card rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center">
+              <ArrowUpRight size={12} className="text-white/50" />
+            </div>
+            <p className="text-[11px] text-white/50 font-medium">محول للخارج</p>
+          </div>
+          <p className="text-xl font-black text-white/70">{MOCK_BALANCES.totalWithdrawnSkz.toLocaleString("ar-SA")}</p>
+          <p className="text-[10px] text-white/25 font-medium mt-0.5">SKZ</p>
+        </div>
+      </motion.div>
+
+      {/* ── Currency balance pills ── */}
+      <motion.div variants={fadeUp}>
+        <p className="section-label mb-2.5">أرصدة العملات</p>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { label: "USDT", val: MOCK_BALANCES.usdt.toFixed(1), color: "#26d0a0", glow: "rgba(38,208,160,0.2)", rate: settings.skzPerUsdt, balance: MOCK_BALANCES.usdt },
+            { label: "TON",  val: MOCK_BALANCES.ton.toFixed(2),  color: "#0098ea", glow: "rgba(0,152,234,0.2)", rate: settings.skzPerTon,  balance: MOCK_BALANCES.ton },
+            { label: "⭐",   val: MOCK_BALANCES.stars.toString(), color: "#f59e0b", glow: "rgba(245,158,11,0.2)", rate: settings.skzPerStar, balance: MOCK_BALANCES.stars },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              whileTap={{ scale: 0.95 }}
+              className="flex-shrink-0 rounded-2xl p-3.5 min-w-[110px]"
+              style={{
+                background: `${item.color}10`,
+                border: `1px solid ${item.color}25`,
+                boxShadow: `0 4px 16px ${item.glow}`,
+              }}
+            >
+              <p className="text-[10px] font-bold mb-1.5" style={{ color: item.color }}>{item.label}</p>
+              <p className="text-xl font-black text-white">{item.val}</p>
+              <p className="text-[9px] text-white/30 mt-1 font-medium">
+                = {Math.round(item.balance * item.rate).toLocaleString()} SKZ
+              </p>
+            </motion.div>
           ))}
         </div>
-      </section>
+      </motion.div>
 
-      {/* Referral promo */}
-      <div className="glass-card rounded-2xl p-4 border border-skz/20">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-base">🎁</span>
-          <p className="text-xs font-bold text-skz-light">
-            ادعُ أصدقاءك واكسب {settings.referralBonusPercent}% من أرباحهم
-          </p>
+      {/* ── Bots strip ── */}
+      <motion.div variants={fadeUp}>
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="section-label">البوتات</p>
+          <span className="chip chip-skz">6 نشط</span>
         </div>
-        <p className="text-[10px] text-white/40 leading-relaxed">
-          {settings.referralMessage}
-        </p>
-      </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { icon: "🎮", name: "الألعاب",    skz: 250,  color: "#a855f7" },
+            { icon: "🎬", name: "الفيديو",    skz: 100,  color: "#3b82f6" },
+            { icon: "🎙", name: "الصوت",      skz: 80,   color: "#06b6d4" },
+            { icon: "🤖", name: "الذكاء",     skz: 50,   color: "#8b5cf6" },
+            { icon: "🛒", name: "المتجر",     skz: 30,   color: "#10b981" },
+            { icon: "🏆", name: "مسابقات",   skz: 500,  color: "#f59e0b" },
+          ].map((bot) => (
+            <motion.div
+              key={bot.name}
+              whileTap={{ scale: 0.93 }}
+              className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[70px] pressable"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                style={{ background: `${bot.color}18`, border: `1px solid ${bot.color}25` }}
+              >
+                {bot.icon}
+              </div>
+              <p className="text-[10px] font-bold text-white/80 text-center leading-tight">{bot.name}</p>
+              <div className="flex items-center gap-0.5">
+                <Zap size={9} style={{ color: bot.color }} />
+                <span className="text-[9px] font-black" style={{ color: bot.color }}>+{bot.skz}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
 
-      {/* Recent Transactions */}
-      <section className="pb-8">
-        <h3 className="text-sm font-bold mb-3 px-1 text-white/70">آخر المعاملات</h3>
-        <div className="glass-card rounded-3xl p-2 flex flex-col gap-1">
-          {MOCK_TRANSACTIONS.map((tx) => (
-            <div
+      {/* ── Referral promo ── */}
+      <motion.div variants={fadeUp}>
+        <Link href="/referral">
+          <motion.div
+            whileTap={{ scale: 0.98 }}
+            className="relative rounded-2xl p-4 overflow-hidden pressable"
+            style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,0.12), rgba(34,211,238,0.08))",
+              border: "1px solid rgba(168,85,247,0.25)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🎁</span>
+                  <p className="text-sm font-black text-white">ادعُ أصدقاءك</p>
+                </div>
+                <p className="text-[11px] text-white/50 leading-snug">
+                  اكسب <span className="text-skz-light font-bold">{settings.referralBonusPercent}%</span> من أرباحهم مدى الحياة
+                </p>
+              </div>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.3)" }}
+              >
+                <ChevronRight size={18} className="text-skz-light" />
+              </div>
+            </div>
+          </motion.div>
+        </Link>
+      </motion.div>
+
+      {/* ── Recent transactions ── */}
+      <motion.div variants={fadeUp} className="pb-2">
+        <div className="flex items-center justify-between mb-3">
+          <p className="section-label">آخر المعاملات</p>
+          <Link href="/wallet">
+            <span className="text-[11px] text-skz-light font-bold">عرض الكل</span>
+          </Link>
+        </div>
+
+        <div className="space-y-2">
+          {MOCK_TRANSACTIONS.slice(0, 4).map((tx, i) => (
+            <motion.div
               key={tx.id}
-              className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-colors"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 + i * 0.06 }}
+              className="flex items-center justify-between px-4 py-3 rounded-2xl glass-card pressable"
+              whileTap={{ scale: 0.98 }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                  style={{ background: tx.type === "credit" ? "rgba(168,85,247,0.12)" : "rgba(255,255,255,0.05)" }}
+                >
                   {tx.botIcon}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">{tx.bot}</p>
-                  <p className="text-[10px] text-white/30">{tx.date}</p>
+                  <p className="font-bold text-sm text-white/90">{tx.bot}</p>
+                  <p className="text-[10px] text-white/30 font-medium">{tx.date}</p>
                 </div>
               </div>
-              <div
-                className={`font-black text-sm ${
-                  tx.type === "credit" ? "text-skz-light" : "text-white/60"
-                }`}
-              >
-                {tx.amount}{" "}
-                <span className="text-[10px] font-bold opacity-70">{tx.currency}</span>
+              <div className="text-right">
+                <p className={`font-black text-sm ${tx.type === "credit" ? "text-skz-light" : "text-white/50"}`}>
+                  {tx.amount}
+                </p>
+                <p className="text-[10px] text-white/25 font-medium">{tx.currency}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </section>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

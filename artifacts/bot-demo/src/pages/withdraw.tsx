@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { MOCK_BALANCES } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
-import { Zap, AlertCircle } from "lucide-react";
+import { Zap, AlertCircle, ChevronDown, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Target = "usdt" | "ton";
 
@@ -9,12 +10,14 @@ export function Withdraw() {
   const [target, setTarget] = useState<Target>("usdt");
   const [skzAmount, setSkzAmount] = useState("");
   const [address, setAddress] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
   const { settings } = usePlatformSettings();
 
-  const getRate = () => target === "usdt" ? settings.skzPerUsdt : settings.skzPerTon;
+  const getRate = () => (target === "usdt" ? settings.skzPerUsdt : settings.skzPerTon);
   const feePercent = target === "usdt"
     ? parseFloat(settings.withdrawalFeeUsdtPercent) / 100
     : parseFloat(settings.withdrawalFeeTonPercent) / 100;
+
   const maxSkz = MOCK_BALANCES.skz;
   const minSkz = parseFloat(settings.minWithdrawalSkz);
   const numSkz = parseFloat(skzAmount || "0");
@@ -22,128 +25,185 @@ export function Withdraw() {
   const isBelowMin = numSkz > 0 && numSkz < minSkz;
   const realAmount = numSkz / getRate();
   const fee = realAmount * feePercent;
-  const feeSkz = fee * getRate();
   const netReal = Math.max(0, realAmount - fee);
   const isValid = numSkz >= minSkz && !isOverMax && address.length > 10;
 
-  return (
-    <div className="p-4 space-y-5 pb-24">
-      <h1 className="text-2xl font-bold mt-2">سحب SKZ</h1>
+  const TARGETS = [
+    { id: "usdt" as Target, label: "USDT", sub: `${settings.skzPerUsdt} SKZ = 1 USDT`, color: "#26d0a0", icon: "💵" },
+    { id: "ton"  as Target, label: "TON",  sub: `${settings.skzPerTon} SKZ = 1 TON`,  color: "#0098ea", icon: "💎" },
+  ];
 
-      {/* SKZ Balance Banner */}
-      <div className="glass-card-skz rounded-2xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-skz to-skz-dark flex items-center justify-center skz-coin">
-            <span className="text-white font-black text-sm">S</span>
+  return (
+    <div className="px-4 pt-4 pb-8 space-y-5">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-black">سحب SKZ</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">حوّل SKZ إلى عملة خارجية</p>
+      </div>
+
+      {/* Balance card */}
+      <div
+        className="rounded-2xl p-4 flex items-center justify-between"
+        style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.25)" }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm text-white skz-coin"
+            style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)" }}
+          >
+            S
           </div>
           <div>
-            <p className="text-xs text-white/50">رصيد SKZ المتاح</p>
-            <p className="font-black text-xl gradient-text">{maxSkz.toLocaleString("ar")}</p>
+            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">رصيد متاح</p>
+            <p className="text-xl font-black gradient-text">{maxSkz.toLocaleString("ar-SA")}</p>
           </div>
         </div>
-        <p className="text-xs text-white/30">≈ ${(maxSkz / settings.skzPerUsdt).toFixed(2)}</p>
+        <div className="text-right">
+          <p className="text-[10px] text-white/30 font-medium">≈</p>
+          <p className="text-sm font-bold text-white/50">${(maxSkz / settings.skzPerUsdt).toFixed(2)}</p>
+        </div>
       </div>
 
-      {/* Target Currency */}
+      {/* Target currency */}
       <div>
-        <p className="text-xs font-bold text-white/40 mb-2 px-1">تحويل إلى</p>
-        <div className="grid grid-cols-2 gap-2">
-          {([
-            { id: "usdt" as Target, label: "USDT", sub: `${settings.skzPerUsdt} SKZ = 1 USDT`, border: "border-usdt", bg: "bg-usdt/10" },
-            { id: "ton" as Target, label: "TON", sub: `${settings.skzPerTon} SKZ = 1 TON`, border: "border-ton", bg: "bg-ton/10" },
-          ] as const).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTarget(t.id)}
-              className={`p-4 rounded-2xl border-2 transition-all text-left ${target === t.id ? `${t.border} ${t.bg}` : "border-white/5 glass-card"}`}
-            >
-              <p className="font-bold">{t.label}</p>
-              <p className="text-[10px] text-white/40 mt-0.5">{t.sub}</p>
-            </button>
-          ))}
+        <p className="section-label mb-3">تحويل إلى</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {TARGETS.map((t) => {
+            const isActive = target === t.id;
+            return (
+              <motion.button
+                key={t.id}
+                onClick={() => setTarget(t.id)}
+                whileTap={{ scale: 0.96 }}
+                className="p-4 rounded-2xl text-right transition-all"
+                style={{
+                  background: isActive ? `${t.color}12` : "rgba(255,255,255,0.04)",
+                  border: isActive ? `1.5px solid ${t.color}40` : "1.5px solid rgba(255,255,255,0.07)",
+                  boxShadow: isActive ? `0 4px 20px ${t.color}25` : "none",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">{t.icon}</span>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: isActive ? t.color : "rgba(255,255,255,0.8)" }}>
+                      {t.label}
+                    </p>
+                    <p className="text-[10px] text-white/30 font-medium mt-0.5">{t.sub}</p>
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Amount in SKZ */}
+      {/* SKZ amount */}
       <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="text-xs font-bold text-white/40">المبلغ بـ SKZ</label>
-          <button
+        <div className="flex items-center justify-between">
+          <p className="section-label">المبلغ بـ SKZ</p>
+          <motion.button
             onClick={() => setSkzAmount(maxSkz.toString())}
-            className="text-[10px] font-bold text-skz-light bg-skz/10 px-2 py-1 rounded-lg"
+            whileTap={{ scale: 0.93 }}
+            className="chip chip-skz pressable"
           >
-            الكل ({maxSkz.toLocaleString()})
-          </button>
+            الكل — {maxSkz.toLocaleString()}
+          </motion.button>
         </div>
+
         <div className="relative">
           <input
             type="number"
             value={skzAmount}
             onChange={(e) => setSkzAmount(e.target.value)}
             placeholder="0"
-            className="w-full glass-card rounded-2xl px-4 py-4 text-2xl font-black bg-transparent outline-none focus:border-skz transition-colors text-right border border-white/10"
+            className="premium-input w-full px-4 py-4 text-2xl font-black text-right pl-14"
             dir="ltr"
           />
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <Zap size={18} className="text-skz-light" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <Zap size={14} className="text-skz-light" />
+            <span className="text-xs font-bold text-skz-light">SKZ</span>
           </div>
         </div>
-        {isOverMax && (
-          <p className="text-xs text-danger flex items-center gap-1">
-            <AlertCircle size={12} /> المبلغ يتجاوز الرصيد المتاح
-          </p>
-        )}
-        {isBelowMin && (
-          <p className="text-xs text-danger flex items-center gap-1">
-            <AlertCircle size={12} /> الحد الأدنى للسحب: {minSkz.toLocaleString()} SKZ
-          </p>
-        )}
+
+        <AnimatePresence>
+          {isOverMax && (
+            <motion.p
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="text-[11px] text-danger flex items-center gap-1.5 font-bold"
+            >
+              <AlertCircle size={12} /> يتجاوز الرصيد المتاح
+            </motion.p>
+          )}
+          {isBelowMin && (
+            <motion.p
+              initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="text-[11px] text-warn flex items-center gap-1.5 font-bold"
+            >
+              <AlertCircle size={12} /> الحد الأدنى {minSkz.toLocaleString()} SKZ
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Wallet Address */}
+      {/* Wallet address */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-white/40">
-          عنوان محفظة {target === "usdt" ? "TRC20" : "TON"}
-        </label>
+        <p className="section-label">عنوان المحفظة ({target === "usdt" ? "TRC20" : "TON"})</p>
         <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder={`أدخل عنوان ${target.toUpperCase()}`}
-          className="w-full glass-card rounded-2xl px-4 py-4 text-sm font-mono bg-transparent outline-none focus:border-skz transition-colors border border-white/10"
+          placeholder={`أدخل عنوان ${target.toUpperCase()}...`}
+          className="premium-input w-full px-4 py-3.5 text-sm font-mono text-left"
           dir="ltr"
         />
       </div>
 
       {/* Summary */}
-      {numSkz > 0 && (
-        <div className="glass-card rounded-2xl p-4 space-y-2.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-white/50">المبلغ (SKZ)</span>
-            <span className="font-bold">{numSkz.toLocaleString("ar")} SKZ</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-white/50">يُعادل</span>
-            <span className="font-bold">{realAmount.toFixed(target === "usdt" ? 2 : 3)} {target.toUpperCase()}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-white/50">رسوم الشبكة ({feePercent * 100}%)</span>
-            <span className="text-danger font-bold">-{fee.toFixed(target === "usdt" ? 2 : 3)} {target.toUpperCase()} ({feeSkz.toFixed(0)} SKZ)</span>
-          </div>
-          <div className="h-px bg-white/10" />
-          <div className="flex justify-between text-base font-black">
-            <span>صافي الاستلام</span>
-            <span className="text-success">{netReal.toFixed(target === "usdt" ? 2 : 3)} {target.toUpperCase()}</span>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {numSkz >= minSkz && !isOverMax && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            className="rounded-2xl overflow-hidden"
+            style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <div className="p-1">
+              {[
+                { label: "المبلغ (SKZ)", value: `${numSkz.toLocaleString("ar-SA")} SKZ`, color: "rgba(255,255,255,0.85)" },
+                { label: "يُعادل", value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
+                { label: `رسوم الشبكة (${(feePercent * 100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`, color: "#f87171" },
+              ].map((row, i) => (
+                <div key={i} className="flex justify-between items-center px-4 py-3">
+                  <span className="text-[12px] text-white/45 font-medium">{row.label}</span>
+                  <span className="text-sm font-bold" style={{ color: row.color }}>{row.value}</span>
+                </div>
+              ))}
+              <div className="divider mx-3" />
+              <div className="flex justify-between items-center px-4 py-3.5">
+                <span className="text-sm font-bold text-white/70">صافي الاستلام</span>
+                <span className="text-lg font-black text-success">
+                  {netReal.toFixed(target === "usdt" ? 2 : 4)} {target.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <button
+      {/* Submit */}
+      <motion.button
         disabled={!isValid}
-        className="w-full bg-gradient-to-r from-skz to-skz-dark text-white font-bold py-4 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed transition-transform active:scale-95 skz-glow"
+        whileTap={{ scale: isValid ? 0.97 : 1 }}
+        className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
+        style={{
+          background: isValid ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
+          boxShadow: isValid ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
+          opacity: isValid ? 1 : 0.4,
+        }}
       >
-        تأكيد السحب
-      </button>
+        {isValid ? `سحب ${netReal.toFixed(2)} ${target.toUpperCase()}` : "أدخل التفاصيل"}
+      </motion.button>
     </div>
   );
 }

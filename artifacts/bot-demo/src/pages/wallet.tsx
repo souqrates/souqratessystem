@@ -1,140 +1,197 @@
-import { MOCK_BALANCES, MOCK_TRANSACTIONS, SKZ_RATES } from "../lib/mock-data";
-import { Download, Upload, TrendingUp, ArrowDownRight } from "lucide-react";
+import { MOCK_BALANCES, MOCK_TRANSACTIONS } from "../lib/mock-data";
+import { usePlatformSettings } from "../lib/use-platform-settings";
+import { Download, Upload, TrendingUp, ArrowUpRight, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 
+const stagger = {
+  animate: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+};
+const fadeUp = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+};
+
 export function Wallet() {
+  const { settings } = usePlatformSettings();
+  const usdtEquiv = (MOCK_BALANCES.skz / settings.skzPerUsdt).toFixed(2);
+
   return (
-    <div className="p-4 space-y-5">
-      <h1 className="text-2xl font-bold mt-2">المحفظة</h1>
+    <motion.div variants={stagger} initial="initial" animate="animate" className="px-4 pt-4 space-y-5">
 
-      {/* Primary SKZ Card */}
-      <motion.div
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="rounded-3xl p-6 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #1a0b2e 0%, #0e1428 50%, #0a1628 100%)",
-          border: "1px solid rgba(168,85,247,0.25)",
-          boxShadow: "0 8px 48px rgba(168,85,247,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
-        }}
-      >
-        <div className="absolute -top-20 -right-20 w-56 h-56 bg-skz rounded-full blur-[90px] opacity-25 pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-56 h-56 bg-accent rounded-full blur-[90px] opacity-15 pointer-events-none" />
+      {/* Header */}
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black">المحفظة</h1>
+          <p className="text-[11px] text-white/40 font-medium mt-0.5">جميع أرصدتك في مكان واحد</p>
+        </div>
+        <div className="chip chip-skz">
+          <Zap size={10} />
+          SKZ
+        </div>
+      </motion.div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-skz to-skz-dark flex items-center justify-center text-white font-black text-sm skz-coin">S</div>
-            <div>
-              <p className="text-white/50 text-xs">الرصيد الأساسي</p>
-              <p className="text-[10px] text-white/30">≈ ${(MOCK_BALANCES.skz / SKZ_RATES.perUsdt).toFixed(2)} USDT</p>
+      {/* Hero SKZ card */}
+      <motion.div variants={fadeUp}>
+        <div className="hero-card rounded-3xl p-6 relative overflow-hidden noise">
+          <div className="orb-1 absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(168,85,247,0.5) 0%, transparent 70%)" }} />
+          <div className="orb-2 absolute -bottom-16 -left-16 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(34,211,238,0.3) 0%, transparent 70%)" }} />
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white skz-coin"
+                style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)" }}
+              >
+                S
+              </div>
+              <div>
+                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">الرصيد الأساسي</p>
+                <p className="text-[11px] text-white/30 font-medium">≈ ${usdtEquiv} USDT</p>
+              </div>
             </div>
-          </div>
-          <h2 className="text-5xl font-black gradient-text tracking-tight mb-6">
-            {MOCK_BALANCES.skz.toLocaleString("ar")} <span className="text-2xl">SKZ</span>
-          </h2>
 
-          <div className="flex gap-3">
-            <Link href="/deposit" className="flex-1">
-              <button className="w-full bg-gradient-to-r from-skz to-skz-dark text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 skz-glow">
-                <Download size={17} />
-                إيداع
-              </button>
-            </Link>
-            <Link href="/withdraw" className="flex-1">
-              <button className="w-full glass-card font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition-transform active:scale-95">
-                <Upload size={17} />
-                سحب
-              </button>
-            </Link>
+            <h2 className="text-5xl font-black gradient-text tracking-tight mb-6">
+              {MOCK_BALANCES.skz.toLocaleString("ar-SA")}
+              <span className="text-xl text-white/40 ml-2">SKZ</span>
+            </h2>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <Link href="/deposit">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm text-white"
+                  style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", boxShadow: "0 4px 20px rgba(147,51,234,0.4)" }}
+                >
+                  <Download size={16} />
+                  إيداع
+                </motion.button>
+              </Link>
+              <Link href="/withdraw">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  className="w-full glass-card flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
+                >
+                  <Upload size={16} className="text-white/60" />
+                  <span className="text-white/80">سحب</span>
+                </motion.button>
+              </Link>
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card rounded-2xl p-4">
-          <div className="flex items-center gap-1.5 mb-2">
-            <TrendingUp size={13} className="text-success" />
-            <p className="text-xs text-white/50">إجمالي المكتسب</p>
+      {/* Stats row */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
+        {[
+          { icon: TrendingUp, label: "إجمالي المكتسب", value: MOCK_BALANCES.totalEarnedSkz, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+          { icon: ArrowUpRight, label: "محول للخارج",    value: MOCK_BALANCES.totalWithdrawnSkz, color: "rgba(255,255,255,0.5)", bg: "rgba(255,255,255,0.05)" },
+        ].map((s) => (
+          <div key={s.label} className="glass-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2.5">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: s.bg }}>
+                <s.icon size={12} style={{ color: s.color }} />
+              </div>
+              <p className="text-[11px] text-white/45 font-medium">{s.label}</p>
+            </div>
+            <p className="text-xl font-black" style={{ color: s.color }}>{s.value.toLocaleString("ar-SA")}</p>
+            <p className="text-[10px] text-white/25 mt-0.5 font-medium">SKZ</p>
           </div>
-          <p className="font-black text-xl text-success">{MOCK_BALANCES.totalEarnedSkz.toLocaleString("ar")}</p>
-          <p className="text-xs text-white/30 mt-0.5">SKZ</p>
-        </div>
-        <div className="glass-card rounded-2xl p-4">
-          <div className="flex items-center gap-1.5 mb-2">
-            <ArrowDownRight size={13} className="text-white/50" />
-            <p className="text-xs text-white/50">إجمالي المسحوب</p>
-          </div>
-          <p className="font-black text-xl text-white/70">{MOCK_BALANCES.totalWithdrawnSkz.toLocaleString("ar")}</p>
-          <p className="text-xs text-white/30 mt-0.5">SKZ</p>
-        </div>
-      </div>
+        ))}
+      </motion.div>
 
-      {/* Deposit sources */}
-      <div>
-        <p className="text-xs font-bold text-white/40 mb-3 px-1">مصادر الإيداع</p>
+      {/* Currency sources */}
+      <motion.div variants={fadeUp}>
+        <p className="section-label mb-3">مصادر الإيداع</p>
         <div className="space-y-2.5">
           {[
             {
-              label: "USDT", sub: "TRC20", color: "text-usdt", bg: "bg-usdt/10 border-usdt/20",
-              val: MOCK_BALANCES.usdt.toFixed(2), skzEq: (MOCK_BALANCES.usdt * SKZ_RATES.perUsdt).toFixed(0),
-              rate: `1 USDT = ${SKZ_RATES.perUsdt} SKZ`,
+              label: "USDT", sub: "TRC20 · Tether",
+              color: "#26d0a0", glow: "rgba(38,208,160,0.15)",
+              val: MOCK_BALANCES.usdt.toFixed(2),
+              skzEq: Math.round(MOCK_BALANCES.usdt * settings.skzPerUsdt),
+              rate: `1 USDT = ${settings.skzPerUsdt} SKZ`,
+              icon: "💵",
             },
             {
-              label: "Telegram Stars ⭐", sub: "In-app", color: "text-stars", bg: "bg-stars/10 border-stars/20",
-              val: MOCK_BALANCES.stars.toString(), skzEq: (MOCK_BALANCES.stars * SKZ_RATES.perStar).toFixed(0),
-              rate: `1 ⭐ = ${SKZ_RATES.perStar} SKZ`,
+              label: "Telegram Stars", sub: "⭐ In-app",
+              color: "#f59e0b", glow: "rgba(245,158,11,0.15)",
+              val: MOCK_BALANCES.stars.toString(),
+              skzEq: Math.round(MOCK_BALANCES.stars * settings.skzPerStar),
+              rate: `1 ⭐ = ${settings.skzPerStar} SKZ`,
+              icon: "⭐",
             },
             {
-              label: "TON", sub: "The Open Network", color: "text-ton", bg: "bg-ton/10 border-ton/20",
-              val: MOCK_BALANCES.ton.toFixed(3), skzEq: (MOCK_BALANCES.ton * SKZ_RATES.perTon).toFixed(0),
-              rate: `1 TON = ${SKZ_RATES.perTon} SKZ`,
+              label: "TON", sub: "The Open Network",
+              color: "#0098ea", glow: "rgba(0,152,234,0.15)",
+              val: MOCK_BALANCES.ton.toFixed(3),
+              skzEq: Math.round(MOCK_BALANCES.ton * settings.skzPerTon),
+              rate: `1 TON = ${settings.skzPerTon} SKZ`,
+              icon: "💎",
             },
-          ].map((item, i) => (
-            <div key={i} className={`rounded-2xl p-4 border flex items-center justify-between ${item.bg}`}>
-              <div>
-                <p className={`font-bold text-sm ${item.color}`}>{item.label}</p>
-                <p className="text-[10px] text-white/30">{item.sub} · {item.rate}</p>
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              whileTap={{ scale: 0.98 }}
+              className="rounded-2xl p-4 flex items-center gap-4 pressable"
+              style={{
+                background: `${item.color}0c`,
+                border: `1px solid ${item.color}22`,
+                boxShadow: `0 4px 20px ${item.glow}`,
+              }}
+            >
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                style={{ background: `${item.color}18`, border: `1px solid ${item.color}25` }}
+              >
+                {item.icon}
               </div>
-              <div className="text-right">
-                <p className="font-bold text-sm">{item.val}</p>
-                <p className="text-[10px] text-white/40">= {item.skzEq} SKZ</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm" style={{ color: item.color }}>{item.label}</p>
+                <p className="text-[10px] text-white/30 font-medium">{item.sub} · {item.rate}</p>
               </div>
-            </div>
+              <div className="text-right flex-shrink-0">
+                <p className="font-black text-base text-white">{item.val}</p>
+                <p className="text-[10px] text-white/35 font-medium">= {item.skzEq.toLocaleString()} SKZ</p>
+              </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      {/* History */}
-      <section className="pb-8">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="text-base font-bold">سجل المعاملات</h3>
-        </div>
-        <div className="space-y-2">
-          {MOCK_TRANSACTIONS.map((tx) => (
-            <div key={tx.id} className="glass-card rounded-2xl flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'credit' ? 'bg-skz/10' : 'bg-white/5'}`}>
-                  {tx.type === 'credit'
-                    ? <Download size={17} className="text-skz-light" />
-                    : <Upload size={17} className="text-white/40" />}
+      {/* Transaction history */}
+      <motion.div variants={fadeUp}>
+        <p className="section-label mb-3">سجل المعاملات</p>
+        <div className="glass-card rounded-3xl overflow-hidden">
+          {MOCK_TRANSACTIONS.map((tx, i) => (
+            <div key={tx.id}>
+              <div className="flex items-center justify-between px-4 py-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: tx.type === "credit" ? "rgba(168,85,247,0.12)" : "rgba(255,255,255,0.04)" }}
+                  >
+                    {tx.botIcon}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">{tx.bot}</p>
+                    <p className="text-[10px] text-white/30 font-medium mt-0.5">{tx.date}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm">{tx.bot}</p>
-                  <p className="text-[10px] text-white/30">{tx.date}</p>
+                <div className="text-right">
+                  <p className={`font-black text-sm ${tx.type === "credit" ? "text-skz-light" : "text-white/50"}`}>
+                    {tx.amount}
+                  </p>
+                  <p className="text-[10px] text-white/25 font-medium">{tx.currency}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className={`font-black text-sm ${tx.type === 'credit' ? 'text-skz-light' : 'text-white/50'}`}>
-                  {tx.amount}
-                </p>
-                <p className="text-[10px] text-white/30">{tx.currency}</p>
-              </div>
+              {i < MOCK_TRANSACTIONS.length - 1 && <div className="divider mx-4" />}
             </div>
           ))}
         </div>
-      </section>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
