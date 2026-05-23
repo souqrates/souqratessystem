@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
 MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
-MINI_APP_URL     = os.getenv("MINI_APP_URL", "https://www.souqrates.com/")
+MINI_APP_URL     = os.getenv("MINI_APP_URL", "https://souqrates.com/")
+GAMES_APP_URL    = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
@@ -75,7 +76,14 @@ def main_keyboard() -> InlineKeyboardMarkup:
                 web_app=WebAppInfo(url=MINI_APP_URL),
             )
         ],
-        # ② Quick text shortcuts
+        # ② Launch Games
+        [
+            InlineKeyboardButton(
+                text="🎮 Play Games",
+                web_app=WebAppInfo(url=GAMES_APP_URL),
+            )
+        ],
+        # ③ Quick text shortcuts
         [
             InlineKeyboardButton(text="💰 Balance",      callback_data="wallet"),
             InlineKeyboardButton(text="📊 Transactions", callback_data="transactions"),
