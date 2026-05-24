@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 
 const GAME_MAP = {
   // Core originals
-  1:   lazy(() => import('./games/StopTheBar')),
+  1:   lazy(() => import('./games/PrecisionSplit')),
   2:   lazy(() => import('./games/GravityFlipPro')),
   3:   lazy(() => import('./games/DodgeSpikes')),
   4:   lazy(() => import('./games/HexBlast')),
@@ -52,7 +52,7 @@ const GAME_MAP = {
   112: lazy(() => import('./games/ColorRush')),
   113: lazy(() => import('./games/ShadowSnap')),
   114: lazy(() => import('./games/ChainTap')),
-  116: lazy(() => import('./games/GlyphForge')),
+  116: lazy(() => import('./games/ForgeMaster')),
   117: lazy(() => import('./games/OrbitSlingshot')),
   118: lazy(() => import('./games/SushiSlicePro')),
   119: lazy(() => import('./games/QuakeTycoon')),

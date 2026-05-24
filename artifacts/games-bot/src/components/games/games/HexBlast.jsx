@@ -201,7 +201,19 @@ export default function HexBlast({ phase, setPhase, onScoreUpdate, game}) {
       paddingBottom: 24,
       fontFamily: 'Orbitron, sans-serif',
     }}>
-      <div style={{ display: 'flex', gap: 12, margin: '16px 0 4px' }}>
+      {/* NEON BREAK signature */}
+      <div style={{
+        margin: '10px 0 0',
+        fontFamily: 'Orbitron, sans-serif',
+        fontWeight: 900,
+        fontSize: 13,
+        letterSpacing: '0.45em',
+        color: ACCENT,
+        textShadow: `0 0 16px ${ACCENT}, 0 0 4px #fff`,
+      }}>
+        ◢ NEON BREAK ◣
+      </div>
+      <div style={{ display: 'flex', gap: 12, margin: '8px 0 4px' }}>
         <HudCard label="SCORE" value={score} />
         <HudCard label="TIME" value={timeLeft} accent={timeLeft <= 15 ? '#ff4466' : ACCENT} />
       </div>
