@@ -32,6 +32,7 @@ export default function Sidebar() {
         <SidebarLink href="/users" active={location.startsWith("/users")} icon="👥" label="المستخدمون" />
         <SidebarLink href="/transactions" active={location.startsWith("/transactions")} icon="💸" label="سجل المعاملات" />
         <SidebarLink href="/withdrawals" active={location.startsWith("/withdrawals")} icon="💳" label="طلبات السحب" />
+        <SidebarLink href="/agreements" active={location.startsWith("/agreements")} icon="📜" label="الاتفاقيات" sub="النص + الموقّعون" />
         <SidebarLink
           href="/bots/mother-bot"
           active={location === "/bots/mother-bot"}

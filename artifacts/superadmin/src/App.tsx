@@ -11,6 +11,7 @@ import BroadcastPage from "@/pages/Broadcast";
 import LinksPage from "@/pages/Links";
 import ErrorLogsPage from "@/pages/ErrorLogs";
 import WithdrawalsPage from "@/pages/Withdrawals";
+import AgreementsPage from "@/pages/Agreements";
 import GamesPage from "@/pages/Games";
 import GameDetailPage from "@/pages/GameDetail";
 
@@ -28,6 +29,7 @@ function AuthedRoutes() {
         <Route path="/users/:telegramId" component={UserDetailPage} />
         <Route path="/transactions" component={TransactionsPage} />
         <Route path="/withdrawals" component={WithdrawalsPage} />
+        <Route path="/agreements" component={AgreementsPage} />
         <Route path="/games" component={GamesPage} />
         <Route path="/games/:gameId" component={GameDetailPage} />
         <Route path="/broadcast" component={BroadcastPage} />

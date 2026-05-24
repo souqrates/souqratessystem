@@ -2,6 +2,7 @@ import { Router, type IRouter, json as bodyJson } from "express";
 import { db, agreementSettingsTable, agreementSignaturesTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { requireAdmin } from "../lib/admin-auth";
+import { requireSuperAdmin } from "../lib/super-admin-auth";
 
 const router: IRouter = Router();
 
@@ -172,6 +173,62 @@ router.put("/admin/agreement-text", requireAdmin, async (req, res) => {
     });
 
   req.log.info({ length: content.length }, "Agreement text updated");
+  res.json({ success: true });
+});
+
+// ── Super-admin parallel routes ───────────────────────────────────────────
+// Same handlers, gated by MASTER_ADMIN_CODE instead of ADMIN_TOKEN, so the
+// /superadmin panel (which doesn't carry ADMIN_TOKEN) can manage agreements.
+router.get("/superadmin/agreements", requireSuperAdmin, async (req, res) => {
+  const q = req.query as Record<string, unknown>;
+  const limit  = Math.min(Math.max(parseInt(String(q.limit  ?? "100"), 10) || 100, 1), 500);
+  const offset = Math.max(parseInt(String(q.offset ?? "0"),   10) || 0, 0);
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(agreementSignaturesTable);
+
+  const rows = await db
+    .select({
+      id: agreementSignaturesTable.id,
+      name: agreementSignaturesTable.name,
+      email: agreementSignaturesTable.email,
+      phone: agreementSignaturesTable.phone,
+      createdAt: agreementSignaturesTable.createdAt,
+    })
+    .from(agreementSignaturesTable)
+    .orderBy(desc(agreementSignaturesTable.createdAt))
+    .limit(limit).offset(offset);
+
+  res.json({ total: count, rows });
+});
+
+router.get("/superadmin/agreements/:id", requireSuperAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id ?? ""), 10);
+  if (!Number.isFinite(id) || id <= 0) { res.status(400).json({ error: "bad id" }); return; }
+  const [row] = await db.select().from(agreementSignaturesTable).where(eq(agreementSignaturesTable.id, id));
+  if (!row) { res.status(404).json({ error: "not found" }); return; }
+  res.json(row);
+});
+
+router.get("/superadmin/agreement-text", requireSuperAdmin, async (_req, res) => {
+  const [row] = await db.select().from(agreementSettingsTable).where(eq(agreementSettingsTable.id, 1));
+  res.json({ content: row?.content ?? "", updatedAt: row?.updatedAt ?? null });
+});
+
+router.put("/superadmin/agreement-text", requireSuperAdmin, async (req, res) => {
+  const content = typeof req.body?.content === "string" ? req.body.content : "";
+  if (content.length < 10) { res.status(400).json({ error: "النص قصير جدًا" }); return; }
+  if (content.length > 50_000) { res.status(400).json({ error: "النص طويل جدًا (الحد ٥٠٠٠٠ حرف)" }); return; }
+
+  await db.insert(agreementSettingsTable)
+    .values({ id: 1, content, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: agreementSettingsTable.id,
+      set: { content, updatedAt: new Date() },
+    });
+
+  req.log.info({ length: content.length }, "Agreement text updated (superadmin)");
   res.json({ success: true });
 });
 
