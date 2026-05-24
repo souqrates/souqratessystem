@@ -28,6 +28,7 @@ export default function Sidebar() {
         <SidebarLink href="/users" active={location.startsWith("/users")} icon="👥" label="المستخدمون" />
         <SidebarLink href="/transactions" active={location.startsWith("/transactions")} icon="💸" label="سجل المعاملات" />
         <SidebarLink href="/withdrawals" active={location.startsWith("/withdrawals")} icon="💳" label="طلبات السحب" />
+        <SidebarLink href="/games" active={location.startsWith("/games")} icon="🎮" label="ألعاب SOUQRATES SKILLZ" />
 
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />

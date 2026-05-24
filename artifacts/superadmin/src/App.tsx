@@ -11,6 +11,8 @@ import BroadcastPage from "@/pages/Broadcast";
 import LinksPage from "@/pages/Links";
 import ErrorLogsPage from "@/pages/ErrorLogs";
 import WithdrawalsPage from "@/pages/Withdrawals";
+import GamesPage from "@/pages/Games";
+import GameDetailPage from "@/pages/GameDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -26,6 +28,8 @@ function AuthedRoutes() {
         <Route path="/users/:telegramId" component={UserDetailPage} />
         <Route path="/transactions" component={TransactionsPage} />
         <Route path="/withdrawals" component={WithdrawalsPage} />
+        <Route path="/games" component={GamesPage} />
+        <Route path="/games/:gameId" component={GameDetailPage} />
         <Route path="/broadcast" component={BroadcastPage} />
         <Route path="/links" component={LinksPage} />
         <Route path="/error-logs" component={ErrorLogsPage} />

@@ -114,7 +114,52 @@ const useAppStore = create((set, get) => ({
     try {
       const soloTiers = await getSoloFeeTiers(null).catch(() => []);
       const defaultSoloTier = soloTiers.find(t => t.isDefault) || soloTiers[0] || null;
-      set({ defaultSoloTier, games: applyOverrides(GAMES, {}, defaultSoloTier) });
+
+      // ── NEW: pull per-game configs from super-admin API ────────
+      // Each entry overrides GAMES catalog defaults; hidden games
+      // are EXCLUDED server-side and so removed from the visible list.
+      let adminOverrides = {};
+      let visibleIds = null;
+      try {
+        const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
+        const r = await fetch('/api/games/configs', { headers: { Accept: 'application/json' } });
+        if (r.ok) {
+          const j = await r.json();
+          const arr = Array.isArray(j?.data) ? j.data : [];
+          visibleIds = new Set(arr.map((g) => g.gameId));
+          for (const g of arr) {
+            adminOverrides[g.gameId] = {
+              entry_fee_skz:    g.entryFee,
+              win_prize_skz:    g.winAmount,
+              name_override:    g.name,
+              emoji_override:   g.emoji,
+              desc_override:    g.description,
+              difficulty_override: g.difficulty,
+              target_score:     g.targetScore || null,
+              max_score:        g.maxScore || null,
+              score_per_hit:    g.scorePerCorrect ?? null,
+              score_penalty:    g.scorePerWrong ?? null,
+              image_url:        g.imageUrl || null,
+              texts:            g.texts || {},
+              params:           g.params || {},
+              enabled:          true,
+            };
+            const t = g.texts || {};
+            if (t.subtitle)  adminOverrides[g.gameId].subtitle_override  = t.subtitle;
+            if (t.winLabel)  adminOverrides[g.gameId].win_label_override = t.winLabel;
+            if (t.loseLabel) adminOverrides[g.gameId].lose_label_override= t.loseLabel;
+            if (t.ctaLabel)  adminOverrides[g.gameId].cta_label_override = t.ctaLabel;
+            if (t.rules)     adminOverrides[g.gameId].rules_override     = t.rules;
+          }
+        }
+        void base;
+      } catch { /* fall back to GAMES defaults */ }
+
+      // Filter: if API returned a list, hide games not in it (admin-hidden or not in catalog yet)
+      let merged = applyOverrides(GAMES, adminOverrides, defaultSoloTier);
+      if (visibleIds) merged = merged.filter((g) => visibleIds.has(g.id));
+
+      set({ defaultSoloTier, games: merged });
     } catch { /* keep defaults */ }
   },
 

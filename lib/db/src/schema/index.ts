@@ -10,3 +10,4 @@ export * from "./botTexts";
 export * from "./broadcasts";
 export * from "./externalLinks";
 export * from "./errorLogs";
+export * from "./gameConfigs";
