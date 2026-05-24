@@ -16,7 +16,7 @@ import asyncio
 import logging
 import os
 
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram import Bot, BaseMiddleware, Dispatcher, F, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -154,6 +154,33 @@ async def cmd_start(message: Message, state: FSMContext):
         await api.upsert_user(message.from_user)
     except Exception as e:
         logger.error(f"upsert failed: {e}")
+
+    # Deep-link payload routing: /start <payload>
+    # Web CTAs send `?start=publish` or `?start=buy_<numeric_id>`.
+    parts = (message.text or "").split(maxsplit=1)
+    payload = parts[1].strip() if len(parts) > 1 else ""
+    if payload == "publish":
+        await state.set_state(Publish.title)
+        await message.answer("📝 أرسل <b>عنوان</b> الكتاب:", parse_mode="HTML", reply_markup=back_kb())
+        return
+    if payload.startswith("buy_"):
+        raw = payload[4:]
+        if raw.isdigit():
+            pid = int(raw)
+            p = await api.get_product(pid)
+            if p:
+                price = float(p["priceUsdt"])
+                txt = (
+                    f"📖 <b>{p['title']}</b>\n\n"
+                    f"{p['description'] or '—'}\n\n"
+                    f"💰 السعر: <code>{price:.2f}</code> SKZ"
+                )
+                kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text=f"🛒 شراء بـ {price:.2f} SKZ", callback_data=f"buy:{pid}")],
+                    [InlineKeyboardButton(text="🔙 القائمة", callback_data="menu")],
+                ])
+                await message.answer(txt, parse_mode="HTML", reply_markup=kb)
+                return
 
     title = await texts.get("welcome_title", "❖ أهلًا بك في SOUQRATES SOUQ")
     body = await texts.get(
@@ -368,7 +395,7 @@ async def cb_buy(cb: CallbackQuery):
             mother = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
             topup_kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="💳 شحن المحفظة (Stars / TON)", url=f"https://t.me/{mother}?start=deposit")],
-                [InlineKeyboardButton(text="⬅️ رجوع", callback_data="home")],
+                [InlineKeyboardButton(text="⬅️ رجوع", callback_data="menu")],
             ])
             await cb.message.edit_text(
                 "❌ <b>رصيد SKZ غير كافٍ</b>\n\n"
@@ -544,6 +571,24 @@ async def main():
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
+
+    # Auto-upsert middleware: every message/callback ensures the user row
+    # exists in the central wallet before handlers run. Without this,
+    # entry via /publish, /browse, etc. (any path other than /start)
+    # would 404 on the first financial call.
+    class UpsertMiddleware(BaseMiddleware):
+        async def __call__(self, handler, event, data):
+            user = getattr(event, "from_user", None)
+            if user is not None:
+                try:
+                    await api.upsert_user(user)
+                except Exception as e:
+                    logger.warning(f"upsert middleware failed for {user.id}: {e}")
+            return await handler(event, data)
+
+    mw = UpsertMiddleware()
+    dp.message.middleware(mw)
+    dp.callback_query.middleware(mw)
     dp.include_router(router)
 
     # Publish slash-command menu to Telegram so the menu button stays in sync
