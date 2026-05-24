@@ -27,46 +27,83 @@ export default function RuneForge({ phase, setPhase, onScoreUpdate, game }) {
   const [progress, setProgress] = useState(0);
   const [score, setScore] = useState(0); const [time, setTime] = useState(60);
   const scoreRef = useRef(0); const stepsRef = useRef(4); const activeRef = useRef(false);
+  const acceptingRef = useRef(false);            // gate input independent of React state
+  const transitionTimeoutRef = useRef(null);     // single tracked timer for any round transition
+  const showTimeoutRef = useRef(null);           // tracked timer for show→input transition
+
+  const clearTimers = () => {
+    if (transitionTimeoutRef.current) { clearTimeout(transitionTimeoutRef.current); transitionTimeoutRef.current = null; }
+    if (showTimeoutRef.current) { clearTimeout(showTimeoutRef.current); showTimeoutRef.current = null; }
+  };
+
+  const scheduleShowToInput = (delay) => {
+    if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+    showTimeoutRef.current = setTimeout(() => {
+      showTimeoutRef.current = null;
+      if (!activeRef.current) return;
+      setStage('input');
+      acceptingRef.current = true;
+    }, delay);
+  };
 
   useEffect(() => {
     if (phase !== 'playing') return;
-    scoreRef.current = 0; stepsRef.current = 4; setScore(0); setTime(60); activeRef.current = true;
+    scoreRef.current = 0; stepsRef.current = 4; setScore(0); setTime(60);
+    activeRef.current = true; acceptingRef.current = false;
+    clearTimers();
     const r = genRune(4); setRune(r); setProgress(0); setStage('show');
-    const t0 = setTimeout(() => setStage('input'), 2000);
+    scheduleShowToInput(2000);
     const iv = setInterval(() => setTime(t => {
-      if (t <= 1) { activeRef.current = false; clearInterval(iv); onScoreUpdate?.(scoreRef.current); setTimeout(() => setPhase(scoreRef.current >= TARGET_SCORE ? 'won' : 'lost'), 300); return 0; }
+      if (t <= 1) {
+        activeRef.current = false; acceptingRef.current = false;
+        clearInterval(iv); clearTimers();
+        onScoreUpdate?.(scoreRef.current);
+        setTimeout(() => setPhase(scoreRef.current >= TARGET_SCORE ? 'won' : 'lost'), 300);
+        return 0;
+      }
       return t - 1;
     }), 1000);
-    return () => { clearInterval(iv); clearTimeout(t0); activeRef.current = false; };
+    return () => { clearInterval(iv); clearTimers(); activeRef.current = false; acceptingRef.current = false; };
   }, [phase, setPhase, onScoreUpdate]);
 
-  const next = () => {
-    stepsRef.current = Math.min(8, stepsRef.current + 1);
-    const r = genRune(stepsRef.current);
+  const startRound = (regen, delay) => {
+    // Single source of truth for any round transition — cancels any pending timers
+    // so success-vs-wrong races (or rapid taps near boundaries) cannot stack.
+    clearTimers();
+    if (!activeRef.current) return;
+    const r = regen ? genRune(stepsRef.current) : rune;
     setRune(r); setProgress(0); setStage('show');
-    setTimeout(() => activeRef.current && setStage('input'), 1500 + stepsRef.current * 150);
+    scheduleShowToInput(delay);
   };
 
   const tap = (id) => {
-    if (stage !== 'input' || !activeRef.current) return;
+    if (!acceptingRef.current || !activeRef.current || stage !== 'input') return;
     if (rune.path[progress] === id) {
       const np = progress + 1; setProgress(np);
       beep({ freq: 420 + np * 60, dur: 0.08, type: 'triangle' });
       triggerHaptic('light');
       if (np >= rune.path.length) {
+        acceptingRef.current = false; // lock immediately, before any setTimeout
         const pts = 50 + rune.path.length * 8;
         scoreRef.current += pts; setScore(scoreRef.current); onScoreUpdate?.(scoreRef.current);
         beep({ freq: 800, dur: 0.2, type: 'triangle', sweepTo: 1400 });
         triggerHaptic('medium');
-        setTimeout(next, 500);
+        clearTimers();
+        transitionTimeoutRef.current = setTimeout(() => {
+          transitionTimeoutRef.current = null;
+          stepsRef.current = Math.min(8, stepsRef.current + 1);
+          startRound(true, 1500 + stepsRef.current * 150);
+        }, 500);
       }
     } else {
+      acceptingRef.current = false; // lock immediately, before any setTimeout
       beep({ freq: 140, dur: 0.2, type: 'sawtooth', sweepTo: 60 });
       triggerHaptic('error');
       scoreRef.current = Math.max(0, scoreRef.current - SCORE_PENALTY);
       setScore(scoreRef.current);
       onScoreUpdate?.(scoreRef.current);
-      setProgress(0);
+      // Penalty: regenerate the board with a NEW rune pattern (same length).
+      startRound(true, 1200 + stepsRef.current * 120);
     }
   };
 

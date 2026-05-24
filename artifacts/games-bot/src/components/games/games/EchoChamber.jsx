@@ -124,9 +124,6 @@ export default function EchoChamber({ phase, setPhase, onScoreUpdate }) {
     }
   };
 
-  // Progress through the sequence for the dot indicator
-  const inputProgress = inputRef.current;
-
   if (phase === 'rules') return <Rules text={RULES} />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -170,49 +167,7 @@ export default function EchoChamber({ phase, setPhase, onScoreUpdate }) {
         </div>
       </div>
 
-      {/* Sequence dot indicator — shown during input stage */}
-      {stage === 'input' && seq.length > 0 && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: 5,
-          padding: '4px 8px',
-          minHeight: 18,
-        }}>
-          {seq.map((toneIdx, dotIdx) => {
-            const tapped = dotIdx < inputProgress;
-            const isNext = dotIdx === inputProgress;
-            const tone = TONES[toneIdx];
-            return (
-              <div
-                key={dotIdx}
-                style={{
-                  width: isNext ? 14 : 10,
-                  height: isNext ? 14 : 10,
-                  borderRadius: '50%',
-                  background: tapped
-                    ? `${tone.c}30`
-                    : isNext
-                      ? tone.c
-                      : `${tone.c}88`,
-                  border: isNext
-                    ? `2px solid ${tone.c}`
-                    : tapped
-                      ? `1.5px solid ${tone.c}30`
-                      : `1.5px solid ${tone.c}55`,
-                  boxShadow: isNext ? `0 0 8px ${tone.c}` : 'none',
-                  transition: 'all 0.12s',
-                  flexShrink: 0,
-                  alignSelf: 'center',
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Pad grid */}
+      {/* Pad grid (helper color dots removed — pure memory) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3,1fr)',

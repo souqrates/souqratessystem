@@ -7,7 +7,7 @@ import { triggerHaptic } from '../../../lib/telegram';
 
 const RULES = 'Hold the button to charge the power bar. Release EXACTLY when the bar is inside the green zone to score! The zone shrinks with each successful shot. Miss = score penalty. Reach the target score before time runs out to win!';
 const TARGET = 35;
-const CHARGE_SPEED = 3.0;
+const CHARGE_SPEED = 2.0;
 const MIN_ZONE = 0.04;
 
 export default function ChargeShot({ phase, setPhase, game, onScoreUpdate }) {

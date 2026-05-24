@@ -50,8 +50,8 @@ export default function GridTrace({ phase, setPhase, game, onScoreUpdate }) {
   const userRef = useRef([]);
 
   const TARGET_SCORE = game.targetScore || TARGET;
-  const getGrid = () => scoreRef.current >= 400 ? 7 : 5;
-  const getPathLen = () => 4 + Math.floor(scoreRef.current / 200);
+  const getGrid = () => scoreRef.current >= 300 ? 7 : 5;
+  const getPathLen = () => 5 + Math.floor(scoreRef.current / 150);
 
   const endGame = useCallback(() => {
     activeRef.current = false;
@@ -74,8 +74,8 @@ export default function GridTrace({ phase, setPhase, game, onScoreUpdate }) {
       if (!activeRef.current) return;
       if (i < p.length) {
         setShowIdx(i);
-        beep({ freq: 300 + i * 40, dur: 0.2, vol: 0.08 });
-        setTimeout(() => { i++; show(); }, 500);
+        beep({ freq: 300 + i * 40, dur: 0.16, vol: 0.08 });
+        setTimeout(() => { i++; show(); }, 320);
       } else {
         setShowIdx(-1);
         stateRef.current = 'input';
@@ -163,8 +163,7 @@ export default function GridTrace({ phase, setPhase, game, onScoreUpdate }) {
             const c = idx % grid;
             const pathIdx = path.findIndex(p => p.r === r && p.c === c);
             const isShowing = state === 'showing' && pathIdx >= 0 && pathIdx <= showIdx;
-            const isUserPath = userPath.some(p => p.r === r && p.c === c);
-            const isNext = state === 'input' && pathRef.current[userPath.length]?.r === r && pathRef.current[userPath.length]?.c === c;
+            // No helpers in input phase — players must remember from memory.
             return (
               <motion.button
                 key={idx}
@@ -173,9 +172,9 @@ export default function GridTrace({ phase, setPhase, game, onScoreUpdate }) {
                 style={{
                   width: grid === 5 ? 44 : 35, height: grid === 5 ? 44 : 35,
                   borderRadius: 8,
-                  background: isShowing ? '#10b98166' : isUserPath ? '#3b82f666' : 'rgba(255,255,255,0.04)',
-                  border: `1.5px solid ${isShowing ? '#10b981' : isUserPath ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
-                  boxShadow: isShowing ? '0 0 12px #10b98155' : isNext ? '0 0 8px #f59e0b55' : 'none',
+                  background: isShowing ? '#10b98166' : 'rgba(255,255,255,0.04)',
+                  border: `1.5px solid ${isShowing ? '#10b981' : 'rgba(255,255,255,0.08)'}`,
+                  boxShadow: isShowing ? '0 0 12px #10b98155' : 'none',
                   cursor: state === 'input' ? 'pointer' : 'default',
                   transition: 'all 0.1s',
                 }}

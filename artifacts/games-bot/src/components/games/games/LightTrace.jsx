@@ -11,8 +11,8 @@ function spawnTraps(count) {
   return Array.from({ length: count }, (_, i) => ({
     x: 30 + Math.random() * (W - 60),
     y: 30 + Math.random() * (H - 60),
-    vx: (Math.random() < 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8),
-    vy: (Math.random() < 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8),
+    vx: (Math.random() < 0.5 ? 1 : -1) * (1.4 + Math.random() * 1.1),
+    vy: (Math.random() < 0.5 ? 1 : -1) * (1.4 + Math.random() * 1.1),
     r: 16,
     id: i,
   }));
@@ -28,8 +28,8 @@ export default function LightTrace({ phase, setPhase, onScoreUpdate, game }) {
   useEffect(() => {
     if (phase !== 'playing') return;
     const s = stateRef.current; s.score = 0; s.hold = 1; setScore(0); setTime(60); setHold(1);
-    s.orb = { x: W / 2, y: H / 2, vx: 1.8, vy: 1.2, r: 26 };
-    s.traps = spawnTraps(3);
+    s.orb = { x: W / 2, y: H / 2, vx: 2.4, vy: 1.8, r: 24 };
+    s.traps = spawnTraps(6);
     const cv = cvRef.current; const ctx = cv.getContext('2d');
     let raf, running = true;
     let lastPenaltyTime = 0;
@@ -50,9 +50,9 @@ export default function LightTrace({ phase, setPhase, onScoreUpdate, game }) {
       o.x += o.vx; o.y += o.vy;
       if (o.x < o.r || o.x > W - o.r) o.vx *= -1;
       if (o.y < o.r || o.y > H - o.r) o.vy *= -1;
-      drift += 0.003;
+      drift += 0.0055;
       o.vx += (Math.random() - 0.5) * drift; o.vy += (Math.random() - 0.5) * drift;
-      const v = Math.hypot(o.vx, o.vy); if (v > 3.5) { o.vx *= 3.5 / v; o.vy *= 3.5 / v; }
+      const v = Math.hypot(o.vx, o.vy); if (v > 4.6) { o.vx *= 4.6 / v; o.vy *= 4.6 / v; }
 
       // Move traps
       for (const trap of s.traps) {

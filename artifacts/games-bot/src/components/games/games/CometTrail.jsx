@@ -231,11 +231,11 @@ export default function CometTrail({ phase, setPhase, onScoreUpdate, game }) {
       // --- Gameplay logic (unchanged) ---
       s.spawn -= 1;
       if (s.spawn <= 0) {
-        const isRock = Math.random() < 0.55;
-        const speed = isRock ? 1.8 + Math.random() * 2.8 : 1.4 + Math.random() * 1.8;
+        const isRock = Math.random() < 0.68;
+        const speed = isRock ? 2.6 + Math.random() * 3.4 : 1.8 + Math.random() * 2.2;
         const obj = { x: 20 + Math.random() * (W - 40), y: -20, vy: speed, r: isRock ? 18 : 12 };
         if (isRock) s.rocks.push(obj); else s.orbs.push(obj);
-        s.spawn = 22 + Math.random() * 20;
+        s.spawn = 12 + Math.random() * 14;
       }
       [...s.orbs, ...s.rocks].forEach(o => o.y += o.vy);
       s.comet.trail.push({ x: s.comet.x, y: s.comet.y });

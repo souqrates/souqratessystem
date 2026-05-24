@@ -135,18 +135,30 @@ export default function QuickSort({ phase, setPhase, game, onScoreUpdate }) {
               <motion.div
                 key={it.id}
                 layout
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
+                initial={{ scale: 0.4, opacity: 0, y: -8 }}
+                animate={{
+                  scale: selected === it.id ? 1.12 : 1,
+                  opacity: 1,
+                  y: 0,
+                  rotate: selected === it.id ? [0, -3, 3, 0] : 0,
+                }}
+                exit={{ scale: 0.3, opacity: 0, y: 18 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.6 }}
+                whileTap={{ scale: 0.86 }}
                 onPointerDown={() => selectItem(it.id)}
                 style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: `${it.color}22`,
-                  border: `2px solid ${selected === it.id ? it.color : `${it.color}44`}`,
+                  width: 52, height: 52, borderRadius: 14,
+                  background: selected === it.id
+                    ? `radial-gradient(circle at 35% 30%, ${it.color}66, ${it.color}1a)`
+                    : `linear-gradient(135deg, ${it.color}2a, ${it.color}10)`,
+                  border: `2px solid ${selected === it.id ? it.color : `${it.color}55`}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 22, color: it.color, cursor: 'pointer',
-                  boxShadow: selected === it.id ? `0 0 14px ${it.color}55` : 'none',
+                  boxShadow: selected === it.id
+                    ? `0 0 22px ${it.color}88, inset 0 1px 0 rgba(255,255,255,0.2)`
+                    : `0 2px 6px ${it.color}22`,
                   fontFamily: 'Orbitron, sans-serif', fontWeight: 900,
+                  willChange: 'transform',
                 }}
               >
                 {it.label}
@@ -161,23 +173,37 @@ export default function QuickSort({ phase, setPhase, game, onScoreUpdate }) {
 
         {/* Bins */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${binCount}, 1fr)`, gap: 6, width: '100%', maxWidth: 300 }}>
-          {activeBins.map(bin => (
-            <motion.button
-              key={bin.id}
-              whileTap={{ scale: 0.9 }}
-              onPointerDown={() => dropIntoBin(bin.id)}
-              style={{
-                height: 52, borderRadius: 12,
-                background: `${bin.color}15`,
-                border: `2px solid ${bin.color}44`,
-                color: bin.color,
-                fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 10,
-                letterSpacing: '0.08em', cursor: 'pointer',
-              }}
-            >
-              {bin.label}
-            </motion.button>
-          ))}
+          {activeBins.map(bin => {
+            const isTarget = selected !== null && items.find(it => it.id === selected)?.binId === bin.id;
+            return (
+              <motion.button
+                key={bin.id}
+                whileTap={{ scale: 0.88 }}
+                animate={{
+                  scale: selected !== null ? (isTarget ? 1.06 : 0.98) : 1,
+                  borderColor: selected !== null && isTarget ? bin.color : `${bin.color}55`,
+                }}
+                transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                onPointerDown={() => dropIntoBin(bin.id)}
+                style={{
+                  height: 56, borderRadius: 14,
+                  background: selected !== null && isTarget
+                    ? `linear-gradient(180deg, ${bin.color}33, ${bin.color}10)`
+                    : `linear-gradient(180deg, ${bin.color}18, ${bin.color}06)`,
+                  border: `2px solid ${bin.color}55`,
+                  color: bin.color,
+                  fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 11,
+                  letterSpacing: '0.1em', cursor: 'pointer',
+                  boxShadow: selected !== null && isTarget
+                    ? `0 0 18px ${bin.color}66, inset 0 1px 0 rgba(255,255,255,0.18)`
+                    : `inset 0 1px 0 rgba(255,255,255,0.06)`,
+                  willChange: 'transform',
+                }}
+              >
+                {bin.label}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     </div>
