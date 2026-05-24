@@ -46,6 +46,8 @@ export const gameConfigsTable = pgTable(
     draftMaxScore: integer("draft_max_score").notNull().default(0),
     draftScorePerCorrect: integer("draft_score_per_correct").notNull().default(1),
     draftScorePerWrong: integer("draft_score_per_wrong").notNull().default(0),
+    // 5 price tiers per game: [{ label, entryFee, winAmount }]
+    draftPriceTiers: jsonb("draft_price_tiers").notNull().default([]),
     // Arbitrary in-game texts: { title, subtitle, rules, winLabel, loseLabel, ctaLabel, ... }
     draftTexts: jsonb("draft_texts").notNull().default({}),
     // Optional extra params (game-specific knobs not modelled above)
@@ -61,6 +63,7 @@ export const gameConfigsTable = pgTable(
     publishedMaxScore: integer("published_max_score").notNull().default(0),
     publishedScorePerCorrect: integer("published_score_per_correct").notNull().default(1),
     publishedScorePerWrong: integer("published_score_per_wrong").notNull().default(0),
+    publishedPriceTiers: jsonb("published_price_tiers").notNull().default([]),
     publishedTexts: jsonb("published_texts").notNull().default({}),
     publishedParams: jsonb("published_params").notNull().default({}),
 

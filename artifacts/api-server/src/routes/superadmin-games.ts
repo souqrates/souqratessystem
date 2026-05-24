@@ -37,6 +37,11 @@ async function ensureSeeded(req: Request): Promise<void> {
     const fee = (g.entryFee ?? 10).toString();
     const prize = (g.prize ?? Math.round((g.entryFee ?? 10) * 3)).toString();
     const tgt = g.targetScore ?? 0;
+    const tiers = DEFAULT_TIER_MULTIPLIERS.map((m, i) => ({
+      label: DEFAULT_TIER_LABELS[i],
+      entryFee: +((g.entryFee ?? 10) * m).toFixed(2),
+      winAmount: +((g.prize ?? Math.round((g.entryFee ?? 10) * 3)) * m).toFixed(2),
+    }));
     return {
       gameId: g.gameId,
       name: g.name,
@@ -52,6 +57,7 @@ async function ensureSeeded(req: Request): Promise<void> {
       draftMaxScore: 0,
       draftScorePerCorrect: 1,
       draftScorePerWrong: 0,
+      draftPriceTiers: tiers,
       draftTexts: {},
       draftParams: {},
       publishedIsVisible: true,
@@ -63,6 +69,7 @@ async function ensureSeeded(req: Request): Promise<void> {
       publishedMaxScore: 0,
       publishedScorePerCorrect: 1,
       publishedScorePerWrong: 0,
+      publishedPriceTiers: tiers,
       publishedTexts: {},
       publishedParams: {},
       hasUnpublishedChanges: false,
@@ -76,7 +83,35 @@ async function ensureSeeded(req: Request): Promise<void> {
   _seedChecked = true;
 }
 
+interface PriceTier { label: string; entryFee: number; winAmount: number }
+const DEFAULT_TIER_LABELS = ["مبتدئ", "عادي", "متقدم", "محترف", "VIP"];
+const DEFAULT_TIER_MULTIPLIERS = [1, 5, 10, 25, 100];
+
+function normalizeTiers(raw: unknown, baseFee: number, baseWin: number): PriceTier[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  const out: PriceTier[] = [];
+  for (let i = 0; i < 5; i++) {
+    const t = (arr[i] ?? {}) as Record<string, unknown>;
+    const fallbackFee = +(baseFee * DEFAULT_TIER_MULTIPLIERS[i]).toFixed(2);
+    const fallbackWin = +(baseWin * DEFAULT_TIER_MULTIPLIERS[i]).toFixed(2);
+    const fee = typeof t.entryFee === "number" ? t.entryFee
+              : typeof t.entryFee === "string" ? parseFloat(t.entryFee) : fallbackFee;
+    const win = typeof t.winAmount === "number" ? t.winAmount
+              : typeof t.winAmount === "string" ? parseFloat(t.winAmount) : fallbackWin;
+    const label = typeof t.label === "string" && t.label.trim()
+                ? t.label.trim() : DEFAULT_TIER_LABELS[i];
+    out.push({
+      label,
+      entryFee: Number.isFinite(fee) && fee >= 0 ? fee : fallbackFee,
+      winAmount: Number.isFinite(win) && win >= 0 ? win : fallbackWin,
+    });
+  }
+  return out;
+}
+
 function serialize(g: GameConfig) {
+  const draftTiers = normalizeTiers(g.draftPriceTiers, Number(g.draftEntryFee), Number(g.draftWinAmount));
+  const pubTiers   = normalizeTiers(g.publishedPriceTiers, Number(g.publishedEntryFee), Number(g.publishedWinAmount));
   return {
     id: g.id,
     gameId: g.gameId,
@@ -90,6 +125,7 @@ function serialize(g: GameConfig) {
       description: g.draftDescription,
       entryFee: g.draftEntryFee,
       winAmount: g.draftWinAmount,
+      priceTiers: draftTiers,
       targetScore: g.draftTargetScore,
       maxScore: g.draftMaxScore,
       scorePerCorrect: g.draftScorePerCorrect,
@@ -103,6 +139,7 @@ function serialize(g: GameConfig) {
       description: g.publishedDescription,
       entryFee: g.publishedEntryFee,
       winAmount: g.publishedWinAmount,
+      priceTiers: pubTiers,
       targetScore: g.publishedTargetScore,
       maxScore: g.publishedMaxScore,
       scorePerCorrect: g.publishedScorePerCorrect,
@@ -176,13 +213,6 @@ router.put(
     const str = (v: unknown, d = ""): string => (typeof v === "string" ? v : d);
     const bool = (v: unknown, d: boolean): boolean => (typeof v === "boolean" ? v : d);
 
-    const entryFee = num(b.entryFee, 10);
-    const winAmount = num(b.winAmount, 30);
-    if (entryFee < 0 || winAmount < 0) {
-      res.status(400).json({ error: "entryFee و winAmount يجب أن تكون أكبر من أو تساوي 0" });
-      return;
-    }
-
     const [existing] = await db
       .select()
       .from(gameConfigsTable)
@@ -192,12 +222,21 @@ router.put(
       return;
     }
 
+    // Normalize 5 price tiers (fill missing with defaults)
+    const baseFee = Number(existing.draftEntryFee) || 10;
+    const baseWin = Number(existing.draftWinAmount) || 30;
+    const tiers = normalizeTiers(b.priceTiers, baseFee, baseWin);
+    // Legacy single fee mirrors tier 1 for backward compatibility
+    const entryFee = tiers[0].entryFee;
+    const winAmount = tiers[0].winAmount;
+
     const draft = {
       draftIsVisible: bool(b.isVisible, existing.draftIsVisible),
       draftImageUrl: str(b.imageUrl, existing.draftImageUrl),
       draftDescription: str(b.description, existing.draftDescription),
       draftEntryFee: entryFee.toString(),
       draftWinAmount: winAmount.toString(),
+      draftPriceTiers: tiers as unknown as Record<string, unknown>,
       draftTargetScore: int(b.targetScore, existing.draftTargetScore),
       draftMaxScore: int(b.maxScore, existing.draftMaxScore),
       draftScorePerCorrect: int(b.scorePerCorrect, existing.draftScorePerCorrect),
@@ -245,6 +284,7 @@ router.post(
         publishedDescription: existing.draftDescription,
         publishedEntryFee: existing.draftEntryFee,
         publishedWinAmount: existing.draftWinAmount,
+        publishedPriceTiers: existing.draftPriceTiers,
         publishedTargetScore: existing.draftTargetScore,
         publishedMaxScore: existing.draftMaxScore,
         publishedScorePerCorrect: existing.draftScorePerCorrect,
@@ -288,6 +328,7 @@ router.post(
         draftDescription: existing.publishedDescription,
         draftEntryFee: existing.publishedEntryFee,
         draftWinAmount: existing.publishedWinAmount,
+        draftPriceTiers: existing.publishedPriceTiers,
         draftTargetScore: existing.publishedTargetScore,
         draftMaxScore: existing.publishedMaxScore,
         draftScorePerCorrect: existing.publishedScorePerCorrect,
@@ -324,6 +365,7 @@ router.get(
       description: g.publishedDescription,
       entryFee: Number(g.publishedEntryFee),
       winAmount: Number(g.publishedWinAmount),
+      priceTiers: normalizeTiers(g.publishedPriceTiers, Number(g.publishedEntryFee), Number(g.publishedWinAmount)),
       targetScore: g.publishedTargetScore,
       maxScore: g.publishedMaxScore,
       scorePerCorrect: g.publishedScorePerCorrect,

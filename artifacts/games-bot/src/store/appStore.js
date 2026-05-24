@@ -131,6 +131,7 @@ const useAppStore = create((set, get) => ({
             adminOverrides[g.gameId] = {
               entry_fee_skz:    g.entryFee,
               win_prize_skz:    g.winAmount,
+              price_tiers:      Array.isArray(g.priceTiers) ? g.priceTiers : [],
               name_override:    g.name,
               emoji_override:   g.emoji,
               desc_override:    g.description,

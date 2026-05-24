@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { GameConfigRow } from "./Games";
+import type { GameConfigRow, PriceTier } from "./Games";
 
 // Known well-typed in-game text keys (always editable).
 // Extras stored in `texts` JSON remain editable via the "نصوص أخرى" block.
@@ -31,8 +31,13 @@ export default function GameDetailPage() {
   const [isVisible, setIsVisible] = useState(true);
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [entryFee, setEntryFee] = useState("10");
-  const [winAmount, setWinAmount] = useState("30");
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([
+    { label: "مبتدئ", entryFee: 10, winAmount: 30 },
+    { label: "عادي",  entryFee: 50, winAmount: 150 },
+    { label: "متقدم", entryFee: 100, winAmount: 300 },
+    { label: "محترف", entryFee: 250, winAmount: 750 },
+    { label: "VIP",   entryFee: 1000, winAmount: 3000 },
+  ]);
   const [targetScore, setTargetScore] = useState("0");
   const [maxScore, setMaxScore] = useState("0");
   const [scorePerCorrect, setScorePerCorrect] = useState("1");
@@ -48,8 +53,7 @@ export default function GameDetailPage() {
     setIsVisible(d.isVisible);
     setImageUrl(d.imageUrl);
     setDescription(d.description);
-    setEntryFee(String(d.entryFee));
-    setWinAmount(String(d.winAmount));
+    if (Array.isArray(d.priceTiers) && d.priceTiers.length === 5) setPriceTiers(d.priceTiers);
     setTargetScore(String(d.targetScore));
     setMaxScore(String(d.maxScore));
     setScorePerCorrect(String(d.scorePerCorrect));
@@ -81,12 +85,15 @@ export default function GameDetailPage() {
         throw new Error("صيغة JSON خاطئة في «معاملات إضافية»");
       }
       const mergedTexts = { ...texts, ...extras };
+      for (const t of priceTiers) {
+        if (t.entryFee < 0 || t.winAmount < 0) throw new Error("الأسعار يجب أن تكون أكبر من أو تساوي 0");
+        if (!t.label.trim()) throw new Error("كل خطة يجب أن يكون لها اسم");
+      }
       return api.put<{ data: GameConfigRow }>(`/superadmin/games/${gameId}/draft`, {
         isVisible,
         imageUrl,
         description,
-        entryFee,
-        winAmount,
+        priceTiers,
         targetScore,
         maxScore,
         scorePerCorrect,
@@ -228,21 +235,76 @@ export default function GameDetailPage() {
             )}
           </Card>
 
-          {/* Economy */}
-          <Card title="الاقتصاد المالي" subtitle="بالعملة الموحدة SKZ — يُطبَّق فوراً بعد النشر">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="سعر الدخول (Entry Fee)">
-                <input className={inputCls} type="number" step="0.01" min={0} value={entryFee} onChange={(e) => setEntryFee(e.target.value)} />
-              </Field>
-              <Field label="مكافأة الفوز (Win Amount)">
-                <input className={inputCls} type="number" step="0.01" min={0} value={winAmount} onChange={(e) => setWinAmount(e.target.value)} />
-              </Field>
+          {/* Economy — 5 price tiers */}
+          <Card
+            title="خطط الأسعار (5 خطط)"
+            subtitle="كل لعبة لها 5 خطط يختار المستخدم من بينها. أعطِ كل خطة اسماً وسعر دخول ومكافأة فوز. تُطبق فوراً بعد النشر."
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="text-right px-2 py-2 w-12">#</th>
+                    <th className="text-right px-2 py-2">اسم الخطة</th>
+                    <th className="text-right px-2 py-2">سعر الدخول</th>
+                    <th className="text-right px-2 py-2">مكافأة الفوز</th>
+                    <th className="text-right px-2 py-2 w-32">الربح للمنصة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {priceTiers.map((t, i) => {
+                    const profit = t.entryFee - t.winAmount;
+                    const warn = t.winAmount > t.entryFee;
+                    return (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-2 py-2 text-slate-400 font-mono">{i + 1}</td>
+                        <td className="px-2 py-2">
+                          <input
+                            className={inputCls}
+                            value={t.label}
+                            onChange={(e) => {
+                              const arr = [...priceTiers];
+                              arr[i] = { ...t, label: e.target.value };
+                              setPriceTiers(arr);
+                            }}
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            className={inputCls}
+                            type="number" step="0.01" min={0}
+                            value={t.entryFee}
+                            onChange={(e) => {
+                              const arr = [...priceTiers];
+                              arr[i] = { ...t, entryFee: parseFloat(e.target.value) || 0 };
+                              setPriceTiers(arr);
+                            }}
+                          />
+                        </td>
+                        <td className="px-2 py-2">
+                          <input
+                            className={inputCls}
+                            type="number" step="0.01" min={0}
+                            value={t.winAmount}
+                            onChange={(e) => {
+                              const arr = [...priceTiers];
+                              arr[i] = { ...t, winAmount: parseFloat(e.target.value) || 0 };
+                              setPriceTiers(arr);
+                            }}
+                          />
+                        </td>
+                        <td className={`px-2 py-2 font-mono text-xs ${warn ? "text-rose-700" : "text-emerald-700"}`}>
+                          {warn ? `خسارة ${(-profit).toFixed(2)}` : `+${profit.toFixed(2)}`}
+                          <span className="text-slate-400"> SKZ</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
             <p className="text-xs text-slate-500 mt-3">
-              💡 الربح الصافي للمنصة على كل جولة فائزة = {Math.max(0, Number(entryFee) - Number(winAmount)).toFixed(2)} SKZ
-              {Number(winAmount) > Number(entryFee) && (
-                <span className="text-amber-600 font-bold mr-2">⚠ المكافأة أكبر من رسم الدخول</span>
-              )}
+              💡 الترتيب من الأرخص إلى الأغلى. يمكنك إعطاء أي خطة المكافأة التي تريد بصرف النظر عن السعر.
             </p>
           </Card>
 
@@ -332,8 +394,7 @@ export default function GameDetailPage() {
                 name={g.name}
                 imageUrl={imageUrl}
                 description={description}
-                entryFee={entryFee}
-                winAmount={winAmount}
+                priceTiers={priceTiers}
                 targetScore={targetScore}
                 isVisible={isVisible}
               />
@@ -352,8 +413,7 @@ function PublishedSnapshot({ p, emoji, name }: { p: GameConfigRow["published"]; 
       name={name}
       imageUrl={p.imageUrl}
       description={p.description}
-      entryFee={String(p.entryFee)}
-      winAmount={String(p.winAmount)}
+      priceTiers={p.priceTiers}
       targetScore={String(p.targetScore)}
       isVisible={p.isVisible}
     />
@@ -361,10 +421,10 @@ function PublishedSnapshot({ p, emoji, name }: { p: GameConfigRow["published"]; 
 }
 
 function PreviewBox({
-  emoji, name, imageUrl, description, entryFee, winAmount, targetScore, isVisible,
+  emoji, name, imageUrl, description, priceTiers, targetScore, isVisible,
 }: {
   emoji: string; name: string; imageUrl: string; description: string;
-  entryFee: string; winAmount: string; targetScore: string; isVisible: boolean;
+  priceTiers: PriceTier[]; targetScore: string; isVisible: boolean;
 }) {
   return (
     <div className={`rounded-xl p-4 ${isVisible ? "bg-slate-50" : "bg-slate-200 opacity-60"}`}>
@@ -374,11 +434,22 @@ function PreviewBox({
         <div className="w-full h-32 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-6xl mb-3">{emoji}</div>
       )}
       <div className="font-bold text-slate-900">{emoji} {name}</div>
-      <div className="text-xs text-slate-500 mt-1">{description || "—"}</div>
-      <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-        <div className="bg-white rounded-lg p-2"><div className="text-[10px] text-slate-500">الدخول</div><div className="font-bold text-sm">{Number(entryFee)} SKZ</div></div>
-        <div className="bg-white rounded-lg p-2"><div className="text-[10px] text-slate-500">الجائزة</div><div className="font-bold text-sm text-emerald-700">{Number(winAmount)}</div></div>
-        <div className="bg-white rounded-lg p-2"><div className="text-[10px] text-slate-500">الهدف</div><div className="font-bold text-sm">{Number(targetScore) || "—"}</div></div>
+      <div className="text-xs text-slate-500 mt-1 line-clamp-2">{description || "—"}</div>
+      <div className="text-[10px] text-slate-500 mt-3 mb-1 font-bold">خطط الأسعار</div>
+      <div className="space-y-1">
+        {(priceTiers ?? []).map((t, i) => (
+          <div key={i} className="flex items-center justify-between bg-white rounded-lg px-2 py-1.5 text-xs">
+            <span className="font-bold text-slate-700">{t.label || `خطة ${i+1}`}</span>
+            <span className="font-mono">
+              <span className="text-slate-700">{t.entryFee}</span>
+              <span className="text-slate-400 mx-1">→</span>
+              <span className="text-emerald-700 font-bold">{t.winAmount}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="text-center mt-2 text-[10px] text-slate-500">
+        السكور للفوز: <span className="font-bold text-slate-700">{Number(targetScore) || "—"}</span>
       </div>
       {!isVisible && <div className="mt-3 text-center text-xs font-bold text-rose-700">⚠ مخفية</div>}
     </div>

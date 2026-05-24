@@ -3,12 +3,14 @@ import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
+export interface PriceTier { label: string; entryFee: number; winAmount: number }
 interface GameStateSlice {
   isVisible: boolean;
   imageUrl: string;
   description: string;
   entryFee: string;
   winAmount: string;
+  priceTiers: PriceTier[];
   targetScore: number;
   maxScore: number;
   scorePerCorrect: number;
@@ -134,8 +136,8 @@ export default function GamesPage() {
                 <Th>#</Th>
                 <Th>اللعبة</Th>
                 <Th>الصعوبة</Th>
-                <Th>سعر الدخول</Th>
-                <Th>مكافأة الفوز</Th>
+                <Th>أرخص خطة</Th>
+                <Th>أغلى خطة</Th>
                 <Th>سكور الفوز</Th>
                 <Th>ظاهرة؟</Th>
                 <Th>الحالة</Th>
@@ -169,8 +171,7 @@ function GameRow({ g, onChanged }: { g: GameConfigRow; onChanged: () => void }) 
         isVisible: newVisible,
         imageUrl: g.draft.imageUrl,
         description: g.draft.description,
-        entryFee: g.draft.entryFee,
-        winAmount: g.draft.winAmount,
+        priceTiers: g.draft.priceTiers,
         targetScore: g.draft.targetScore,
         maxScore: g.draft.maxScore,
         scorePerCorrect: g.draft.scorePerCorrect,
@@ -197,8 +198,12 @@ function GameRow({ g, onChanged }: { g: GameConfigRow; onChanged: () => void }) 
           {g.difficulty}
         </span>
       </Td>
-      <Td className="font-mono">{Number(g.published.entryFee)} <span className="text-xs text-slate-400">SKZ</span></Td>
-      <Td className="font-mono text-emerald-700">{Number(g.published.winAmount)} <span className="text-xs text-slate-400">SKZ</span></Td>
+      <Td className="font-mono text-xs">
+        {(() => { const t = g.published.priceTiers?.[0]; return t ? <><span className="text-slate-500">{t.label}: </span>{t.entryFee}→<span className="text-emerald-700">{t.winAmount}</span></> : "—"; })()}
+      </Td>
+      <Td className="font-mono text-xs">
+        {(() => { const t = g.published.priceTiers?.[g.published.priceTiers.length - 1]; return t ? <><span className="text-slate-500">{t.label}: </span>{t.entryFee}→<span className="text-emerald-700">{t.winAmount}</span></> : "—"; })()}
+      </Td>
       <Td className="font-mono">{g.published.targetScore || "—"}</Td>
       <Td>
         <button
