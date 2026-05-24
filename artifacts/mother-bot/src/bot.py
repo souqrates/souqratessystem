@@ -224,7 +224,7 @@ async def cmd_start(message: Message):
         wallet_data = await api_get_wallet(str(message.from_user.id))
         if wallet_data:
             w        = wallet_data.get("wallet") or {}
-            skz_bal  = int(float(w.get("balanceSkz",  "0")))
+            skz_bal  = float(w.get("balanceSkz",  "0"))
             usdt_bal = float(w.get("balanceUsdt", "0"))
     except Exception as e:
         logger.error(f"Balance fetch failed: {e}")
@@ -232,7 +232,7 @@ async def cmd_start(message: Message):
     text = (
         f"👋 Welcome, <b>{first_name}</b>!\n\n"
         f"🏦 <b>Your SKZ Wallet</b>\n"
-        f"├ ⚡ SKZ: <code>{skz_bal:,}</code>\n"
+        f"├ ⚡ SKZ: <code>{skz_bal:,.2f}</code>\n"
         f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
         f"Tap <b>Open SKZ Platform</b> to access your full dashboard, "
         f"manage balances, play games, and more."
@@ -249,13 +249,13 @@ async def cb_menu(callback: CallbackQuery):
         data = None
 
     wallet    = (data or {}).get("wallet") if isinstance(data, dict) else None
-    skz_bal   = int(float(wallet["balanceSkz"]))  if wallet else 0
-    usdt_bal  = float(wallet["balanceUsdt"])       if wallet else 0
+    skz_bal   = float(wallet["balanceSkz"])  if wallet else 0.0
+    usdt_bal  = float(wallet["balanceUsdt"])  if wallet else 0.0
 
     text = (
         f"👋 Welcome back, <b>{callback.from_user.first_name}</b>!\n\n"
         f"🏦 <b>Your SKZ Wallet</b>\n"
-        f"├ ⚡ SKZ: <code>{skz_bal:,}</code>\n"
+        f"├ ⚡ SKZ: <code>{skz_bal:,.2f}</code>\n"
         f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
         f"Tap <b>Open SKZ Platform</b> to access the full app."
     )
@@ -278,13 +278,13 @@ async def cb_wallet(callback: CallbackQuery):
 
     wallet = data["wallet"]
     user_obj = data.get("user") or {}
-    skz   = int(float(wallet["balanceSkz"]))
-    ref_skz = int(float(wallet.get("referralBalanceSkz", "0")))
-    usdt  = float(wallet["balanceUsdt"])
-    stars = int(float(wallet["balanceStars"]))
-    ton   = float(wallet["balanceTon"])
-    earned    = int(float(wallet["totalEarned"]))
-    withdrawn = int(float(wallet["totalWithdrawn"]))
+    skz       = float(wallet["balanceSkz"])
+    ref_skz   = float(wallet.get("referralBalanceSkz", "0"))
+    usdt      = float(wallet["balanceUsdt"])
+    stars     = int(float(wallet["balanceStars"]))
+    ton       = float(wallet["balanceTon"])
+    earned    = float(wallet["totalEarned"])
+    withdrawn = float(wallet["totalWithdrawn"])
     xp        = int(user_obj.get("xp", 0))
     level     = int(user_obj.get("level", 1))
     played    = int(user_obj.get("totalGamesPlayed", 0))
@@ -293,15 +293,15 @@ async def cb_wallet(callback: CallbackQuery):
     text = (
         f"💰 <b>Your Wallet</b>\n\n"
         f"<b>Balances:</b>\n"
-        f"├ ⚡ SKZ:        <code>{skz:,}</code>\n"
-        f"├ 🤝 Referral:  <code>{ref_skz:,}</code> SKZ\n"
+        f"├ ⚡ SKZ:        <code>{skz:,.2f}</code>\n"
+        f"├ 🤝 Referral:  <code>{ref_skz:,.2f}</code> SKZ\n"
         f"├ 💵 USDT:      <code>{usdt:.4f}</code>\n"
         f"├ ⭐ Stars:      <code>{stars:,}</code>\n"
         f"└ 💎 TON:       <code>{ton:.4f}</code>\n\n"
         f"<b>🎮 Profile:</b>  Level <b>{level}</b> · <code>{xp:,}</code> XP\n"
         f"<b>🎯 Games:</b>   {won}/{played} won\n\n"
-        f"<b>Total Earned:</b>    <code>{earned:,}</code> SKZ\n"
-        f"<b>Total Withdrawn:</b> <code>{withdrawn:,}</code> SKZ"
+        f"<b>Total Earned:</b>    <code>{earned:,.2f}</code> SKZ\n"
+        f"<b>Total Withdrawn:</b> <code>{withdrawn:,.2f}</code> SKZ"
     )
 
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
@@ -366,13 +366,13 @@ async def cb_referral(callback: CallbackQuery):
     bot_info = await callback.bot.get_me()
     ref_link = f"https://t.me/{bot_info.username}?start=ref{callback.from_user.id}"
 
-    ref_balance = 0
-    total_ref_earned = 0
+    ref_balance = 0.0
+    total_ref_earned = 0.0
     try:
         data = await api_get_wallet(str(callback.from_user.id))
         w = (data or {}).get("wallet") or {}
-        ref_balance      = int(float(w.get("referralBalanceSkz", "0")))
-        total_ref_earned = int(float(w.get("totalEarnedFromReferralsSkz", "0")))
+        ref_balance      = float(w.get("referralBalanceSkz", "0"))
+        total_ref_earned = float(w.get("totalEarnedFromReferralsSkz", "0"))
     except Exception:
         pass
 
@@ -380,8 +380,8 @@ async def cb_referral(callback: CallbackQuery):
         f"🤝 <b>Referral Program</b>\n\n"
         f"Invite friends and earn <b>up to 15%</b> of their SKZ earnings — for life!\n\n"
         f"💼 <b>Referral Wallet:</b>\n"
-        f"├ Available:    <code>{ref_balance:,}</code> SKZ\n"
-        f"└ Lifetime:     <code>{total_ref_earned:,}</code> SKZ\n\n"
+        f"├ Available:    <code>{ref_balance:,.2f}</code> SKZ\n"
+        f"└ Lifetime:     <code>{total_ref_earned:,.2f}</code> SKZ\n\n"
         f"🔗 <b>Your link:</b>\n"
         f"<code>{ref_link}</code>\n\n"
         f"Tiers: L1 → 10% · L2 → 3% · L3 → 2%\n\n"
@@ -390,7 +390,7 @@ async def cb_referral(callback: CallbackQuery):
     kb_rows = []
     if ref_balance > 0:
         kb_rows.append([InlineKeyboardButton(
-            text=f"💸 Transfer {ref_balance:,} SKZ → Main Wallet",
+            text=f"💸 Transfer {ref_balance:,.2f} SKZ → Main Wallet",
             callback_data="referral_transfer",
         )])
     kb_rows.append([InlineKeyboardButton(text="⬅️ Back", callback_data="menu")])
@@ -455,7 +455,7 @@ async def cmd_balance(message: Message):
             return
         w = data["wallet"]
         await message.answer(
-            f"⚡ SKZ: {int(float(w['balanceSkz'])):,}\n"
+            f"⚡ SKZ: {float(w['balanceSkz']):,.2f}\n"
             f"💵 USDT: {float(w['balanceUsdt']):.4f}\n"
             f"⭐ Stars: {int(float(w['balanceStars'])):,}\n"
             f"💎 TON: {float(w['balanceTon']):.4f}",

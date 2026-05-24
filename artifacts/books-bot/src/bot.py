@@ -253,10 +253,10 @@ async def _build_wallet_view(telegram_id: str) -> tuple[str, InlineKeyboardMarku
     if not data:
         return None
     w = data["wallet"]
-    skz = int(float(w.get("balanceSkz", "0")))
+    skz = float(w.get("balanceSkz", "0"))
     txt = (
         f"💰 <b>رصيدك</b>\n\n"
-        f"⚡ SKZ: <code>{skz:,}</code>\n"
+        f"⚡ SKZ: <code>{skz:,.2f}</code>\n"
         f"💵 USDT (تقديري): <code>{float(w.get('balanceUsdt','0')):.4f}</code>"
     )
     return txt, back_kb()
