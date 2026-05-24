@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Eraser, ScrollText } from "lucide-react";
+import { Loader2, CheckCircle2, Eraser, ScrollText, ShieldCheck, Sparkles } from "lucide-react";
 
 type SignatureCanvasHandle = {
   clear: () => void;
@@ -105,6 +105,42 @@ function useSignatureCanvas() {
   return { canvasRef, handle };
 }
 
+/* ─────────────────────────── Visual chrome ─────────────────────────── */
+
+function BrandBackdrop() {
+  // Dark base with floating purple/cyan orbs + subtle grid — matches the bot's identity.
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
+      {/* deep base wash */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(168,85,247,0.18),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(34,211,238,0.12),_transparent_55%)]" />
+      {/* faint grid */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+          maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
+        }}
+      />
+      {/* floating orbs */}
+      <div className="orb-1 absolute -top-24 -right-16 w-72 h-72 rounded-full bg-purple-600/25 blur-3xl" />
+      <div className="orb-2 absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-cyan-500/20 blur-3xl" />
+      <div className="orb-1 absolute bottom-0 right-1/4 w-64 h-64 rounded-full bg-fuchsia-600/15 blur-3xl" />
+    </div>
+  );
+}
+
+const inputStyles =
+  "bg-white/5 border-white/10 text-white placeholder:text-white/30 " +
+  "focus-visible:border-purple-400/60 focus-visible:ring-2 focus-visible:ring-purple-500/20 " +
+  "rounded-xl h-11";
+
+const labelStyles = "text-white/85 text-sm font-semibold";
+
+/* ────────────────────────────── Page ───────────────────────────────── */
+
 export function Agreement() {
   const [content, setContent] = useState("");
   const [loadingText, setLoadingText] = useState(true);
@@ -156,14 +192,21 @@ export function Agreement() {
 
   if (done) {
     return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-slate-50 to-slate-100">
-        <Card className="max-w-md w-full border-0 shadow-xl">
+      <div dir="rtl" className="relative min-h-screen h-screen overflow-y-auto flex items-center justify-center px-4 text-white">
+        <BrandBackdrop />
+        <Card className="relative max-w-md w-full border border-emerald-400/20 bg-white/[0.03] backdrop-blur-2xl shadow-[0_20px_80px_rgba(16,185,129,0.18)] rounded-3xl">
           <CardContent className="p-8 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+            <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 ring-1 ring-emerald-300/30 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.35)]">
+              <CheckCircle2 className="w-10 h-10 text-emerald-300" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">تم استلام توقيعك بنجاح</h2>
-            <p className="text-slate-600">شكرًا {name}. تم حفظ الاتفاقية الموقّعة وسيتم التواصل معك عبر بريدك الإلكتروني عند الحاجة.</p>
+            <h2 className="text-2xl font-extrabold gradient-text-emerald">تم استلام توقيعك بنجاح</h2>
+            <p className="text-white/70 leading-7">
+              شكرًا <span className="text-white font-semibold">{name}</span>. تم حفظ الاتفاقية الموقّعة وسيتم التواصل معك عبر بريدك الإلكتروني عند الحاجة.
+            </p>
+            <div className="pt-2 flex items-center justify-center gap-2 text-[12px] text-white/65">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>توقيع موثّق — SOUQRATES SYSTEM</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -171,88 +214,151 @@ export function Agreement() {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+    <div dir="rtl" className="relative min-h-screen h-screen overflow-y-auto px-4 py-8 text-white">
+      <BrandBackdrop />
+
+      <div className="relative max-w-2xl mx-auto">
         {/* Logo + title */}
-        <div className="flex flex-col items-center mb-6">
-          <img
-            src={`${import.meta.env.BASE_URL}logo.jpg`}
-            alt="SOUQRATES SYSTEM"
-            className="w-24 h-24 rounded-2xl shadow-lg ring-1 ring-slate-200 object-cover"
-          />
-          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-800">SOUQRATES SYSTEM</h1>
-          <p className="text-sm text-slate-500 mt-1">اتفاقية المستخدم — Agreement Form</p>
+        <div className="flex flex-col items-center mb-7">
+          <div className="relative">
+            <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-purple-500/40 via-fuchsia-500/20 to-cyan-500/30 blur-xl opacity-80" />
+            <img
+              src={`${import.meta.env.BASE_URL}logo.jpg`}
+              alt="SOUQRATES SYSTEM"
+              className="relative w-24 h-24 rounded-2xl object-cover ring-1 ring-white/15 shadow-[0_10px_40px_rgba(168,85,247,0.45)]"
+            />
+          </div>
+          <h1 className="mt-5 text-3xl font-extrabold tracking-tight gradient-text">SOUQRATES SYSTEM</h1>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-[12px] text-white/80">
+            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+            اتفاقية المستخدم — Agreement Form
+          </div>
         </div>
 
         {/* Contract */}
-        <Card className="border-0 shadow-md mb-6">
+        <Card className="relative mb-6 border border-white/10 bg-white/[0.03] backdrop-blur-2xl rounded-2xl overflow-hidden shadow-[0_10px_50px_rgba(0,0,0,0.4)]">
+          {/* top hair-line accent */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/60 to-transparent" />
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-3 text-slate-700">
-              <ScrollText className="w-4 h-4" />
-              <span className="text-sm font-semibold">نص الاتفاقية</span>
+            <div className="flex items-center gap-2 mb-3 text-white/80">
+              <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-400/25 flex items-center justify-center">
+                <ScrollText className="w-3.5 h-3.5 text-purple-300" />
+              </div>
+              <span className="text-sm font-bold tracking-wide">نص الاتفاقية</span>
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 max-h-72 overflow-y-auto whitespace-pre-wrap text-[13.5px] leading-7 text-slate-700">
-              {loadingText ? "جاري التحميل…" : content || "لا توجد اتفاقية منشورة حاليًا."}
+            <div className="bg-black/30 border border-white/8 rounded-xl p-4 max-h-72 overflow-y-auto whitespace-pre-wrap text-[13.5px] leading-7 text-white/80">
+              {loadingText ? (
+                <div className="flex items-center gap-2 text-white/50">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري التحميل…
+                </div>
+              ) : (
+                content || "لا توجد اتفاقية منشورة حاليًا."
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Form */}
-        <Card className="border-0 shadow-md">
+        <Card className="relative border border-white/10 bg-white/[0.03] backdrop-blur-2xl rounded-2xl overflow-hidden shadow-[0_10px_50px_rgba(0,0,0,0.4)]">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
           <CardContent className="p-6">
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">الاسم الكامل *</Label>
-                  <Input id="name" required value={name} onChange={e => setName(e.target.value)} placeholder="مثال: أحمد محمد" />
+                  <Label htmlFor="name" className={labelStyles}>الاسم الكامل *</Label>
+                  <Input id="name" required value={name} onChange={e => setName(e.target.value)} placeholder="مثال: أحمد محمد" className={inputStyles} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني *</Label>
-                  <Input id="email" required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" dir="ltr" />
+                  <Label htmlFor="email" className={labelStyles}>البريد الإلكتروني *</Label>
+                  <Input id="email" required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" dir="ltr" className={inputStyles} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">رقم الهاتف <span className="text-slate-400 text-xs">(اختياري)</span></Label>
-                <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+970 …" dir="ltr" />
+                <Label htmlFor="phone" className={labelStyles}>
+                  رقم الهاتف <span className="text-white/55 text-xs font-normal">(اختياري)</span>
+                </Label>
+                <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+970 …" dir="ltr" className={inputStyles} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">ملاحظات <span className="text-slate-400 text-xs">(اختياري)</span></Label>
-                <Textarea id="notes" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="أي ملاحظة تودّ إضافتها للإدارة" />
+                <Label htmlFor="notes" className={labelStyles}>
+                  ملاحظات <span className="text-white/55 text-xs font-normal">(اختياري)</span>
+                </Label>
+                <Textarea
+                  id="notes"
+                  rows={3}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="أي ملاحظة تودّ إضافتها للإدارة"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:border-purple-400/60 focus-visible:ring-2 focus-visible:ring-purple-500/20 rounded-xl"
+                />
               </div>
 
               {/* Signature pad */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>التوقيع بالإصبع *</Label>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => handle.clear()} className="h-7 text-xs">
+                  <Label className={labelStyles}>التوقيع بالإصبع *</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handle.clear()}
+                    className="h-7 text-xs text-white/70 hover:text-white hover:bg-white/10"
+                  >
                     <Eraser className="w-3.5 h-3.5 ms-1" />
                     مسح
                   </Button>
                 </div>
-                <div className="rounded-lg border-2 border-dashed border-slate-300 bg-white overflow-hidden">
-                  <canvas
-                    ref={canvasRef}
-                    className="block w-full h-44 touch-none cursor-crosshair"
-                    aria-label="signature pad"
-                  />
+                <div className="relative rounded-xl p-[1.5px] bg-gradient-to-br from-purple-500/50 via-fuchsia-500/30 to-cyan-500/50">
+                  <div className="rounded-[10px] border-2 border-dashed border-white/20 bg-white overflow-hidden">
+                    <canvas
+                      ref={canvasRef}
+                      className="block w-full h-44 touch-none cursor-crosshair"
+                      aria-label="signature pad"
+                    />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-400">استخدم إصبعك (أو الفأرة على سطح المكتب) للتوقيع داخل المربع.</p>
+                <p className="text-[12px] text-white/65">
+                  استخدم إصبعك (أو الفأرة على سطح المكتب) للتوقيع داخل المربع.
+                </p>
               </div>
 
               {error && (
-                <div className="rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-2">{error}</div>
+                <div className="rounded-xl bg-rose-500/10 border border-rose-400/30 text-rose-200 text-sm px-3 py-2.5 backdrop-blur">
+                  {error}
+                </div>
               )}
 
-              <Button type="submit" disabled={submitting} className="w-full h-11 text-base font-semibold bg-slate-900 hover:bg-slate-800 text-white">
-                {submitting ? <><Loader2 className="w-4 h-4 animate-spin ms-2" /> جاري الإرسال…</> : "Submit"}
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 text-base font-bold text-white rounded-xl border-0
+                           bg-gradient-to-r from-purple-600 via-fuchsia-600 to-purple-700
+                           hover:from-purple-500 hover:via-fuchsia-500 hover:to-purple-600
+                           shadow-[0_8px_30px_rgba(168,85,247,0.45)]
+                           transition-transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin ms-2" />
+                    جاري الإرسال…
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4 ms-2" />
+                    إرسال التوقيع — Submit
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-slate-400 mt-6">© SOUQRATES SYSTEM</p>
+        <p className="text-center text-[12px] text-white/60 mt-6 mb-2 tracking-wider">
+          © SOUQRATES SYSTEM · جميع الحقوق محفوظة
+        </p>
       </div>
     </div>
   );
