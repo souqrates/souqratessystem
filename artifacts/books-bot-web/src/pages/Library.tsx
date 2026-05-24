@@ -1,0 +1,176 @@
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import { Search, BookMarked, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideIcon } from "lucide-react";
+import { CATEGORIES, BOOKS, searchBooks } from "@/lib/catalog";
+import type { CategorySlug } from "@/lib/constants";
+import { BookCard } from "@/components/BookCard";
+import { Ornament } from "@/components/Ornaments";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  religion: BookMarked,
+  education: GraduationCap,
+  literature: ScrollText,
+  kids: Baby,
+  self: Brain,
+  audio: Headphones,
+};
+
+export default function Library() {
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState<CategorySlug | "all">("all");
+
+  const list = useMemo(() => {
+    let res = searchBooks(q);
+    if (active !== "all") res = res.filter((b) => b.category === active);
+    return res;
+  }, [q, active]);
+
+  return (
+    <>
+      {/* Hero band */}
+      <section className="relative py-16 md:py-20">
+        <div className="max-w-5xl mx-auto px-6 md:px-10 text-center">
+          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
+            The Library
+          </div>
+          <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 4.5vw, 3.25rem)" }}>
+            تصفَّح المكتبة كاملةً.
+          </h1>
+          <Ornament className="mb-8" />
+
+          {/* Search */}
+          <div
+            className="relative max-w-xl mx-auto flex items-center"
+            style={{ borderBottom: "1px solid var(--ink)" }}
+          >
+            <Search size={18} strokeWidth={1.6} style={{ color: "var(--muted)" }} />
+            <input
+              type="search"
+              placeholder="ابحث بعنوان أو مؤلِّف…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="w-full bg-transparent outline-none px-3 py-3 text-base"
+              style={{ color: "var(--ink)" }}
+              data-testid="input-search"
+            />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                className="text-xs px-2 py-1"
+                style={{ color: "var(--muted)" }}
+                data-testid="button-clear-search"
+              >
+                مسح
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Category filter strip */}
+      <section className="relative" style={{ borderTop: "1px solid var(--hairline)", borderBottom: "1px solid var(--hairline)", background: "var(--ivory)" }}>
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-6 flex flex-wrap gap-2 justify-center">
+          <FilterChip
+            active={active === "all"}
+            onClick={() => setActive("all")}
+            label="الكلّ"
+            testId="chip-all"
+          />
+          {CATEGORIES.map((c) => {
+            const Icon = ICON_MAP[c.iconKey];
+            return (
+              <FilterChip
+                key={c.slug}
+                active={active === c.slug}
+                onClick={() => setActive(c.slug)}
+                label={c.name}
+                Icon={Icon}
+                testId={`chip-${c.slug}`}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Results */}
+      <section className="py-16 md:py-20">
+        <div className="max-w-6xl mx-auto px-6 md:px-10">
+          <div className="flex items-baseline justify-between mb-8">
+            <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
+              {list.length} {list.length === 1 ? "Title" : "Titles"}
+            </div>
+            <div className="text-xs" style={{ color: "var(--muted)" }}>
+              {active === "all" ? "كل الفئات" : CATEGORIES.find((c) => c.slug === active)?.name}
+            </div>
+          </div>
+
+          {list.length === 0 ? (
+            <div className="text-center py-20" data-testid="empty-results">
+              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
+                Nothing found
+              </div>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                لم نعثر على نتائج. جرّب كلمةً أخرى أو فئةً مختلفة.
+              </p>
+              <button
+                onClick={() => { setQ(""); setActive("all"); }}
+                className="mt-6 text-sm refined"
+                style={{ color: "var(--emerald)" }}
+                data-testid="button-reset-filters"
+              >
+                أعد ضبط الفلاتر
+              </button>
+            </div>
+          ) : (
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}
+            >
+              {list.map((b) => <BookCard key={b.id} book={b} />)}
+            </div>
+          )}
+
+          <div className="mt-12 text-center">
+            <Link
+              href="/"
+              className="refined text-sm"
+              style={{ color: "var(--emerald)" }}
+              data-testid="link-back-home"
+            >
+              ← العودة إلى الواجهة
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function FilterChip({
+  active, onClick, label, Icon, testId,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  Icon?: LucideIcon;
+  testId?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+      style={{
+        background: active ? "var(--ink)" : "transparent",
+        color: active ? "var(--ivory)" : "var(--ink)",
+        border: `1px solid ${active ? "var(--ink)" : "var(--hairline)"}`,
+      }}
+      data-testid={testId}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.5} />}
+      {label}
+    </button>
+  );
+}
+
+// Silence unused warning on BOOKS re-export side-effect
+export { BOOKS };
