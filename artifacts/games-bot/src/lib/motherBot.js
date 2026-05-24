@@ -27,7 +27,14 @@ async function call(method, path, body = null) {
   if (body !== null) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    // Preserve HTTP status + structured payload so callers can distinguish
+    // "already credited" (409) from "duration not met" (403) from network errors.
+    const err = new Error(data?.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
   return data;
 }
 

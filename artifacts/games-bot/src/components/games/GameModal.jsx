@@ -36,6 +36,11 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
   // chargeError: set if the charge RPC failed during countdown (interrupts game start)
   const [chargeError,   setChargeError]   = useState('');
   const [settling,      setSettling]      = useState(false);
+  // settleStatus: 'idle' | 'settling' | 'credited' | 'refunded' | 'failed'
+  // Drives the success/refund/failure UI in ResultOverlay so the user
+  // always sees a clear outcome instead of a generic error message.
+  const [settleStatus,  setSettleStatus]  = useState('idle');
+  const [creditedAmount, setCreditedAmount] = useState(0);
   const [confirmExit,   setConfirmExit]   = useState(false);
   const [confirmFee,    setConfirmFee]    = useState(false);
   const [cdCount,       setCdCount]       = useState(3);
@@ -207,52 +212,92 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
 
       if (shouldCredit) {
         setSettling(true);
+        setSettleStatus('settling');
+        setCreditedAmount(0);
         // ── CRITICAL: snapshot chargeTransactionId into a local constant
         //    BEFORE the async IIFE. The ref is mutated by Play Again, and
         //    reading it inside awaits (validate → credit → refund) made a
         //    stale settle IIFE refund the NEXT game's entry — costing
         //    users real money. The local copy is immutable for this IIFE.
         const chargeTxId = chargeTransactionIdRef.current;
+        const snapshotPrize = activePrize;
         (async () => {
           try {
-            // Without a valid charge id we cannot settle anything; surface
-            // the issue so the player can contact support instead of
-            // silently swallowing the win.
             if (!chargeTxId) {
               if (!mountedRef.current) return;
               setSettling(false);
-              setEntryError('Could not settle the win — please contact support.');
+              setSettleStatus('failed');
+              setEntryError('تعذّر تسوية الفوز — لم يُعثر على معرف شحن الدخول. تواصل مع الدعم.');
               return;
             }
             const finalScore = Number(scoreRef.current) || 0;
             await warmSession().catch(() => {});
-            // Step 1: Obtain a server-signed result token.
-            // Server validates: score >= minWinScore AND elapsed time >= game duration.
-            // If validation fails (loss or instant call), resultToken is null → credit will also fail.
-            const validateRes = await validateGameResult(chargeTxId, finalScore).catch(() => null);
-            const resultToken = validateRes?.resultToken ?? null;
-            // Step 2: Credit reward — token required server-side. Skip
-            // if validate didn't return a token (server rejected the win
-            // as too-fast / score-too-low / etc — treat as forfeit).
-            let creditOk = false;
-            if (resultToken) {
-              for (let attempt = 0; attempt < 3; attempt++) {
-                try { await creditSoloReward(game.id, chargeTxId, finalScore, resultToken); creditOk = true; break; }
-                catch { if (attempt < 2) await new Promise(r => setTimeout(r, 600)); }
+
+            // ── Step 1: validate (3 attempts on network failure) ─────────
+            // Distinguish three outcomes:
+            //   (a) success → resultToken issued → credit
+            //   (b) 409 already-credited → treat as creditOk (idempotent)
+            //   (c) 403 game-rules failure → user is not entitled to prize,
+            //       refund entry fee so they are made whole.
+            //   (d) network/other → retry, then refund as a safety net.
+            let resultToken = null;
+            let validateError = null;
+            let alreadyCredited = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                const validateRes = await validateGameResult(chargeTxId, finalScore);
+                resultToken = validateRes?.resultToken ?? null;
+                validateError = null;
+                break;
+              } catch (e) {
+                validateError = e;
+                const status = e?.status;
+                if (status === 409) { alreadyCredited = true; break; }
+                // 403 = deterministic rule failure — no point retrying
+                if (status === 403 || status === 400 || status === 404) break;
+                if (attempt < 2) await new Promise(r => setTimeout(r, 600));
               }
             }
 
-            // Step 3: If validate succeeded but credit failed (rare —
-            // network/DB blip), refund the entry fee so the user is made
-            // whole. Server is idempotent for refunds. Use the local
-            // chargeTxId — NOT the ref — so we never refund a charge from
-            // a subsequent Play Again.
-            let refundedAfterFailure = false;
-            if (resultToken && !creditOk) {
-              try {
-                const r = await refundSoloEntry(chargeTxId);
-                if (r?.ok) refundedAfterFailure = true;
-              } catch { /* surface generic error below */ }
+            // ── Step 2: credit (only if we have a token) ─────────────────
+            let creditOk = false;
+            let netRewarded = 0;
+            if (resultToken) {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                  const cr = await creditSoloReward(game.id, chargeTxId, finalScore, resultToken);
+                  creditOk = true;
+                  netRewarded = Number(cr?.net_rewarded) || 0;
+                  break;
+                } catch (e) {
+                  // 409 here means another inflight call already credited — treat as success
+                  if (e?.status === 409) { creditOk = true; alreadyCredited = true; break; }
+                  if (attempt < 2) await new Promise(r => setTimeout(r, 600));
+                }
+              }
+            }
+
+            // ── Step 3: refund ALWAYS when no credit happened ─────────────
+            // Old code only refunded when (resultToken && !creditOk). That
+            // left users out-of-pocket when validate itself failed (e.g.
+            // duration-not-met false positives, transient 5xx). Now: if
+            // we couldn't credit for ANY reason, refund the entry. Server
+            // is idempotent and will refuse if a reward was already paid.
+            let refunded = false;
+            if (!creditOk && !alreadyCredited) {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                  const r = await refundSoloEntry(chargeTxId);
+                  if (r?.ok || r?.alreadyRefunded) { refunded = true; break; }
+                } catch (e) {
+                  // If the server says the reward was already credited,
+                  // that's actually success — pivot to credited state.
+                  if (e?.status === 409 && /credited/i.test(String(e?.message || ''))) {
+                    creditOk = true; alreadyCredited = true; break;
+                  }
+                  if (attempt < 2) await new Promise(r => setTimeout(r, 600));
+                }
+              }
             }
 
             await Promise.allSettled([
@@ -261,16 +306,38 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
             ]);
             if (!mountedRef.current) return;
             setSettling(false);
-            if (!creditOk) {
-              setEntryError(
-                refundedAfterFailure
-                  ? 'Could not credit the prize — your entry fee was refunded automatically.'
-                  : 'Prize credit failed — contact support if SKZ was not added.'
-              );
+
+            if (creditOk || alreadyCredited) {
+              // ✅ Money is in the wallet — celebrate.
+              // IMPORTANT: only show a numeric "+X SKZ" chip when we
+              // KNOW the authoritative net amount (returned by /credit).
+              // On idempotent paths (409) we don't have the exact net,
+              // and snapshotPrize is GROSS — showing it would overstate
+              // the credited amount. Pass 0 so the overlay hides the
+              // numeric chip and just shows "تم الإيداع" confirmation.
+              setCreditedAmount(netRewarded > 0 ? netRewarded : 0);
+              setSettleStatus('credited');
+              try { triggerHaptic('success'); } catch { /* ignore */ }
+            } else if (refunded) {
+              // 💸 Entry fee given back — user is whole, just no prize.
+              setSettleStatus('refunded');
+              try { triggerHaptic('warning'); } catch { /* ignore */ }
+              setEntryError(validateError?.message
+                ? `لم تتحقق شروط الفوز (${validateError.message}) — أُعيد مبلغ الدخول إلى محفظتك.`
+                : 'تعذّر إيداع الجائزة — أُعيد مبلغ الدخول إلى محفظتك تلقائياً.');
+            } else {
+              // ❌ Worst case: couldn't credit AND couldn't refund.
+              // This should be very rare (3 retries each). User must
+              // contact support so we don't silently swallow the loss.
+              setSettleStatus('failed');
+              try { triggerHaptic('error'); } catch { /* ignore */ }
+              setEntryError('تعذّر إيداع الجائزة وتعذّر استرداد مبلغ الدخول — يرجى التواصل مع الدعم وذكر رقم العملية #' + chargeTxId);
             }
           } catch {
             if (!mountedRef.current) return;
             setSettling(false);
+            setSettleStatus('failed');
+            setEntryError('حدث خطأ أثناء تسوية الفوز — تواصل مع الدعم مع ذكر رقم العملية #' + chargeTxId);
           }
         })();
       } else {
@@ -535,6 +602,8 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
                       winLabel={game.winLabel}
                       loseLabel={game.loseLabel}
                       settling={settling}
+                      settleStatus={settleStatus}
+                      creditedAmount={creditedAmount}
                     />
                   </motion.div>
                 )}
