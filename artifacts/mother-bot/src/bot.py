@@ -27,16 +27,22 @@ MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
 
-# Cache-buster: forces Telegram WebView to fetch a fresh copy after each deploy
-# (Telegram aggressively caches Mini App pages by URL; query param changes the URL).
-_CACHE_BUSTER = os.getenv("DEPLOY_VERSION") or str(int(time.time()))
-
-def _with_v(url: str) -> str:
-    sep = "&" if "?" in url else "?"
-    return f"{url}{sep}v={_CACHE_BUSTER}"
-
-MINI_APP_URL  = _with_v(_BASE_MINI_APP_URL)
-GAMES_APP_URL = _with_v(_BASE_GAMES_APP_URL)
+# ── WebApp URL stability (CRITICAL) ──────────────────────────────────────────
+# DO NOT append a per-restart cache-buster (e.g. ?v=<timestamp>) to WebApp URLs.
+# Telegram caches its "Cannot open game / domain" validation decision PER URL.
+# When the bot process restarts, the timestamp changes, the URL changes, and
+# old keyboard buttons sent before the restart now point at a "stale" URL that
+# Telegram tries to re-validate. If validation hiccups even once, Telegram
+# blacklists THAT URL for ~minutes → user sees "Cannot open game" until they
+# fully restart the Telegram app. Fresh state works briefly, then re-poisons.
+#
+# Cache-busting of the front-end bundle is already handled by:
+#   1) Vite's content-hashed asset filenames (assets/main-<hash>.js)
+#   2) Stale-chunk auto-reload in artifacts/games-bot/src/main.jsx (catches
+#      `vite:preloadError` + script load errors → one-shot hard reload)
+# So URLs MUST stay byte-identical across bot restarts.
+MINI_APP_URL  = _BASE_MINI_APP_URL
+GAMES_APP_URL = _BASE_GAMES_APP_URL
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
