@@ -83,6 +83,22 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
         BotCommand(command="start",   description="Открыть главное меню и кошелёк"),
         BotCommand(command="balance", description="Баланс SKZ / USDT / Stars / TON"),
     ],
+    "es": [
+        BotCommand(command="start",   description="Abrir el menú principal y la cartera"),
+        BotCommand(command="balance", description="Saldo de SKZ / USDT / Stars / TON"),
+    ],
+    "fr": [
+        BotCommand(command="start",   description="Ouvrir le menu principal et le portefeuille"),
+        BotCommand(command="balance", description="Solde SKZ / USDT / Stars / TON"),
+    ],
+    "tr": [
+        BotCommand(command="start",   description="Ana menüyü ve cüzdanı aç"),
+        BotCommand(command="balance", description="SKZ / USDT / Stars / TON bakiyesi"),
+    ],
+    "fa": [
+        BotCommand(command="start",   description="باز کردن منوی اصلی و کیف پول"),
+        BotCommand(command="balance", description="موجودی SKZ / USDT / Stars / TON"),
+    ],
 }
 
 ADMIN_COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
@@ -91,6 +107,10 @@ ADMIN_COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
             "en": BotCommand(command="admin", description="Platform stats (admins only)"),
             "ar": BotCommand(command="admin", description="إحصاءات المنصة (للمشرفين فقط)"),
             "ru": BotCommand(command="admin", description="Статистика платформы (только админы)"),
+            "es": BotCommand(command="admin", description="Estadísticas de la plataforma (solo admins)"),
+            "fr": BotCommand(command="admin", description="Statistiques de la plateforme (admins uniquement)"),
+            "tr": BotCommand(command="admin", description="Platform istatistikleri (yalnızca yöneticiler)"),
+            "fa": BotCommand(command="admin", description="آمار پلتفرم (فقط مدیران)"),
         }[lang]
     ]
     for lang, cmds in COMMANDS_BY_LANG.items()

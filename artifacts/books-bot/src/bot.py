@@ -111,6 +111,38 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
         BotCommand(command="wallet",  description="Баланс кошелька SKZ"),
         BotCommand(command="help",    description="Список команд и помощь"),
     ],
+    "es": [
+        BotCommand(command="start",   description="Iniciar el bot y abrir el menú principal"),
+        BotCommand(command="browse",  description="Explorar libros por categoría"),
+        BotCommand(command="publish", description="Enviar un nuevo libro para revisión"),
+        BotCommand(command="library", description="Mi biblioteca (compras y publicaciones)"),
+        BotCommand(command="wallet",  description="Saldo de mi cartera SKZ"),
+        BotCommand(command="help",    description="Mostrar lista de comandos y ayuda"),
+    ],
+    "fr": [
+        BotCommand(command="start",   description="Démarrer le bot et ouvrir le menu principal"),
+        BotCommand(command="browse",  description="Parcourir les livres par catégorie"),
+        BotCommand(command="publish", description="Soumettre un nouveau livre pour révision"),
+        BotCommand(command="library", description="Ma bibliothèque (achats et publications)"),
+        BotCommand(command="wallet",  description="Solde de mon portefeuille SKZ"),
+        BotCommand(command="help",    description="Afficher la liste des commandes et l'aide"),
+    ],
+    "tr": [
+        BotCommand(command="start",   description="Botu başlat ve ana menüyü aç"),
+        BotCommand(command="browse",  description="Kitaplara kategoriye göre göz at"),
+        BotCommand(command="publish", description="İnceleme için yeni kitap gönder"),
+        BotCommand(command="library", description="Kütüphanem (satın alımlar ve yayınlar)"),
+        BotCommand(command="wallet",  description="SKZ cüzdan bakiyem"),
+        BotCommand(command="help",    description="Komut listesini ve yardımı göster"),
+    ],
+    "fa": [
+        BotCommand(command="start",   description="شروع ربات و باز کردن منوی اصلی"),
+        BotCommand(command="browse",  description="مرور کتاب‌ها بر اساس دسته‌بندی"),
+        BotCommand(command="publish", description="ارسال کتاب جدید برای بررسی"),
+        BotCommand(command="library", description="کتابخانه من (خریدها و انتشارات)"),
+        BotCommand(command="wallet",  description="موجودی کیف پول SKZ من"),
+        BotCommand(command="help",    description="نمایش فهرست دستورات و راهنما"),
+    ],
 }
 
 
