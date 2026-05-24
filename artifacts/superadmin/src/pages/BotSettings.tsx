@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { api, type Bot, type CommissionOverride, type SkzRates, ApiError } from "@/lib/api";
 import { botMeta, BOTS } from "@/lib/bots-meta";
+import BotTextsEditor from "@/components/BotTextsEditor";
 
 export default function BotSettingsPage() {
   const [, params] = useRoute<{ slug: string }>("/bots/:slug");
@@ -24,6 +25,8 @@ export default function BotSettingsPage() {
       </header>
 
       {slug === "mother-bot" ? <MotherBotPanel /> : <ChildBotPlaceholder slug={slug} brand={meta.brand} arName={meta.arName} />}
+
+      <BotTextsEditor botSlug={slug} />
     </div>
   );
 }

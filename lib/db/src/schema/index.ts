@@ -6,3 +6,4 @@ export * from "./commissions";
 export * from "./withdrawals";
 export * from "./settings";
 export * from "./commissionOverrides";
+export * from "./botTexts";

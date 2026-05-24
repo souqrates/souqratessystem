@@ -71,6 +71,18 @@ export interface CommissionOverride {
   userUsername?: string | null;
 }
 
+export interface BotText {
+  id: number;
+  botSlug: string;
+  key: string;
+  label: string;
+  draftValue: string;
+  publishedValue: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+}
+
 export interface SkzRates {
   skzPerUsdt: string;
   skzPerStar: string;

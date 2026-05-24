@@ -5,6 +5,7 @@ import {
   botsTable,
   commissionOverridesTable,
   usersTable,
+  botTextsTable,
 } from "@workspace/db";
 import {
   requireSuperAdmin,
@@ -171,6 +172,142 @@ router.delete("/superadmin/commission-overrides/:id", requireSuperAdmin, async (
     return;
   }
   const result = await db.delete(commissionOverridesTable).where(eq(commissionOverridesTable.id, id)).returning();
+  if (result.length === 0) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json({ ok: true });
+});
+
+// ── Bot Texts (draft/publish editable copy) ──────────────────────────────
+
+// Default seeded keys for any bot. Used to bootstrap the editor with a
+// useful starting set on first GET when the bot has no entries yet.
+const DEFAULT_TEXT_KEYS: Array<{ key: string; label: string; draft: string }> = [
+  { key: "welcome", label: "رسالة الترحيب (/start)", draft: "أهلاً بك 👋" },
+  { key: "help", label: "رسالة المساعدة (/help)", draft: "كيف يمكنني مساعدتك؟" },
+  { key: "about", label: "نبذة عن البوت (/about)", draft: "" },
+  { key: "error_generic", label: "رسالة خطأ عام", draft: "حدث خطأ غير متوقع، حاول مجدداً." },
+  { key: "low_balance", label: "رصيد غير كافٍ", draft: "رصيدك لا يكفي لإتمام هذه العملية." },
+  { key: "maintenance", label: "وضع الصيانة", draft: "البوت قيد الصيانة حالياً، نعود قريباً." },
+];
+
+async function ensureDefaultsFor(botSlug: string): Promise<void> {
+  const existing = await db
+    .select({ key: botTextsTable.key })
+    .from(botTextsTable)
+    .where(eq(botTextsTable.botSlug, botSlug));
+  const have = new Set(existing.map((r) => r.key));
+  const missing = DEFAULT_TEXT_KEYS.filter((d) => !have.has(d.key));
+  if (missing.length === 0) return;
+  await db
+    .insert(botTextsTable)
+    .values(missing.map((d) => ({ botSlug, key: d.key, label: d.label, draftValue: d.draft })))
+    .onConflictDoNothing();
+}
+
+router.get("/superadmin/bot-texts", requireSuperAdmin, async (req, res): Promise<void> => {
+  const botSlug = String(req.query.botSlug ?? "");
+  if (!botSlug) {
+    res.status(400).json({ error: "botSlug is required" });
+    return;
+  }
+  await ensureDefaultsFor(botSlug);
+  const rows = await db
+    .select()
+    .from(botTextsTable)
+    .where(eq(botTextsTable.botSlug, botSlug))
+    .orderBy(botTextsTable.id);
+  res.json({ data: rows });
+});
+
+router.post("/superadmin/bot-texts", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { botSlug, key, label, draftValue } = req.body as {
+    botSlug?: string;
+    key?: string;
+    label?: string;
+    draftValue?: string;
+  };
+  if (!botSlug || !key || !label) {
+    res.status(400).json({ error: "botSlug, key, label are required" });
+    return;
+  }
+  const [row] = await db
+    .insert(botTextsTable)
+    .values({ botSlug, key, label, draftValue: draftValue ?? "" })
+    .onConflictDoUpdate({
+      target: [botTextsTable.botSlug, botTextsTable.key],
+      set: { label, draftValue: draftValue ?? "", updatedAt: new Date() },
+    })
+    .returning();
+  res.json(row);
+});
+
+router.patch("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const { label, draftValue } = req.body as { label?: string; draftValue?: string };
+  const updates: Partial<typeof botTextsTable.$inferInsert> = { updatedAt: new Date() };
+  if (typeof label === "string") updates.label = label;
+  if (typeof draftValue === "string") updates.draftValue = draftValue;
+  const [row] = await db.update(botTextsTable).set(updates).where(eq(botTextsTable.id, id)).returning();
+  if (!row) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json(row);
+});
+
+router.post("/superadmin/bot-texts/:id/publish", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const [row] = await db
+    .update(botTextsTable)
+    .set({
+      publishedValue: sql`${botTextsTable.draftValue}`,
+      publishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(botTextsTable.id, id))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json(row);
+});
+
+router.post("/superadmin/bot-texts/publish-all", requireSuperAdmin, async (req, res): Promise<void> => {
+  const botSlug = String((req.body ?? {}).botSlug ?? "");
+  if (!botSlug) {
+    res.status(400).json({ error: "botSlug is required" });
+    return;
+  }
+  const rows = await db
+    .update(botTextsTable)
+    .set({
+      publishedValue: sql`${botTextsTable.draftValue}`,
+      publishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(botTextsTable.botSlug, botSlug))
+    .returning({ id: botTextsTable.id });
+  res.json({ ok: true, count: rows.length });
+});
+
+router.delete("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const result = await db.delete(botTextsTable).where(eq(botTextsTable.id, id)).returning();
   if (result.length === 0) {
     res.status(404).json({ error: "Not found" });
     return;
