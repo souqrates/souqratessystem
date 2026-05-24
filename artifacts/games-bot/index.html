@@ -19,6 +19,9 @@
         try{
           var wa = window.Telegram && window.Telegram.WebApp;
           if(wa){
+            try{ wa.setHeaderColor && wa.setHeaderColor('#04030a'); }catch(_){}
+            try{ wa.setBackgroundColor && wa.setBackgroundColor('#04030a'); }catch(_){}
+            try{ wa.setBottomBarColor && wa.setBottomBarColor('#04030a'); }catch(_){}
             wa.ready && wa.ready();
             wa.expand && wa.expand();
           }

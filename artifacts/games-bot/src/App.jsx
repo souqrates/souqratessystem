@@ -240,17 +240,24 @@ export default function App() {
 
     let vhTimer = null;
     let recalc = null;
+    let lastVh = '';
+    const setVh = (px) => {
+      const next = `${px}px`;
+      if (next === lastVh) return; // idempotent — no needless re-layout/flicker
+      lastVh = next;
+      document.documentElement.style.setProperty('--tg-viewport-height', next);
+    };
     if (wa) {
       recalc = () => {
         clearTimeout(vhTimer);
         vhTimer = setTimeout(() => {
-          document.documentElement.style.setProperty('--tg-viewport-height', `${wa.viewportHeight || window.innerHeight}px`);
+          setVh(wa.viewportHeight || window.innerHeight);
         }, 250);
       };
       recalc();
       try { wa.onEvent('viewportChanged', recalc); } catch { /* ignore */ }
     } else {
-      document.documentElement.style.setProperty('--tg-viewport-height', `${window.innerHeight}px`);
+      setVh(window.innerHeight);
     }
 
     // Re-check start_param when the app comes back to foreground.

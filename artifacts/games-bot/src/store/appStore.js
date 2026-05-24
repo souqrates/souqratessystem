@@ -3,11 +3,20 @@ import { GAMES } from '../constants';
 import { getBalance, getSoloFeeTiers } from '../lib/payments';
 
 function applyAppColors(cfg) {
+  // CSS variables only — never write document.body.style directly.
+  // Writing body.style.background on every config reload was a known flicker
+  // source (re-paint on every settings poll). CSS vars are batched by browser.
   const root = document.documentElement;
-  if (cfg.app_bg_color)        { root.style.setProperty('--app-bg', cfg.app_bg_color); document.body.style.background = cfg.app_bg_color; }
-  if (cfg.app_primary_color)   root.style.setProperty('--app-primary', cfg.app_primary_color);
-  if (cfg.app_secondary_color) root.style.setProperty('--app-secondary', cfg.app_secondary_color);
+  const setVar = (name, val) => {
+    if (val && root.style.getPropertyValue(name) !== val) {
+      root.style.setProperty(name, val);
+    }
+  };
+  setVar('--app-bg',        cfg.app_bg_color);
+  setVar('--app-primary',   cfg.app_primary_color);
+  setVar('--app-secondary', cfg.app_secondary_color);
 }
+void applyAppColors;
 
 const SOLO_TIER_IDS = new Set([
   1,2,3,4,5,6,7,8,9,10,11,
