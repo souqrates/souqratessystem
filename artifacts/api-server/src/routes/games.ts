@@ -74,8 +74,19 @@ function parseInitData(initData: string): { telegramId: bigint; tgUser: Telegram
 
 type AuthedRequest = Request & { telegramId: bigint; tgUser: TelegramUser };
 
-/** Maximum age of a valid Telegram initData payload (5 minutes). */
-const INIT_DATA_MAX_AGE_SECONDS = 5 * 60;
+/**
+ * Maximum age of a valid Telegram initData payload (24 hours).
+ *
+ * Telegram's `window.Telegram.WebApp.initData` is set once when the Mini App
+ * opens and does NOT auto-refresh while the app stays open. A short TTL here
+ * (e.g. 5 minutes) breaks the entire app after a few minutes of idle play:
+ * every charge/credit/balance call returns 403 "initData has expired" and the
+ * user can't open any game until they close and reopen the bot.
+ *
+ * 24h is the standard Telegram-recommended freshness window and matches what
+ * official Telegram WebApp examples and the official docs use.
+ */
+const INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   const initData = req.headers["x-telegram-init-data"] as string | undefined;
@@ -99,7 +110,7 @@ function requireTelegramAuth(req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  // Enforce auth_date freshness — reject replayed initData older than 5 minutes
+  // Enforce auth_date freshness — reject replayed initData older than 24 hours
   const params = new URLSearchParams(initData);
   const authDateStr = params.get("auth_date");
   if (!authDateStr) {
