@@ -1,0 +1,88 @@
+import { Link, useLocation } from "wouter";
+import { BOTS } from "@/lib/bots-meta";
+import { clearToken } from "@/lib/api";
+
+export default function Sidebar() {
+  const [location, navigate] = useLocation();
+
+  function logout() {
+    clearToken();
+    navigate("/login");
+  }
+
+  return (
+    <aside className="w-64 shrink-0 bg-slate-900 text-slate-100 flex flex-col border-l border-slate-800" dir="rtl">
+      <div className="px-5 py-5 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🛡️</span>
+          <div>
+            <div className="font-bold text-white leading-tight">SUPER ADMIN</div>
+            <div className="text-xs text-slate-400">لوحة المدير المركزية</div>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto py-3">
+        <div className="px-3 mb-2 text-[11px] uppercase tracking-wider text-slate-500">عام</div>
+        <SidebarLink href="/" active={location === "/"} icon="📊" label="نظرة عامة" />
+
+        <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">البوتات</div>
+        {BOTS.map((b) => {
+          const href = `/bots/${b.slug}`;
+          return (
+            <SidebarLink
+              key={b.slug}
+              href={href}
+              active={location === href}
+              icon={b.icon}
+              label={b.brand}
+              sub={b.arName}
+              color={b.color}
+            />
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-slate-800 p-3">
+        <button
+          onClick={logout}
+          className="w-full text-sm py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+        >
+          تسجيل الخروج
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function SidebarLink({
+  href,
+  active,
+  icon,
+  label,
+  sub,
+  color,
+}: {
+  href: string;
+  active: boolean;
+  icon: string;
+  label: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <Link href={href}>
+      <a
+        className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition text-right ${
+          active ? "bg-indigo-600/90 text-white" : "hover:bg-slate-800 text-slate-200"
+        }`}
+      >
+        <span className="text-lg" style={color ? { color } : undefined}>{icon}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium truncate">{label}</div>
+          {sub && <div className="text-[11px] text-slate-400 truncate">{sub}</div>}
+        </div>
+      </a>
+    </Link>
+  );
+}
