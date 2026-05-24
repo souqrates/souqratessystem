@@ -107,10 +107,15 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
     return () => document.body.classList.remove('game-locked');
   }, [phase, game?.id]);
 
+  // Clear entry/charge errors when the user opens a different game.
+  // IMPORTANT: do NOT clear on phase→'intro', because the countdown sets
+  // entryError + setPhase('intro') on failure — a phase-based clear would
+  // wipe the banner before it can render. We clear on PLAY click instead
+  // (see the play handler) so a fresh attempt starts with a clean slate.
   useEffect(() => {
-    if (!game?.id) return;
-    if (phase === 'intro') { setEntryError(''); setChargeError(''); }
-  }, [phase, game?.id]);
+    setEntryError('');
+    setChargeError('');
+  }, [game?.id]);
 
   // Countdown effect — starts immediately and checks charge result before transitioning to playing
   useEffect(() => {
