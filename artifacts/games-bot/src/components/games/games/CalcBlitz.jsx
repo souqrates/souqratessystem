@@ -110,10 +110,12 @@ export default function CalcBlitz({ phase, setPhase, game, onScoreUpdate }) {
       <TimeBar totalTime={GAME_TIME} timeLeft={timeLeft} color="#3b82f6" />
 
       <div style={{
+        position: 'relative',
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: 20, borderRadius: 16, padding: 16,
         background: 'radial-gradient(ellipse at 50% 50%, #000812 0%, #020508 100%)',
         border: '1px solid rgba(59,130,246,0.1)',
+        overflow: 'hidden',
       }}>
         {question && (
           <>
@@ -169,6 +171,25 @@ export default function CalcBlitz({ phase, setPhase, game, onScoreUpdate }) {
               style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 15, color: feedback.color, textShadow: `0 0 14px ${feedback.color}` }}>
               {feedback.label}
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Shockwave ring on correct answer */}
+        <AnimatePresence>
+          {feedback && feedback.color !== '#ef4444' && (
+            <motion.div
+              key={`sw-${feedback.id}`}
+              initial={{ opacity: 0.7, scale: 0.2 }}
+              animate={{ opacity: 0, scale: 2.4 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
+              style={{
+                position: 'absolute', width: 180, height: 180, borderRadius: '50%',
+                border: `2px solid ${feedback.color}`,
+                boxShadow: `0 0 22px ${feedback.color}, inset 0 0 22px ${feedback.color}66`,
+                pointerEvents: 'none',
+              }}
+            />
           )}
         </AnimatePresence>
       </div>

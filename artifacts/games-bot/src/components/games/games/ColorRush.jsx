@@ -144,14 +144,25 @@ export default function ColorRush({ phase, setPhase, game, onScoreUpdate }) {
                 onPointerDown={() => tap(i)}
                 whileTap={chosen === null ? { scale: 0.92 } : {}}
                 style={{
-                  height: 64, borderRadius: 16, cursor: chosen === null ? 'pointer' : 'default',
+                  position: 'relative',
+                  height: 72, borderRadius: 16, cursor: chosen === null ? 'pointer' : 'default',
                   background: showResult
                     ? isCorrect ? 'rgba(16,185,129,0.25)' : isChosen ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)'
-                    : `radial-gradient(circle at 40% 35%, ${p.color}33, ${p.color}11)`,
+                    : `radial-gradient(circle at 40% 35%, ${p.color}55, ${p.color}15)`,
                   border: `3px solid ${showResult ? (isCorrect ? '#10b981' : isChosen ? '#ef4444' : `${p.color}22`) : p.color}`,
-                  boxShadow: !showResult ? `0 0 14px ${p.color}33` : 'none',
+                  boxShadow: !showResult ? `0 0 18px ${p.color}55, inset 0 0 14px ${p.color}33` : 'none',
+                  overflow: 'hidden',
                 }}
-              />
+              >
+                {/* Solid color core (visual cue — no text, since the word is the trick) */}
+                <div style={{
+                  width: 26, height: 26, borderRadius: '50%',
+                  background: showResult && !isCorrect && !isChosen ? `${p.color}33` : p.color,
+                  boxShadow: showResult ? 'none' : `0 0 16px ${p.color}, 0 0 4px #fff`,
+                  border: '2px solid rgba(255,255,255,0.25)',
+                  margin: '0 auto',
+                }} />
+              </motion.button>
             );
           })}
         </div>

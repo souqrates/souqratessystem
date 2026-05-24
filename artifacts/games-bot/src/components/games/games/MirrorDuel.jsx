@@ -159,11 +159,28 @@ export default function MirrorDuel({ phase, setPhase, game, onScoreUpdate }) {
                 position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
-              <div style={{
-                fontSize: 110, fontFamily: 'Orbitron, sans-serif', fontWeight: 900,
-                color: PINK, textShadow: `0 0 30px ${PINK}, 0 0 60px ${PINK}88`,
-                lineHeight: 1,
-              }}>{cmd.arrow}</div>
+              <div style={{ position: 'relative', display: 'inline-block', lineHeight: 1 }}>
+                {/* Pulsing halo ring around the command arrow */}
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0.7 }}
+                  animate={{ scale: [0.85, 1.25, 0.85], opacity: [0.55, 0.15, 0.55] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    position: 'absolute', inset: -28, borderRadius: '50%',
+                    border: `2px solid ${PINK}`,
+                    boxShadow: `0 0 30px ${PINK}88, inset 0 0 20px ${PINK}55`,
+                    pointerEvents: 'none',
+                  }}
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.06, 1] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    fontSize: 110, fontFamily: 'Orbitron, sans-serif', fontWeight: 900,
+                    color: PINK, textShadow: `0 0 30px ${PINK}, 0 0 60px ${PINK}88`,
+                    lineHeight: 1,
+                  }}>{cmd.arrow}</motion.div>
+              </div>
               <div style={{
                 fontSize: 16, fontFamily: 'Orbitron, sans-serif', fontWeight: 900,
                 letterSpacing: '0.3em', color: PINK,

@@ -151,19 +151,32 @@ export default function TileFlash({ phase, setPhase, game, onScoreUpdate }) {
                 key={i}
                 onPointerDown={() => toggleTile(i)}
                 whileTap={mode === 'input' ? { scale: 0.88 } : {}}
-                animate={isLit ? { backgroundColor: color, boxShadow: `0 0 20px ${color}88` } : {}}
+                animate={isLit
+                  ? { scale: [1, 1.08, 1], boxShadow: [`0 0 8px ${color}66`, `0 0 28px ${color}, 0 0 12px #fff`, `0 0 8px ${color}66`] }
+                  : { scale: 1, boxShadow: isSel ? `0 0 14px ${color}55` : '0 0 0 transparent' }
+                }
+                transition={isLit ? { duration: 0.6, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.1 }}
                 style={{
+                  position: 'relative',
                   height: 56, borderRadius: 12, cursor: mode === 'input' ? 'pointer' : 'default',
                   background: isLit
-                    ? color
+                    ? `radial-gradient(circle at 50% 40%, #fff 0%, ${color} 60%, ${color}cc 100%)`
                     : isSel
-                      ? `${color}44`
+                      ? `radial-gradient(circle at 50% 40%, ${color}66, ${color}22)`
                       : 'rgba(255,255,255,0.04)',
-                  border: `2px solid ${isLit ? color : isSel ? color : 'rgba(255,255,255,0.07)'}`,
-                  boxShadow: isSel ? `0 0 16px ${color}55` : 'none',
+                  border: `2px solid ${isLit ? '#fff' : isSel ? color : 'rgba(255,255,255,0.07)'}`,
                   transition: 'background 0.1s, border-color 0.1s',
+                  willChange: 'transform',
                 }}
-              />
+              >
+                {isSel && !isLit && (
+                  <div style={{
+                    position: 'absolute', inset: 8, borderRadius: 6,
+                    border: `1.5px dashed ${color}aa`,
+                    pointerEvents: 'none',
+                  }} />
+                )}
+              </motion.button>
             );
           })}
         </div>
