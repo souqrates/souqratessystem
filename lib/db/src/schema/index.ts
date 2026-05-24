@@ -12,3 +12,4 @@ export * from "./externalLinks";
 export * from "./errorLogs";
 export * from "./gameConfigs";
 export * from "./agreements";
+export * from "./products";

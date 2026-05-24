@@ -44,6 +44,12 @@ BOTS = [
         "description": "مسابقات وتصويت وجوائز",
         "commissionRate": "0.0800",
     },
+    {
+        "slug": "books-bot",
+        "name": "بوت الكتب",
+        "description": "متجر كتب ومنتجات رقمية مع لوحة نشر للمؤلفين",
+        "commissionRate": "0.1000",
+    },
 ]
 
 

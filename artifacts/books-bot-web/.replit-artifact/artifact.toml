@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/books-bot-web/"
+title = "souqrates books — متجر الكتب الرقمي"
+version = "1.0.0"
+id = "artifacts/books-bot-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/books-bot-web/" ]
+localPort = 23758
+
+[services.development]
+run = "pnpm --filter @workspace/books-bot-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/books-bot-web", "run", "build" ]
+publicDir = "artifacts/books-bot-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23758"
+BASE_PATH = "/books-bot-web/"

@@ -18,6 +18,7 @@ export const BOTS: BotMeta[] = [
   { slug: "voice-bot", brand: "souqrates scene", arName: "الغرف الصوتية", color: "#8b5cf6", icon: "🎙️" },
   { slug: "ai-bot", brand: "souqrates signal", arName: "بوت الذكاء", color: "#06b6d4", icon: "🤖" },
   { slug: "contests-bot", brand: "souqrates stage", arName: "بوت المسابقات", color: "#eab308", icon: "🏆" },
+  { slug: "books-bot",    brand: "souqrates books",  arName: "بوت الكتب",     color: "#0F766E", icon: "📚" },
 ];
 
 export function botMeta(slug: string): BotMeta | undefined {

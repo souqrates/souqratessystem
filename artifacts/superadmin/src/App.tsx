@@ -14,6 +14,7 @@ import WithdrawalsPage from "@/pages/Withdrawals";
 import AgreementsPage from "@/pages/Agreements";
 import GamesPage from "@/pages/Games";
 import GameDetailPage from "@/pages/GameDetail";
+import BooksPage from "@/pages/Books";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -32,6 +33,7 @@ function AuthedRoutes() {
         <Route path="/agreements" component={AgreementsPage} />
         <Route path="/games" component={GamesPage} />
         <Route path="/games/:gameId" component={GameDetailPage} />
+        <Route path="/books" component={BooksPage} />
         <Route path="/broadcast" component={BroadcastPage} />
         <Route path="/links" component={LinksPage} />
         <Route path="/error-logs" component={ErrorLogsPage} />

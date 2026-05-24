@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --emerald: #0F766E;
+  --emerald-dark: #0B5E58;
+  --gold: #D4AF37;
+  --gold-light: #E8C766;
+  --cream: #FAF7F2;
+  --ink: #1F2937;
+  --muted: #6B7280;
+}
+
+html, body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Tajawal', 'Cairo', system-ui, -apple-system, sans-serif;
+  direction: rtl;
+}
+
+* { box-sizing: border-box; }

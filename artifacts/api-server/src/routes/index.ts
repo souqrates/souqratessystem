@@ -13,6 +13,7 @@ import gamesRouter from "./games";
 import superadminRouter from "./superadmin";
 import superadminGamesRouter from "./superadmin-games";
 import agreementsRouter from "./agreements";
+import booksRouter from "./books";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(gamesRouter);
 router.use(superadminRouter);
 router.use(superadminGamesRouter);
 router.use(agreementsRouter);
+router.use(booksRouter);
 
 export default router;

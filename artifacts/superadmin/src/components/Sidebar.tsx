@@ -61,6 +61,26 @@ export default function Sidebar() {
           sub="عمولة، إعدادات عامة"
         />
 
+        {/* SOUQRATES BOOKS — كل ما يخصّ بوت الكتب */}
+        <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#0F766E" }}>
+          📚 SOUQRATES BOOKS
+          <div className="text-[10px] font-normal text-slate-500 normal-case">المتجر الرقمي + المؤلفون</div>
+        </div>
+        <SidebarLink
+          href="/books"
+          active={location.startsWith("/books") && !location.startsWith("/books-bot")}
+          icon="📚"
+          label="الكتب"
+          sub="مراجعة، تصنيفات، إحصاءات"
+        />
+        <SidebarLink
+          href="/bots/books-bot"
+          active={location === "/bots/books-bot"}
+          icon="💰"
+          label="اقتصاد بوت الكتب"
+          sub="عمولة، إعدادات عامة"
+        />
+
         {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
@@ -69,7 +89,7 @@ export default function Sidebar() {
 
         {/* البوتات الفرعية الأخرى (قادمة) */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">بوتات أخرى</div>
-        {BOTS.filter((b) => b.slug !== "mother-bot" && b.slug !== "games-bot").map((b) => {
+        {BOTS.filter((b) => b.slug !== "mother-bot" && b.slug !== "games-bot" && b.slug !== "books-bot").map((b) => {
           const href = `/bots/${b.slug}`;
           return (
             <SidebarLink
