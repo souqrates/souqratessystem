@@ -23,20 +23,52 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3">
-        <div className="px-3 mb-2 text-[11px] uppercase tracking-wider text-slate-500">عام</div>
+        {/* SOUQRATES SYSTEM — البوت الأم + المالية المشتركة */}
+        <div className="px-3 mb-2 text-[11px] font-bold tracking-wider text-indigo-300">
+          👑 SOUQRATES SYSTEM
+          <div className="text-[10px] font-normal text-slate-500 normal-case">المركز المالي للمنصة</div>
+        </div>
         <SidebarLink href="/" active={location === "/"} icon="📊" label="نظرة عامة" />
         <SidebarLink href="/users" active={location.startsWith("/users")} icon="👥" label="المستخدمون" />
         <SidebarLink href="/transactions" active={location.startsWith("/transactions")} icon="💸" label="سجل المعاملات" />
         <SidebarLink href="/withdrawals" active={location.startsWith("/withdrawals")} icon="💳" label="طلبات السحب" />
-        <SidebarLink href="/games" active={location.startsWith("/games")} icon="🎮" label="ألعاب SOUQRATES SKILLZ" />
+        <SidebarLink
+          href="/bots/mother-bot"
+          active={location === "/bots/mother-bot"}
+          icon="⚙️"
+          label="إعدادات النظام"
+          sub="عمولات، أسعار، فئات الدخول"
+        />
 
+        {/* SOUQRATES SKILLZ — كل ما يخصّ بوت الألعاب */}
+        <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider text-orange-300">
+          🎮 SOUQRATES SKILLZ
+          <div className="text-[10px] font-normal text-slate-500 normal-case">إدارة 110 لعبة + الاقتصاد</div>
+        </div>
+        <SidebarLink
+          href="/games"
+          active={location.startsWith("/games") && !location.startsWith("/games-bot")}
+          icon="🧩"
+          label="قائمة الألعاب"
+          sub="الأسعار، المدة، السكور، النصوص"
+        />
+        <SidebarLink
+          href="/bots/games-bot"
+          active={location === "/bots/games-bot"}
+          icon="💰"
+          label="اقتصاد بوت الألعاب"
+          sub="عمولة، إعدادات عامة"
+        />
+
+        {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon="🔗" label="الروابط/CDN" />
         <SidebarLink href="/error-logs" active={location.startsWith("/error-logs")} icon="⚠️" label="سجل الأخطاء" />
 
-        <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">البوتات</div>
-        {BOTS.map((b) => {
+        {/* البوتات الفرعية الأخرى (قادمة) */}
+        <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">بوتات أخرى</div>
+        {BOTS.filter((b) => b.slug !== "mother-bot" && b.slug !== "games-bot").map((b) => {
           const href = `/bots/${b.slug}`;
           return (
             <SidebarLink

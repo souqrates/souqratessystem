@@ -73,8 +73,25 @@ export default function Wallet() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const skzBalance = num(balance?.sc_balance, 0);
-  const skzPerTon  = 500;
-  const skzPerStar = 1;
+  // Read live conversion rates from the server (set in super-admin).
+  // Fall back to sensible defaults if the call fails so the UI never breaks.
+  const [rates, setRates] = useState({ skzPerTon: 500, skzPerStar: 1 });
+  useEffect(() => {
+    fetch('/api/settings/skz-rates')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!j) return;
+        const t = parseFloat(j.skzPerTon);
+        const s = parseFloat(j.skzPerStar);
+        setRates({
+          skzPerTon:  isFinite(t) && t > 0 ? t : 500,
+          skzPerStar: isFinite(s) && s > 0 ? s : 1,
+        });
+      })
+      .catch(() => {});
+  }, []);
+  const skzPerTon  = rates.skzPerTon;
+  const skzPerStar = rates.skzPerStar;
 
   function copyToClipboard(text, field) {
     if (!text) return;

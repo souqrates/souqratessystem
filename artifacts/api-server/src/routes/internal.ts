@@ -672,6 +672,11 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     minDurationMs = difficulty === "Easy" ? 25_000 : difficulty === "Hard" ? 45_000 : 35_000;
   }
   const minWinScore   = 1; // any positive score proves the game was actually played
+  // Per-game maximum allowed score (anti-cheat ceiling). Captured at charge
+  // time so a later admin edit cannot retroactively invalidate a session.
+  const maxScoreCap   = gameCfg?.publishedMaxScore != null && Number(gameCfg.publishedMaxScore) > 0
+    ? Number(gameCfg.publishedMaxScore)
+    : null;
 
   const [transaction] = await db
     .insert(transactionsTable)
@@ -694,6 +699,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
         difficulty,
         minDurationMs, // minimum elapsed time before result can be validated
         minWinScore,   // minimum score (server-side win condition)
+        maxScoreCap,   // maximum allowed score (anti-cheat); null = unlimited
       }),
     })
     .returning();
@@ -814,12 +820,24 @@ router.post("/internal/game/validate-result", async (req, res): Promise<void> =>
   // ── Server-side win conditions (values stored at charge time, immutable) ──
   const minWinScore   = typeof meta.minWinScore   === "number" ? meta.minWinScore   : 1;
   const minDurationMs = typeof meta.minDurationMs === "number" ? meta.minDurationMs : 25_000;
+  const maxScoreCap   = typeof meta.maxScoreCap   === "number" ? meta.maxScoreCap   : null;
 
   // 1. Score must meet server-stored win threshold
   if (isNaN(scoreNum) || scoreNum < minWinScore) {
     res.status(403).json({
       error: `Win condition not met: score must be at least ${minWinScore}`,
       minWinScore,
+    });
+    return;
+  }
+
+  // 1b. Score must NOT exceed per-game maximum (anti-cheat ceiling).
+  // Caps a tampered client from submitting absurd values that would alarm
+  // analytics or top leaderboards with fake scores.
+  if (maxScoreCap !== null && scoreNum > maxScoreCap) {
+    res.status(403).json({
+      error: `Score exceeds the maximum allowed for this game (${maxScoreCap})`,
+      maxScoreCap,
     });
     return;
   }
