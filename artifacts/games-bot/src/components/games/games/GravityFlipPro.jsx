@@ -166,34 +166,80 @@ export default function GravityFlipPro({ phase, setPhase, game, onScoreUpdate })
       >
         <MomentumFlash msg={flash?.type === 'good' ? '+100!' : 'HIT!'} color={flash?.type === 'good' ? '#10b981' : '#ef4444'} trigger={flash?.id} />
 
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12 }}>
-          {/* Top and bottom walls */}
-          <rect x={0} y={0} width={W} height={TOP_H} fill="rgba(239,68,68,0.15)" />
-          <rect x={0} y={H - BOT_H} width={W} height={BOT_H} fill="rgba(239,68,68,0.15)" />
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{
+          background: `
+            radial-gradient(ellipse at 50% 50%, #1a0a3a 0%, #06031f 60%, #02010a 100%),
+            repeating-linear-gradient(90deg, transparent 0, transparent 22px, rgba(139,92,246,0.08) 22px, rgba(139,92,246,0.08) 23px)
+          `,
+          border: '1px solid rgba(139,92,246,0.35)',
+          borderRadius: 12,
+          boxShadow: 'inset 0 0 30px rgba(139,92,246,0.18)',
+        }}>
+          <defs>
+            <linearGradient id="gravTopWall" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="gravBotWall" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+            </linearGradient>
+            <radialGradient id="gravPlayer" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#fff" stopOpacity="1" />
+              <stop offset="50%" stopColor="#a78bfa" stopOpacity="1" />
+              <stop offset="100%" stopColor="#5b21b6" stopOpacity="1" />
+            </radialGradient>
+            <radialGradient id="gravStar" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#fff" />
+              <stop offset="60%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#a16207" />
+            </radialGradient>
+            <filter id="gravGlow">
+              <feGaussianBlur stdDeviation="3" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
 
-          {/* Obstacles */}
+          {/* Repulsor wall hatching */}
+          <rect x={0} y={0} width={W} height={TOP_H} fill="url(#gravTopWall)" />
+          <rect x={0} y={H - BOT_H} width={W} height={BOT_H} fill="url(#gravBotWall)" />
+          {Array.from({ length: Math.ceil(W / 10) }).map((_, i) => (
+            <g key={`hatch-${i}`}>
+              <line x1={i * 10} y1={0} x2={i * 10 + TOP_H} y2={TOP_H} stroke="#ef444466" strokeWidth={1} />
+              <line x1={i * 10} y1={H} x2={i * 10 + BOT_H} y2={H - BOT_H} stroke="#ef444466" strokeWidth={1} />
+            </g>
+          ))}
+          {/* Hot edges */}
+          <line x1={0} y1={TOP_H} x2={W} y2={TOP_H} stroke="#ef4444" strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px #ef4444)' }} />
+          <line x1={0} y1={H - BOT_H} x2={W} y2={H - BOT_H} stroke="#ef4444" strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px #ef4444)' }} />
+
+          {/* Obstacles — particle gates */}
           {obstacles.map(o => (
             <g key={o.id}>
-              <rect x={o.x} y={TOP_H} width={OBS_W} height={o.gapY - TOP_H} fill={o.isStar ? 'rgba(139,92,246,0.25)' : 'rgba(239,68,68,0.25)'} stroke={o.isStar ? '#8b5cf6' : '#ef4444'} strokeWidth={1} />
-              {o.isStar && <text x={o.x + OBS_W / 2} y={o.gapY + o.gapH / 2 + 5} textAnchor="middle" fontSize={16}>⭐</text>}
-              <rect x={o.x} y={o.gapY + o.gapH} width={OBS_W} height={H - BOT_H - o.gapY - o.gapH} fill={o.isStar ? 'rgba(139,92,246,0.25)' : 'rgba(239,68,68,0.25)'} stroke={o.isStar ? '#8b5cf6' : '#ef4444'} strokeWidth={1} />
+              <rect x={o.x} y={TOP_H} width={OBS_W} height={o.gapY - TOP_H}
+                fill={o.isStar ? 'rgba(139,92,246,0.35)' : 'rgba(244,63,94,0.32)'}
+                stroke={o.isStar ? '#a78bfa' : '#f43f5e'} strokeWidth={1.5}
+                style={{ filter: `drop-shadow(0 0 4px ${o.isStar ? '#a78bfa' : '#f43f5e'})` }}
+              />
+              {o.isStar && <circle cx={o.x + OBS_W / 2} cy={o.gapY + o.gapH / 2} r={9} fill="url(#gravStar)" filter="url(#gravGlow)" />}
+              <rect x={o.x} y={o.gapY + o.gapH} width={OBS_W} height={H - BOT_H - o.gapY - o.gapH}
+                fill={o.isStar ? 'rgba(139,92,246,0.35)' : 'rgba(244,63,94,0.32)'}
+                stroke={o.isStar ? '#a78bfa' : '#f43f5e'} strokeWidth={1.5}
+                style={{ filter: `drop-shadow(0 0 4px ${o.isStar ? '#a78bfa' : '#f43f5e'})` }}
+              />
             </g>
           ))}
 
-          {/* Player */}
-          <rect
-            x={50 - PLAYER_SIZE / 2} y={playerY - PLAYER_SIZE / 2}
-            width={PLAYER_SIZE} height={PLAYER_SIZE}
-            rx={4}
-            fill={gravDown ? 'rgba(139,92,246,0.5)' : 'rgba(139,92,246,0.5)'}
-            stroke="#8b5cf6"
-            strokeWidth={2}
-            style={{ filter: 'drop-shadow(0 0 6px #8b5cf688)' }}
-          />
-          <text x={50} y={playerY + 6} textAnchor="middle" fontSize={14}>{gravDown ? '⬇' : '⬆'}</text>
+          {/* Player — magnetic particle */}
+          <circle cx={50} cy={playerY} r={PLAYER_SIZE / 2 + 4} fill="none" stroke="#a78bfa" strokeWidth={1} opacity={0.5}>
+            <animate attributeName="r" values={`${PLAYER_SIZE / 2 + 2};${PLAYER_SIZE / 2 + 8};${PLAYER_SIZE / 2 + 2}`} dur="1.4s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.7;0.05;0.7" dur="1.4s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={50} cy={playerY} r={PLAYER_SIZE / 2} fill="url(#gravPlayer)" filter="url(#gravGlow)" />
+          <text x={50} y={playerY + 5} textAnchor="middle" fontSize={14} fill="#fff" style={{ fontWeight: 900 }}>{gravDown ? '⬇' : '⬆'}</text>
         </svg>
 
-        <p style={{ color: 'rgba(148,163,184,0.5)', fontSize: 11, letterSpacing: '0.15em' }}>TAP TO FLIP GRAVITY</p>
+        <p style={{ color: 'rgba(167,139,250,0.7)', fontSize: 11, letterSpacing: '0.25em', fontFamily: 'Orbitron, sans-serif' }}>◆ TAP TO REVERSE GRAVITY ◆</p>
       </div>
     </div>
   );

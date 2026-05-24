@@ -156,17 +156,36 @@ export default function SequenceBlink({ phase, setPhase, game, onScoreUpdate }) 
               <motion.button
                 key={i}
                 whileTap={isInput ? { scale: 0.88 } : {}}
+                animate={isActive ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                transition={isActive ? { duration: 0.35, ease: 'easeOut' } : { duration: 0.1 }}
                 onPointerDown={() => tap(i)}
                 disabled={!isInput}
                 style={{
+                  position: 'relative',
                   aspectRatio: '1', borderRadius: 12,
-                  border: `2px solid ${isActive ? color : `${color}33`}`,
-                  background: isActive ? `${color}44` : 'rgba(255,255,255,0.03)',
+                  border: `2px solid ${isActive ? '#fff' : isInput ? color : `${color}55`}`,
+                  background: isActive
+                    ? `radial-gradient(circle at 50% 40%, #fff 0%, ${color} 50%, ${color}cc 100%)`
+                    : `radial-gradient(circle at 50% 40%, ${color}33 0%, ${color}0a 100%)`,
                   cursor: isInput ? 'pointer' : 'default',
-                  boxShadow: isActive ? `0 0 20px ${color}66` : 'none',
-                  transition: 'all 0.1s',
+                  boxShadow: isActive
+                    ? `0 0 32px ${color}, 0 0 12px #fff, inset 0 0 16px ${color}88`
+                    : isInput
+                      ? `0 0 12px ${color}44, inset 0 0 8px ${color}22`
+                      : 'none',
+                  willChange: 'transform',
                 }}
-              />
+              >
+                {/* Color core dot */}
+                <div style={{
+                  position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: isActive ? '#fff' : color,
+                  boxShadow: isActive ? `0 0 12px #fff` : `0 0 8px ${color}aa`,
+                  border: `2px solid ${isActive ? color : 'rgba(255,255,255,0.3)'}`,
+                  transition: 'background 0.1s',
+                }} />
+              </motion.button>
             );
           })}
         </div>

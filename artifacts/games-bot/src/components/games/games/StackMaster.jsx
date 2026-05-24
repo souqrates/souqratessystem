@@ -159,25 +159,52 @@ export default function StackMaster({ phase, setPhase, game, onScoreUpdate }) {
       >
         <MomentumFlash msg={flash?.type === 'good' ? 'PERFECT!' : 'MISSED!'} color={flash?.type === 'good' ? '#10b981' : '#ef4444'} trigger={flash?.id} />
 
-        <div style={{ position: 'relative', width: STACK_W, height: (VISIBLE + 1) * (BLOCK_H + 4) }}>
+        <div style={{
+          position: 'relative', width: STACK_W, height: (VISIBLE + 1) * (BLOCK_H + 4),
+          background: 'repeating-linear-gradient(0deg, transparent 0, transparent 30px, rgba(245,158,11,0.04) 30px, rgba(245,158,11,0.04) 31px)',
+          borderRadius: 8,
+        }}>
+          {/* Alignment guide — vertical line from moving block down to top stack */}
+          {blocks.length > 0 && (() => {
+            const topBlk = blocks[blocks.length - 1];
+            const cx = movingX + movingW / 2;
+            const inRange = cx >= topBlk.x && cx <= topBlk.x + topBlk.w;
+            return (
+              <div style={{
+                position: 'absolute',
+                left: cx - 0.5,
+                top: BLOCK_H,
+                bottom: 0,
+                width: 1,
+                background: inRange ? `linear-gradient(180deg, #fbbf2400 0%, #fbbf24aa 100%)` : `linear-gradient(180deg, #f59e0b00 0%, #f59e0b66 100%)`,
+                boxShadow: inRange ? '0 0 6px #fbbf24' : 'none',
+                pointerEvents: 'none',
+              }} />
+            );
+          })()}
+
           {/* Moving block */}
-          <div style={{
-            position: 'absolute',
-            left: movingX,
-            top: 0,
-            width: movingW,
-            height: BLOCK_H,
-            background: 'rgba(245,158,11,0.4)',
-            border: '2px solid #f59e0b',
-            borderRadius: 6,
-            boxShadow: '0 0 12px rgba(245,158,11,0.4)',
-          }} />
+          <motion.div
+            animate={{ boxShadow: ['0 0 10px rgba(245,158,11,0.35)', '0 0 20px rgba(245,158,11,0.7)', '0 0 10px rgba(245,158,11,0.35)'] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              left: movingX,
+              top: 0,
+              width: movingW,
+              height: BLOCK_H,
+              background: 'linear-gradient(180deg, rgba(252,211,77,0.7) 0%, rgba(245,158,11,0.5) 50%, rgba(180,83,9,0.55) 100%)',
+              border: '2px solid #fbbf24',
+              borderRadius: 6,
+              willChange: 'transform',
+            }} />
 
           {/* Stack blocks */}
           {visibleBlocks.map((b, i) => {
             const top = (VISIBLE - (i + 1)) * (BLOCK_H + 4) + BLOCK_H + 4;
             const idx = startLevel + i;
             const hue = 180 + idx * 15;
+            const isTop = i === visibleBlocks.length - 1;
             return (
               <div key={b.level} style={{
                 position: 'absolute',
@@ -185,9 +212,10 @@ export default function StackMaster({ phase, setPhase, game, onScoreUpdate }) {
                 top,
                 width: b.w,
                 height: BLOCK_H,
-                background: `hsla(${hue}, 60%, 50%, 0.3)`,
-                border: `2px solid hsla(${hue}, 60%, 60%, 0.6)`,
+                background: `linear-gradient(180deg, hsla(${hue}, 65%, 60%, 0.55) 0%, hsla(${hue}, 65%, 45%, 0.4) 50%, hsla(${hue}, 65%, 30%, 0.45) 100%)`,
+                border: `2px solid hsla(${hue}, 70%, 65%, 0.8)`,
                 borderRadius: 6,
+                boxShadow: isTop ? `0 0 10px hsla(${hue}, 70%, 60%, 0.45)` : 'none',
               }} />
             );
           })}
