@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { MOCK_BALANCES } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
-import { Zap, AlertCircle, Upload } from "lucide-react";
+import { useWallet } from "../lib/use-wallet";
+import { Zap, AlertCircle, Upload, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { showTelegramAlert } from "../lib/telegram";
 
 type Target = "usdt" | "ton";
 
-const TARGETS: { id: Target; label: string; sub: string; currencyKey: string }[] = [
-  { id: "usdt", label: "USDT", sub: "TRC20 Network",  currencyKey: "USDT" },
-  { id: "ton",  label: "TON",  sub: "TON Network",    currencyKey: "TON"  },
+const TARGETS: { id: Target; label: string; currencyKey: string }[] = [
+  { id: "usdt", label: "USDT", currencyKey: "USDT" },
+  { id: "ton",  label: "TON",  currencyKey: "TON"  },
 ];
 
 export function Withdraw() {
@@ -18,6 +18,7 @@ export function Withdraw() {
   const [skzAmount, setSkzAmount] = useState("");
   const [address, setAddress] = useState("");
   const { settings } = usePlatformSettings();
+  const { balanceSkz, isLoading: walletLoading } = useWallet();
 
   const ci = CURRENCY_ICONS[target === "usdt" ? "USDT" : "TON"];
   const getRate = () => (target === "usdt" ? settings.skzPerUsdt : settings.skzPerTon);
@@ -25,15 +26,15 @@ export function Withdraw() {
     ? parseFloat(settings.withdrawalFeeUsdtPercent) / 100
     : parseFloat(settings.withdrawalFeeTonPercent) / 100;
 
-  const maxSkz = MOCK_BALANCES.skz;
+  const maxSkz = balanceSkz;
   const minSkz = parseFloat(settings.minWithdrawalSkz);
   const numSkz = parseFloat(skzAmount || "0");
-  const isOverMax   = numSkz > maxSkz;
-  const isBelowMin  = numSkz > 0 && numSkz < minSkz;
-  const realAmount  = numSkz / getRate();
-  const fee         = realAmount * feePercent;
-  const netReal     = Math.max(0, realAmount - fee);
-  const isValid     = numSkz >= minSkz && !isOverMax && address.length > 10;
+  const isOverMax  = numSkz > maxSkz;
+  const isBelowMin = numSkz > 0 && numSkz < minSkz;
+  const realAmount = numSkz / getRate();
+  const fee        = realAmount * feePercent;
+  const netReal    = Math.max(0, realAmount - fee);
+  const isValid    = numSkz >= minSkz && !isOverMax && address.length > 10;
 
   return (
     <div className="px-4 pt-4 pb-8 space-y-5">
@@ -54,12 +55,18 @@ export function Withdraw() {
           </div>
           <div>
             <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Available Balance</p>
-            <p className="text-xl font-black gradient-text">{maxSkz.toLocaleString()}</p>
+            {walletLoading ? (
+              <Loader2 size={16} className="text-skz-light animate-spin mt-1" />
+            ) : (
+              <p className="text-xl font-black gradient-text">{maxSkz.toLocaleString()}</p>
+            )}
           </div>
         </div>
         <div className="text-right">
           <p className="text-[10px] text-white/30 font-medium">≈</p>
-          <p className="text-sm font-bold text-white/50">${(maxSkz / settings.skzPerUsdt).toFixed(2)}</p>
+          <p className="text-sm font-bold text-white/50">
+            ${(maxSkz / settings.skzPerUsdt).toFixed(2)}
+          </p>
         </div>
       </div>
 
@@ -166,9 +173,9 @@ export function Withdraw() {
             style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="p-1">
               {[
-                { label: "Amount (SKZ)",                                value: `${numSkz.toLocaleString()} SKZ`,           color: "rgba(255,255,255,0.85)" },
-                { label: "Equivalent",                                  value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
-                { label: `Network Fee (${(feePercent*100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`,  color: "#f87171" },
+                { label: "Amount (SKZ)",                                  value: `${numSkz.toLocaleString()} SKZ`,                   color: "rgba(255,255,255,0.85)" },
+                { label: "Equivalent",                                    value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
+                { label: `Network Fee (${(feePercent*100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`,       color: "#f87171" },
               ].map((row, i) => (
                 <div key={i} className="flex justify-between items-center px-4 py-3">
                   <span className="text-[12px] text-white/45 font-medium">{row.label}</span>

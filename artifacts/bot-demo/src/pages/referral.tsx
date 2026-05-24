@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { MOCK_REFERRALS } from "../lib/mock-data";
 import { usePlatformSettings } from "../lib/use-platform-settings";
-import { Users, Copy, Share2, Check, ChevronLeft, TrendingUp, Star, Zap } from "lucide-react";
+import { useWallet, getTelegramId } from "../lib/use-wallet";
+import { Users, Copy, Share2, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox } from "../components/icons";
-import { showTelegramAlert } from "../lib/telegram";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
 const fadeUp = {
   initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] } },
 };
 
 const TIERS_CONFIG = [
@@ -21,7 +20,13 @@ const TIERS_CONFIG = [
 export function Referral() {
   const [copied, setCopied] = useState(false);
   const { settings } = usePlatformSettings();
-  const refLink = "t.me/MotherBot?start=ref_482917";
+  const { user } = useWallet();
+
+  const telegramId = getTelegramId();
+  const botUsername = "MotherSkzBot";
+  const refLink = telegramId
+    ? `t.me/${botUsername}?start=ref_${telegramId}`
+    : `t.me/${botUsername}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(refLink).catch(() => {});
@@ -33,10 +38,9 @@ export function Referral() {
   };
 
   const handleShare = () => {
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(`https://${refLink}`)}&text=${encodeURIComponent(settings.referralMessage)}`;
     if (window.Telegram?.WebApp?.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(
-        `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(settings.referralMessage)}`
-      );
+      window.Telegram.WebApp.openTelegramLink(shareUrl);
     } else {
       handleCopy();
     }
@@ -83,25 +87,6 @@ export function Referral() {
         </div>
       </motion.div>
 
-      {/* Earnings banner */}
-      <motion.div variants={fadeUp}>
-        <div className="rounded-2xl p-4 flex items-center justify-between"
-          style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}>
-          <div>
-            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Total Referral Earnings</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Zap size={16} className="text-skz-light" />
-              <p className="text-2xl font-black gradient-text">240</p>
-              <p className="text-sm font-bold text-white/40">SKZ</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-white/40 font-medium">Friends</p>
-            <p className="text-3xl font-black text-white">{MOCK_REFERRALS.length}</p>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Commission tiers */}
       <motion.div variants={fadeUp}>
         <p className="section-label mb-3">Commission Tiers</p>
@@ -124,7 +109,7 @@ export function Referral() {
               <p className="text-2xl font-black mb-0.5" style={{ color: tier.color }}>
                 {tierPcts[tier.settingKey]}%
               </p>
-              <p className="text-[9px] font-bold text-white/35 leading-tight">{tier.label}</p>
+              <p className="text-[9px] font-bold text-white/35 leading-tight">{tier.level}</p>
             </div>
           ))}
         </div>
@@ -159,55 +144,47 @@ export function Referral() {
         </div>
       </motion.div>
 
-      {/* Friends list */}
+      {/* Referral info */}
       <motion.div variants={fadeUp}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="section-label">Your Friends ({MOCK_REFERRALS.length})</p>
-          <div className="flex items-center gap-1">
-            <TrendingUp size={11} className="text-success" />
-            <span className="text-[11px] text-success font-bold">Active</span>
+        <div className="rounded-2xl p-4"
+          style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.15)" }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">Referred By</p>
+              <p className="text-sm font-black text-white/60">
+                {user?.referrerId ? `User #${user.referrerId}` : "Direct signup"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">Your ID</p>
+              <p className="text-sm font-black text-skz-light font-mono">
+                {telegramId ?? "—"}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="glass-card rounded-3xl overflow-hidden">
-          {MOCK_REFERRALS.map((ref, i) => (
-            <div key={ref.id}>
-              <div className="flex items-center gap-3 px-4 py-4">
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm flex-shrink-0"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(168,85,247,0.25), rgba(34,211,238,0.15))",
-                    color: "#c084fc",
-                  }}
-                >
-                  {ref.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-white/90">{ref.name}</p>
-                  <p className="text-[10px] text-white/30 font-medium">{ref.date}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-black text-skz-light">+{ref.earnings}</p>
-                  <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                    <Star size={8} className="text-stars fill-stars" />
-                    <span className="text-[9px] text-white/30 font-medium">L1</span>
-                  </div>
-                </div>
-              </div>
-              {i < MOCK_REFERRALS.length - 1 && <div className="divider mx-4" />}
-            </div>
-          ))}
-          <div className="divider" />
-          <button
-            onClick={() =>
-              showTelegramAlert(
-                `You have ${MOCK_REFERRALS.length} friends in this view. Full history pagination is coming soon.`
-              )
-            }
-            className="w-full flex items-center justify-between px-4 py-4 text-sm text-white/40 hover:text-white/60 transition-colors"
+      </motion.div>
+
+      {/* Friends — empty state */}
+      <motion.div variants={fadeUp}>
+        <p className="section-label mb-3">Your Friends</p>
+        <div className="glass-card rounded-2xl p-8 text-center">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}
           >
-            <span className="font-medium">View All Friends</span>
-            <ChevronLeft size={16} />
-          </button>
+            <Users size={24} className="text-skz-light opacity-60" />
+          </div>
+          <p className="text-white/40 text-sm font-bold">No referrals yet</p>
+          <p className="text-white/25 text-[11px] mt-1 leading-relaxed max-w-[220px] mx-auto">
+            Share your link and start earning {settings.referralBonusPercent}% from every friend you invite
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <Zap size={12} className="text-skz-light" />
+            <span className="text-[11px] font-bold text-skz-light">
+              {settings.referralBonusPercent}% · {settings.referralL2Percent}% · {settings.referralL3Percent}% per generation
+            </span>
+          </div>
         </div>
       </motion.div>
 
@@ -216,9 +193,9 @@ export function Referral() {
         <p className="section-label mb-4">How It Works</p>
         <div className="space-y-3">
           {[
-            { step: "01", iconKey: "users",    color: "#a855f7", text: "Share your referral link with friends." },
-            { step: "02", iconKey: "gamepad",  color: "#22d3ee", text: "They sign up and start using the bots." },
-            { step: "03", iconKey: "zap",      color: "#10b981", text: `Earn ${settings.referralBonusPercent}% from Gen 1, ${settings.referralL2Percent}% from Gen 2, ${settings.referralL3Percent}% from Gen 3 — in SKZ automatically.` },
+            { step: "01", iconKey: "users",   color: "#a855f7", text: "Share your referral link with friends." },
+            { step: "02", iconKey: "gamepad", color: "#22d3ee", text: "They sign up and start using the bots." },
+            { step: "03", iconKey: "zap",     color: "#10b981", text: `Earn ${settings.referralBonusPercent}% from Gen 1, ${settings.referralL2Percent}% from Gen 2, ${settings.referralL3Percent}% from Gen 3 — automatically in SKZ.` },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 items-start">
               <div
