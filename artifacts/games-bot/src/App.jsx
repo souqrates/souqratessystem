@@ -51,7 +51,15 @@ function MaintenanceScreen({ appConfig }) {
 class GameModalErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, msg: '', stack: '' }; }
   static getDerivedStateFromError(e) { return { hasError: true, msg: e?.message || String(e), stack: e?.stack?.split('\n').slice(0,5).join('\n') || '' }; }
-  componentDidCatch(e, info) { if (import.meta.env.DEV) console.error('[GameModalError]', e, info?.componentStack); }
+  componentDidCatch(e, info) {
+    if (import.meta.env.DEV) console.error('[GameModalError]', e, info?.componentStack);
+    // Stale chunk after deploy → React.lazy() inside GameEngine throws.
+    // Trigger the global recovery (one hard reload, guarded against loops)
+    // so the user lands on the new bundle instead of staring at
+    // "Could not open game". Falls through to the normal error UI if
+    // recovery isn't possible (e.g. real JS bug, or reload already used).
+    try { window.__skzRecoverFromChunkError?.(e); } catch { /* ignore */ }
+  }
   render() {
     if (this.state.hasError) {
       return (

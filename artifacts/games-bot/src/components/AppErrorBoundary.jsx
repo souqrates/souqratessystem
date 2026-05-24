@@ -8,8 +8,10 @@ export default class AppErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-  componentDidCatch() {
-    // errors are surfaced via this.state.error — no logging in production
+  componentDidCatch(error) {
+    // After a deploy, React.lazy chunks fail to load — surface this as a
+    // transparent one-time reload instead of a generic error screen.
+    try { window.__skzRecoverFromChunkError?.(error); } catch { /* ignore */ }
   }
   reset = () => this.setState({ hasError: false, error: null });
   render() {
