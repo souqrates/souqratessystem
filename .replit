@@ -68,12 +68,12 @@ localPort = 21906
 externalPort = 3002
 
 [[ports]]
-localPort = 22133
-externalPort = 3000
+localPort = 21907
+externalPort = 5000
 
 [[ports]]
-localPort = 23758
-externalPort = 5000
+localPort = 22133
+externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
