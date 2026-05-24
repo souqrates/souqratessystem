@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { gameConfigsTable, type GameConfig } from "@workspace/db";
 import gamesCatalog from "@workspace/db/games-catalog.json" with { type: "json" };
 import { requireSuperAdmin } from "../lib/super-admin-auth";
+import { normalizeTiers, DEFAULT_TIER_LABELS, DEFAULT_TIER_MULTIPLIERS } from "../lib/game-tiers";
 
 const router: IRouter = Router();
 
@@ -85,31 +86,11 @@ async function ensureSeeded(req: Request): Promise<void> {
   _seedChecked = true;
 }
 
-interface PriceTier { label: string; entryFee: number; winAmount: number }
-const DEFAULT_TIER_LABELS = ["مبتدئ", "عادي", "متقدم", "محترف", "VIP"];
-const DEFAULT_TIER_MULTIPLIERS = [1, 5, 10, 25, 100];
-
-function normalizeTiers(raw: unknown, baseFee: number, baseWin: number): PriceTier[] {
-  const arr = Array.isArray(raw) ? raw : [];
-  const out: PriceTier[] = [];
-  for (let i = 0; i < 5; i++) {
-    const t = (arr[i] ?? {}) as Record<string, unknown>;
-    const fallbackFee = +(baseFee * DEFAULT_TIER_MULTIPLIERS[i]).toFixed(2);
-    const fallbackWin = +(baseWin * DEFAULT_TIER_MULTIPLIERS[i]).toFixed(2);
-    const fee = typeof t.entryFee === "number" ? t.entryFee
-              : typeof t.entryFee === "string" ? parseFloat(t.entryFee) : fallbackFee;
-    const win = typeof t.winAmount === "number" ? t.winAmount
-              : typeof t.winAmount === "string" ? parseFloat(t.winAmount) : fallbackWin;
-    const label = typeof t.label === "string" && t.label.trim()
-                ? t.label.trim() : DEFAULT_TIER_LABELS[i];
-    out.push({
-      label,
-      entryFee: Number.isFinite(fee) && fee >= 0 ? fee : fallbackFee,
-      winAmount: Number.isFinite(win) && win >= 0 ? win : fallbackWin,
-    });
-  }
-  return out;
-}
+// normalizeTiers + DEFAULT_TIER_* live in ../lib/game-tiers so the SAME
+// normalization is applied by /internal/game/charge-entry. Without shared
+// logic, the client renders 5 fallback-filled tiers (×1, ×5, ×10, ×25, ×100)
+// but the server only accepts whatever raw rows were saved — causing "only
+// the first tier works" bugs for games that never had tiers edited.
 
 function serialize(g: GameConfig) {
   const draftTiers = normalizeTiers(g.draftPriceTiers, Number(g.draftEntryFee), Number(g.draftWinAmount));

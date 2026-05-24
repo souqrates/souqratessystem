@@ -16,6 +16,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
+import { normalizeTiers } from "../lib/game-tiers";
 
 const router: IRouter = Router();
 
@@ -689,10 +690,20 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     ? await db.select().from(gameConfigsTable).where(eq(gameConfigsTable.gameId, gameIdNum))
     : [];
 
+  // CRITICAL: must normalize tiers the SAME way /games/configs does
+  // (./superadmin-games.ts uses normalizeTiers from ../lib/game-tiers).
+  // The client reads the normalized 5-tier set and offers the user any of
+  // them; if we validated against the raw stored array instead, games that
+  // were never edited in super-admin would have empty/partial publishedPriceTiers
+  // and fall through to the legacy global tier path — accepting only [5,10,15]
+  // while the client offers [×1, ×5, ×10, ×25, ×100] of the base fee. That
+  // mismatch caused "only the first tier works" (only tier 0 ever coincides).
   type Tier = { label: string; entryFee: number; winAmount: number };
-  const perGameTiers: Tier[] = Array.isArray(gameCfg?.publishedPriceTiers)
-    ? (gameCfg!.publishedPriceTiers as unknown as Tier[]).filter(
-        (t) => t && typeof t.entryFee === "number" && typeof t.winAmount === "number",
+  const perGameTiers: Tier[] = gameCfg
+    ? normalizeTiers(
+        gameCfg.publishedPriceTiers,
+        Number(gameCfg.publishedEntryFee),
+        Number(gameCfg.publishedWinAmount),
       )
     : [];
 
