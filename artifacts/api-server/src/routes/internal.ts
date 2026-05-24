@@ -12,6 +12,7 @@ import {
   withdrawalsTable,
   commissionOverridesTable,
   botTextsTable,
+  gameConfigsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
@@ -576,26 +577,62 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     return;
   }
 
-  // ── Validate amount against server-configured tier fees ──────────────────
-  const tierSettings = await db.select().from(platformSettingsTable)
-    .where(inArray(platformSettingsTable.key, [
-      "solo_entry_fee_easy", "solo_entry_fee_medium", "solo_entry_fee_hard", "solo_multiplier",
-    ]));
-  const tsMap: Record<string, string> = {};
-  for (const r of tierSettings) tsMap[r.key] = r.value;
-  const multiplier   = parseFloat(tsMap["solo_multiplier"] ?? "3");
-  const allowedFees  = [
-    parseFloat(tsMap["solo_entry_fee_easy"]   ?? "5"),
-    parseFloat(tsMap["solo_entry_fee_medium"] ?? "10"),
-    parseFloat(tsMap["solo_entry_fee_hard"]   ?? "15"),
-  ];
-  const matchedFee   = allowedFees.find(f => Math.abs(f - amountNum) < 0.001);
-  if (matchedFee === undefined) {
-    res.status(400).json({ error: `amount must be one of the configured tier fees: ${allowedFees.join(", ")} SKZ` });
-    return;
+  // ── Validate amount against per-game published tiers (from super-admin) ──
+  // Priority order:
+  //   1. If game_configs has published_price_tiers for this gameId → enforce
+  //      that the amount matches one of those tier entry fees, and use the
+  //      tier's winAmount as the prize. This is the live admin-controlled path.
+  //   2. Fallback to global platform_settings tiers (legacy) — only used if
+  //      game_configs has no per-game tiers (e.g. game not yet seeded).
+  const gameIdNum = parseInt(String(gameId), 10);
+  let entryFee: number;
+  let expectedPrize: number;
+  let multiplier: number;
+  let perGameDurationSeconds: number | null = null;
+
+  const [gameCfg] = Number.isInteger(gameIdNum)
+    ? await db.select().from(gameConfigsTable).where(eq(gameConfigsTable.gameId, gameIdNum))
+    : [];
+
+  type Tier = { label: string; entryFee: number; winAmount: number };
+  const perGameTiers: Tier[] = Array.isArray(gameCfg?.publishedPriceTiers)
+    ? (gameCfg!.publishedPriceTiers as unknown as Tier[]).filter(
+        (t) => t && typeof t.entryFee === "number" && typeof t.winAmount === "number",
+      )
+    : [];
+
+  if (perGameTiers.length > 0) {
+    const matched = perGameTiers.find((t) => Math.abs(t.entryFee - amountNum) < 0.001);
+    if (!matched) {
+      const list = perGameTiers.map((t) => `${t.label}=${t.entryFee}`).join(", ");
+      res.status(400).json({ error: `amount must match one of the game's tier fees: ${list} SKZ` });
+      return;
+    }
+    entryFee      = matched.entryFee;
+    expectedPrize = parseFloat(matched.winAmount.toFixed(2));
+    multiplier    = entryFee > 0 ? parseFloat((matched.winAmount / entryFee).toFixed(4)) : 0;
+    perGameDurationSeconds = gameCfg?.publishedDurationSeconds ?? null;
+  } else {
+    const tierSettings = await db.select().from(platformSettingsTable)
+      .where(inArray(platformSettingsTable.key, [
+        "solo_entry_fee_easy", "solo_entry_fee_medium", "solo_entry_fee_hard", "solo_multiplier",
+      ]));
+    const tsMap: Record<string, string> = {};
+    for (const r of tierSettings) tsMap[r.key] = r.value;
+    multiplier   = parseFloat(tsMap["solo_multiplier"] ?? "3");
+    const allowedFees  = [
+      parseFloat(tsMap["solo_entry_fee_easy"]   ?? "5"),
+      parseFloat(tsMap["solo_entry_fee_medium"] ?? "10"),
+      parseFloat(tsMap["solo_entry_fee_hard"]   ?? "15"),
+    ];
+    const matchedFee = allowedFees.find(f => Math.abs(f - amountNum) < 0.001);
+    if (matchedFee === undefined) {
+      res.status(400).json({ error: `amount must be one of the configured tier fees: ${allowedFees.join(", ")} SKZ` });
+      return;
+    }
+    entryFee      = matchedFee;
+    expectedPrize = parseFloat((entryFee * multiplier).toFixed(2));
   }
-  const entryFee      = matchedFee;
-  const expectedPrize = parseFloat((entryFee * multiplier).toFixed(2));
 
   const [user] = await db
     .select()
@@ -621,13 +658,19 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     return;
   }
 
-  // Determine minimum game duration from tier difficulty (stored server-side, immutable)
-  const easyFee   = parseFloat(tsMap["solo_entry_fee_easy"]   ?? "5");
-  const hardFee   = parseFloat(tsMap["solo_entry_fee_hard"]   ?? "15");
-  const difficulty = Math.abs(entryFee - easyFee) < 0.001 ? "Easy"
-                   : Math.abs(entryFee - hardFee) < 0.001 ? "Hard"
-                   : "Medium";
-  const minDurationMs = difficulty === "Easy" ? 25_000 : difficulty === "Hard" ? 45_000 : 35_000;
+  // Determine minimum game duration:
+  //   - If the per-game admin panel set durationSeconds, use it (with a small
+  //     5s grace so legit fast players aren't rejected by edge timing).
+  //   - Otherwise fall back to legacy difficulty-based defaults.
+  const difficulty = gameCfg?.difficulty || "Medium";
+  let minDurationMs: number;
+  if (perGameDurationSeconds !== null && perGameDurationSeconds > 0) {
+    // Require at least 50% of the configured round duration to be elapsed —
+    // prevents instant farming while tolerating quick legitimate wins.
+    minDurationMs = Math.max(5_000, Math.floor(perGameDurationSeconds * 1000 * 0.5));
+  } else {
+    minDurationMs = difficulty === "Easy" ? 25_000 : difficulty === "Hard" ? 45_000 : 35_000;
+  }
   const minWinScore   = 1; // any positive score proves the game was actually played
 
   const [transaction] = await db

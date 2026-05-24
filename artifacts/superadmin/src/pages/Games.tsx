@@ -15,6 +15,7 @@ interface GameStateSlice {
   maxScore: number;
   scorePerCorrect: number;
   scorePerWrong: number;
+  durationSeconds: number;
   texts: Record<string, unknown>;
   params: Record<string, unknown>;
 }
@@ -176,6 +177,7 @@ function GameRow({ g, onChanged }: { g: GameConfigRow; onChanged: () => void }) 
         maxScore: g.draft.maxScore,
         scorePerCorrect: g.draft.scorePerCorrect,
         scorePerWrong: g.draft.scorePerWrong,
+        durationSeconds: g.draft.durationSeconds,
         texts: g.draft.texts,
         params: g.draft.params,
       });

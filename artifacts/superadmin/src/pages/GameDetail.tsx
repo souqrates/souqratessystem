@@ -42,6 +42,7 @@ export default function GameDetailPage() {
   const [maxScore, setMaxScore] = useState("0");
   const [scorePerCorrect, setScorePerCorrect] = useState("1");
   const [scorePerWrong, setScorePerWrong] = useState("0");
+  const [durationSeconds, setDurationSeconds] = useState("60");
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [extraTextsJson, setExtraTextsJson] = useState("{}");
   const [paramsJson, setParamsJson] = useState("{}");
@@ -58,6 +59,7 @@ export default function GameDetailPage() {
     setMaxScore(String(d.maxScore));
     setScorePerCorrect(String(d.scorePerCorrect));
     setScorePerWrong(String(d.scorePerWrong));
+    setDurationSeconds(String(d.durationSeconds ?? 60));
     const rawTexts = (d.texts ?? {}) as Record<string, unknown>;
     const known: Record<string, string> = {};
     const extras: Record<string, unknown> = {};
@@ -98,6 +100,7 @@ export default function GameDetailPage() {
         maxScore,
         scorePerCorrect,
         scorePerWrong,
+        durationSeconds,
         texts: mergedTexts,
         params,
       });
@@ -322,6 +325,19 @@ export default function GameDetailPage() {
               </Field>
               <Field label="عقوبة الضربة الخاطئة" hint="كم تنقص عند كل خطأ (موجب = خصم)">
                 <input className={inputCls} type="number" min={0} value={scorePerWrong} onChange={(e) => setScorePerWrong(e.target.value)} />
+              </Field>
+              <Field
+                label="⏱ وقت الجولة (بالثواني)"
+                hint="مدة الجولة الواحدة. مثلاً 60 = دقيقة. يُستخدم كعداد داخل اللعبة وأيضاً كحد أدنى زمني لمنع التلاعب على السيرفر (نصف هذه المدة على الأقل قبل قبول الفوز). 0 = بلا حد."
+              >
+                <input
+                  className={inputCls}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={durationSeconds}
+                  onChange={(e) => setDurationSeconds(e.target.value)}
+                />
               </Field>
             </div>
           </Card>

@@ -39,10 +39,28 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
   const [confirmExit,   setConfirmExit]   = useState(false);
   const [confirmFee,    setConfirmFee]    = useState(false);
   const [cdCount,       setCdCount]       = useState(3);
-  const [tiers,         setTiers]         = useState(prefetchedTiers || []);
+  // Per-game tiers from super-admin (priority) → adapted to {label, entryFee, multiplier, isDefault}
+  // so existing tier-picker code keeps working without changes.
+  const perGameTiers = (() => {
+    const raw = Array.isArray(game?.priceTiers) ? game.priceTiers : [];
+    return raw
+      .filter(t => t && typeof t.entryFee === 'number' && typeof t.winAmount === 'number')
+      .map((t, i) => ({
+        label: t.label || `خطة ${i + 1}`,
+        entryFee: Number(t.entryFee),
+        // Preserve the EXACT admin-configured winAmount alongside the
+        // derived multiplier — so display/payout uses the exact number,
+        // not a rounded entryFee*multiplier product (avoids cent drift).
+        winAmount: Number(t.winAmount),
+        multiplier: t.entryFee > 0 ? Number((t.winAmount / t.entryFee).toFixed(4)) : 0,
+        isDefault: i === 0,
+      }));
+  })();
+  const initialTiers = perGameTiers.length ? perGameTiers : (prefetchedTiers || []);
+  const [tiers,         setTiers]         = useState(initialTiers);
   const [selectedTier,  setSelectedTier]  = useState(() => {
-    if (!prefetchedTiers?.length) return null;
-    return prefetchedTiers.find(t => t.isDefault) || prefetchedTiers[0] || null;
+    if (!initialTiers.length) return null;
+    return initialTiers.find(t => t.isDefault) || initialTiers[0] || null;
   });
   const scoreRef              = useRef(0);
   const pendingAction         = useRef(null);
@@ -65,6 +83,8 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
   useEffect(() => {
     if (!game?.id) return;
     if (!wallet?.loaded) { try { refreshBalance?.(); } catch { /* ignore */ } }
+    // Per-game admin tiers take priority — skip global fetch entirely.
+    if (perGameTiers.length) return;
     // Skip tier fetch if already provided by pre-fetch from game card tap
     if (prefetchedTiers?.length) return;
     getSoloFeeTiers(game.id).then(rows => {
@@ -146,7 +166,13 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
   const color     = GAME_COLORS[gameId] || '#00d4ff';
 
   const tierFee   = selectedTier ? Number(selectedTier.entryFee) : Number(game?.entryFee || 0);
-  const tierPrize = selectedTier ? Math.round(selectedTier.entryFee * selectedTier.multiplier) : Number(game?.prize || 0);
+  // Prefer the exact admin-configured winAmount (per-game tiers carry it
+  // verbatim); fall back to multiplier math only for legacy global tiers.
+  const tierPrize = selectedTier
+    ? (selectedTier.winAmount != null
+        ? Number(selectedTier.winAmount)
+        : Math.round(selectedTier.entryFee * selectedTier.multiplier))
+    : Number(game?.prize || 0);
   const activeFee   = isNaN(tierFee)   || tierFee   < 0 ? 0 : tierFee;
   const activePrize = isNaN(tierPrize) || tierPrize < 0 ? 0 : tierPrize;
 

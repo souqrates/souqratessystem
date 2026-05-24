@@ -46,6 +46,9 @@ export const gameConfigsTable = pgTable(
     draftMaxScore: integer("draft_max_score").notNull().default(0),
     draftScorePerCorrect: integer("draft_score_per_correct").notNull().default(1),
     draftScorePerWrong: integer("draft_score_per_wrong").notNull().default(0),
+    // Round duration in seconds (0 = no time cap). Drives both in-game timer
+    // and server-side minDurationMs anti-cheat check.
+    draftDurationSeconds: integer("draft_duration_seconds").notNull().default(60),
     // 5 price tiers per game: [{ label, entryFee, winAmount }]
     draftPriceTiers: jsonb("draft_price_tiers").notNull().default([]),
     // Arbitrary in-game texts: { title, subtitle, rules, winLabel, loseLabel, ctaLabel, ... }
@@ -63,6 +66,7 @@ export const gameConfigsTable = pgTable(
     publishedMaxScore: integer("published_max_score").notNull().default(0),
     publishedScorePerCorrect: integer("published_score_per_correct").notNull().default(1),
     publishedScorePerWrong: integer("published_score_per_wrong").notNull().default(0),
+    publishedDurationSeconds: integer("published_duration_seconds").notNull().default(60),
     publishedPriceTiers: jsonb("published_price_tiers").notNull().default([]),
     publishedTexts: jsonb("published_texts").notNull().default({}),
     publishedParams: jsonb("published_params").notNull().default({}),

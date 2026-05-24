@@ -55,6 +55,7 @@ function applyOverrides(games, overrides, defaultSoloTier) {
         desc:               ov.desc_override       || g.desc,
         entryFee,
         prize,
+        priceTiers:         Array.isArray(ov.price_tiers) && ov.price_tiers.length ? ov.price_tiers : (g.priceTiers || []),
         targetScore:        ov.target_score        != null ? Number(ov.target_score)        : g.targetScore,
         durationSeconds:    ov.duration_seconds    != null ? Number(ov.duration_seconds)    : g.durationSeconds,
         trapPenalty:        ov.trap_penalty        != null ? Number(ov.trap_penalty)        : g.trapPenalty,
@@ -140,6 +141,9 @@ const useAppStore = create((set, get) => ({
               max_score:        g.maxScore || null,
               score_per_hit:    g.scorePerCorrect ?? null,
               score_penalty:    g.scorePerWrong ?? null,
+              // Per-game round duration from super-admin → bot in-game timer
+              // + server min-duration anti-cheat (both read same source).
+              duration_seconds: g.durationSeconds != null ? Number(g.durationSeconds) : null,
               image_url:        g.imageUrl || null,
               texts:            g.texts || {},
               params:           g.params || {},
