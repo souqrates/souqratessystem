@@ -83,6 +83,46 @@ export interface BotText {
   publishedAt: string | null;
 }
 
+export interface SuperUser {
+  id: number;
+  telegramId: string | number;
+  username: string | null;
+  firstName: string;
+  lastName: string | null;
+  isBlocked: boolean | null;
+  isPremium: boolean | null;
+  createdAt: string;
+  balanceSkz: string | null;
+  totalEarnedSkz: string | null;
+}
+
+export interface SuperWallet {
+  id: number;
+  userId: number;
+  balanceSkz: string;
+  balanceStars: string;
+  balanceUsdt: string;
+  balanceTon: string;
+  totalEarnedSkz: string;
+  totalWithdrawnSkz: string;
+}
+
+export interface SuperTransaction {
+  id: number;
+  userId: number;
+  type: string;
+  currency: string;
+  amount: string;
+  fee: string;
+  status: string;
+  sourceBot: string | null;
+  description: string | null;
+  createdAt: string;
+  userTelegramId?: string | number | null;
+  userFirstName?: string | null;
+  userUsername?: string | null;
+}
+
 export interface SkzRates {
   skzPerUsdt: string;
   skzPerStar: string;

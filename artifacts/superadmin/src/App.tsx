@@ -4,6 +4,9 @@ import Login from "@/pages/Login";
 import Layout from "@/pages/Layout";
 import OverviewPage from "@/pages/Overview";
 import BotSettingsPage from "@/pages/BotSettings";
+import UsersPage from "@/pages/Users";
+import UserDetailPage from "@/pages/UserDetail";
+import TransactionsPage from "@/pages/Transactions";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -15,6 +18,9 @@ function AuthedRoutes() {
       <Switch>
         <Route path="/" component={OverviewPage} />
         <Route path="/bots/:slug" component={BotSettingsPage} />
+        <Route path="/users" component={UsersPage} />
+        <Route path="/users/:telegramId" component={UserDetailPage} />
+        <Route path="/transactions" component={TransactionsPage} />
         <Route>
           <div className="p-8" dir="rtl">الصفحة غير موجودة</div>
         </Route>

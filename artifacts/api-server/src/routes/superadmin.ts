@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { eq, sql, and, desc, or, ilike } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   botsTable,
   commissionOverridesTable,
   usersTable,
   botTextsTable,
+  walletsTable,
+  transactionsTable,
 } from "@workspace/db";
 import {
   requireSuperAdmin,
@@ -313,6 +315,240 @@ router.delete("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): 
     return;
   }
   res.json({ ok: true });
+});
+
+// ── Users (search, view, block, manual SKZ credit/debit) ─────────────────
+
+router.get("/superadmin/users", requireSuperAdmin, async (req, res): Promise<void> => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const search = (req.query.search as string | undefined)?.trim();
+  const offset = (page - 1) * limit;
+
+  const conds = [];
+  if (search) {
+    // Escape ILIKE wildcards so a user typing "%" or "_" can't broaden the match.
+    const esc = search.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const pat = `%${esc}%`;
+    conds.push(
+      or(
+        ilike(usersTable.username, pat),
+        ilike(usersTable.firstName, pat),
+        ilike(usersTable.lastName, pat),
+        sql`CAST(${usersTable.telegramId} AS TEXT) ILIKE ${pat}`,
+      )!,
+    );
+  }
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, count] = await Promise.all([
+    db
+      .select({
+        id: usersTable.id,
+        telegramId: usersTable.telegramId,
+        username: usersTable.username,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        isBlocked: usersTable.isBlocked,
+        isPremium: usersTable.isPremium,
+        createdAt: usersTable.createdAt,
+        balanceSkz: walletsTable.balanceSkz,
+        totalEarnedSkz: walletsTable.totalEarnedSkz,
+      })
+      .from(usersTable)
+      .leftJoin(walletsTable, eq(walletsTable.userId, usersTable.id))
+      .where(where)
+      .orderBy(desc(usersTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ c: sql<number>`count(*)::int` }).from(usersTable).where(where),
+  ]);
+
+  res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
+});
+
+router.get("/superadmin/users/:telegramId", requireSuperAdmin, async (req, res): Promise<void> => {
+  const raw = String(req.params.telegramId);
+  let tid: bigint;
+  try { tid = BigInt(raw); } catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.telegramId, tid));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+  const recentTx = await db
+    .select()
+    .from(transactionsTable)
+    .where(eq(transactionsTable.userId, user.id))
+    .orderBy(desc(transactionsTable.createdAt))
+    .limit(50);
+
+  res.json({ user, wallet: wallet ?? null, transactions: recentTx });
+});
+
+router.patch("/superadmin/users/:telegramId", requireSuperAdmin, async (req, res): Promise<void> => {
+  const raw = String(req.params.telegramId);
+  let tid: bigint;
+  try { tid = BigInt(raw); } catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+  const { isBlocked } = req.body as { isBlocked?: boolean };
+  if (typeof isBlocked !== "boolean") { res.status(400).json({ error: "isBlocked is required" }); return; }
+
+  const [updated] = await db
+    .update(usersTable)
+    .set({ isBlocked })
+    .where(eq(usersTable.telegramId, tid))
+    .returning();
+  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  req.log.info({ telegramId: tid.toString(), isBlocked }, "superadmin: user block toggled");
+  res.json(updated);
+});
+
+// Manual SKZ adjustment. `direction`: "credit" adds, "debit" subtracts.
+// Wrapped in a DB transaction with FOR UPDATE row lock to prevent races.
+// NOTE: totalEarnedSkz tracks gross income only — it is NOT decremented on debit.
+async function adjustWalletSkz(
+  telegramId: bigint,
+  direction: "credit" | "debit",
+  amount: number,
+  reason: string,
+  actor: string,
+): Promise<{ user: typeof usersTable.$inferSelect; wallet: typeof walletsTable.$inferSelect; transactionId: number }> {
+  return await db.transaction(async (tx) => {
+    const [user] = await tx.select().from(usersTable).where(eq(usersTable.telegramId, telegramId));
+    if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
+
+    // Lock the wallet row (or its absence) to serialise concurrent adjustments.
+    let [wallet] = await tx
+      .select()
+      .from(walletsTable)
+      .where(eq(walletsTable.userId, user.id))
+      .for("update");
+    if (!wallet) {
+      [wallet] = await tx.insert(walletsTable).values({ userId: user.id }).returning();
+    }
+
+    const current = parseFloat(wallet.balanceSkz);
+    const delta = direction === "credit" ? amount : -amount;
+    const next = current + delta;
+    if (next < 0) throw Object.assign(new Error("الرصيد سيصبح سالباً — العملية مرفوضة"), { status: 400 });
+
+    const newTotalEarned = direction === "credit"
+      ? (parseFloat(wallet.totalEarnedSkz) + amount).toFixed(2)
+      : wallet.totalEarnedSkz;
+
+    const [updatedWallet] = await tx
+      .update(walletsTable)
+      .set({ balanceSkz: next.toFixed(2), totalEarnedSkz: newTotalEarned })
+      .where(eq(walletsTable.id, wallet.id))
+      .returning();
+
+    const [txRow] = await tx
+      .insert(transactionsTable)
+      .values({
+        userId: user.id,
+        type: direction === "credit" ? "admin_credit" : "admin_debit",
+        currency: "skz",
+        amount: amount.toFixed(2),
+        fee: "0",
+        status: "completed",
+        sourceBot: "superadmin",
+        description: `[${actor}] ${reason}`,
+      })
+      .returning({ id: transactionsTable.id });
+
+    return { user, wallet: updatedWallet, transactionId: txRow.id };
+  });
+}
+
+router.post("/superadmin/users/:telegramId/credit", requireSuperAdmin, async (req, res): Promise<void> => {
+  const raw = String(req.params.telegramId);
+  let tid: bigint;
+  try { tid = BigInt(raw); } catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+  const { amountSkz, reason } = req.body as { amountSkz?: string | number; reason?: string };
+  const amt = typeof amountSkz === "number" ? amountSkz : parseFloat(String(amountSkz));
+  if (!Number.isFinite(amt) || amt <= 0) { res.status(400).json({ error: "amountSkz must be > 0" }); return; }
+  if (!reason || !reason.trim()) { res.status(400).json({ error: "reason is required" }); return; }
+
+  try {
+    const out = await adjustWalletSkz(tid, "credit", amt, reason.trim(), "superadmin");
+    req.log.info({ telegramId: tid.toString(), amount: amt, txId: out.transactionId }, "superadmin: manual credit");
+    res.json({ ok: true, wallet: out.wallet, transactionId: out.transactionId });
+  } catch (e) {
+    const err = e as { status?: number; message: string };
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+router.post("/superadmin/users/:telegramId/debit", requireSuperAdmin, async (req, res): Promise<void> => {
+  const raw = String(req.params.telegramId);
+  let tid: bigint;
+  try { tid = BigInt(raw); } catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+  const { amountSkz, reason } = req.body as { amountSkz?: string | number; reason?: string };
+  const amt = typeof amountSkz === "number" ? amountSkz : parseFloat(String(amountSkz));
+  if (!Number.isFinite(amt) || amt <= 0) { res.status(400).json({ error: "amountSkz must be > 0" }); return; }
+  if (!reason || !reason.trim()) { res.status(400).json({ error: "reason is required" }); return; }
+
+  try {
+    const out = await adjustWalletSkz(tid, "debit", amt, reason.trim(), "superadmin");
+    req.log.info({ telegramId: tid.toString(), amount: amt, txId: out.transactionId }, "superadmin: manual debit");
+    res.json({ ok: true, wallet: out.wallet, transactionId: out.transactionId });
+  } catch (e) {
+    const err = e as { status?: number; message: string };
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+// ── Transactions (paginated, with optional filters & user info) ──────────
+router.get("/superadmin/transactions", requireSuperAdmin, async (req, res): Promise<void> => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const offset = (page - 1) * limit;
+  const sourceBot = req.query.sourceBot as string | undefined;
+  const type = req.query.type as string | undefined;
+  const status = req.query.status as string | undefined;
+  const telegramId = req.query.telegramId as string | undefined;
+
+  const conds = [];
+  if (sourceBot) conds.push(eq(transactionsTable.sourceBot, sourceBot));
+  if (type) conds.push(eq(transactionsTable.type, type));
+  if (status) conds.push(eq(transactionsTable.status, status));
+  if (telegramId) {
+    try { conds.push(eq(usersTable.telegramId, BigInt(telegramId))); }
+    catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+  }
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, count] = await Promise.all([
+    db
+      .select({
+        id: transactionsTable.id,
+        userId: transactionsTable.userId,
+        type: transactionsTable.type,
+        currency: transactionsTable.currency,
+        amount: transactionsTable.amount,
+        fee: transactionsTable.fee,
+        status: transactionsTable.status,
+        sourceBot: transactionsTable.sourceBot,
+        description: transactionsTable.description,
+        createdAt: transactionsTable.createdAt,
+        userTelegramId: usersTable.telegramId,
+        userFirstName: usersTable.firstName,
+        userUsername: usersTable.username,
+      })
+      .from(transactionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, transactionsTable.userId))
+      .where(where)
+      .orderBy(desc(transactionsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(transactionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, transactionsTable.userId))
+      .where(where),
+  ]);
+
+  res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
 });
 
 // ── Platform stats (lightweight overview) ────────────────────────────────
