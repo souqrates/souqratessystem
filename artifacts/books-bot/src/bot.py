@@ -87,6 +87,32 @@ COMMANDS: list[BotCommand] = [
     BotCommand(command="help",    description="عرض قائمة الأوامر والمساعدة"),
 ]
 
+# Per-language translations of the menu. Telegram picks the closest match to
+# the user's Telegram UI language (`language_code`), falling back to the
+# default (no language_code) menu — which we keep as Arabic since this bot's
+# primary audience is Arabic-speaking. Add a new language here to publish a
+# localized menu automatically at startup; no handler changes are needed
+# because slash-command names stay identical across languages.
+COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
+    "ar": COMMANDS,
+    "en": [
+        BotCommand(command="start",   description="Start the bot and open the main menu"),
+        BotCommand(command="browse",  description="Browse books by category"),
+        BotCommand(command="publish", description="Submit a new book for review"),
+        BotCommand(command="library", description="My library (purchases & publications)"),
+        BotCommand(command="wallet",  description="My SKZ wallet balance"),
+        BotCommand(command="help",    description="Show commands list and help"),
+    ],
+    "ru": [
+        BotCommand(command="start",   description="Запустить бота и открыть главное меню"),
+        BotCommand(command="browse",  description="Просмотр книг по категориям"),
+        BotCommand(command="publish", description="Отправить новую книгу на проверку"),
+        BotCommand(command="library", description="Моя библиотека (покупки и публикации)"),
+        BotCommand(command="wallet",  description="Баланс кошелька SKZ"),
+        BotCommand(command="help",    description="Список команд и помощь"),
+    ],
+}
+
 
 # ── /start ──────────────────────────────────────────────────────────────────
 @router.message(CommandStart())
@@ -490,9 +516,21 @@ async def main():
 
     # Publish slash-command menu to Telegram so the menu button stays in sync
     # with the Command() handlers in this file. Non-fatal on failure.
+    # Publish a default menu (no language_code) plus one per supported
+    # language. Telegram serves each user the closest match to their
+    # Telegram UI `language_code`, falling back to the default. Per-language
+    # failures are non-fatal so one bad locale never blocks the others.
     try:
         await bot.set_my_commands(COMMANDS, scope=BotCommandScopeDefault())
-        logger.info(f"published {len(COMMANDS)} commands to BotFather menu")
+        logger.info(f"published {len(COMMANDS)} default commands to BotFather menu")
+        for lang_code, cmds in COMMANDS_BY_LANG.items():
+            try:
+                await bot.set_my_commands(
+                    cmds, scope=BotCommandScopeDefault(), language_code=lang_code,
+                )
+                logger.info(f"published {len(cmds)} commands for language={lang_code}")
+            except Exception as e:
+                logger.warning(f"set_my_commands(language={lang_code}) failed: {e}")
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
 

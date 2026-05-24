@@ -68,6 +68,34 @@ ADMIN_COMMANDS: list[BotCommand] = COMMANDS + [
     BotCommand(command="admin", description="Platform stats (admins only)"),
 ]
 
+# Per-language translations. Telegram serves each user the closest match to
+# their Telegram UI `language_code`, falling back to the default (no
+# language_code) menu above. Add a new locale here to publish a localized
+# menu automatically at startup; slash-command names stay identical across
+# languages so handlers don't need changes.
+COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
+    "en": COMMANDS,
+    "ar": [
+        BotCommand(command="start",   description="فتح القائمة الرئيسية والمحفظة"),
+        BotCommand(command="balance", description="عرض أرصدة SKZ / USDT / Stars / TON"),
+    ],
+    "ru": [
+        BotCommand(command="start",   description="Открыть главное меню и кошелёк"),
+        BotCommand(command="balance", description="Баланс SKZ / USDT / Stars / TON"),
+    ],
+}
+
+ADMIN_COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
+    lang: cmds + [
+        {
+            "en": BotCommand(command="admin", description="Platform stats (admins only)"),
+            "ar": BotCommand(command="admin", description="إحصاءات المنصة (للمشرفين فقط)"),
+            "ru": BotCommand(command="admin", description="Статистика платформы (только админы)"),
+        }[lang]
+    ]
+    for lang, cmds in COMMANDS_BY_LANG.items()
+}
+
 
 # ── API helpers ──────────────────────────────────────────────────────────────
 
@@ -459,12 +487,36 @@ async def main():
     # with the Command() handlers in this file. Default scope for everyone,
     # plus per-admin chat scope so /admin only appears for admins. Non-fatal
     # on failure.
+    # Publish the default menu (no language_code) plus one per supported
+    # language for both the public scope and each admin's chat scope.
+    # Telegram serves each user the closest match to their Telegram UI
+    # language_code, falling back to the default. Per-language failures are
+    # non-fatal so one bad locale never blocks the others.
     try:
         await bot.set_my_commands(COMMANDS, scope=BotCommandScopeDefault())
         logger.info(f"published {len(COMMANDS)} default commands to BotFather menu")
+        for lang_code, cmds in COMMANDS_BY_LANG.items():
+            try:
+                await bot.set_my_commands(
+                    cmds, scope=BotCommandScopeDefault(), language_code=lang_code,
+                )
+                logger.info(f"published {len(cmds)} commands for language={lang_code}")
+            except Exception as e:
+                logger.warning(f"set_my_commands(language={lang_code}) failed: {e}")
         for admin_id in ADMIN_IDS:
             try:
                 await bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=admin_id))
+                for lang_code, cmds in ADMIN_COMMANDS_BY_LANG.items():
+                    try:
+                        await bot.set_my_commands(
+                            cmds,
+                            scope=BotCommandScopeChat(chat_id=admin_id),
+                            language_code=lang_code,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"set_my_commands(admin={admin_id}, language={lang_code}) failed: {e}"
+                        )
             except Exception as e:
                 logger.warning(f"set_my_commands(admin={admin_id}) failed: {e}")
     except Exception as e:
