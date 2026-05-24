@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { triggerHaptic } from '../../../lib/telegram'
 import PremiumStage from './_premiumStage'
-import { TimeBar } from './_shell'
+import { TimeBar, TargetBar } from './_shell'
 
 const W = 340
 const H = 440
@@ -130,7 +130,8 @@ export default function HexBlast({ phase, setPhase, onScoreUpdate, game}) {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(timerRef.current)
-          setPhase('won')
+          const target = game?.targetScore || 500
+          setPhase(scoreRef.current >= target ? 'won' : 'lost')
           return 0
         }
         return t - 1
@@ -206,6 +207,9 @@ export default function HexBlast({ phase, setPhase, onScoreUpdate, game}) {
       </div>
 
       <TimeBar totalTime={GAME_DURATION} timeLeft={timeLeft} />
+      <div style={{ width: '100%', maxWidth: W, margin: '6px 0 2px' }}>
+        <TargetBar score={score} target={game?.targetScore || 500} label="TARGET TO WIN" />
+      </div>
 
       <svg
         width={W}

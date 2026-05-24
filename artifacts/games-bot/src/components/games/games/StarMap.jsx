@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { triggerHaptic } from '../../../lib/telegram';
 import { beep } from './_gameKit';
-import { Hud, HudRow, Rules, TimeBar } from './_shell';
+import { Hud, HudRow, Rules, TimeBar, TargetBar } from './_shell';
 
 const RULES = 'STAR MAP — A constellation flashes. Tap the stars in the same order from memory. 90 seconds.';
 const W = 320, H = 380, T = 90;
@@ -12,7 +12,7 @@ function genConst(n) {
   return stars;
 }
 
-export default function StarMap({ phase, setPhase, onScoreUpdate }) {
+export default function StarMap({ phase, setPhase, onScoreUpdate, game }) {
   const [score, setScore] = useState(0); const [time, setTime] = useState(T); const [round, setRound] = useState(1);
   const [stars, setStars] = useState([]); const [showSeq, setShowSeq] = useState(-1); const [idx, setIdx] = useState(0);
   const [phase2, setPhase2] = useState('preview'); const scoreRef = useRef(0); const activeRef = useRef(false);
@@ -21,7 +21,12 @@ export default function StarMap({ phase, setPhase, onScoreUpdate }) {
     if (phase !== 'playing') return;
     scoreRef.current = 0; setScore(0); setTime(T); setRound(1); activeRef.current = true;
     const iv = setInterval(() => setTime(t => {
-      if (t <= 1) { activeRef.current = false; clearInterval(iv); onScoreUpdate?.(scoreRef.current); setTimeout(() => setPhase('won'), 300); return 0; }
+      if (t <= 1) {
+        activeRef.current = false; clearInterval(iv); onScoreUpdate?.(scoreRef.current);
+        const target = game?.targetScore || 300;
+        setTimeout(() => setPhase(scoreRef.current >= target ? 'won' : 'lost'), 300);
+        return 0;
+      }
       return t - 1;
     }), 1000);
     startRound(1);
@@ -64,6 +69,7 @@ export default function StarMap({ phase, setPhase, onScoreUpdate }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <HudRow><Hud label="SCORE" v={score} c="#ffcc00" /><Hud label="TIME" v={`${time}s`} c={time <= 10 ? '#ff3355' : '#fff'} /><Hud label="ROUND" v={round} c="#ff66cc" /></HudRow>
       <TimeBar totalTime={T} timeLeft={time} />
+      <TargetBar score={score} target={game?.targetScore || 300} label="TARGET TO WIN" />
       <svg width={W} height={H} style={{ width: '100%', borderRadius: 14, border: '1px solid rgba(255,204,0,0.2)', background: 'radial-gradient(ellipse at center,#03051a,#01010a)' }}>
         {stars.map((s, i) => {
           const lit = phase2 === 'preview' ? i <= showSeq : i < idx;

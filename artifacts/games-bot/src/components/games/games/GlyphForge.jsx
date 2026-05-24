@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { beep, noise } from './_gameKit';
-import { TimeBar } from './_shell';
+import { TimeBar, TargetBar } from './_shell';
 
 const RULES = 'GLYPH FORGE \u2014 Memorize the glyph shape, then redraw it by tapping the grid cells in order. Perfect match = bonus. Round resets after each attempt. 90 seconds.';
 const DEFAULT_GAME_TIME = 90;
@@ -44,8 +44,9 @@ export default function GlyphForge({ phase, setPhase, onScoreUpdate, game}) {
     clearInterval(tickRef.current);
     if (onScoreUpdate) onScoreUpdate(scoreRef.current);
     triggerHaptic('heavy');
-    setTimeout(() => setPhase('won'), 400);
-  }, [setPhase, onScoreUpdate]);
+    const target = game?.targetScore || 400;
+    setTimeout(() => setPhase(scoreRef.current >= target ? 'won' : 'lost'), 400);
+  }, [setPhase, onScoreUpdate, game]);
 
   const startRound = useCallback(() => {
     if (!activeRef.current) return;
@@ -131,6 +132,7 @@ export default function GlyphForge({ phase, setPhase, onScoreUpdate, game}) {
         <Tile label="ROUND" val={round} color="#ff66ee" />
       </div>
       <TimeBar totalTime={GAME_TIME} timeLeft={timeLeft} />
+      <TargetBar score={score} target={game?.targetScore || 400} label="TARGET TO WIN" />
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontSize: 10, color: 'rgba(148,163,184,0.6)', letterSpacing: '0.25em', margin: 0 }}>
           {stage === 'show' ? 'MEMORIZE' : stage === 'input' ? 'REPRODUCE' : '\u2014'}
