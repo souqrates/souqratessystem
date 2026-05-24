@@ -173,7 +173,7 @@ def main_keyboard() -> InlineKeyboardMarkup:
         # ②.5 Launch Books (jumps user into the books child bot via deep-link)
         [
             InlineKeyboardButton(
-                text="📚 souqrates books",
+                text="❖ SOUQRATES SOUQ",
                 url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother",
             )
         ],
@@ -432,15 +432,15 @@ async def cb_referral_transfer(callback: CallbackQuery):
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery):
     text = (
-        "ℹ️ <b>About SKZ Platform</b>\n\n"
-        "SKZ is your unified financial hub across 6 bots:\n\n"
-        "🎮 <b>Games Bot</b> — skill games with prizes\n"
-        "🎬 <b>Video Bot</b> — earn from watching\n"
-        "🎤 <b>Voice Bot</b> — paid voice rooms\n"
-        "🤖 <b>AI Bot</b> — text/image generation\n"
-        "🛒 <b>Store Bot</b> — digital products\n"
-        "🏆 <b>Contests Bot</b> — competitions & prizes\n\n"
-        "All earnings across every bot flow into one SKZ wallet here."
+        "ℹ️ <b>About SOUQRATES SYSTEM</b>\n\n"
+        "SKZ is your unified financial hub across the SOUQRATES ecosystem:\n\n"
+        "▲ <b>SOUQRATES SKILLZ</b> — skill games with prizes\n"
+        "❖ <b>SOUQRATES SOUQ</b>   — books &amp; digital products\n"
+        "▶ <b>SOUQRATES SCENE</b>  — short video, earn from watching\n"
+        "◉ <b>SOUQRATES STREAM</b> — paid voice rooms\n"
+        "✦ <b>SOUQRATES SIGNAL</b> — AI text/image/video generation\n"
+        "★ <b>SOUQRATES STAGE</b>  — contests &amp; voting prizes\n\n"
+        "All earnings across every chapter flow into one SKZ wallet here — in SOUQRATES SYSTEM."
     )
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()

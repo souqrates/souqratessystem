@@ -61,10 +61,10 @@ export default function Sidebar() {
           sub="عمولة، إعدادات عامة"
         />
 
-        {/* SOUQRATES BOOKS — كل ما يخصّ بوت الكتب */}
+        {/* SOUQRATES SOUQ — كل ما يخصّ بوت الكتب والمنتجات الرقمية */}
         <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#0F766E" }}>
-          📚 SOUQRATES BOOKS
-          <div className="text-[10px] font-normal text-slate-500 normal-case">المتجر الرقمي + المؤلفون</div>
+          ❖ SOUQRATES SOUQ
+          <div className="text-[10px] font-normal text-slate-500 normal-case">الكتب والمنتجات الرقمية</div>
         </div>
         <SidebarLink
           href="/books"

@@ -10,45 +10,39 @@ API_URL = "http://localhost:80/api"
 BOTS = [
     {
         "slug": "games-bot",
-        "name": "بوت الألعاب",
+        "name": "SOUQRATES SKILLZ",
         "description": "ألعاب المهارات مع رهانات ومكافآت",
         "commissionRate": "0.0800",
     },
     {
+        "slug": "books-bot",
+        "name": "SOUQRATES SOUQ",
+        "description": "متجر الكتب والمنتجات الرقمية مع لوحة نشر للمؤلفين",
+        "commissionRate": "0.1000",
+    },
+    {
         "slug": "video-bot",
-        "name": "بوت الفيديو",
-        "description": "منصة فيديو تشبه TikTok مع أرباح للمنشئين",
+        "name": "SOUQRATES SCENE",
+        "description": "منصة فيديو قصير مع أرباح للمنشئين",
         "commissionRate": "0.1000",
     },
     {
         "slug": "voice-bot",
-        "name": "بوت الغرف الصوتية",
+        "name": "SOUQRATES STREAM",
         "description": "غرف صوتية مدفوعة ومجانية",
         "commissionRate": "0.1000",
     },
     {
         "slug": "ai-bot",
-        "name": "بوت الذكاء الاصطناعي",
+        "name": "SOUQRATES SIGNAL",
         "description": "توليد نصوص وصور وفيديوهات بالذكاء الاصطناعي",
         "commissionRate": "0.1200",
     },
     {
-        "slug": "store-bot",
-        "name": "المتجر الرقمي",
-        "description": "بيع وشراء المنتجات الرقمية",
-        "commissionRate": "0.0500",
-    },
-    {
         "slug": "contests-bot",
-        "name": "بوت المسابقات",
+        "name": "SOUQRATES STAGE",
         "description": "مسابقات وتصويت وجوائز",
         "commissionRate": "0.0800",
-    },
-    {
-        "slug": "books-bot",
-        "name": "بوت الكتب",
-        "description": "متجر كتب ومنتجات رقمية مع لوحة نشر للمؤلفين",
-        "commissionRate": "0.1000",
     },
 ]
 

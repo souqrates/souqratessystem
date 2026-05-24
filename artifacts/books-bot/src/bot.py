@@ -1,5 +1,5 @@
 """
-souqrates books — child Telegram bot (aiogram 3).
+SOUQRATES SOUQ — child Telegram bot (aiogram 3).
 
 Mirrors the structure of artifacts/mother-bot/src/bot.py but is purpose-built
 for the digital-products marketplace:
@@ -155,7 +155,7 @@ async def cmd_start(message: Message, state: FSMContext):
     except Exception as e:
         logger.error(f"upsert failed: {e}")
 
-    title = await texts.get("welcome_title", "📚 أهلًا بك في souqrates books")
+    title = await texts.get("welcome_title", "❖ أهلًا بك في SOUQRATES SOUQ")
     body = await texts.get(
         "welcome_body",
         "متجر الكتب والمنتجات الرقمية على تيليجرام.\n"
@@ -168,7 +168,7 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.callback_query(F.data == "menu")
 async def cb_menu(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text("📚 <b>souqrates books</b>\n\nاختر إجراءً:", parse_mode="HTML", reply_markup=main_kb())
+    await cb.message.edit_text("❖ <b>SOUQRATES SOUQ</b>\n\nاختر إجراءً:", parse_mode="HTML", reply_markup=main_kb())
     await cb.answer()
 
 
@@ -177,7 +177,7 @@ async def cb_menu(cb: CallbackQuery, state: FSMContext):
 async def cmd_help(message: Message, state: FSMContext):
     await state.clear()
     txt = (
-        "🆘 <b>مساعدة — souqrates books</b>\n\n"
+        "<b>مساعدة — SOUQRATES SOUQ</b>\n\n"
         "الأوامر المتاحة:\n"
         "/start — القائمة الرئيسية\n"
         "/browse — تصفّح الكتب حسب التصنيف\n"

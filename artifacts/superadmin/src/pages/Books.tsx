@@ -38,7 +38,7 @@ export default function BooksPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: "#0F766E" }}>📚 الكتب — souqrates books</h1>
+        <h1 className="text-2xl font-bold" style={{ color: "#0F766E" }}>❖ SOUQRATES SOUQ — الكتب والمنتجات الرقمية</h1>
         <p className="text-sm text-slate-500 mt-1">مراجعة الكتب المرسلة، إدارة التصنيفات، ومتابعة المبيعات.</p>
       </div>
       <div className="flex gap-2 mb-4 border-b border-slate-200">

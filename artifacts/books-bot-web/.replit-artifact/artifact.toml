@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/books-bot-web/"
-title = "souqrates books — متجر الكتب الرقمي"
+title = "SOUQRATES SOUQ — الكتب والمنتجات الرقمية"
 version = "1.0.0"
 id = "artifacts/books-bot-web"
 router = "path"

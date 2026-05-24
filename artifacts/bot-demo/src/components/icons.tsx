@@ -3,6 +3,7 @@ import {
   DollarSign, Star, Gem, Download, Upload, Users,
   Calendar, Crown, Shield, Compass, LineChart,
   Sparkles, Zap, Flame, Rocket, Target, Ghost,
+  BookOpen,
   type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -14,6 +15,7 @@ const ICON_MAP: Record<string, ComponentType<LucideProps>> = {
   mic:      Mic2,
   bot:      Bot,
   store:    ShoppingBag,
+  book:     BookOpen,
   trophy:   Trophy,
   dollar:   DollarSign,
   star:     Star,
@@ -76,14 +78,14 @@ export function IconBox({
   );
 }
 
-// ── Pre-configured bot icon boxes ─────────────────────────
+// ── Pre-configured bot icon boxes (canonical SOUQRATES taxonomy) ──────────
 export const BOT_ICONS: Record<string, { iconKey: string; color: string; glow: string; bg: string }> = {
-  Games:    { iconKey: "gamepad", color: "#a855f7", glow: "rgba(168,85,247,0.3)", bg: "linear-gradient(135deg,rgba(168,85,247,0.2),rgba(168,85,247,0.08))" },
-  Video:    { iconKey: "film",    color: "#60a5fa", glow: "rgba(96,165,250,0.3)",  bg: "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08))" },
-  Voice:    { iconKey: "mic",     color: "#22d3ee", glow: "rgba(34,211,238,0.3)",  bg: "linear-gradient(135deg,rgba(6,182,212,0.2),rgba(6,182,212,0.08))" },
-  AI:       { iconKey: "bot",     color: "#8b5cf6", glow: "rgba(139,92,246,0.3)",  bg: "linear-gradient(135deg,rgba(109,40,217,0.2),rgba(109,40,217,0.08))" },
-  Store:    { iconKey: "store",   color: "#10b981", glow: "rgba(16,185,129,0.3)",  bg: "linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08))" },
-  Contests: { iconKey: "trophy",  color: "#f59e0b", glow: "rgba(245,158,11,0.3)",  bg: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08))" },
+  Skillz: { iconKey: "gamepad", color: "#a855f7", glow: "rgba(168,85,247,0.3)", bg: "linear-gradient(135deg,rgba(168,85,247,0.2),rgba(168,85,247,0.08))" },
+  Souq:   { iconKey: "book",    color: "#c9a24b", glow: "rgba(201,162,75,0.3)", bg: "linear-gradient(135deg,rgba(201,162,75,0.2),rgba(184,137,58,0.08))"  },
+  Scene:  { iconKey: "film",    color: "#60a5fa", glow: "rgba(96,165,250,0.3)", bg: "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08))"  },
+  Stream: { iconKey: "mic",     color: "#22d3ee", glow: "rgba(34,211,238,0.3)", bg: "linear-gradient(135deg,rgba(6,182,212,0.2),rgba(6,182,212,0.08))"   },
+  Signal: { iconKey: "bot",     color: "#8b5cf6", glow: "rgba(139,92,246,0.3)", bg: "linear-gradient(135deg,rgba(109,40,217,0.2),rgba(109,40,217,0.08))" },
+  Stage:  { iconKey: "trophy",  color: "#f59e0b", glow: "rgba(245,158,11,0.3)", bg: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08))" },
 };
 
 export const ACTION_ICONS: Record<string, { iconKey: string; color: string }> = {
@@ -128,12 +130,12 @@ export const CURRENCY_ICONS: Record<string, { iconKey: string; color: string; bg
 };
 
 export const TX_ICONS: Record<string, { iconKey: string; color: string }> = {
-  Games:    { iconKey: "gamepad",  color: "#a855f7" },
-  Video:    { iconKey: "film",     color: "#60a5fa" },
+  Skillz:   { iconKey: "gamepad",  color: "#a855f7" },
+  Souq:     { iconKey: "book",     color: "#c9a24b" },
+  Scene:    { iconKey: "film",     color: "#60a5fa" },
+  Stream:   { iconKey: "mic",      color: "#22d3ee" },
+  Signal:   { iconKey: "bot",      color: "#8b5cf6" },
+  Stage:    { iconKey: "trophy",   color: "#f59e0b" },
   Withdraw: { iconKey: "upload",   color: "#f87171" },
-  Store:    { iconKey: "store",    color: "#10b981" },
   Deposit:  { iconKey: "download", color: "#a855f7" },
-  Voice:    { iconKey: "mic",      color: "#22d3ee" },
-  AI:       { iconKey: "bot",      color: "#8b5cf6" },
-  Contests: { iconKey: "trophy",   color: "#f59e0b" },
 };

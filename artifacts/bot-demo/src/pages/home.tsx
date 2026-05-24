@@ -13,13 +13,16 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] } },
 };
 
-const BOTS: { name: string; live?: boolean; url?: string }[] = [
-  { name: "Games",    live: true, url: "https://souqrates.com/games-bot/" },
-  { name: "Video" },
-  { name: "Voice" },
-  { name: "AI" },
-  { name: "Store" },
-  { name: "Contests" },
+// Canonical SOUQRATES taxonomy — see artifacts/superadmin/src/lib/bots-meta.ts
+// `name` is the short key used for icon lookups; `brand` is the full canonical
+// user-facing wordmark; `short` is a compact display label for tight chips.
+const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: string }[] = [
+  { name: "Skillz", brand: "SOUQRATES SKILLZ", short: "SKILLZ", live: true, url: "https://souqrates.com/games-bot/" },
+  { name: "Souq",   brand: "SOUQRATES SOUQ",   short: "SOUQ",   live: true, url: "https://souqrates.com/books-bot-web/" },
+  { name: "Scene",  brand: "SOUQRATES SCENE",  short: "SCENE"  },
+  { name: "Stream", brand: "SOUQRATES STREAM", short: "STREAM" },
+  { name: "Signal", brand: "SOUQRATES SIGNAL", short: "SIGNAL" },
+  { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE"  },
 ];
 
 export function Home() {
@@ -212,7 +215,7 @@ export function Home() {
                     } catch {}
                     openTelegramApp(bot.url);
                   } else {
-                    showTelegramAlert(`${bot.name} bot is launching soon. Stay tuned!`);
+                    showTelegramAlert(`${bot.brand} is launching soon. Stay tuned!`);
                   }
                 }}
                 className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[72px] pressable relative"
@@ -223,7 +226,7 @@ export function Home() {
                 )}
                 <IconBox iconKey={bi.iconKey} size={20} color={bi.color} bg={bi.bg}
                   border={`${bi.color}25`} glow={bi.glow} boxSize={42} radius={12} />
-                <p className="text-[10px] font-bold text-white/80 text-center leading-tight">{bot.name}</p>
+                <p className="text-[10px] font-bold text-white/80 text-center leading-tight tracking-wider" dir="ltr" lang="en" title={bot.brand}>{bot.short}</p>
                 <span className="text-[8px] font-bold text-white/30">{bot.live ? "Open" : "Soon"}</span>
               </motion.button>
             );

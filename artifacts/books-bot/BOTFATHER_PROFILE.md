@@ -1,6 +1,6 @@
 # BotFather profile — @Souqrates_souq_bot
 
-هذه نصوص جاهزة للصق في @BotFather لضبط هوية بوت **souqrates books**.
+هذه نصوص جاهزة للصق في @BotFather لضبط هوية بوت **SOUQRATES SOUQ**.
 كل العمليات يدوية من تيليغرام — لا تتطلب تغييراً في الكود.
 
 ---
@@ -8,7 +8,7 @@
 ## 1) `/setname`
 
 ```
-souqrates books — متجر الكتب الرقمية
+SOUQRATES SOUQ — متجر الكتب والمنتجات الرقمية
 ```
 
 ---

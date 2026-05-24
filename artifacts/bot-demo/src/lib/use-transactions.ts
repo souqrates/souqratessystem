@@ -54,18 +54,19 @@ export function formatTxDate(iso: string): string {
   return `منذ ${Math.floor(diffH / 24)} أيام`;
 }
 
+// Refined monogram glyphs aligned with the SOUQRATES brand taxonomy.
 const BOT_ICON_MAP: Record<string, string> = {
-  "games-bot":    "🎮",
-  "video-bot":    "🎬",
-  "voice-bot":    "🎙️",
-  "ai-bot":       "🤖",
-  "store-bot":    "🛒",
-  "contests-bot": "🏆",
-  "mother-bot":   "🏦",
-  superadmin:     "⚙️",
+  "mother-bot":   "◆", // SOUQRATES SYSTEM
+  "games-bot":    "▲", // SOUQRATES SKILLZ
+  "books-bot":    "❖", // SOUQRATES SOUQ
+  "video-bot":    "▶", // SOUQRATES SCENE
+  "voice-bot":    "◉", // SOUQRATES STREAM
+  "ai-bot":       "✦", // SOUQRATES SIGNAL
+  "contests-bot": "★", // SOUQRATES STAGE
+  superadmin:     "✕",
 };
 
 export function txBotIcon(sourceBot: string | null): string {
-  if (!sourceBot) return "💫";
-  return BOT_ICON_MAP[sourceBot] ?? "💫";
+  if (!sourceBot) return "·";
+  return BOT_ICON_MAP[sourceBot] ?? "·";
 }

@@ -72,7 +72,7 @@ await mother.debit(str(user.id), "usdt", 10.0, "شراء اشتراك")
 ├── بوت الفيديو       → slug: video-bot  
 ├── بوت الغرف الصوتية → slug: voice-bot
 ├── بوت الذكاء الاصطناعي → slug: ai-bot
-├── المتجر الرقمي    → slug: store-bot
+├── الكتب والمنتجات → slug: books-bot (SOUQRATES SOUQ)
 └── بوت المسابقات    → slug: contests-bot
 ```
 

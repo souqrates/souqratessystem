@@ -1,20 +1,93 @@
 @import "tailwindcss";
 
 :root {
-  --emerald: #0F766E;
-  --emerald-dark: #0B5E58;
-  --gold: #D4AF37;
-  --gold-light: #E8C766;
-  --cream: #FAF7F2;
-  --ink: #1F2937;
-  --muted: #6B7280;
+  /* SOUQRATES SOUQ — Editorial Boutique palette */
+  --ink:           #0F1419;   /* deep ink, primary text */
+  --ink-soft:      #2A2E36;
+  --muted:         #6B6356;   /* warm taupe */
+  --muted-soft:    #8A8275;
+
+  --parchment:     #F5EDDC;   /* warm cream background */
+  --parchment-deep:#EFE4CD;
+  --ivory:         #FBF6EA;
+  --paper:         #FFFDF7;
+
+  --emerald:       #143D2E;   /* deep forest, accent */
+  --emerald-soft:  #1E5341;
+  --emerald-line:  rgba(20, 61, 46, 0.14);
+
+  --gold:          #B8893A;   /* antique gold */
+  --gold-soft:     #C9A24B;
+  --gold-line:     rgba(184, 137, 58, 0.35);
+  --gold-glow:     rgba(184, 137, 58, 0.08);
+
+  --hairline:      rgba(15, 20, 25, 0.08);
 }
 
 html, body {
-  background: var(--cream);
+  background: var(--parchment);
   color: var(--ink);
-  font-family: 'Tajawal', 'Cairo', system-ui, -apple-system, sans-serif;
+  font-family: 'Tajawal', 'Inter', system-ui, -apple-system, sans-serif;
   direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+.font-display {
+  font-family: 'Amiri', 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.font-serif-en {
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-style: italic;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Subtle warm paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    radial-gradient(rgba(184, 137, 58, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(20, 61, 46, 0.04) 1px, transparent 1px);
+  background-size: 22px 22px, 17px 17px;
+  background-position: 0 0, 11px 9px;
+}
+
+/* Gold underline link */
+a.refined {
+  position: relative;
+  color: var(--ink);
+}
+a.refined::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+a.refined:hover::after { transform: scaleX(1); transform-origin: left; }
+
+/* Reveal on scroll */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 * { box-sizing: border-box; }

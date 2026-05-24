@@ -55,13 +55,19 @@
 - سحب الأرباح بعدة طرق
 - نظام إحالة
 
-### البوتات الفرعية المخططة
-1. **بوت الألعاب** (games-bot) — ألعاب مهارات مع رهانات
-2. **بوت الفيديو** (video-bot) — TikTok-like مع أرباح للمنشئين
-3. **بوت الغرف الصوتية** (voice-bot) — غرف صوتية مدفوعة
-4. **بوت الذكاء الاصطناعي** (ai-bot) — توليد نصوص/صور/فيديو
-5. **المتجر الرقمي** (store-bot) — بيع منتجات رقمية
-6. **بوت المسابقات** (contests-bot) — مسابقات وجوائز
+### الهوية التجارية الموحَّدة (Canonical brand taxonomy)
+
+| Slug         | Brand              | الاسم العربي               |
+|--------------|--------------------|----------------------------|
+| mother-bot   | SOUQRATES SYSTEM   | البوت الأم (المحفظة الموحّدة) |
+| games-bot    | SOUQRATES SKILLZ   | الألعاب                     |
+| books-bot    | SOUQRATES SOUQ     | الكتب والمنتجات الرقمية    |
+| video-bot    | SOUQRATES SCENE    | الفيديوهات                  |
+| voice-bot    | SOUQRATES STREAM   | الغرف الصوتية               |
+| ai-bot       | SOUQRATES SIGNAL   | الذكاء الاصطناعي           |
+| contests-bot | SOUQRATES STAGE    | المسابقات والتصويت         |
+
+> **Single source of truth**: `artifacts/superadmin/src/lib/bots-meta.ts`. لا تنشئ تسميات بديلة. كل عرض UI/نص بوت/وثيقة يجب أن يستخدم الاسم الكامل بالأحرف الكبيرة `SOUQRATES XXXX`.
 
 ### لوحة التحكم الإدارية
 - إحصاءات مالية شاملة

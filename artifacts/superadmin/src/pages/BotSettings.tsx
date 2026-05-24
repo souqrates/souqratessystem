@@ -72,7 +72,7 @@ function ChildBotPlaceholder({ slug, brand, arName }: { slug: string; brand: str
       <div className="bg-amber-50 border border-amber-300 rounded-xl p-5 text-sm text-amber-900 leading-7">
         لم أُعرّف بعد إعدادات <span className="font-bold">{brand}</span> ({arName}).
         <br />
-        النسب المالية وأسعار SKZ والاستثناءات تُدار مركزياً من صفحة <code className="px-1 py-0.5 bg-amber-100 rounded">souqrates system</code>.
+        النسب المالية وأسعار SKZ والاستثناءات تُدار مركزياً من صفحة <code className="px-1 py-0.5 bg-amber-100 rounded">SOUQRATES SYSTEM</code>.
         <br /><br />
         أخبرني ما الذي تريد إدارته من هنا تحديداً (مثلاً: حدود الرهانات، نصوص الرسائل، حالة الصيانة، أنواع الألعاب…) وسأبنيه.
       </div>
