@@ -126,20 +126,29 @@ def back_keyboard() -> InlineKeyboardMarkup:
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    try:
-        data = await api_upsert_user(message.from_user)
-        user   = data["user"]
-        wallet = data.get("wallet")
-    except Exception as e:
-        logger.error(f"Error upserting user: {e}")
-        user   = {"firstName": message.from_user.first_name}
-        wallet = None
+    first_name = message.from_user.first_name or "User"
 
-    skz_bal   = int(float(wallet["balanceSkz"]))   if wallet else 0
-    usdt_bal  = float(wallet["balanceUsdt"])        if wallet else 0
+    # 1. Upsert — registers / updates the user record. Fire regardless of wallet.
+    try:
+        upsert_data = await api_upsert_user(message.from_user)
+        first_name  = upsert_data.get("user", {}).get("firstName", first_name)
+    except Exception as e:
+        logger.error(f"Upsert failed: {e}")
+
+    # 2. Always fetch balance fresh — ensures any admin credit/debit is visible.
+    skz_bal  = 0
+    usdt_bal = 0.0
+    try:
+        wallet_data = await api_get_wallet(str(message.from_user.id))
+        if wallet_data:
+            w        = wallet_data.get("wallet") or {}
+            skz_bal  = int(float(w.get("balanceSkz",  "0")))
+            usdt_bal = float(w.get("balanceUsdt", "0"))
+    except Exception as e:
+        logger.error(f"Balance fetch failed: {e}")
 
     text = (
-        f"👋 Welcome, <b>{user['firstName']}</b>!\n\n"
+        f"👋 Welcome, <b>{first_name}</b>!\n\n"
         f"🏦 <b>Your SKZ Wallet</b>\n"
         f"├ ⚡ SKZ: <code>{skz_bal:,}</code>\n"
         f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
