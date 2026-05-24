@@ -700,6 +700,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     const matched = perGameTiers.find((t) => Math.abs(t.entryFee - amountNum) < 0.001);
     if (!matched) {
       const list = perGameTiers.map((t) => `${t.label}=${t.entryFee}`).join(", ");
+      req.log.warn({ telegramId, gameId, amountNum, perGameTiers: list }, "charge-entry rejected: tier mismatch (per-game)");
       res.status(400).json({ error: `amount must match one of the game's tier fees: ${list} SKZ` });
       return;
     }
@@ -722,6 +723,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     ];
     const matchedFee = allowedFees.find(f => Math.abs(f - amountNum) < 0.001);
     if (matchedFee === undefined) {
+      req.log.warn({ telegramId, gameId, amountNum, allowedFees }, "charge-entry rejected: tier mismatch (global)");
       res.status(400).json({ error: `amount must be one of the configured tier fees: ${allowedFees.join(", ")} SKZ` });
       return;
     }
@@ -812,6 +814,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
   } catch (err) {
     const e = err as Error;
     if (e.message === "INSUFFICIENT") {
+      req.log.warn({ telegramId, gameId, entryFee }, "charge-entry rejected: insufficient_balance");
       res.status(400).json({ error: "insufficient_balance" });
       return;
     }

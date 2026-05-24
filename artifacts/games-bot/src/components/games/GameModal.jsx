@@ -538,6 +538,32 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
                 {/* INTRO — scrollable content only (no Play button here) */}
                 {phase === 'intro' && (
                   <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'tween', duration: 0.1 }}>
+                    {entryError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          margin: '0 0 14px',
+                          padding: '14px 16px',
+                          borderRadius: 12,
+                          background: 'linear-gradient(135deg, rgba(239,68,68,0.18) 0%, rgba(185,28,28,0.12) 100%)',
+                          border: '1.5px solid rgba(239,68,68,0.5)',
+                          color: '#fecaca',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          lineHeight: 1.5,
+                          textAlign: 'center',
+                          boxShadow: '0 0 28px rgba(239,68,68,0.25), inset 0 1px 0 rgba(255,255,255,0.06)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>⚠️</span>
+                        <span>{entryError}</span>
+                      </motion.div>
+                    )}
                     <SoloGameIntro
                       game={game}
                       color={color}
