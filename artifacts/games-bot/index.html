@@ -10,11 +10,18 @@
     <style>
       html,body,#root{background:#04030a !important;margin:0;padding:0;color-scheme:dark;}
       html{overflow:hidden;}
-      /* Pre-paint Telegram WebApp colors before JS loads */
     </style>
+    <!--
+      CRITICAL: Telegram WebApp SDK must load SYNCHRONOUSLY before the inline
+      pre-paint script below — otherwise window.Telegram is undefined when the
+      inline script runs (silent no-op), and the colors/expand only happen
+      later when React calls setTelegramTheme() from main.jsx, producing a
+      visible viewport "jump" flash. This is the real fix for "الوميض".
+    -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-      // Apply Telegram colors as the VERY first JS — beats React mount by ~50ms,
-      // eliminating the viewport "jump" flash when expand() is called later.
+      // Apply Telegram colors + expand as the VERY first JS after the SDK is
+      // loaded — beats React mount by ~50ms, eliminating the viewport flash.
       (function(){
         try{
           var wa = window.Telegram && window.Telegram.WebApp;
@@ -22,8 +29,8 @@
             try{ wa.setHeaderColor && wa.setHeaderColor('#04030a'); }catch(_){}
             try{ wa.setBackgroundColor && wa.setBackgroundColor('#04030a'); }catch(_){}
             try{ wa.setBottomBarColor && wa.setBottomBarColor('#04030a'); }catch(_){}
-            wa.ready && wa.ready();
-            wa.expand && wa.expand();
+            try{ wa.ready && wa.ready(); }catch(_){}
+            try{ wa.expand && wa.expand(); }catch(_){}
           }
         }catch(_){}
       })();
@@ -37,7 +44,6 @@
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://gldgmwubjkkcbqemlvzu.supabase.co" crossorigin />
