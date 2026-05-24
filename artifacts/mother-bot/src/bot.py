@@ -10,6 +10,9 @@ from aiogram.types import (
     InlineKeyboardButton,
     WebAppInfo,
     PreCheckoutQuery,
+    BotCommand,
+    BotCommandScopeDefault,
+    BotCommandScopeChat,
 )
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -47,6 +50,23 @@ GAMES_APP_URL = _BASE_GAMES_APP_URL
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
+
+
+# ── Bot command menu (single source of truth for /setcommands) ──────────────
+# Mirrors the @router.message(Command(...)) / CommandStart() handlers below;
+# published to Telegram at startup via bot.set_my_commands() so BotFather
+# /setcommands is no longer required. Add a new entry here whenever you add
+# a new Command() handler so the menu stays in sync.
+COMMANDS: list[BotCommand] = [
+    BotCommand(command="start",   description="Open the main menu and your wallet"),
+    BotCommand(command="balance", description="Show SKZ / USDT / Stars / TON balances"),
+]
+
+# Extra commands published only to admin chats (scope=BotCommandScopeChat per
+# admin id), so non-admins don't see /admin in their menu.
+ADMIN_COMMANDS: list[BotCommand] = COMMANDS + [
+    BotCommand(command="admin", description="Platform stats (admins only)"),
+]
 
 
 # ── API helpers ──────────────────────────────────────────────────────────────
@@ -434,6 +454,21 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp  = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
+
+    # Publish slash-command menu to Telegram so the menu button stays in sync
+    # with the Command() handlers in this file. Default scope for everyone,
+    # plus per-admin chat scope so /admin only appears for admins. Non-fatal
+    # on failure.
+    try:
+        await bot.set_my_commands(COMMANDS, scope=BotCommandScopeDefault())
+        logger.info(f"published {len(COMMANDS)} default commands to BotFather menu")
+        for admin_id in ADMIN_IDS:
+            try:
+                await bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=admin_id))
+            except Exception as e:
+                logger.warning(f"set_my_commands(admin={admin_id}) failed: {e}")
+    except Exception as e:
+        logger.warning(f"set_my_commands failed: {e}")
 
     logger.info("Starting mother bot polling...")
     await dp.start_polling(bot)

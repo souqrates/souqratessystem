@@ -22,6 +22,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
+    BotCommand,
+    BotCommandScopeDefault,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -69,6 +71,21 @@ def main_kb() -> InlineKeyboardMarkup:
 
 def back_kb(cb: str = "menu") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 رجوع", callback_data=cb)]])
+
+
+# ── Bot command menu (single source of truth for /setcommands) ──────────────
+# Mirrors the @router.message(Command(...)) handlers below; published to
+# Telegram at startup via bot.set_my_commands() so BotFather /setcommands is
+# no longer required. Add a new entry here whenever you add a new Command()
+# handler so the menu stays in sync.
+COMMANDS: list[BotCommand] = [
+    BotCommand(command="start",   description="بدء استخدام البوت وفتح القائمة الرئيسية"),
+    BotCommand(command="browse",  description="تصفّح الكتب حسب التصنيف"),
+    BotCommand(command="publish", description="نشر كتاب جديد للمراجعة"),
+    BotCommand(command="library", description="مكتبتي (مشترياتي وإصداراتي)"),
+    BotCommand(command="wallet",  description="رصيد محفظتي بـ SKZ"),
+    BotCommand(command="help",    description="عرض قائمة الأوامر والمساعدة"),
+]
 
 
 # ── /start ──────────────────────────────────────────────────────────────────
@@ -470,6 +487,15 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
+
+    # Publish slash-command menu to Telegram so the menu button stays in sync
+    # with the Command() handlers in this file. Non-fatal on failure.
+    try:
+        await bot.set_my_commands(COMMANDS, scope=BotCommandScopeDefault())
+        logger.info(f"published {len(COMMANDS)} commands to BotFather menu")
+    except Exception as e:
+        logger.warning(f"set_my_commands failed: {e}")
+
     logger.info("books-bot polling…")
     await dp.start_polling(bot)
 
