@@ -148,6 +148,18 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
           setPhase('intro');
           return;
         }
+        // HARD GATE: a paid game MUST have a confirmed charge before it starts.
+        // For paid runs, require chargeResultRef === 'ok' AND a charge id.
+        // For free / trial runs, both refs stay null and we let it through.
+        const isPaidRun = activeFeeRef.current > 0 && !wallet?.trial_active;
+        if (isPaidRun && (chargeResultRef.current !== 'ok' || !chargeTransactionIdRef.current)) {
+          chargeResultRef.current = null;
+          chargeTransactionIdRef.current = null;
+          setCharging(false);
+          setEntryError('Could not confirm entry charge. Please try again.');
+          setPhase('intro');
+          return;
+        }
         chargeResultRef.current = null;
         setCharging(false);
         setPhase('playing');
@@ -195,14 +207,29 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
 
       if (shouldCredit) {
         setSettling(true);
+        // ── CRITICAL: snapshot chargeTransactionId into a local constant
+        //    BEFORE the async IIFE. The ref is mutated by Play Again, and
+        //    reading it inside awaits (validate → credit → refund) made a
+        //    stale settle IIFE refund the NEXT game's entry — costing
+        //    users real money. The local copy is immutable for this IIFE.
+        const chargeTxId = chargeTransactionIdRef.current;
         (async () => {
           try {
+            // Without a valid charge id we cannot settle anything; surface
+            // the issue so the player can contact support instead of
+            // silently swallowing the win.
+            if (!chargeTxId) {
+              if (!mountedRef.current) return;
+              setSettling(false);
+              setEntryError('Could not settle the win — please contact support.');
+              return;
+            }
             const finalScore = Number(scoreRef.current) || 0;
             await warmSession().catch(() => {});
             // Step 1: Obtain a server-signed result token.
             // Server validates: score >= minWinScore AND elapsed time >= game duration.
             // If validation fails (loss or instant call), resultToken is null → credit will also fail.
-            const validateRes = await validateGameResult(chargeTransactionIdRef.current, finalScore).catch(() => null);
+            const validateRes = await validateGameResult(chargeTxId, finalScore).catch(() => null);
             const resultToken = validateRes?.resultToken ?? null;
             // Step 2: Credit reward — token required server-side. Skip
             // if validate didn't return a token (server rejected the win
@@ -210,18 +237,20 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
             let creditOk = false;
             if (resultToken) {
               for (let attempt = 0; attempt < 3; attempt++) {
-                try { await creditSoloReward(game.id, chargeTransactionIdRef.current, finalScore, resultToken); creditOk = true; break; }
+                try { await creditSoloReward(game.id, chargeTxId, finalScore, resultToken); creditOk = true; break; }
                 catch { if (attempt < 2) await new Promise(r => setTimeout(r, 600)); }
               }
             }
 
             // Step 3: If validate succeeded but credit failed (rare —
             // network/DB blip), refund the entry fee so the user is made
-            // whole. Server is idempotent for refunds.
+            // whole. Server is idempotent for refunds. Use the local
+            // chargeTxId — NOT the ref — so we never refund a charge from
+            // a subsequent Play Again.
             let refundedAfterFailure = false;
-            if (resultToken && !creditOk && chargeTransactionIdRef.current) {
+            if (resultToken && !creditOk) {
               try {
-                const r = await refundSoloEntry(chargeTransactionIdRef.current);
+                const r = await refundSoloEntry(chargeTxId);
                 if (r?.ok) refundedAfterFailure = true;
               } catch { /* surface generic error below */ }
             }
@@ -252,19 +281,30 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
       return;
     }
     if (p === 'playing' && (phase === 'won' || phase === 'lost')) {
+      // Block Play Again while the previous game's reward is still
+      // being settled on the server. Resetting state mid-settlement
+      // is what caused stale-IIFE refunds to wipe out the next charge.
+      if (settling) {
+        triggerHaptic('warning');
+        return;
+      }
       if (activeFee > 0) {
         if (!wallet?.trial_active && wallet?.loaded) {
           const bal = Number(wallet?.sc_balance || 0);
           if (bal < activeFee) { setEntryError(`Not enough SKZ. You have ${bal.toLocaleString()} SKZ but need ${activeFee} SKZ — top up your wallet.`); setPhase('intro'); return; }
         }
-        pendingAction.current = 'playing';
+        // Always go through countdown on Play Again — same as the first
+        // play. The countdown is the ONLY path that waits for the charge
+        // RPC to confirm before the game starts; skipping it meant the
+        // game could begin with a null transactionId or a failed charge.
+        pendingAction.current = 'countdown';
         setConfirmFee(true);
         return;
       }
       scoreRef.current = 0; setMyScore(0);
     }
     setPhase(p);
-  }, [phase, game, activeFee, activePrize, refreshBalance, user?.telegram_id, wallet?.trial_active, wallet?.sc_balance]);
+  }, [phase, game, activeFee, activePrize, refreshBalance, user?.telegram_id, wallet?.trial_active, wallet?.sc_balance, settling]);
 
   // Intercept Telegram BackButton during play so users don't accidentally
   // forfeit their entry fee with a single back-tap. The dispatcher in
@@ -293,6 +333,11 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
     doClose();
   };
   const handleRestart = () => {
+    // Block restart while the previous game's reward is still settling on
+    // the server — same race that bit Play Again. Snapshot in the settle
+    // IIFE protects the old chargeId, but starting a new round mid-settle
+    // can still surface a stale "credit failed" error into the new run.
+    if (settling) { triggerHaptic('warning'); return; }
     triggerHaptic('medium');
     scoreRef.current = 0; setMyScore(0);
     if (activeFee > 0) { pendingAction.current = 'countdown'; setConfirmFee(true); return; }

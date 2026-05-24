@@ -3,7 +3,11 @@ import { Trophy, XCircle, RotateCcw, Coins, Zap } from 'lucide-react';
 import { triggerHaptic } from '../../../lib/telegram';
 
 export default function ResultOverlay({ won, earnings, score, xpEarned, setPhase, winLabel, loseLabel, settling }) {
-  const handlePlay = () => { triggerHaptic('medium'); setPhase('playing'); };
+  const handlePlay = () => {
+    if (settling) { triggerHaptic('warning'); return; }
+    triggerHaptic('medium');
+    setPhase('playing');
+  };
 
   return (
     <div style={{
@@ -89,14 +93,17 @@ export default function ResultOverlay({ won, earnings, score, xpEarned, setPhase
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        whileTap={{ scale: 0.94 }}
+        whileTap={settling ? undefined : { scale: 0.94 }}
         onClick={handlePlay}
+        disabled={settling}
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
           padding: '14px 32px',
+          opacity: settling ? 0.55 : 1,
+          pointerEvents: settling ? 'none' : 'auto',
           borderRadius: 16,
           background: won
             ? 'linear-gradient(135deg, #047857, #10b981)'
@@ -115,7 +122,7 @@ export default function ResultOverlay({ won, earnings, score, xpEarned, setPhase
         }}
       >
         <RotateCcw size={14} />
-        Play Again
+        {settling ? 'Settling…' : 'Play Again'}
       </motion.button>
     </div>
   );
