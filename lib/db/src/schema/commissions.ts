@@ -14,6 +14,7 @@ export const commissionsTable = pgTable("commissions", {
   transactionId: integer("transaction_id").notNull(),
   botSlug: text("bot_slug").notNull(),
   userId: integer("user_id").notNull(),
+  gameId: integer("game_id"),
   grossAmount: numeric("gross_amount", { precision: 18, scale: 9 }).notNull(),
   commissionRate: numeric("commission_rate", { precision: 5, scale: 4 }).notNull(),
   commissionAmount: numeric("commission_amount", { precision: 18, scale: 9 }).notNull(),

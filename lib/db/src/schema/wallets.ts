@@ -13,6 +13,8 @@ export const walletsTable = pgTable("wallets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique(),
   balanceSkz: numeric("balance_skz", { precision: 18, scale: 2 }).notNull().default("0"),
+  referralBalanceSkz: numeric("referral_balance_skz", { precision: 18, scale: 2 }).notNull().default("0"),
+  totalEarnedFromReferralsSkz: numeric("total_earned_from_referrals_skz", { precision: 18, scale: 2 }).notNull().default("0"),
   balanceStars: numeric("balance_stars", { precision: 18, scale: 0 }).notNull().default("0"),
   balanceUsdt: numeric("balance_usdt", { precision: 18, scale: 6 }).notNull().default("0"),
   balanceTon: numeric("balance_ton", { precision: 18, scale: 9 }).notNull().default("0"),

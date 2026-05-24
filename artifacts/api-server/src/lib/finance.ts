@@ -2,7 +2,7 @@
  * Shared financial helpers used by both /api/internal/* and /api/games/* routes.
  * Keep this file pure DB logic — no Express types.
  */
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   usersTable,
@@ -68,32 +68,39 @@ export async function distributeReferralBonuses(
     const bonus = parseFloat((netEarned * rate).toFixed(2));
     if (bonus <= 0) break;
 
-    const [referrerWallet] = await db
-      .select()
-      .from(walletsTable)
-      .where(eq(walletsTable.userId, referrerId));
+    // Atomic SQL increment into the SEPARATE referral sub-balance + ledger
+    // row inside one transaction — wallet and ledger can never drift apart.
+    // Referral earnings accumulate here until the user clicks "transfer to
+    // main wallet" in the bot; they are NOT spendable or withdrawable until
+    // transferred. Pattern mirrors the rest of the codebase (numeric(18,2),
+    // no JS read-modify-write).
+    const ok = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(walletsTable)
+        .set({
+          referralBalanceSkz:          sql`${walletsTable.referralBalanceSkz}          + ${bonus}`,
+          totalEarnedFromReferralsSkz: sql`${walletsTable.totalEarnedFromReferralsSkz} + ${bonus}`,
+        })
+        .where(eq(walletsTable.userId, referrerId))
+        .returning({ id: walletsTable.id });
 
-    if (!referrerWallet) { currentUserId = referrerId; continue; }
+      if (!updated) return false;
 
-    const newBalance     = (parseFloat(referrerWallet.balanceSkz)     + bonus).toFixed(2);
-    const newTotalEarned = (parseFloat(referrerWallet.totalEarnedSkz) + bonus).toFixed(2);
-
-    await db
-      .update(walletsTable)
-      .set({ balanceSkz: newBalance, totalEarnedSkz: newTotalEarned })
-      .where(eq(walletsTable.id, referrerWallet.id));
-
-    await db.insert(transactionsTable).values({
-      userId:      referrerId,
-      type:        "referral_bonus",
-      currency:    "skz",
-      amount:      String(bonus),
-      fee:         "0",
-      status:      "completed",
-      sourceBot:   botSlug,
-      referenceId: String(sourceTransactionId),
-      description: `إحالة مستوى ${level + 1} — مكافأة ${rate * 100}% من ربح مُحالك`,
+      await tx.insert(transactionsTable).values({
+        userId:      referrerId,
+        type:        "referral_bonus",
+        currency:    "skz",
+        amount:      String(bonus),
+        fee:         "0",
+        status:      "completed",
+        sourceBot:   botSlug,
+        referenceId: String(sourceTransactionId),
+        description: `إحالة مستوى ${level + 1} — مكافأة ${rate * 100}% من ربح مُحالك`,
+      });
+      return true;
     });
+
+    if (!ok) { currentUserId = referrerId; continue; }
 
     paid.push({ level: level + 1, referrerId, bonus });
     currentUserId = referrerId;

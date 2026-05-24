@@ -43,6 +43,101 @@ async function requireBot(
 
 // getSkzRates, getReferralRates, distributeReferralBonuses are imported from ../lib/finance
 
+/**
+ * POST /internal/wallets/transfer-referral
+ * Body: { telegramId, amount? }   // amount omitted = transfer entire referral balance
+ *
+ * Auth: requireBot (X-Bot-Api-Key). The mother-bot calls this on behalf of
+ * the user from a button click; the API key proves the request came from a
+ * trusted bot service, not arbitrary internet traffic.
+ *
+ * Atomically moves SKZ from the user's referral sub-balance into their
+ * main spendable balance. The guarded UPDATE (WHERE referralBalanceSkz >= amt)
+ * + ledger insert run inside one db.transaction, so concurrent clicks cannot
+ * double-transfer and the wallet/ledger never drift apart.
+ */
+router.post("/internal/wallets/transfer-referral", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, amount } = req.body as { telegramId?: string | number; amount?: number };
+  if (!telegramId) {
+    res.status(400).json({ error: "telegramId is required" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(String(telegramId))));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (rejectIfBlocked(user, res)) return;
+
+  const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
+  if (!wallet) { res.status(404).json({ error: "Wallet not found" }); return; }
+
+  const available = parseFloat(wallet.referralBalanceSkz);
+  const requested = amount != null ? Number(amount) : available;
+  if (!isFinite(requested) || requested <= 0) {
+    res.status(400).json({ error: "Amount must be > 0" });
+    return;
+  }
+  if (requested > available + 1e-9) {
+    res.status(400).json({ error: "Insufficient referral balance", available });
+    return;
+  }
+  const amt = parseFloat(requested.toFixed(2));
+
+  let updatedWallet: typeof walletsTable.$inferSelect | undefined;
+  try {
+    updatedWallet = await db.transaction(async (tx) => {
+      const [w] = await tx
+        .update(walletsTable)
+        .set({
+          referralBalanceSkz: sql`${walletsTable.referralBalanceSkz} - ${amt}`,
+          balanceSkz:         sql`${walletsTable.balanceSkz}         + ${amt}`,
+          totalEarnedSkz:     sql`${walletsTable.totalEarnedSkz}     + ${amt}`,
+        })
+        .where(and(
+          eq(walletsTable.userId, user.id),
+          sql`${walletsTable.referralBalanceSkz} >= ${amt}`,
+        ))
+        .returning();
+      if (!w) throw Object.assign(new Error("INSUFFICIENT"), { status: 400 });
+
+      await tx.insert(transactionsTable).values({
+        userId:      user.id,
+        type:        "credit",
+        currency:    "skz",
+        amount:      String(amt),
+        fee:         "0",
+        status:      "completed",
+        sourceBot:   bot.slug,
+        referenceId: `referral_transfer_${user.id}_${Date.now()}`,
+        description: `تحويل أرباح الإحالة إلى المحفظة الرئيسية`,
+        metadata:    JSON.stringify({ action: "referral_transfer", amount: amt }),
+      });
+      return w;
+    });
+  } catch (err) {
+    const e = err as Error;
+    if (e.message === "INSUFFICIENT") {
+      res.status(400).json({ error: "Insufficient referral balance (race condition)" });
+      return;
+    }
+    req.log.error({ err }, "referral transfer failed");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+
+  res.json({
+    success:               true,
+    transferred:           String(amt.toFixed(2)),
+    newBalanceSkz:         updatedWallet.balanceSkz,
+    newReferralBalanceSkz: updatedWallet.referralBalanceSkz,
+  });
+});
+
 // ── Effective settings helpers (panel → live) ──────────────────────────────
 // Every financial route uses these so any change made in the super-admin
 // panel takes effect on the very next request — no restart, no cache.
@@ -644,20 +739,6 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
   }
   if (rejectIfBlocked(user, res)) return;
 
-  // Atomic conditional debit for entry fee — fails fast with
-  // insufficient_balance if the wallet can't cover the fee, with no
-  // window for a concurrent debit to overdraw.
-  const [wallet] = await db.update(walletsTable).set({
-    balanceSkz: sql`${walletsTable.balanceSkz} - ${entryFee}`,
-  }).where(and(
-    eq(walletsTable.userId, user.id),
-    sql`${walletsTable.balanceSkz} >= ${entryFee}`,
-  )).returning();
-  if (!wallet) {
-    res.status(400).json({ error: "insufficient_balance" });
-    return;
-  }
-
   // Determine minimum game duration:
   //   - If the per-game admin panel set durationSeconds, use it (with a small
   //     5s grace so legit fast players aren't rejected by edge timing).
@@ -678,33 +759,66 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     ? Number(gameCfg.publishedMaxScore)
     : null;
 
-  const [transaction] = await db
-    .insert(transactionsTable)
-    .values({
-      userId:      user.id,
-      type:        "debit",
-      currency:    "skz",
-      amount:      String(-entryFee),
-      fee:         "0",
-      status:      "completed",
-      sourceBot:   bot.slug,
-      referenceId: `game_entry_${gameId}_${Date.now()}`,
-      description: `رسوم دخول لعبة #${gameId}`,
-      metadata:    JSON.stringify({
-        gameId:         String(gameId),
-        action:         "entry",
-        entryFee,
-        expectedPrize,
-        multiplier,
-        difficulty,
-        minDurationMs, // minimum elapsed time before result can be validated
-        minWinScore,   // minimum score (server-side win condition)
-        maxScoreCap,   // maximum allowed score (anti-cheat); null = unlimited
-      }),
-    })
-    .returning();
+  // Atomic: wallet debit (with conditional WHERE to prevent overdraw),
+  // entry ledger row, and participation XP all commit together — or
+  // not at all. A crash between any two leaves no orphan state.
+  let transaction: typeof transactionsTable.$inferSelect;
+  let newSkzBalance: string;
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [w] = await tx.update(walletsTable).set({
+        balanceSkz: sql`${walletsTable.balanceSkz} - ${entryFee}`,
+      }).where(and(
+        eq(walletsTable.userId, user.id),
+        sql`${walletsTable.balanceSkz} >= ${entryFee}`,
+      )).returning();
+      if (!w) throw Object.assign(new Error("INSUFFICIENT"), { status: 400 });
 
-  const newSkzBalance = wallet.balanceSkz;
+      const [txn] = await tx.insert(transactionsTable).values({
+        userId:      user.id,
+        type:        "debit",
+        currency:    "skz",
+        amount:      String(-entryFee),
+        fee:         "0",
+        status:      "completed",
+        sourceBot:   bot.slug,
+        referenceId: `game_entry_${gameId}_${Date.now()}`,
+        description: `رسوم دخول لعبة #${gameId}`,
+        metadata:    JSON.stringify({
+          gameId:         String(gameId),
+          action:         "entry",
+          entryFee,
+          expectedPrize,
+          multiplier,
+          difficulty,
+          minDurationMs,
+          minWinScore,
+          maxScoreCap,
+        }),
+      }).returning();
+
+      // +10 participation XP — counts toward the unified profile even
+      // if the user loses. Win bonus (+40) is added in /credit-reward.
+      await tx.update(usersTable).set({
+        xp:               sql`${usersTable.xp} + 10`,
+        level:            sql`GREATEST(1, FLOOR(SQRT((${usersTable.xp} + 10) / 100.0))::int + 1)`,
+        totalGamesPlayed: sql`${usersTable.totalGamesPlayed} + 1`,
+      }).where(eq(usersTable.id, user.id));
+
+      return { txn, newBalance: w.balanceSkz };
+    });
+    transaction   = result.txn;
+    newSkzBalance = result.newBalance;
+  } catch (err) {
+    const e = err as Error;
+    if (e.message === "INSUFFICIENT") {
+      res.status(400).json({ error: "insufficient_balance" });
+      return;
+    }
+    req.log.error({ err }, "charge-entry tx failed");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, gameId, entryFee, expectedPrize }, "Game entry charged");
 
@@ -1015,6 +1129,32 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
       }).where(eq(walletsTable.userId, user.id)).returning();
       if (!updated) throw new Error("WALLET_NOT_FOUND");
 
+      // ── commission row + XP/won counter live INSIDE the same tx as the
+      //    wallet credit, so a crash between them cannot leave money settled
+      //    without commission accounting or without the profile being updated.
+      const gameIdNumForCommission = typeof meta.gameId === "number"
+        ? meta.gameId
+        : (typeof meta.gameId === "string" && /^\d+$/.test(meta.gameId)
+            ? parseInt(meta.gameId, 10)
+            : null);
+      await tx.insert(commissionsTable).values({
+        transactionId:    txn.id,
+        botSlug:          bot.slug,
+        userId:           user.id,
+        gameId:           gameIdNumForCommission,
+        grossAmount:      String(grossPrize.toFixed(2)),
+        commissionRate:   String(commissionRate),
+        commissionAmount: String(commissionAmount.toFixed(2)),
+        netAmount:        String(netAmount.toFixed(2)),
+        currency:         "skz",
+      });
+      // +40 XP for a win on the unified profile (single telegramId across all bots).
+      await tx.update(usersTable).set({
+        xp:            sql`${usersTable.xp} + 40`,
+        level:         sql`GREATEST(1, FLOOR(SQRT((${usersTable.xp} + 40) / 100.0))::int + 1)`,
+        totalGamesWon: sql`${usersTable.totalGamesWon} + 1`,
+      }).where(eq(usersTable.id, user.id));
+
       return { txn, newBalance: updated.balanceSkz };
     });
 
@@ -1035,17 +1175,7 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
     return;
   }
 
-  // ── 6. Record commission ──────────────────────────────────────────────────
-  await db.insert(commissionsTable).values({
-    transactionId:    transaction.id,
-    botSlug:          bot.slug,
-    userId:           user.id,
-    grossAmount:      String(grossPrize.toFixed(2)),
-    commissionRate:   String(commissionRate),
-    commissionAmount: String(commissionAmount.toFixed(2)),
-    netAmount:        String(netAmount.toFixed(2)),
-    currency:         "skz",
-  });
+  // ── 6. (commission + XP/won are now part of the credit-reward tx above) ──
 
   await db.update(botsTable).set({
     totalVolumeUsdt:     sql`${botsTable.totalVolumeUsdt}     + ${grossPrize}`,

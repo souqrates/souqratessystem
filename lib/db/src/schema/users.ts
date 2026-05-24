@@ -20,6 +20,10 @@ export const usersTable = pgTable("users", {
   isPremium: boolean("is_premium").default(false),
   isBlocked: boolean("is_blocked").default(false),
   referrerId: integer("referrer_id"),
+  xp: integer("xp").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  totalGamesPlayed: integer("total_games_played").notNull().default(0),
+  totalGamesWon: integer("total_games_won").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

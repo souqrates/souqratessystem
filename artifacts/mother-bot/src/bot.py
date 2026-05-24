@@ -195,20 +195,29 @@ async def cb_wallet(callback: CallbackQuery):
         return
 
     wallet = data["wallet"]
+    user_obj = data.get("user") or {}
     skz   = int(float(wallet["balanceSkz"]))
+    ref_skz = int(float(wallet.get("referralBalanceSkz", "0")))
     usdt  = float(wallet["balanceUsdt"])
     stars = int(float(wallet["balanceStars"]))
     ton   = float(wallet["balanceTon"])
     earned    = int(float(wallet["totalEarned"]))
     withdrawn = int(float(wallet["totalWithdrawn"]))
+    xp        = int(user_obj.get("xp", 0))
+    level     = int(user_obj.get("level", 1))
+    played    = int(user_obj.get("totalGamesPlayed", 0))
+    won       = int(user_obj.get("totalGamesWon", 0))
 
     text = (
         f"💰 <b>Your Wallet</b>\n\n"
         f"<b>Balances:</b>\n"
-        f"├ ⚡ SKZ:   <code>{skz:,}</code>\n"
-        f"├ 💵 USDT:  <code>{usdt:.4f}</code>\n"
-        f"├ ⭐ Stars:  <code>{stars:,}</code>\n"
-        f"└ 💎 TON:   <code>{ton:.4f}</code>\n\n"
+        f"├ ⚡ SKZ:        <code>{skz:,}</code>\n"
+        f"├ 🤝 Referral:  <code>{ref_skz:,}</code> SKZ\n"
+        f"├ 💵 USDT:      <code>{usdt:.4f}</code>\n"
+        f"├ ⭐ Stars:      <code>{stars:,}</code>\n"
+        f"└ 💎 TON:       <code>{ton:.4f}</code>\n\n"
+        f"<b>🎮 Profile:</b>  Level <b>{level}</b> · <code>{xp:,}</code> XP\n"
+        f"<b>🎯 Games:</b>   {won}/{played} won\n\n"
         f"<b>Total Earned:</b>    <code>{earned:,}</code> SKZ\n"
         f"<b>Total Withdrawn:</b> <code>{withdrawn:,}</code> SKZ"
     )
@@ -275,15 +284,67 @@ async def cb_referral(callback: CallbackQuery):
     bot_info = await callback.bot.get_me()
     ref_link = f"https://t.me/{bot_info.username}?start=ref{callback.from_user.id}"
 
+    ref_balance = 0
+    total_ref_earned = 0
+    try:
+        data = await api_get_wallet(str(callback.from_user.id))
+        w = (data or {}).get("wallet") or {}
+        ref_balance      = int(float(w.get("referralBalanceSkz", "0")))
+        total_ref_earned = int(float(w.get("totalEarnedFromReferralsSkz", "0")))
+    except Exception:
+        pass
+
     text = (
         f"🤝 <b>Referral Program</b>\n\n"
         f"Invite friends and earn <b>up to 15%</b> of their SKZ earnings — for life!\n\n"
+        f"💼 <b>Referral Wallet:</b>\n"
+        f"├ Available:    <code>{ref_balance:,}</code> SKZ\n"
+        f"└ Lifetime:     <code>{total_ref_earned:,}</code> SKZ\n\n"
         f"🔗 <b>Your link:</b>\n"
         f"<code>{ref_link}</code>\n\n"
-        f"Tiers: L1 → 10% · L2 → 3% · L3 → 2%"
+        f"Tiers: L1 → 10% · L2 → 3% · L3 → 2%\n\n"
+        f"💡 Transfer your referral earnings to your main wallet to withdraw them."
     )
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
+    kb_rows = []
+    if ref_balance > 0:
+        kb_rows.append([InlineKeyboardButton(
+            text=f"💸 Transfer {ref_balance:,} SKZ → Main Wallet",
+            callback_data="referral_transfer",
+        )])
+    kb_rows.append([InlineKeyboardButton(text="⬅️ Back", callback_data="menu")])
+    await callback.message.edit_text(
+        text, parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb_rows),
+    )
     await callback.answer()
+
+
+@router.callback_query(F.data == "referral_transfer")
+async def cb_referral_transfer(callback: CallbackQuery):
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{MOTHER_API_URL}/internal/wallets/transfer-referral",
+                json={"telegramId": str(callback.from_user.id)},
+                headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
+                timeout=10.0,
+            )
+        if resp.status_code != 200:
+            err = (resp.json() or {}).get("error", "Transfer failed")
+            await callback.answer(f"❌ {err}", show_alert=True)
+            return
+        body = resp.json()
+        await callback.answer(
+            f"✅ Transferred {body.get('transferred', '0')} SKZ to your main wallet",
+            show_alert=True,
+        )
+    except Exception as e:
+        logger.error(f"Referral transfer failed: {e}")
+        await callback.answer("❌ Transfer error", show_alert=True)
+        return
+
+    # Re-render referral view so balance updates immediately
+    await cb_referral(callback)
 
 
 @router.callback_query(F.data == "help")
