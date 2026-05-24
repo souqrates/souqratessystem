@@ -21,7 +21,7 @@
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
-- Admin Dashboard: React + Vite + Tailwind (artifacts/admin-dashboard)
+- Super Admin Panel: React + Vite + Tailwind (artifacts/superadmin) — اللوحة الوحيدة للإدارة
 - Mother Bot: Python + aiogram 3 (artifacts/mother-bot)
 
 ## Where things live
@@ -29,7 +29,7 @@
 - `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
 - `lib/db/src/schema/` — DB schema (users, wallets, transactions, bots, commissions, withdrawals)
 - `artifacts/api-server/src/routes/` — Express route handlers
-- `artifacts/admin-dashboard/src/` — Admin dashboard React app
+- `artifacts/superadmin/src/` — Super Admin (لوحة المدير المركزية الوحيدة)
 - `artifacts/mother-bot/src/bot.py` — Mother Telegram bot (Python/aiogram)
 - `artifacts/mother-bot/src/client.py` — SDK for child bots to use
 
