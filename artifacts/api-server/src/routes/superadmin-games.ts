@@ -1,10 +1,43 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, asc, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import multer from "multer";
 import { db } from "@workspace/db";
 import { gameConfigsTable, type GameConfig } from "@workspace/db";
 import gamesCatalog from "@workspace/db/games-catalog.json" with { type: "json" };
 import { requireSuperAdmin } from "../lib/super-admin-auth";
 import { normalizeTiers, DEFAULT_TIER_LABELS, DEFAULT_TIER_MULTIPLIERS } from "../lib/game-tiers";
+import { objectStorageClient } from "../lib/objectStorage";
+
+// ─── Image upload constants ─────────────────────────────────────
+// Admin-only game cover images. Stored under a dedicated prefix inside
+// the private bucket dir and served back unconditionally via
+// GET /api/games/image/:id (no auth — these are public game covers).
+const IMAGE_PREFIX = "game-images";
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+const IMAGE_ALLOWED_MIME: Record<string, string> = {
+  "image/png":  "png",
+  "image/jpeg": "jpg",
+  "image/jpg":  "jpg",
+  "image/webp": "webp",
+};
+
+const uploadImage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: IMAGE_MAX_BYTES, files: 1 },
+});
+
+function getImageBucketAndPrefix(): { bucketName: string; prefix: string } {
+  const dir = process.env.PRIVATE_OBJECT_DIR || "";
+  if (!dir) throw new Error("PRIVATE_OBJECT_DIR not set");
+  // dir is like "/<bucketName>/<sub>/..."
+  const trimmed = dir.startsWith("/") ? dir.slice(1) : dir;
+  const parts = trimmed.split("/");
+  const bucketName = parts[0];
+  const sub = parts.slice(1).join("/");
+  const prefix = sub ? `${sub}/${IMAGE_PREFIX}` : IMAGE_PREFIX;
+  return { bucketName, prefix };
+}
 
 const router: IRouter = Router();
 
@@ -328,6 +361,97 @@ router.post(
       .where(eq(gameConfigsTable.gameId, gameId))
       .returning();
     res.json({ data: serialize(updated) });
+  },
+);
+
+// ─── IMAGE UPLOAD: admin only, multipart/form-data ──────────────
+// POST /superadmin/games/upload-image  (field name: "image")
+// Returns { url: "/api/games/image/<id>.<ext>" } — store in draftImageUrl.
+// Constraints:
+//   - PNG / JPG / WEBP only
+//   - Max 2 MB
+//   - Recommended ~ 1024×1024 (1:1) or 1280×720 (16:9)
+router.post(
+  "/superadmin/games/upload-image",
+  requireSuperAdmin,
+  (req: Request, res: Response, next): void => {
+    uploadImage.single("image")(req, res, (err: unknown) => {
+      if (err) {
+        const e = err as { code?: string; message?: string };
+        if (e?.code === "LIMIT_FILE_SIZE") {
+          res.status(413).json({ error: `حجم الصورة يتجاوز ${IMAGE_MAX_BYTES / 1024 / 1024} ميجابايت` });
+          return;
+        }
+        req.log.warn({ err }, "game image upload: multer error");
+        res.status(400).json({ error: e?.message ?? "Upload failed" });
+        return;
+      }
+      next();
+    });
+  },
+  async (req: Request, res: Response): Promise<void> => {
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file) {
+      res.status(400).json({ error: "لم يتم إرفاق ملف صورة (field name: image)" });
+      return;
+    }
+    const ext = IMAGE_ALLOWED_MIME[file.mimetype];
+    if (!ext) {
+      res.status(415).json({ error: "صيغة غير مدعومة. المسموح: PNG, JPG, WEBP" });
+      return;
+    }
+    try {
+      const { bucketName, prefix } = getImageBucketAndPrefix();
+      const id = `${randomUUID()}.${ext}`;
+      const objectName = `${prefix}/${id}`;
+      const bucket = objectStorageClient.bucket(bucketName);
+      await bucket.file(objectName).save(file.buffer, {
+        contentType: file.mimetype,
+        resumable: false,
+        metadata: {
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+      });
+      req.log.info({ id, size: file.size, mime: file.mimetype }, "game image uploaded");
+      res.json({ url: `/api/games/image/${id}` });
+    } catch (err) {
+      req.log.error({ err }, "game image upload failed");
+      res.status(500).json({ error: "فشل رفع الصورة" });
+    }
+  },
+);
+
+// ─── PUBLIC: serve uploaded game image ──────────────────────────
+// GET /api/games/image/:id  — unauthenticated; long cache.
+router.get(
+  "/games/image/:id",
+  async (req: Request, res: Response): Promise<void> => {
+    const id = String(req.params.id ?? "");
+    // Allow only safe filenames: <uuid>.<png|jpg|webp>
+    if (!/^[a-f0-9-]{36}\.(png|jpg|webp)$/i.test(id)) {
+      res.status(400).json({ error: "Invalid image id" });
+      return;
+    }
+    try {
+      const { bucketName, prefix } = getImageBucketAndPrefix();
+      const file = objectStorageClient.bucket(bucketName).file(`${prefix}/${id}`);
+      const [exists] = await file.exists();
+      if (!exists) {
+        res.status(404).json({ error: "Image not found" });
+        return;
+      }
+      const [metadata] = await file.getMetadata();
+      res.setHeader("Content-Type", (metadata.contentType as string) || "application/octet-stream");
+      if (metadata.size) res.setHeader("Content-Length", String(metadata.size));
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      file.createReadStream().on("error", (err) => {
+        req.log.error({ err }, "game image stream error");
+        if (!res.headersSent) res.status(500).end();
+      }).pipe(res);
+    } catch (err) {
+      req.log.error({ err }, "game image serve failed");
+      res.status(500).json({ error: "Internal error" });
+    }
   },
 );
 

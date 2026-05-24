@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getToken } from "@/lib/api";
 import type { GameConfigRow, PriceTier } from "./Games";
 
 // Known well-typed in-game text keys (always editable).
@@ -215,27 +215,14 @@ export default function GameDetailPage() {
           </Card>
 
           {/* Image */}
-          <Card title="صورة اللعبة" subtitle="رابط صورة (URL). يمكن استخدام أي CDN أو رفع الصورة على Telegram والحصول على رابط مباشر">
-            <Field label="رابط الصورة">
-              <input
-                className={inputCls}
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://…"
-                dir="ltr"
-              />
-            </Field>
-            {imageUrl && (
-              <div className="mt-3 flex items-center gap-3">
-                <img
-                  src={imageUrl}
-                  alt="معاينة"
-                  className="w-32 h-32 rounded-xl object-cover border border-slate-200"
-                  onError={(e) => ((e.currentTarget.style.display = "none"))}
-                />
-                <div className="text-xs text-slate-500">معاينة الصورة</div>
-              </div>
-            )}
+          <Card
+            title="صورة اللعبة"
+            subtitle="ارفع صورة من جهازك. الصيغ: PNG / JPG / WEBP — الحد الأقصى 2 ميجابايت — المقاس الموصى به 1024×1024 (مربّع) أو 1280×720 (أفقي)."
+          >
+            <ImageUploadField
+              imageUrl={imageUrl}
+              onChange={setImageUrl}
+            />
           </Card>
 
           {/* Economy — 5 price tiers */}
@@ -474,6 +461,101 @@ function PreviewBox({
 
 // ─── shared helpers ─────────────────────────────────────────────
 const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+function ImageUploadField({ imageUrl, onChange }: { imageUrl: string; onChange: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    setErr(null);
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setErr("صيغة غير مدعومة. المسموح: PNG, JPG, WEBP");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErr("حجم الصورة يتجاوز 2 ميجابايت");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const token = getToken();
+      const res = await fetch("/api/superadmin/games/upload-image", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      const data: { url?: string; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        setErr(data.error || `فشل الرفع (HTTP ${res.status})`);
+        return;
+      }
+      onChange(data.url);
+    } catch (e) {
+      setErr((e as Error)?.message || "فشل الرفع");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-60"
+        >
+          {uploading ? "جارٍ الرفع…" : imageUrl ? "استبدال الصورة" : "اختر صورة من جهازك"}
+        </button>
+        {imageUrl && !uploading && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="px-3 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm"
+          >
+            إزالة
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+          }}
+        />
+      </div>
+
+      {err && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {err}
+        </div>
+      )}
+
+      {imageUrl ? (
+        <div className="flex items-center gap-3">
+          <img
+            src={imageUrl}
+            alt="معاينة"
+            className="w-32 h-32 rounded-xl object-cover border border-slate-200 bg-slate-50"
+            onError={(e) => ((e.currentTarget.style.opacity = "0.3"))}
+          />
+          <div className="text-xs text-slate-500 break-all" dir="ltr">{imageUrl}</div>
+        </div>
+      ) : (
+        <div className="text-xs text-slate-400">لا توجد صورة مرفوعة بعد.</div>
+      )}
+    </div>
+  );
+}
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
