@@ -2,54 +2,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import useAppStore from '../store/appStore';
-import { t } from '../lib/i18n';
 import { LANGUAGES } from '../constants';
 import { triggerHaptic } from '../lib/telegram';
-import { getDeviceTier, isLowEnd, isMidEnd } from '../lib/deviceProfile';
-import InfoMenu from './InfoMenu';
+import { isLowEnd, isMidEnd } from '../lib/deviceProfile';
 
-function useNetworkStatus() {
-  const [online, setOnline] = useState(navigator.onLine);
-  const [latency, setLatency] = useState(null);
-  const intervalRef = useRef(null);
-
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => { setOnline(false); setLatency(null); };
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-
-    const ping = async () => {
-      if (!navigator.onLine) { setLatency(null); return; }
-      try {
-        const t0 = performance.now();
-        await fetch(import.meta.env.VITE_SUPABASE_URL + '/rest/v1/', {
-          method: 'HEAD',
-          headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-          signal: AbortSignal.timeout(5000),
-        });
-        setLatency(Math.round(performance.now() - t0));
-      } catch {
-        setLatency(null);
-      }
-    };
-    ping();
-    const tier = getDeviceTier();
-    const interval = tier === 'low' ? 60000 : tier === 'mid' ? 30000 : 15000;
-    intervalRef.current = setInterval(ping, interval);
-
-    return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
-      clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  const good = online && latency !== null && latency < 500;
-  const warn = online && latency !== null && latency >= 500;
-  const bad = !online || latency === null;
-  return { online, latency, good, warn, bad };
-}
+// NOTE: hamburger / InfoMenu intentionally removed — Terms, Privacy,
+// FAQ, contact, etc. now live in the Mother Bot (the central hub).
+// Network-ping useNetworkStatus() was also removed: it pinged a possibly-
+// unset VITE_SUPABASE_URL every 15-60s, flooding the console with errors
+// and causing the app to feel laggy / unresponsive after a short while.
 
 export default function Navbar() {
   const { language, setLanguage, wallet, appConfig } = useAppStore();
@@ -57,7 +18,6 @@ export default function Navbar() {
   const sc  = Number(wallet?.sc_balance) || 0;
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef(null);
-  const net = useNetworkStatus();
 
   const handleLang = (lang) => { triggerHaptic('light'); setLanguage(lang); setLangOpen(false); };
 
@@ -78,18 +38,15 @@ export default function Navbar() {
       <div className="accent-line-top" />
       <div className="max-w-xl mx-auto flex items-center justify-between px-4 py-2.5" style={{ paddingTop: 14 }}>
 
-        {/* Info Menu */}
-        <InfoMenu />
+        {/* Brand / app title — replaces the removed hamburger */}
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🎮</span>
+          <span className="font-orbitron text-[11px] font-black tracking-widest text-white/90">
+            SOUQRATES <span style={{ color: '#f59e0b' }}>SKILLZ</span>
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
-          {/* Network status */}
-          <div title={net.bad ? 'Connection issue' : net.warn ? `Slow (${net.latency}ms)` : `Online (${net.latency}ms)`}
-            style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-              background: net.bad ? '#ef4444' : net.warn ? '#f59e0b' : '#10b981',
-              boxShadow: `0 0 6px ${net.bad ? '#ef4444' : net.warn ? '#f59e0b' : '#10b981'}`,
-            }}
-          />
           {/* Balance pill */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
             style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}

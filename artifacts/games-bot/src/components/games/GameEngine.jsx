@@ -116,18 +116,30 @@ const GAME_MAP = {
 
 const FallbackGame = lazy(() => import('./games/FlashTap'));
 
+// Stable-height skeleton matching the in-game area so the layout doesn't
+// shift when the lazy chunk resolves — the user no longer sees a "Loading…"
+// flash followed by a sudden jump.
 function GameLoading() {
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: 300,
-      color: 'rgba(148,163,184,0.5)',
-      fontSize: 13,
-      fontWeight: 700,
+      position: 'relative',
+      width: '100%',
+      minHeight: 320,
+      borderRadius: 18,
+      background:
+        'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      overflow: 'hidden',
     }}>
-      Loading game…
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background:
+          'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
+        backgroundSize: '200% 100%',
+        animation: 'gk-shimmer 1.4s linear infinite',
+      }} />
+      <style>{`@keyframes gk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
     </div>
   );
 }

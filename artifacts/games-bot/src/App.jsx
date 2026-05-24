@@ -28,7 +28,6 @@ function PageSkeleton() {
 
 const Games        = lazy(() => import('./pages/Games'));
 const Contests     = lazy(() => import('./pages/Contests'));
-const Leaderboard  = lazy(() => import('./pages/Leaderboard'));
 const Wallet       = lazy(() => import('./pages/Wallet'));
 const Achievements = lazy(() => import('./pages/Achievements'));
 import GameModal from './components/games/GameModal';
@@ -90,7 +89,7 @@ const pageVariants = isSlowDevice
       exit:    { opacity: 1 }, // stay visible — new page fades in on top
     };
 
-const PAGES = { dashboard: Dashboard, games: Games, contests: Contests, leaderboard: Leaderboard, wallet: Wallet, achievements: Achievements };
+const PAGES = { dashboard: Dashboard, games: Games, contests: Contests, wallet: Wallet, achievements: Achievements };
 
 export default function App() {
   const [appReady, setAppReady] = useState(false);

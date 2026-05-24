@@ -1,14 +1,15 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Gamepad2, Trophy, Wallet, Medal } from 'lucide-react';
+import { LayoutDashboard, Gamepad2, Wallet, Medal } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { triggerHaptic } from '../lib/telegram';
 import { t } from '../lib/i18n';
 
+// Simplified per user request — the leaderboard lives in the Mother Bot
+// (central hub), so we keep just the 4 essentials inside the games bot.
 const NAV = [
   { id: 'dashboard',    Icon: LayoutDashboard, labelKey: 'dashboard'    },
   { id: 'games',        Icon: Gamepad2,         labelKey: 'games'        },
-  { id: 'leaderboard',  Icon: Trophy,           labelKey: 'leaderboard'  },
   { id: 'achievements', Icon: Medal,            labelKey: 'achievements' },
   { id: 'wallet',       Icon: Wallet,           labelKey: 'wallet'       },
 ];
@@ -16,10 +17,8 @@ const NAV = [
 const COLOR = {
   dashboard:    { main: '#22d3ee', glow: 'rgba(34,211,238,0.35)',  bg: 'rgba(34,211,238,0.12)'  },
   games:        { main: '#f59e0b', glow: 'rgba(245,158,11,0.35)',  bg: 'rgba(245,158,11,0.12)'  },
-  leaderboard:  { main: '#f59e0b', glow: 'rgba(245,158,11,0.35)',  bg: 'rgba(245,158,11,0.12)'  },
   achievements: { main: '#fb7185', glow: 'rgba(251,113,133,0.35)', bg: 'rgba(251,113,133,0.12)' },
   wallet:       { main: '#10b981', glow: 'rgba(16,185,129,0.35)',  bg: 'rgba(16,185,129,0.12)'  },
-  referral:     { main: '#38bdf8', glow: 'rgba(56,189,248,0.35)',  bg: 'rgba(56,189,248,0.12)'  },
 };
 
 export default function BottomNav() {

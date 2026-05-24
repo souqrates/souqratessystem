@@ -5,10 +5,14 @@ import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
 import { triggerHaptic } from '../lib/telegram';
 
-const container = { animate: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } } };
+// Single, very-short stagger only on the top-level header items.
+// The grid itself does NOT re-stagger — that was causing a visible
+// "flicker" every time the filter/search changed because all cards
+// re-mounted with the entrance animation.
+const container = { animate: { transition: { staggerChildren: 0.03, delayChildren: 0 } } };
 const item = {
-  initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const DIFF_COLOR = {
@@ -82,15 +86,15 @@ export default function Games({ onOpenGame }) {
         ))}
       </motion.div>
 
-      {/* Game grid */}
-      <motion.div variants={container} className="grid grid-cols-2 gap-3">
+      {/* Game grid — plain divs, no per-card entrance animation.
+          Filter/search changes used to re-stagger 110 cards every time,
+          which read as a full-screen flicker. Stable layout now. */}
+      <div className="grid grid-cols-2 gap-3">
         {filtered.map(game => {
           const dc = DIFF_COLOR[game.difficulty] || DIFF_COLOR.Medium;
           return (
-            <motion.button
+            <button
               key={game.id}
-              variants={item}
-              whileTap={{ scale: 0.96 }}
               onClick={() => { triggerHaptic('medium'); onOpenGame?.(game); }}
               className="glass-card rounded-2xl p-3.5 text-left flex flex-col gap-2 relative overflow-hidden"
               style={{ border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', background: 'none', minHeight: 120 }}
@@ -118,10 +122,10 @@ export default function Games({ onOpenGame }) {
                   </span>
                 )}
               </div>
-            </motion.button>
+            </button>
           );
         })}
-      </motion.div>
+      </div>
 
       {filtered.length === 0 && (
         <motion.div variants={item} className="glass-card rounded-2xl p-10 text-center">
