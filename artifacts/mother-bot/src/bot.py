@@ -26,7 +26,7 @@ MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
-BOOKS_BOT_USERNAME  = os.getenv("BOOKS_BOT_USERNAME", "souqrates_books_bot")
+BOOKS_BOT_USERNAME  = os.getenv("BOOKS_BOT_USERNAME", "Souqrates_souq_bot")
 
 # ── WebApp URL stability (CRITICAL) ──────────────────────────────────────────
 # DO NOT append a per-restart cache-buster (e.g. ?v=<timestamp>) to WebApp URLs.
