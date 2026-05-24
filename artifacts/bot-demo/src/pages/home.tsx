@@ -199,7 +199,7 @@ export function Home() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {BOTS.map((bot) => {
-            const bi = BOT_ICONS[bot.name];
+            const bi = BOT_ICONS[bot.name] ?? { iconKey: "bot" as const, color: "#94a3b8", glow: "rgba(148,163,184,0.3)", bg: "linear-gradient(135deg,rgba(148,163,184,0.15),rgba(148,163,184,0.05))" };
             return (
               <motion.button
                 key={bot.name}
@@ -219,7 +219,7 @@ export function Home() {
                   }
                 }}
                 className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[72px] pressable relative"
-                style={{ border: bot.live ? `1px solid ${bi.color}40` : undefined }}
+                style={{ border: bot.live && bi ? `1px solid ${bi.color}40` : undefined }}
               >
                 {bot.live && (
                   <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

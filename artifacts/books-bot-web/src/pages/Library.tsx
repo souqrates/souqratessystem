@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Search, BookMarked, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideIcon } from "lucide-react";
-import { CATEGORIES, BOOKS, searchBooks } from "@/lib/catalog";
+import { CATEGORIES } from "@/lib/catalog";
 import type { CategorySlug } from "@/lib/constants";
+import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
 import { Ornament } from "@/components/Ornaments";
 
@@ -18,12 +19,21 @@ const ICON_MAP: Record<string, LucideIcon> = {
 export default function Library() {
   const [q, setQ] = useState("");
   const [active, setActive] = useState<CategorySlug | "all">("all");
+  const { books, loading } = useBooks();
 
   const list = useMemo(() => {
-    let res = searchBooks(q);
+    const needle = q.trim().toLowerCase();
+    let res = books;
+    if (needle) {
+      res = res.filter(
+        (b) =>
+          b.title.toLowerCase().includes(needle) ||
+          b.author.toLowerCase().includes(needle),
+      );
+    }
     if (active !== "all") res = res.filter((b) => b.category === active);
     return res;
-  }, [q, active]);
+  }, [q, active, books]);
 
   return (
     <>
@@ -104,7 +114,16 @@ export default function Library() {
             </div>
           </div>
 
-          {list.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-20" data-testid="loading">
+              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
+                Loading…
+              </div>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                جارٍ تحميل المكتبة…
+              </p>
+            </div>
+          ) : list.length === 0 ? (
             <div className="text-center py-20" data-testid="empty-results">
               <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
                 Nothing found
@@ -172,5 +191,3 @@ function FilterChip({
   );
 }
 
-// Silence unused warning on BOOKS re-export side-effect
-export { BOOKS };

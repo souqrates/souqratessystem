@@ -1,6 +1,7 @@
 import { Link, useParams } from "wouter";
 import { ArrowLeft, Star, Download, ShieldCheck, Clock, BookOpen } from "lucide-react";
-import { findBook, findCategory, BOOKS } from "@/lib/catalog";
+import { findCategory } from "@/lib/catalog";
+import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
 import { L, Ornament } from "@/components/Ornaments";
 import { buyOnTelegram } from "@/lib/constants";
@@ -8,11 +9,20 @@ import NotFound from "./not-found";
 
 export default function Book() {
   const params = useParams<{ id: string }>();
-  const book = findBook(params.id ?? "");
+  const { books, loading } = useBooks();
+  const book = books.find((b) => b.id === (params.id ?? ""));
+
+  if (loading) {
+    return (
+      <section className="py-32 text-center">
+        <p className="text-sm" style={{ color: "var(--muted)" }}>جارٍ التحميل…</p>
+      </section>
+    );
+  }
   if (!book) return <NotFound />;
 
   const category = findCategory(book.category);
-  const related = BOOKS.filter((b) => b.category === book.category && b.id !== book.id).slice(0, 4);
+  const related = books.filter((b) => b.category === book.category && b.id !== book.id).slice(0, 4);
 
   return (
     <>
