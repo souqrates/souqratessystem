@@ -97,13 +97,59 @@ async def cb_menu(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
-# ── Wallet quick view ───────────────────────────────────────────────────────
-@router.callback_query(F.data == "wallet")
-async def cb_wallet(cb: CallbackQuery):
-    data = await api.get_wallet(str(cb.from_user.id))
-    if not data:
-        await cb.answer("❌ Wallet not found", show_alert=True)
+# ── Slash-command shortcuts (mirrored in BotFather /setcommands) ────────────
+@router.message(Command("help"))
+async def cmd_help(message: Message, state: FSMContext):
+    await state.clear()
+    txt = (
+        "🆘 <b>مساعدة — souqrates books</b>\n\n"
+        "الأوامر المتاحة:\n"
+        "/start — القائمة الرئيسية\n"
+        "/browse — تصفّح الكتب حسب التصنيف\n"
+        "/publish — نشر كتاب جديد للمراجعة\n"
+        "/library — مكتبتي (مشترياتي وإصداراتي)\n"
+        "/wallet — رصيد محفظتي بـ SKZ\n"
+        "/help — عرض هذه القائمة\n"
+    )
+    await message.answer(txt, parse_mode="HTML", reply_markup=main_kb())
+
+
+@router.message(Command("browse"))
+async def cmd_browse(message: Message, state: FSMContext):
+    await state.clear()
+    txt, kb = await _build_browse_view()
+    await message.answer(txt, parse_mode="HTML", reply_markup=kb)
+
+
+@router.message(Command("library"))
+async def cmd_library(message: Message, state: FSMContext):
+    await state.clear()
+    txt, kb = await _build_my_lib_view(str(message.from_user.id))
+    await message.answer(txt, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True)
+
+
+@router.message(Command("wallet"))
+async def cmd_wallet(message: Message, state: FSMContext):
+    await state.clear()
+    view = await _build_wallet_view(str(message.from_user.id))
+    if view is None:
+        await message.answer("❌ لم يتم العثور على محفظتك. أرسل /start أولاً.")
         return
+    txt, kb = view
+    await message.answer(txt, parse_mode="HTML", reply_markup=kb)
+
+
+@router.message(Command("publish"))
+async def cmd_publish(message: Message, state: FSMContext):
+    await state.set_state(Publish.title)
+    await message.answer("📝 أرسل <b>عنوان</b> الكتاب:", parse_mode="HTML", reply_markup=back_kb())
+
+
+# ── Shared view builders (reused by both commands and callbacks) ────────────
+async def _build_wallet_view(telegram_id: str) -> tuple[str, InlineKeyboardMarkup] | None:
+    data = await api.get_wallet(telegram_id)
+    if not data:
+        return None
     w = data["wallet"]
     skz = int(float(w.get("balanceSkz", "0")))
     txt = (
@@ -111,15 +157,12 @@ async def cb_wallet(cb: CallbackQuery):
         f"⚡ SKZ: <code>{skz:,}</code>\n"
         f"💵 USDT (تقديري): <code>{float(w.get('balanceUsdt','0')):.4f}</code>"
     )
-    await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=back_kb())
-    await cb.answer()
+    return txt, back_kb()
 
 
-# ── Browse: categories → list → detail → buy ────────────────────────────────
-@router.callback_query(F.data == "browse")
-async def cb_browse(cb: CallbackQuery):
+async def _build_browse_view() -> tuple[str, InlineKeyboardMarkup]:
     cats = await api.list_categories()
-    rows = []
+    rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
     for c in cats:
         row.append(InlineKeyboardButton(text=f"{c['icon']} {c['nameAr']}", callback_data=f"cat:{c['id']}:0"))
@@ -129,8 +172,47 @@ async def cb_browse(cb: CallbackQuery):
         rows.append(row)
     rows.append([InlineKeyboardButton(text="🔥 الأكثر مبيعًا", callback_data="cat:0:0")])
     rows.append([InlineKeyboardButton(text="🔙 رجوع", callback_data="menu")])
-    await cb.message.edit_text("📚 <b>اختر تصنيفًا</b>", parse_mode="HTML",
-                                reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    return "📚 <b>اختر تصنيفًا</b>", InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _build_my_lib_view(telegram_id: str) -> tuple[str, InlineKeyboardMarkup]:
+    data = await api.my_library(telegram_id)
+    purchases = data.get("purchases", [])
+    published = data.get("published", [])
+    lines = ["📂 <b>مكتبتي</b>\n"]
+    if purchases:
+        lines.append("🛒 <b>مشترياتي:</b>")
+        for p in purchases[:10]:
+            url = p.get("downloadUrl") or f"/api/internal/books/products/download/{p['downloadToken']}"
+            lines.append(f"• <a href=\"{url}\">{p['title']}</a>")
+        lines.append("")
+    else:
+        lines.append("لم تشترِ أي كتاب بعد.\n")
+    if published:
+        lines.append("📤 <b>إصداراتي:</b>")
+        for p in published[:10]:
+            status_icon = {"approved": "✅", "pending": "⏳", "rejected": "❌", "disabled": "⏸️"}.get(p["status"], "•")
+            lines.append(f"{status_icon} <b>{p['title']}</b> — مبيعات: {p['salesCount']}")
+    return "\n".join(lines), back_kb()
+
+
+# ── Wallet quick view ───────────────────────────────────────────────────────
+@router.callback_query(F.data == "wallet")
+async def cb_wallet(cb: CallbackQuery):
+    view = await _build_wallet_view(str(cb.from_user.id))
+    if view is None:
+        await cb.answer("❌ Wallet not found", show_alert=True)
+        return
+    txt, kb = view
+    await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
+    await cb.answer()
+
+
+# ── Browse: categories → list → detail → buy ────────────────────────────────
+@router.callback_query(F.data == "browse")
+async def cb_browse(cb: CallbackQuery):
+    txt, kb = await _build_browse_view()
+    await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
     await cb.answer()
 
 
