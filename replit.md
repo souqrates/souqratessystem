@@ -38,8 +38,13 @@
 - **Contract-first API**: OpenAPI spec gates all codegen; never hand-write types
 - **Bot API key auth**: Each child bot has a unique API key stored in `bots` table; all internal financial ops require `X-Bot-Api-Key` header
 - **Commission auto-deduction**: Every `credit` call automatically deducts commission and records it in `commissions` table; child bots receive gross, users receive net
-- **Atomic wallet updates**: Balance updates happen in-memory after transaction insert; no distributed transactions needed
+- **Atomic wallet updates**: All balance changes use atomic SQL increments (`sql\`balance + ${n}\``) inside route handlers — no JS read-modify-write, no drift under concurrency
 - **Single financial hub**: All 6 child bots share one wallet per user via `telegramId` lookup — no per-bot wallets
+- **Panel → live wiring (no restart)**: Every super-admin setting is read fresh on each request, so changes apply instantly:
+  - `getEffectiveCommissionRate(telegramId, botSlug, default)` — checks `commission_overrides` first, falls back to `bots.commissionRate`. Used in `/internal/credit` + `/internal/game/credit-reward`.
+  - `rejectIfBlocked(user, res)` — returns 403 if `users.isBlocked`. Applied to every mutating route (`/credit`, `/debit`, `/deposit`, `/game/charge-entry`, `/game/credit-reward`, `/stars-invoice`, `/ton-deposit-intent`, `/withdraw`, `/users/upsert`). Exempt: `/game/refund-entry` (must still refund a blocked user).
+  - `getSkzRates()` / `getReferralRates()` — read from `platform_settings` on every call.
+  - `GET /internal/bot-texts` — returns published copy for the calling bot. A bot may only read its own slug (cross-bot reads rejected 403). Python `BotTexts` class in `mother-bot/src/client.py` wraps this with a 60s TTL cache (asyncio.Lock + double-check to prevent thundering-herd).
 
 ## Product
 

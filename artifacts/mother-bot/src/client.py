@@ -5,7 +5,71 @@ Copy this file to each child bot project.
 """
 import httpx
 import os
+import time
+import asyncio
 from typing import Optional
+
+
+class BotTexts:
+    """
+    In-process cache of published bot copy from the super-admin panel.
+
+    Usage:
+        texts = BotTexts(client, bot_slug="mother", ttl_seconds=60)
+        msg = await texts.get("welcome_message", default="مرحباً بك 👋")
+
+    The cache refreshes lazily on first call after TTL expires, so any text
+    published from /superadmin shows up in the bot within ~60 seconds without
+    a restart. Network errors fall back to the previous cache (or the inline
+    `default`) so the bot never crashes because the API is briefly down.
+
+    Refreshes are serialized with an asyncio.Lock + double-checked TTL so a
+    burst of concurrent get() calls only triggers ONE HTTP request, even
+    under heavy update load (avoids thundering-herd against the API server).
+    """
+
+    def __init__(self, client: "MotherBotClient", bot_slug: str, ttl_seconds: int = 60):
+        self._client = client
+        self._bot_slug = bot_slug
+        self._ttl = ttl_seconds
+        self._cache: dict[str, str] = {}
+        self._fetched_at: float = 0.0
+        self._lock = asyncio.Lock()
+
+    async def _refresh(self) -> None:
+        try:
+            async with httpx.AsyncClient() as http:
+                resp = await http.get(
+                    f"{self._client.base_url}/internal/bot-texts",
+                    params={"botSlug": self._bot_slug},
+                    headers=self._client.headers,
+                    timeout=5.0,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                # Only overwrite the cache once we've fully parsed the new
+                # payload, so a mid-flight failure can never leave garbage.
+                fresh = data.get("texts", {}) or {}
+                self._cache = fresh
+                self._fetched_at = time.time()
+        except Exception:
+            # Keep last good cache on failure; do not raise — bot must keep running.
+            # Bump fetched_at so we don't hammer the API during an outage.
+            self._fetched_at = time.time()
+
+    async def get(self, key: str, default: str = "") -> str:
+        """Return the published text for `key`, or `default` if not set."""
+        if time.time() - self._fetched_at > self._ttl:
+            async with self._lock:
+                # Double-check inside the lock: another coroutine may have
+                # refreshed while we were waiting.
+                if time.time() - self._fetched_at > self._ttl:
+                    await self._refresh()
+        return self._cache.get(key, default)
+
+    def invalidate(self) -> None:
+        """Force the next get() to re-fetch (useful after a manual publish)."""
+        self._fetched_at = 0.0
 
 
 class MotherBotClient:
@@ -13,6 +77,14 @@ class MotherBotClient:
         self.api_key = api_key
         self.base_url = base_url
         self.headers = {"X-Bot-Api-Key": api_key, "Content-Type": "application/json"}
+
+    def texts(self, bot_slug: str, ttl_seconds: int = 60) -> "BotTexts":
+        """
+        Build a cached text bundle for the given bot slug. Reuse one instance
+        for the lifetime of the bot — the cache is in-process and the TTL
+        determines how quickly panel edits propagate.
+        """
+        return BotTexts(self, bot_slug=bot_slug, ttl_seconds=ttl_seconds)
 
     async def upsert_user(
         self,

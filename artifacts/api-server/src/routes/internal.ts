@@ -10,6 +10,8 @@ import {
   commissionsTable,
   platformSettingsTable,
   withdrawalsTable,
+  commissionOverridesTable,
+  botTextsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
@@ -39,6 +41,78 @@ async function requireBot(
 }
 
 // getSkzRates, getReferralRates, distributeReferralBonuses are imported from ../lib/finance
+
+// ── Effective settings helpers (panel → live) ──────────────────────────────
+// Every financial route uses these so any change made in the super-admin
+// panel takes effect on the very next request — no restart, no cache.
+
+/**
+ * Returns the effective commission rate for a (user, bot) pair.
+ * Per-user override in `commission_overrides` wins over the bot's default.
+ */
+async function getEffectiveCommissionRate(
+  telegramId: bigint,
+  botSlug: string,
+  defaultRate: string | number,
+): Promise<number> {
+  const [override] = await db
+    .select({ rate: commissionOverridesTable.commissionRate })
+    .from(commissionOverridesTable)
+    .where(and(
+      eq(commissionOverridesTable.telegramId, telegramId),
+      eq(commissionOverridesTable.botSlug, botSlug),
+    ))
+    .limit(1);
+  return parseFloat(String(override?.rate ?? defaultRate));
+}
+
+/**
+ * Rejects the request with 403 if the user is blocked.
+ * Returns `true` when blocked (caller should `return` immediately).
+ */
+function rejectIfBlocked(
+  user: { isBlocked: boolean | null },
+  res: Parameters<Parameters<typeof router.post>[1]>[1],
+): boolean {
+  if (user.isBlocked === true) {
+    res.status(403).json({ error: "هذا المستخدم محظور — لا يمكن إجراء عمليات مالية" });
+    return true;
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /internal/bot-texts?botSlug=... — fetch all PUBLISHED texts for a bot
+// Returns: { texts: { [key]: publishedValue } }
+// Used by bots (Python SDK) to render dynamic strings edited from the panel.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/internal/bot-texts", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  // A bot may only read its own texts. Cross-bot reads are rejected to
+  // prevent any compromised child-bot key from exfiltrating another bot's
+  // copy (which could leak product strategy or partner-branded content).
+  const requestedSlug = req.query.botSlug as string | undefined;
+  if (requestedSlug && requestedSlug !== bot.slug) {
+    res.status(403).json({ error: "A bot may only read its own texts" });
+    return;
+  }
+  const slug = bot.slug;
+
+  const rows = await db
+    .select({ key: botTextsTable.key, value: botTextsTable.publishedValue })
+    .from(botTextsTable)
+    .where(eq(botTextsTable.botSlug, slug));
+
+  const texts: Record<string, string> = {};
+  for (const r of rows) {
+    // Only expose published, non-empty values. Empty published → use Python default.
+    if (r.value && r.value.length > 0) texts[r.key] = r.value;
+  }
+
+  res.json({ botSlug: slug, texts });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Upsert user (called by child bots on each interaction)
@@ -104,6 +178,10 @@ router.post("/internal/users/upsert", async (req, res): Promise<void> => {
   const finalWallet =
     wallet ??
     (await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id)))[0];
+
+  // Blocked users must not be able to keep refreshing their record through
+  // child bots — block enforcement covers identity, not just money.
+  if (rejectIfBlocked(user, res)) return;
 
   req.log.info({ telegramId, botSlug: bot.slug }, "User upserted");
   res.json({ user, wallet: finalWallet });
@@ -227,6 +305,7 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   const rates = await getSkzRates();
   const rateMap: Record<string, number> = {
@@ -310,8 +389,10 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
-  const commissionRate = parseFloat(String(bot.commissionRate));
+  // Effective rate honors per-user overrides set in the super-admin panel.
+  const commissionRate = await getEffectiveCommissionRate(user.telegramId, bot.slug, bot.commissionRate);
   const commissionAmount = amountNum * commissionRate;
   const netAmount = amountNum - commissionAmount;
 
@@ -419,6 +500,7 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   // Atomic conditional debit: only succeeds when balance is sufficient.
   // This single SQL statement defeats the time-of-check/time-of-use race
@@ -523,6 +605,7 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   // Atomic conditional debit for entry fee — fails fast with
   // insufficient_balance if the wallet can't cover the fee, with no
@@ -775,6 +858,7 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   // ── 1. Verify result token (proves game completed, binds chargeId + userId) ─
   if (!verifyResultToken(resultToken, chargeId, user.id)) {
@@ -809,8 +893,8 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
   const grossPrize = meta.expectedPrize as number;
   const gameId     = meta.gameId ?? "?";
 
-  // ── 4. Commission ─────────────────────────────────────────────────────────
-  const commissionRate   = parseFloat(String(bot.commissionRate));
+  // ── 4. Commission (honors per-user override from super-admin panel) ───────
+  const commissionRate   = await getEffectiveCommissionRate(user.telegramId, bot.slug, bot.commissionRate);
   const commissionAmount = parseFloat((grossPrize * commissionRate).toFixed(2));
   const netAmount        = parseFloat((grossPrize - commissionAmount).toFixed(2));
 
@@ -862,16 +946,15 @@ router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
         })
         .returning();
 
-      const [wlt] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
-      if (!wlt) throw new Error("WALLET_NOT_FOUND");
+      // Atomic SQL increment — matches the pattern used by /credit and /deposit
+      // so wallet balance stays exact (numeric(18,2)) without JS rounding drift.
+      const [updated] = await tx.update(walletsTable).set({
+        balanceSkz:     sql`${walletsTable.balanceSkz}     + ${netAmount}`,
+        totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${netAmount}`,
+      }).where(eq(walletsTable.userId, user.id)).returning();
+      if (!updated) throw new Error("WALLET_NOT_FOUND");
 
-      const bal = (parseFloat(wlt.balanceSkz) + netAmount).toFixed(2);
-      await tx.update(walletsTable).set({
-        balanceSkz:     bal,
-        totalEarnedSkz: String((parseFloat(wlt.totalEarnedSkz) + netAmount).toFixed(2)),
-      }).where(eq(walletsTable.id, wlt.id));
-
-      return { txn, newBalance: bal };
+      return { txn, newBalance: updated.balanceSkz };
     });
 
     transaction   = result.txn;
@@ -984,6 +1067,7 @@ router.post("/internal/stars-invoice", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   const botToken = process.env.MOTHER_BOT_TOKEN;
   if (!botToken) {
@@ -1075,6 +1159,7 @@ router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   const rates = await getSkzRates();
   const expectedSkz = tonNum * rates.perTon;
@@ -1142,6 +1227,7 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (rejectIfBlocked(user, res)) return;
 
   const [wallet] = await db
     .select()
@@ -1238,6 +1324,9 @@ router.post("/internal/game/refund-entry", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  // Note: refund-entry intentionally does NOT block when isBlocked=true —
+  // a blocked user should still be made whole if their game wasn't actually
+  // played. Block enforcement happens on entry/credit, not on refund.
 
   const [charge] = await db.select().from(transactionsTable)
     .where(eq(transactionsTable.id, chargeId));
