@@ -7,6 +7,7 @@ import { Wallet } from "./pages/wallet";
 import { Deposit } from "./pages/deposit";
 import { Withdraw } from "./pages/withdraw";
 import { Referral } from "./pages/referral";
+import { Agreement } from "./pages/agreement";
 import { SplashScreen } from "./components/splash-screen";
 
 const queryClient = new QueryClient({
@@ -21,25 +22,35 @@ const queryClient = new QueryClient({
 export default function App() {
   const [splashDone, setSplashDone] = useState(false);
 
+  const isAgreementRoute =
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/\/$/, "").endsWith("/agreement");
+
   return (
     <QueryClientProvider client={queryClient}>
-      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+      {!splashDone && !isAgreementRoute && <SplashScreen onDone={() => setSplashDone(true)} />}
 
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Layout>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/wallet" component={Wallet} />
-            <Route path="/deposit" component={Deposit} />
-            <Route path="/withdraw" component={Withdraw} />
-            <Route path="/referral" component={Referral} />
-            <Route>
-              <div className="flex items-center justify-center h-full">
-                <p>الصفحة غير موجودة</p>
-              </div>
-            </Route>
-          </Switch>
-        </Layout>
+        <Switch>
+          {/* Standalone public page — no Layout chrome (logo/footer/etc.) */}
+          <Route path="/agreement" component={Agreement} />
+          <Route>
+            <Layout>
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/wallet" component={Wallet} />
+                <Route path="/deposit" component={Deposit} />
+                <Route path="/withdraw" component={Withdraw} />
+                <Route path="/referral" component={Referral} />
+                <Route>
+                  <div className="flex items-center justify-center h-full">
+                    <p>الصفحة غير موجودة</p>
+                  </div>
+                </Route>
+              </Switch>
+            </Layout>
+          </Route>
+        </Switch>
       </WouterRouter>
     </QueryClientProvider>
   );

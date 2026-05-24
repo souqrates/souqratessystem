@@ -23,6 +23,7 @@ import {
   Settings,
   Zap,
   Activity,
+  FileSignature,
 } from "lucide-react";
 import { useGetStatsOverview } from "@workspace/api-client-react";
 
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Bots", nameAr: "البوتات", href: "/bots", icon: Bot, color: "text-blue-400" },
   { name: "Commissions", nameAr: "العمولات", href: "/commissions", icon: Percent, color: "text-amber-400" },
   { name: "Withdrawals", nameAr: "السحوبات", href: "/withdrawals", icon: ArrowUpFromLine, color: "text-rose-400" },
+  { name: "Agreements", nameAr: "الاتفاقيات", href: "/agreements", icon: FileSignature, color: "text-teal-400" },
 ];
 
 const adminNav = [
