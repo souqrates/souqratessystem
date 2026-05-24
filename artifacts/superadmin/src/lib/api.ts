@@ -123,6 +123,64 @@ export interface SuperTransaction {
   userUsername?: string | null;
 }
 
+export interface SuperBroadcast {
+  id: number;
+  botSlug: string;
+  audience: "all" | "bot" | "single" | string;
+  targetValue: string | null;
+  body: string;
+  status: string;
+  sentCount: number;
+  failedCount: number;
+  totalCount: number;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface SuperLink {
+  id: number;
+  key: string;
+  label: string;
+  url: string;
+  category: string;
+  isActive: boolean;
+  notes: string | null;
+  updatedAt: string;
+}
+
+export interface SuperErrorLog {
+  id: number;
+  source: string;
+  level: string;
+  message: string;
+  stack: string | null;
+  metadata: unknown;
+  userTelegramId: string | number | null;
+  resolved: boolean;
+  createdAt: string;
+}
+
+export interface SuperWithdrawal {
+  id: number;
+  userId: number;
+  currency: string;
+  amount: string;
+  fee: string;
+  netAmount: string;
+  method: string;
+  address: string | null;
+  txHash: string | null;
+  status: string;
+  rejectedReason: string | null;
+  createdAt: string;
+  processedAt: string | null;
+  userTelegramId: string | number | null;
+  userFirstName: string | null;
+  userUsername: string | null;
+}
+
 export interface SkzRates {
   skzPerUsdt: string;
   skzPerStar: string;

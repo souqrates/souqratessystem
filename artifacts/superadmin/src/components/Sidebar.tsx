@@ -27,6 +27,12 @@ export default function Sidebar() {
         <SidebarLink href="/" active={location === "/"} icon="📊" label="نظرة عامة" />
         <SidebarLink href="/users" active={location.startsWith("/users")} icon="👥" label="المستخدمون" />
         <SidebarLink href="/transactions" active={location.startsWith("/transactions")} icon="💸" label="سجل المعاملات" />
+        <SidebarLink href="/withdrawals" active={location.startsWith("/withdrawals")} icon="💳" label="طلبات السحب" />
+
+        <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
+        <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
+        <SidebarLink href="/links" active={location.startsWith("/links")} icon="🔗" label="الروابط/CDN" />
+        <SidebarLink href="/error-logs" active={location.startsWith("/error-logs")} icon="⚠️" label="سجل الأخطاء" />
 
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">البوتات</div>
         {BOTS.map((b) => {

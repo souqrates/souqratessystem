@@ -8,6 +8,10 @@ import {
   botTextsTable,
   walletsTable,
   transactionsTable,
+  broadcastsTable,
+  externalLinksTable,
+  errorLogsTable,
+  withdrawalsTable,
 } from "@workspace/db";
 import {
   requireSuperAdmin,
@@ -549,6 +553,357 @@ router.get("/superadmin/transactions", requireSuperAdmin, async (req, res): Prom
   ]);
 
   res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
+});
+
+// ── Broadcasts ───────────────────────────────────────────────────────────
+
+router.get("/superadmin/broadcasts", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(broadcastsTable)
+    .orderBy(desc(broadcastsTable.createdAt))
+    .limit(50);
+  res.json({ data: rows });
+});
+
+router.post("/superadmin/broadcasts", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { body, audience, targetValue } = req.body as {
+    body?: string;
+    audience?: "all" | "bot" | "single";
+    targetValue?: string;
+  };
+
+  if (!body || !body.trim()) { res.status(400).json({ error: "body is required" }); return; }
+  if (audience !== "all" && audience !== "bot" && audience !== "single") {
+    res.status(400).json({ error: "audience must be all|bot|single" });
+    return;
+  }
+  if ((audience === "bot" || audience === "single") && !targetValue) {
+    res.status(400).json({ error: "targetValue is required for bot/single audience" });
+    return;
+  }
+
+  const token = process.env.MOTHER_BOT_TOKEN;
+  if (!token) { res.status(500).json({ error: "MOTHER_BOT_TOKEN not configured" }); return; }
+
+  // Resolve target telegram IDs.
+  let recipients: bigint[] = [];
+  try {
+    if (audience === "single") {
+      recipients = [BigInt(String(targetValue))];
+    } else if (audience === "all") {
+      const rows = await db
+        .select({ tid: usersTable.telegramId })
+        .from(usersTable)
+        .where(eq(usersTable.isBlocked, false));
+      recipients = rows.map((r) => r.tid);
+    } else {
+      // audience === "bot": users who have any transaction with sourceBot = targetValue
+      const rows = await db
+        .selectDistinct({ tid: usersTable.telegramId })
+        .from(usersTable)
+        .innerJoin(transactionsTable, eq(transactionsTable.userId, usersTable.id))
+        .where(and(eq(transactionsTable.sourceBot, String(targetValue)), eq(usersTable.isBlocked, false)));
+      recipients = rows.map((r) => r.tid);
+    }
+  } catch (e) {
+    res.status(400).json({ error: `فشل تحديد المستلمين: ${(e as Error).message}` });
+    return;
+  }
+
+  const [row] = await db
+    .insert(broadcastsTable)
+    .values({
+      audience,
+      targetValue: targetValue ?? null,
+      body: body.trim(),
+      status: "pending",
+      totalCount: recipients.length,
+    })
+    .returning();
+
+  // Dispatch in the background — respond immediately with the job id.
+  void dispatchBroadcast(row.id, token, recipients, body.trim()).catch((err) => {
+    req.log.error({ err, broadcastId: row.id }, "broadcast dispatch crashed");
+  });
+
+  res.json(row);
+});
+
+async function dispatchBroadcast(
+  broadcastId: number,
+  token: string,
+  recipients: bigint[],
+  body: string,
+): Promise<void> {
+  await db
+    .update(broadcastsTable)
+    .set({ status: "sending", startedAt: new Date() })
+    .where(eq(broadcastsTable.id, broadcastId));
+
+  let sent = 0;
+  let failed = 0;
+  // Telegram limit: ~30 messages/sec to distinct users; we pace at 25/sec with
+  // a steady 40ms gap between calls. Persist progress every 50 messages so the
+  // dashboard can show live progress instead of jumping from 0 → done.
+  const perMessageDelayMs = 40;
+  for (let i = 0; i < recipients.length; i++) {
+    const tid = recipients[i];
+    try {
+      const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ chat_id: tid.toString(), text: body, parse_mode: "HTML" }),
+      });
+      if (resp.ok) sent++; else failed++;
+    } catch {
+      failed++;
+    }
+    // Always pace — base on attempt index, not on sent (which won't grow if
+    // every recipient errors out).
+    if (i < recipients.length - 1) {
+      await new Promise((r) => setTimeout(r, perMessageDelayMs));
+    }
+    if ((i + 1) % 50 === 0) {
+      await db
+        .update(broadcastsTable)
+        .set({ sentCount: sent, failedCount: failed })
+        .where(eq(broadcastsTable.id, broadcastId));
+    }
+  }
+
+  await db
+    .update(broadcastsTable)
+    .set({
+      status: "completed",
+      sentCount: sent,
+      failedCount: failed,
+      completedAt: new Date(),
+    })
+    .where(eq(broadcastsTable.id, broadcastId));
+}
+
+// ── External Links / CDN ────────────────────────────────────────────────
+
+router.get("/superadmin/links", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(externalLinksTable).orderBy(externalLinksTable.category, externalLinksTable.label);
+  res.json({ data: rows });
+});
+
+router.post("/superadmin/links", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { key, label, url, category, isActive, notes } = req.body as {
+    key?: string; label?: string; url?: string; category?: string; isActive?: boolean; notes?: string;
+  };
+  if (!key || !label || !url) {
+    res.status(400).json({ error: "key, label, url are required" });
+    return;
+  }
+  try {
+    const [row] = await db.insert(externalLinksTable).values({
+      key: key.trim(),
+      label: label.trim(),
+      url: url.trim(),
+      category: category ?? "general",
+      isActive: isActive ?? true,
+      notes: notes ?? null,
+    }).returning();
+    res.json(row);
+  } catch (e) {
+    res.status(400).json({ error: `فشلت الإضافة: ${(e as Error).message}` });
+  }
+});
+
+router.patch("/superadmin/links/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { label, url, category, isActive, notes } = req.body as {
+    label?: string; url?: string; category?: string; isActive?: boolean; notes?: string;
+  };
+  const updates: Partial<typeof externalLinksTable.$inferInsert> = { updatedAt: new Date() };
+  if (typeof label === "string") updates.label = label;
+  if (typeof url === "string") updates.url = url;
+  if (typeof category === "string") updates.category = category;
+  if (typeof isActive === "boolean") updates.isActive = isActive;
+  if (typeof notes === "string") updates.notes = notes;
+  const [row] = await db.update(externalLinksTable).set(updates).where(eq(externalLinksTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
+router.delete("/superadmin/links/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const result = await db.delete(externalLinksTable).where(eq(externalLinksTable.id, id)).returning();
+  if (result.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ok: true });
+});
+
+// ── Error Logs ───────────────────────────────────────────────────────────
+
+router.get("/superadmin/error-logs", requireSuperAdmin, async (req, res): Promise<void> => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const offset = (page - 1) * limit;
+  const source = req.query.source as string | undefined;
+  const level = req.query.level as string | undefined;
+  const resolved = req.query.resolved as string | undefined;
+
+  const conds = [];
+  if (source) conds.push(eq(errorLogsTable.source, source));
+  if (level) conds.push(eq(errorLogsTable.level, level));
+  if (resolved === "true") conds.push(eq(errorLogsTable.resolved, true));
+  if (resolved === "false") conds.push(eq(errorLogsTable.resolved, false));
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, count] = await Promise.all([
+    db.select().from(errorLogsTable).where(where).orderBy(desc(errorLogsTable.createdAt)).limit(limit).offset(offset),
+    db.select({ c: sql<number>`count(*)::int` }).from(errorLogsTable).where(where),
+  ]);
+  res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
+});
+
+router.post("/superadmin/error-logs/:id/resolve", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(errorLogsTable).set({ resolved: true }).where(eq(errorLogsTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
+router.delete("/superadmin/error-logs/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(errorLogsTable).where(eq(errorLogsTable.id, id));
+  res.json({ ok: true });
+});
+
+// ── Withdrawals (super-admin view + approve/reject) ──────────────────────
+// These wrap the existing admin-scoped routes but authenticate via the
+// superadmin bearer so the panel doesn't need a second token.
+
+router.get("/superadmin/withdrawals", requireSuperAdmin, async (req, res): Promise<void> => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const offset = (page - 1) * limit;
+  const status = req.query.status as string | undefined;
+
+  const conds = [];
+  if (status) conds.push(eq(withdrawalsTable.status, status));
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, count] = await Promise.all([
+    db
+      .select({
+        id: withdrawalsTable.id,
+        userId: withdrawalsTable.userId,
+        currency: withdrawalsTable.currency,
+        amount: withdrawalsTable.amount,
+        fee: withdrawalsTable.fee,
+        netAmount: withdrawalsTable.netAmount,
+        method: withdrawalsTable.method,
+        address: withdrawalsTable.address,
+        txHash: withdrawalsTable.txHash,
+        status: withdrawalsTable.status,
+        rejectedReason: withdrawalsTable.rejectedReason,
+        createdAt: withdrawalsTable.createdAt,
+        processedAt: withdrawalsTable.processedAt,
+        userTelegramId: usersTable.telegramId,
+        userFirstName: usersTable.firstName,
+        userUsername: usersTable.username,
+      })
+      .from(withdrawalsTable)
+      .leftJoin(usersTable, eq(usersTable.id, withdrawalsTable.userId))
+      .where(where)
+      .orderBy(desc(withdrawalsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ c: sql<number>`count(*)::int` }).from(withdrawalsTable).where(where),
+  ]);
+  res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
+});
+
+router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { txHash } = req.body as { txHash?: string };
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(withdrawalsTable)
+        .set({ status: "approved", txHash: txHash ?? null, processedAt: new Date() })
+        .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
+        .returning();
+      if (!updated) return { error: "Only pending withdrawals can be approved", row: null };
+
+      const amt = parseFloat(updated.amount);
+
+      // Explicit per-currency update for compile-time safety: no dynamic
+      // computed keys, no `as` casts. Drizzle types the .set() shape.
+      let walletUpdated: typeof walletsTable.$inferSelect | undefined;
+      if (updated.currency === "stars") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceStars:   sql`${walletsTable.balanceStars}   - ${amt}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceStars} >= ${amt}`,
+        )).returning();
+      } else if (updated.currency === "usdt") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceUsdt:    sql`${walletsTable.balanceUsdt}    - ${amt}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceUsdt} >= ${amt}`,
+        )).returning();
+      } else if (updated.currency === "ton") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceTon:     sql`${walletsTable.balanceTon}     - ${amt}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceTon} >= ${amt}`,
+        )).returning();
+      } else if (updated.currency === "skz") {
+        [walletUpdated] = await tx.update(walletsTable).set({
+          balanceSkz:        sql`${walletsTable.balanceSkz}        - ${amt}`,
+          totalWithdrawnSkz: sql`${walletsTable.totalWithdrawnSkz} + ${amt}`,
+        }).where(and(
+          eq(walletsTable.userId, updated.userId),
+          sql`${walletsTable.balanceSkz} >= ${amt}`,
+        )).returning();
+      } else {
+        throw new Error(`Unsupported currency: ${updated.currency}`);
+      }
+
+      if (!walletUpdated) throw new Error("Insufficient wallet balance at approval time");
+      return { error: null, row: updated };
+    });
+
+    if (result.error || !result.row) {
+      res.status(400).json({ error: result.error ?? "Approval failed" });
+      return;
+    }
+    res.json(result.row);
+  } catch (err) {
+    req.log.error({ err, id }, "superadmin withdrawal approve failed");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
+  }
+});
+
+router.post("/superadmin/withdrawals/:id/reject", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { reason } = req.body as { reason?: string };
+
+  const [updated] = await db
+    .update(withdrawalsTable)
+    .set({ status: "rejected", rejectedReason: reason ?? null, processedAt: new Date() })
+    .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
+    .returning();
+  if (!updated) { res.status(400).json({ error: "Only pending withdrawals can be rejected" }); return; }
+  res.json(updated);
 });
 
 // ── Platform stats (lightweight overview) ────────────────────────────────
