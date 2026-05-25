@@ -46,7 +46,16 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json({ limit: "256kb" }));
+// Capture the raw request bytes alongside the parsed JSON. The Cryptomus
+// IPN webhook re-computes an HMAC over the exact bytes that were sent, so a
+// round-trip through JSON.parse + JSON.stringify could subtly reorder keys
+// and break signature verification.
+app.use(express.json({
+  limit: "256kb",
+  verify: (req, _res, buf) => {
+    if (buf?.length) (req as unknown as { rawBody?: string }).rawBody = buf.toString("utf8");
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 
 // Coarse-grained global limiter — applied before any handler so abusive
