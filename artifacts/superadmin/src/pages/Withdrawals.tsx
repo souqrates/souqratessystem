@@ -26,10 +26,10 @@ export default function WithdrawalsPage() {
       </header>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm flex gap-2">
-        {["pending", "approved", "rejected", ""].map((s) => (
+        {["pending", "processing", "approved", "rejected", ""].map((s) => (
           <button key={s || "all"} onClick={() => { setStatus(s); setPage(1); }}
             className={`px-3 py-1.5 text-sm rounded-lg ${status === s ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
-            {s === "pending" ? "بانتظار المراجعة" : s === "approved" ? "مقبولة" : s === "rejected" ? "مرفوضة" : "الكل"}
+            {s === "pending" ? "بانتظار المراجعة" : s === "processing" ? "قيد التحويل" : s === "approved" ? "مقبولة" : s === "rejected" ? "مرفوضة" : "الكل"}
           </button>
         ))}
       </div>
@@ -79,21 +79,44 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
   const [reason, setReason] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["superadmin", "withdrawals"] });
+
   const approveMut = useMutation({
     mutationFn: () => api.post(`/superadmin/withdrawals/${w.id}/approve`, { txHash: txHash.trim() || null }),
-    onSuccess: () => { setActionOpen(null); setTxHash(""); qc.invalidateQueries({ queryKey: ["superadmin", "withdrawals"] }); },
+    onSuccess: () => { setActionOpen(null); setTxHash(""); invalidate(); },
     onError: (e: ApiError) => setErr(e.message),
   });
   const rejectMut = useMutation({
     mutationFn: () => api.post(`/superadmin/withdrawals/${w.id}/reject`, { reason: reason.trim() }),
-    onSuccess: () => { setActionOpen(null); setReason(""); qc.invalidateQueries({ queryKey: ["superadmin", "withdrawals"] }); },
+    onSuccess: () => { setActionOpen(null); setReason(""); invalidate(); },
+    onError: (e: ApiError) => setErr(e.message),
+  });
+  // Auto-payout via Cryptomus — one click, no txHash to type. Backend
+  // deducts the wallet atomically, calls /v1/payout, then the payout
+  // webhook flips status → approved with the real on-chain hash.
+  const autoPayoutMut = useMutation({
+    mutationFn: () => api.post(`/superadmin/withdrawals/${w.id}/auto-payout`, {}),
+    onSuccess: () => { setErr(null); invalidate(); },
     onError: (e: ApiError) => setErr(e.message),
   });
 
+  // Only on-chain methods are payable via Cryptomus. Stars / manual rails
+  // still require the existing "قبول" path.
+  const isAutoPayable =
+    (w.currency === "usdt" || w.currency === "ton") &&
+    (w.method.includes("trc20") || w.method === "tron" || w.method === "ton" || w.method.startsWith("usdt") || w.method.startsWith("ton"));
+
   const statusCls: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",
+    processing: "bg-blue-100 text-blue-700",
     approved: "bg-emerald-100 text-emerald-700",
     rejected: "bg-red-100 text-red-700",
+  };
+  const statusLabel: Record<string, string> = {
+    pending: "بانتظار",
+    processing: "قيد التحويل",
+    approved: "مقبولة",
+    rejected: "مرفوضة",
   };
 
   return (
@@ -109,18 +132,36 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
         <td className="px-4 py-2 font-mono text-xs" dir="ltr">{Number(w.netAmount).toFixed(4)}</td>
         <td className="px-4 py-2 text-xs">{w.method}</td>
         <td className="px-4 py-2 text-xs font-mono max-w-xs truncate" dir="ltr" title={w.address ?? ""}>{w.address ?? "—"}</td>
-        <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${statusCls[w.status] ?? "bg-slate-100"}`}>{w.status}</span></td>
+        <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${statusCls[w.status] ?? "bg-slate-100"}`}>{statusLabel[w.status] ?? w.status}</span></td>
         <td className="px-4 py-2">
           {w.status === "pending" ? (
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap">
+              {isAutoPayable && (
+                <button
+                  onClick={() => {
+                    if (autoPayoutMut.isPending) return;
+                    if (!confirm(`تأكيد الدفع التلقائي عبر Cryptomus؟\nسيُخصم ${w.amount} ${w.currency.toUpperCase()} من محفظة المستخدم فوراً ثم يُرسل العنوان.`)) return;
+                    setErr(null);
+                    autoPayoutMut.mutate();
+                  }}
+                  disabled={autoPayoutMut.isPending}
+                  className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold disabled:opacity-40"
+                  title="دفع تلقائي عبر Cryptomus — لا يحتاج إدخال tx hash"
+                >
+                  {autoPayoutMut.isPending ? "…" : "⚡ ادفع تلقائياً"}
+                </button>
+              )}
               <button onClick={() => { setErr(null); setActionOpen(actionOpen === "approve" ? null : "approve"); }}
-                className="text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded">قبول</button>
+                className="text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded">قبول يدوي</button>
               <button onClick={() => { setErr(null); setActionOpen(actionOpen === "reject" ? null : "reject"); }}
                 className="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded">رفض</button>
             </div>
+          ) : w.status === "processing" ? (
+            <span className="text-xs text-blue-600" title="بانتظار تأكيد Cryptomus عبر webhook">⏳ بانتظار التأكيد</span>
           ) : (
             <span className="text-xs text-slate-400">—</span>
           )}
+          {err && w.status === "pending" && <div className="text-red-600 text-xs mt-1">{err}</div>}
         </td>
       </tr>
       {actionOpen === "approve" && (
