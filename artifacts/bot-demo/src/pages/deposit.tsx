@@ -1,22 +1,24 @@
 import { useState } from "react";
-import { Zap, Copy, Check, AlertCircle } from "lucide-react";
+import { Zap, Copy, Check, AlertCircle, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { showTelegramAlert } from "../lib/telegram";
 
-type Method = "usdt" | "stars" | "ton";
+type Method = "card" | "usdt" | "stars" | "ton";
 
 const STAR_AMOUNTS = [50, 100, 250, 500, 1000, 2500];
+const CARD_AMOUNTS_USDT = [5, 10, 25, 50, 100, 250];
 
 const METHODS: { id: Method; label: string; sub: string; currencyKey: string }[] = [
-  { id: "usdt",  label: "USDT",           sub: "Tether · شبكة TRC20",     currencyKey: "USDT"  },
-  { id: "stars", label: "نجوم تيليغرام",  sub: "Telegram Stars · فوري",   currencyKey: "Stars" },
-  { id: "ton",   label: "TON",            sub: "The Open Network",         currencyKey: "TON"   },
+  { id: "card",  label: "💳 شحن بالبطاقة", sub: "فيزا / ماستركارد · فوري عبر Cryptomus", currencyKey: "USDT" },
+  { id: "usdt",  label: "USDT",            sub: "Tether · شبكة TRC20",                   currencyKey: "USDT"  },
+  { id: "stars", label: "نجوم تيليغرام",   sub: "Telegram Stars · فوري",                 currencyKey: "Stars" },
+  { id: "ton",   label: "TON",             sub: "The Open Network",                      currencyKey: "TON"   },
 ];
 
 export function Deposit() {
-  const [method, setMethod] = useState<Method>("usdt");
+  const [method, setMethod] = useState<Method>("card");
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
   const { settings } = usePlatformSettings();
@@ -143,6 +145,104 @@ export function Deposit() {
 
       {/* Method-specific form */}
       <AnimatePresence mode="wait">
+        {method === "card" && (
+          <motion.div key="card"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+            className="space-y-4">
+            <div className="divider" />
+
+            <p className="section-label">اختر مبلغ الشحن (USDT)</p>
+            <div className="grid grid-cols-3 gap-2">
+              {CARD_AMOUNTS_USDT.map((val) => {
+                const isSel = amount === val.toString();
+                return (
+                  <motion.button key={val} onClick={() => setAmount(val.toString())} whileTap={{ scale: 0.93 }}
+                    className="py-3.5 rounded-2xl font-bold text-sm transition-all"
+                    style={{
+                      background: isSel ? "rgba(168,85,247,0.20)" : "rgba(255,255,255,0.04)",
+                      border: isSel ? "1.5px solid rgba(168,85,247,0.50)" : "1.5px solid rgba(255,255,255,0.07)",
+                      color: isSel ? "#c084fc" : "rgba(255,255,255,0.7)",
+                      boxShadow: isSel ? "0 4px 16px rgba(168,85,247,0.25)" : "none",
+                    }}>
+                    ${val}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {/* Custom amount input */}
+            <div className="space-y-2">
+              <p className="section-label">أو أدخل مبلغاً مخصصاً</p>
+              <div className="relative">
+                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                  placeholder="مثال: 15"
+                  className="premium-input w-full px-4 py-4 text-xl font-black text-right pl-20"
+                  dir="ltr" min="1" max="10000" />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <CreditCard size={14} className="text-skz-light" />
+                  <span className="text-xs font-bold text-skz-light">USDT</span>
+                </div>
+              </div>
+            </div>
+
+            {skzPreview !== null && num >= 1 && num <= 10000 && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                className="glass-card-skz rounded-2xl p-4 flex items-center justify-between">
+                <p className="text-sm text-white/60">ستستلم</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-white/40 font-bold">SKZ</p>
+                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
+                  <Zap size={15} className="text-skz-light" />
+                </div>
+              </motion.div>
+            )}
+
+            {/* How-to / where the button actually lives */}
+            <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
+              style={{ background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.2)" }}>
+              <p className="text-skz-light font-bold mb-1.5 flex items-center gap-1.5">
+                <CreditCard size={12} /> كيف يعمل الشحن بالبطاقة
+              </p>
+              <ol className="text-white/60 list-decimal pr-4 space-y-1">
+                <li>افتح <b>@souqrates_system_bot</b> في تيليغرام واضغط <b>/start</b>.</li>
+                <li>اضغط <b>💰 Balance</b> → <b>💳 شحن بالبطاقة</b>.</li>
+                <li>اختر المبلغ، يفتح لك رابط دفع Cryptomus.</li>
+                <li>ادفع بالفيزا/ماستركارد — يصلك تأكيد ويتحدّث رصيدك خلال ثوانٍ ⚡.</li>
+              </ol>
+            </div>
+
+            <motion.button disabled={!amount || num < 1 || num > 10000} whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                if (!amount || num < 1 || num > 10000) return;
+                showTelegramAlert(
+                  `لإتمام الدفع بالبطاقة:\n` +
+                  `افتح البوت @souqrates_system_bot واضغط /start ثم 💰 Balance → 💳 شحن بالبطاقة.\n\n` +
+                  `المبلغ: $${num} USDT → ${skzPreview?.toLocaleString()} SKZ`,
+                );
+              }}
+              className="w-full py-4 rounded-2xl font-black text-base text-white transition-all flex items-center justify-center gap-2"
+              style={{
+                background: amount && num >= 1 && num <= 10000
+                  ? "linear-gradient(135deg, #9333ea, #7c3aed)"
+                  : "rgba(255,255,255,0.06)",
+                boxShadow: amount && num >= 1 && num <= 10000
+                  ? "0 4px 24px rgba(147,51,234,0.4)"
+                  : "none",
+                opacity: amount && num >= 1 && num <= 10000 ? 1 : 0.5,
+              }}>
+              <CreditCard size={18} />
+              {!amount
+                ? "اختر مبلغ الشحن"
+                : num < 1
+                ? "الحد الأدنى $1 USDT"
+                : num > 10000
+                ? "الحد الأعلى $10,000 USDT"
+                : `ادفع $${num} USDT بالبطاقة`}
+            </motion.button>
+          </motion.div>
+        )}
+
         {method === "stars" && (
           <motion.div key="stars"
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
