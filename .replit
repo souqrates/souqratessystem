@@ -24,6 +24,10 @@ args = "Mother Bot (Telegram)"
 task = "workflow.run"
 args = "Books Bot (Telegram)"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Contests Bot (Telegram)"
+
 [[workflows.workflow]]
 name = "Mother Bot (Telegram)"
 author = "agent"
@@ -42,6 +46,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 artifacts/books-bot/src/bot.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Contests Bot (Telegram)"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 artifacts/contests-bot/src/bot.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
@@ -69,6 +84,10 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3003
+
+[[ports]]
+localPort = 18555
+externalPort = 8000
 
 [[ports]]
 localPort = 19460

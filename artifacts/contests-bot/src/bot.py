@@ -21,7 +21,7 @@ import httpx
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -118,6 +118,52 @@ async def render_home(tg_id: str) -> tuple[str, InlineKeyboardMarkup]:
 
 
 # ── Handlers ───────────────────────────────────────────────────────────────
+@router.message(CommandStart(deep_link=True))
+async def cmd_start_deeplink(message: Message, command: CommandObject):
+    """Handle web-app deep-links: /start vote, packs, vote_<id>, buy_<id>."""
+    if message.from_user is None:
+        return
+    try:
+        await api.upsert_user(message.from_user)
+    except Exception as e:
+        logger.error(f"upsert_user failed: {e}")
+
+    payload = (command.args or "").strip()
+    body, kb = await render_home(str(message.from_user.id))
+    msg = await message.answer(body, reply_markup=kb, disable_web_page_preview=True)
+
+    if not payload:
+        return
+
+    # Build a faux callback-like context by reusing the inline-handler logic
+    # via direct re-renders against the freshly sent message.
+    class _FauxCb:
+        def __init__(self, m: Message, user, data: str):
+            self.message = m
+            self.from_user = user
+            self.data = data
+        async def answer(self, *_a, **_k):
+            return None
+
+    if payload == "vote":
+        await _render_vote_menu(_FauxCb(msg, message.from_user, "vote_menu"))  # type: ignore[arg-type]
+    elif payload == "packs":
+        await cb_packs(_FauxCb(msg, message.from_user, "packs"))  # type: ignore[arg-type]
+    elif payload.startswith("vote_"):
+        try:
+            cid = int(payload.split("_", 1)[1])
+            # Pre-select contestant view by rendering vote menu; user taps to confirm.
+            await _render_vote_menu(_FauxCb(msg, message.from_user, f"vote_{cid}"))  # type: ignore[arg-type]
+        except (ValueError, IndexError):
+            pass
+    elif payload.startswith("buy_"):
+        try:
+            int(payload.split("_", 1)[1])  # validate
+            await cb_packs(_FauxCb(msg, message.from_user, "packs"))  # type: ignore[arg-type]
+        except (ValueError, IndexError):
+            pass
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     if message.from_user is None:
@@ -177,8 +223,8 @@ async def cb_board(cb: CallbackQuery):
     await cb.answer()
 
 
-@router.callback_query(F.data == "vote_menu")
-async def cb_vote_menu(cb: CallbackQuery):
+async def _render_vote_menu(cb: CallbackQuery) -> None:
+    """Render (or re-render) the vote menu. Does NOT call cb.answer()."""
     if cb.from_user is None or cb.message is None:
         return
     try:
@@ -188,20 +234,17 @@ async def cb_vote_menu(cb: CallbackQuery):
     contest = active.get("contest")
     if not contest:
         await safe_edit(cb.message, "🌙 لا توجد مسابقة نشطة للتصويت.", back_kb())
-        await cb.answer()
         return
 
     contestants = [c for c in (active.get("contestants") or []) if not c.get("isDisqualified")]
     if not contestants:
         await safe_edit(cb.message, "لا يوجد متسابقون متاحون للتصويت.", back_kb())
-        await cb.answer()
         return
 
-    # Show user's vote balance up top.
     try:
         bal = await api.my_balance(str(cb.from_user.id))
-        free_left = "✅ متاح" if bal.get("freeVoteAvailableToday") else "❌ مستخدم اليوم"
-        paid_left = int(bal.get("paidVotesRemaining") or 0)
+        free_left = "✅ متاح" if bal.get("freeAvailableToday") else "❌ مستخدم اليوم"
+        paid_left = int(bal.get("paidAvailable") or 0)
     except Exception:
         free_left, paid_left = "—", 0
 
@@ -220,6 +263,11 @@ async def cb_vote_menu(cb: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="◀ رجوع", callback_data="home")])
     await safe_edit(cb.message, header, InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@router.callback_query(F.data == "vote_menu")
+async def cb_vote_menu(cb: CallbackQuery):
+    await _render_vote_menu(cb)
     await cb.answer()
 
 
@@ -244,8 +292,10 @@ async def cb_vote(cb: CallbackQuery):
         src = breakdown[0]["source"] if breakdown else "?"
         src_label = "مجاني 🎁" if src == "free" else "مدفوع ⚡"
         await cb.answer(f"✅ تم تسجيل صوتك ({src_label})", show_alert=True)
-        # Refresh the vote menu to reflect new counts.
-        await cb_vote_menu(cb)
+        # Refresh the vote menu to reflect new counts. We've already answered the
+        # callback above, so re-render in place instead of calling cb_vote_menu
+        # (which would answer the same callback again and trigger a Telegram error).
+        await _render_vote_menu(cb)
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         try:
@@ -357,8 +407,8 @@ async def cb_mybal(cb: CallbackQuery):
         await cb.answer()
         return
 
-    free_left = "✅ متاح" if bal.get("freeVoteAvailableToday") else "❌ استُخدم اليوم"
-    paid_left = int(bal.get("paidVotesRemaining") or 0)
+    free_left = "✅ متاح" if bal.get("freeAvailableToday") else "❌ استُخدم اليوم"
+    paid_left = int(bal.get("paidAvailable") or 0)
     grants = bal.get("grants") or []
 
     lines = [
@@ -368,7 +418,7 @@ async def cb_mybal(cb: CallbackQuery):
     ]
 
     rows = []
-    bonus_grants = [g for g in grants if g.get("bonusFileUrl")]
+    bonus_grants = [g for g in grants if g.get("hasBonusFile")]
     if bonus_grants:
         lines.append("\n🎁 <b>مكافآتك (ملفات قابلة للتنزيل):</b>")
         for g in bonus_grants:

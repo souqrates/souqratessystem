@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/contests-bot-web/"
+title = "SOUQRATES STAGE — مسرح المسابقات"
+version = "1.0.0"
+id = "artifacts/contests-bot-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/contests-bot-web/" ]
+localPort = 18555
+
+[services.development]
+run = "pnpm --filter @workspace/contests-bot-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/contests-bot-web", "run", "build" ]
+publicDir = "artifacts/contests-bot-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18555"
+BASE_PATH = "/contests-bot-web/"

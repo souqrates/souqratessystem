@@ -114,7 +114,7 @@ class ContestsBotClient:
                     "telegramId": str(telegram_id),
                     "contestId": contest_id,
                     "contestantId": contestant_id,
-                    "voteCount": vote_count,
+                    "votes": vote_count,
                 },
                 headers=self.headers,
                 timeout=15.0,
@@ -145,12 +145,28 @@ class ContestsBotClient:
             return r.json()
 
     async def grant_download(self, telegram_id: str, grant_id: int) -> dict:
-        async with httpx.AsyncClient() as client:
+        """Backend responds with HTTP 302 → Location: <signed file URL>.
+
+        We disable auto-follow so we can extract the URL and surface it to the
+        user as a clickable link instead of streaming the file through the bot.
+        """
+        async with httpx.AsyncClient(follow_redirects=False) as client:
             r = await client.get(
                 f"{self.base_url}/internal/contests/grants/{grant_id}/download",
                 params={"telegramId": str(telegram_id)},
                 headers=self.headers,
                 timeout=10.0,
             )
+            if r.status_code in (301, 302, 303, 307, 308):
+                loc = r.headers.get("location")
+                if not loc:
+                    raise httpx.HTTPStatusError(
+                        "Redirect without Location header", request=r.request, response=r,
+                    )
+                return {"downloadUrl": loc}
             r.raise_for_status()
-            return r.json()
+            # Defensive: backend might still return JSON in some edge cases.
+            try:
+                return r.json()
+            except Exception:
+                return {"downloadUrl": None}
