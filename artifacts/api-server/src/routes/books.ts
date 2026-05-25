@@ -47,9 +47,55 @@ import {
   productPurchasesTable,
 } from "@workspace/db";
 import { requireSuperAdmin } from "../lib/super-admin-auth";
+import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
 const BOT_SLUG = "books-bot";
+const objectStorage = new ObjectStorageService();
+
+// ── Upload validation rules (kept here so the bot+admin share one source) ──
+const COVER_MIME_ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
+const COVER_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const FILE_MIME_ALLOWED = new Set([
+  "application/pdf",
+  "application/epub+zip",
+  "application/zip",
+  "audio/mpeg",
+  "audio/mp3",
+]);
+// Telegram bot-api download cap is 20 MB; matching it keeps the in-chat flow
+// from silently failing when the bot tries to fetch the user's upload.
+const FILE_MAX_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Notify a publisher via Telegram that their submission was approved/rejected.
+ * Non-fatal: a failed Telegram send must not roll back the DB change. The
+ * caller already persisted status; this is a courtesy fan-out.
+ */
+async function notifyPublisher(
+  telegramId: bigint,
+  product: { id: number; title: string },
+  status: "approved" | "rejected",
+  rejectionReason?: string | null,
+): Promise<void> {
+  const token = process.env.BOOKS_BOT_TOKEN;
+  if (!token) return;
+  const text = status === "approved"
+    ? `✅ <b>تمت الموافقة على كتابك</b>\n\n📖 <b>${product.title}</b> (#${product.id})\n\nأصبح متاحًا للبيع الآن في SOUQRATES SOUQ. ستصلك إشعارات عند كل عملية شراء.`
+    : `❌ <b>تم رفض كتابك</b>\n\n📖 <b>${product.title}</b> (#${product.id})\n\n` +
+      (rejectionReason ? `<b>السبب:</b> ${rejectionReason}\n\n` : "") +
+      `يمكنك التعديل وإعادة الإرسال عبر /publish.`;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ chat_id: telegramId.toString(), text, parse_mode: "HTML" }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // best-effort
+  }
+}
 
 // ── Local helpers (mirror internal.ts; intentionally inlined for isolation) ──
 async function requireBot(req: any, res: any) {
@@ -213,6 +259,74 @@ router.get("/books/products/:id", async (req, res): Promise<void> => {
 // ─────────────────────────────────────────────────────────────────────────────
 // INTERNAL (X-Bot-Api-Key)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /internal/books/upload-url
+ * Body: { kind: "cover" | "file", contentType, sizeBytes }
+ *
+ * Validates kind/MIME/size limits server-side, then returns a one-time
+ * 15-minute signed GCS PUT URL plus the persistent /objects/<id> path the
+ * bot should store as cover_url / file_url. This is the only way the bot
+ * uploads media — we never proxy bytes through Express.
+ */
+router.post("/internal/books/upload-url", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { kind, contentType, sizeBytes } = req.body as {
+    kind?: "cover" | "file";
+    contentType?: string;
+    sizeBytes?: number;
+  };
+  if (kind !== "cover" && kind !== "file") {
+    res.status(400).json({ error: "kind must be 'cover' or 'file'" });
+    return;
+  }
+  const mime = (contentType ?? "").toLowerCase().split(";")[0].trim();
+  const size = Number(sizeBytes ?? 0);
+  if (!Number.isFinite(size) || size <= 0) {
+    res.status(400).json({ error: "sizeBytes must be a positive number" });
+    return;
+  }
+
+  if (kind === "cover") {
+    if (!COVER_MIME_ALLOWED.has(mime)) {
+      res.status(400).json({ error: "صيغة غير مسموحة. الأنواع المقبولة: JPG / PNG / WEBP" });
+      return;
+    }
+    if (size > COVER_MAX_BYTES) {
+      res.status(413).json({ error: `حجم الغلاف يتجاوز الحد (${Math.round(COVER_MAX_BYTES / 1024 / 1024)} MB)` });
+      return;
+    }
+  } else {
+    if (!FILE_MIME_ALLOWED.has(mime)) {
+      res.status(400).json({ error: "صيغة غير مسموحة. الأنواع المقبولة: PDF / EPUB / ZIP / MP3" });
+      return;
+    }
+    if (size > FILE_MAX_BYTES) {
+      res.status(413).json({ error: `حجم الملف يتجاوز الحد (${Math.round(FILE_MAX_BYTES / 1024 / 1024)} MB)` });
+      return;
+    }
+  }
+
+  // Namespace covers vs files so the public /api/objects/* route can serve
+  // covers without ever exposing paid files. See routes/objects.ts for the
+  // matching allowlist.
+  const subdir = kind === "cover" ? "books/covers" : "books/files";
+  const uploadUrl = await objectStorage.getNamedUploadURL(subdir);
+  const u = new URL(uploadUrl);
+  const segs = u.pathname.split("/").filter(Boolean);
+  // Persisted path mirrors the sub-namespace, e.g. /objects/books/covers/<uuid>
+  // or /objects/books/files/<uuid>.
+  const objectPath = `/objects/${segs.slice(-3).join("/")}`;
+
+  res.json({
+    uploadUrl,
+    objectPath,
+    contentType: mime,
+    maxBytes: kind === "cover" ? COVER_MAX_BYTES : FILE_MAX_BYTES,
+  });
+});
 
 router.post("/internal/books/products/submit", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
@@ -472,7 +586,23 @@ router.get("/internal/books/products/download/:token", async (req, res): Promise
     .from(digitalProductsTable).where(eq(digitalProductsTable.id, parsed.productId));
   if (!product) { res.status(404).json({ error: "Product not found" }); return; }
 
-  res.json({ fileUrl: product.fileUrl, title: product.title, expiresAt: purchase.downloadExpiresAt });
+  // For files uploaded via /internal/books/upload-url the fileUrl is a
+  // persistent /objects/<id> path. Never hand that to a buyer — they could
+  // re-share it forever. Instead, mint a fresh short-lived signed GCS URL
+  // on every download. External URLs (legacy http(s) imports) pass through
+  // unchanged.
+  let downloadUrl = product.fileUrl;
+  if (product.fileUrl.startsWith("/objects/")) {
+    try {
+      downloadUrl = await objectStorage.getDownloadURL(product.fileUrl, 300);
+    } catch (e) {
+      req.log.error({ err: e, productId: parsed.productId }, "books: failed to sign download URL");
+      res.status(500).json({ error: "Failed to issue download link" });
+      return;
+    }
+  }
+
+  res.json({ fileUrl: downloadUrl, title: product.title, expiresAt: purchase.downloadExpiresAt });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -525,9 +655,29 @@ router.patch("/superadmin/books/products/:id", requireSuperAdmin, async (req, re
   if (typeof description === "string") updates.description = description.slice(0, 4000);
   if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
 
+  // Capture previous status so we only notify on a real transition (avoids
+  // spamming the publisher when admin edits other fields and the request
+  // happens to re-send the same status).
+  const [previous] = await db.select({ status: digitalProductsTable.status })
+    .from(digitalProductsTable).where(eq(digitalProductsTable.id, id));
+  if (!previous) { res.status(404).json({ error: "Not found" }); return; }
+
   const [updated] = await db.update(digitalProductsTable).set(updates).where(eq(digitalProductsTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   req.log.info({ id, updates }, "superadmin: product updated");
+
+  // Fan out a Telegram notification only on an actual approved/rejected
+  // transition. Re-PATCHing the same status (e.g. editing the rejection
+  // reason on an already-rejected row) must not re-notify the publisher.
+  if ((status === "approved" || status === "rejected") && previous.status !== status) {
+    notifyPublisher(
+      updated.publisherTelegramId,
+      { id: updated.id, title: updated.title },
+      status,
+      status === "rejected" ? (rejectionReason ?? null) : null,
+    ).catch(() => undefined);
+  }
+
   res.json({ ...updated, publisherTelegramId: String(updated.publisherTelegramId) });
 });
 

@@ -16,6 +16,7 @@ import asyncio
 import logging
 import os
 
+import httpx
 from aiogram import Bot, BaseMiddleware, Dispatcher, F, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -30,6 +31,53 @@ from aiogram.types import (
     Message,
 )
 from dotenv import load_dotenv
+
+# ── Upload limits (must mirror api-server /internal/books/upload-url) ────────
+COVER_MAX_BYTES = 5 * 1024 * 1024     # 5 MB
+COVER_MIME = {"image/jpeg", "image/png", "image/webp"}
+COVER_EXT_TO_MIME = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+FILE_MAX_BYTES = 20 * 1024 * 1024     # 20 MB (Telegram Bot API hard limit)
+FILE_MIME = {"application/pdf", "application/epub+zip", "application/zip", "audio/mpeg", "audio/mp3"}
+FILE_EXT_TO_MIME = {
+    "pdf": "application/pdf",
+    "epub": "application/epub+zip",
+    "zip": "application/zip",
+    "mp3": "audio/mpeg",
+}
+
+
+def _guess_mime(file_name: str | None, declared: str | None) -> str | None:
+    """Prefer the client-declared MIME; fall back to extension. Telegram
+    sometimes omits mime_type for documents — we don't want to reject those."""
+    if declared:
+        return declared.lower().split(";")[0].strip()
+    if file_name and "." in file_name:
+        ext = file_name.rsplit(".", 1)[-1].lower()
+        return COVER_EXT_TO_MIME.get(ext) or FILE_EXT_TO_MIME.get(ext)
+    return None
+
+
+async def _upload_to_signed_url(upload_url: str, content_type: str, data: bytes) -> None:
+    """PUT raw bytes to a GCS signed URL. The api-server validated the
+    Content-Type before signing — we must echo it exactly."""
+    async with httpx.AsyncClient() as http:
+        r = await http.put(
+            upload_url,
+            content=data,
+            headers={"Content-Type": content_type},
+            timeout=60.0,
+        )
+        r.raise_for_status()
+
+
+async def _download_from_telegram(bot: Bot, file_id: str) -> bytes:
+    """Download a Telegram-hosted file (photo/document) into memory.
+    Capped server-side by Telegram's 20 MB Bot API limit — we surface a
+    user-friendly error if the file is larger."""
+    tg_file = await bot.get_file(file_id)
+    buf = bytearray()
+    await bot.download(tg_file, destination=buf)
+    return bytes(buf)
 
 from client import BooksBotClient
 
@@ -494,32 +542,170 @@ async def pub_price(m: Message, state: FSMContext):
         return
     await state.update_data(price=price)
     await state.set_state(Publish.cover)
-    await m.answer("🖼️ أرسل رابط <b>صورة الغلاف</b> (أو اكتب <code>تخطّى</code>):", parse_mode="HTML")
+    await m.answer(
+        "🖼️ أرسل <b>صورة الغلاف</b> الآن:\n\n"
+        "• الصيغ المسموحة: <b>JPG / PNG / WEBP</b>\n"
+        f"• الحد الأقصى للحجم: <b>{COVER_MAX_BYTES // (1024*1024)} MB</b>\n"
+        "• المقاس المفضّل: 800×1200 (نسبة 2:3)\n\n"
+        "أرسل الصورة كصورة (📷) أو ملف (📎). اكتب <code>تخطّى</code> لتركها فارغة.",
+        parse_mode="HTML",
+    )
+
+
+# ── Cover handlers ──────────────────────────────────────────────────────────
+@router.message(Publish.cover, F.text.func(lambda t: bool(t) and t.strip() in ("تخطّى", "تخطى", "skip")))
+async def pub_cover_skip(m: Message, state: FSMContext):
+    await state.update_data(coverUrl=None)
+    await _ask_for_file(m, state)
+
+
+@router.message(Publish.cover, F.photo | F.document)
+async def pub_cover_media(m: Message, state: FSMContext):
+    # Idempotency lock: if a previous upload is still in flight, silently drop
+    # the new one. Prevents a user who spams photos from triggering parallel
+    # downloads + duplicate GCS uploads (orphan objects, confused state).
+    d = await state.get_data()
+    if d.get("_uploading"):
+        await m.answer("⏳ جاري معالجة الصورة السابقة… انتظر لحظة.")
+        return
+    await state.update_data(_uploading=True)
+    try:
+        await _pub_cover_media_impl(m, state)
+    finally:
+        await state.update_data(_uploading=False)
+
+
+async def _pub_cover_media_impl(m: Message, state: FSMContext):
+    # Telegram sends either a compressed photo (m.photo[-1] = highest res) or a
+    # raw document. Both routes resolve to (file_id, size, mime) here.
+    if m.photo:
+        photo = m.photo[-1]
+        file_id = photo.file_id
+        size = photo.file_size or 0
+        mime = "image/jpeg"  # Telegram always re-encodes inline photos to JPEG
+        file_name = None
+    else:
+        doc = m.document
+        file_id = doc.file_id
+        size = doc.file_size or 0
+        file_name = doc.file_name
+        mime = _guess_mime(file_name, doc.mime_type) or ""
+
+    if mime not in COVER_MIME:
+        await m.answer("❌ صيغة الغلاف غير مسموحة. أرسل صورة <b>JPG / PNG / WEBP</b> فقط.", parse_mode="HTML")
+        return
+    if size <= 0 or size > COVER_MAX_BYTES:
+        await m.answer(f"❌ حجم الصورة يتجاوز {COVER_MAX_BYTES // (1024*1024)} MB.")
+        return
+
+    status_msg = await m.answer("⏳ جاري رفع الغلاف…")
+    try:
+        upload = await api.request_upload_url(kind="cover", content_type=mime, size_bytes=size)
+        data = await _download_from_telegram(m.bot, file_id)
+        await _upload_to_signed_url(upload["uploadUrl"], mime, data)
+        await state.update_data(coverUrl=upload["objectPath"])
+        await status_msg.edit_text("✅ تم رفع الغلاف.")
+    except httpx.HTTPStatusError as e:
+        msg = "تعذّر رفع الغلاف"
+        try:
+            msg = e.response.json().get("error", msg)
+        except Exception:
+            pass
+        await status_msg.edit_text(f"❌ {msg}")
+        return
+    except Exception as e:
+        logger.exception("cover upload failed")
+        await status_msg.edit_text(f"❌ فشل الرفع: {str(e)[:120]}")
+        return
+
+    await _ask_for_file(m, state)
 
 
 @router.message(Publish.cover)
-async def pub_cover(m: Message, state: FSMContext):
-    cover = None if m.text.strip() in ("تخطّى", "تخطى", "skip") else m.text.strip()
-    await state.update_data(coverUrl=cover)
+async def pub_cover_fallback(m: Message, state: FSMContext):
+    # Catches plain text / unsupported types in the cover step.
+    await m.answer(
+        "❌ أرسل <b>صورة</b> فعلية (📷 أو 📎)، لا روابط.\n"
+        "أو اكتب <code>تخطّى</code> لتجاوز الغلاف.",
+        parse_mode="HTML",
+    )
+
+
+async def _ask_for_file(m: Message, state: FSMContext) -> None:
     await state.set_state(Publish.file)
-    await m.answer("📎 أرسل رابط <b>ملف الكتاب</b> (PDF/EPUB/MP3...):", parse_mode="HTML")
+    await m.answer(
+        "📎 أرسل <b>ملف الكتاب</b> الآن:\n\n"
+        "• الصيغ المسموحة: <b>PDF / EPUB / ZIP / MP3</b>\n"
+        f"• الحد الأقصى للحجم: <b>{FILE_MAX_BYTES // (1024*1024)} MB</b>\n\n"
+        "أرسله كملف مرفق (📎). الملف مطلوب لإكمال النشر.",
+        parse_mode="HTML",
+    )
 
 
-@router.message(Publish.file)
-async def pub_file(m: Message, state: FSMContext):
-    file_url = m.text.strip()
-    if not file_url.startswith(("http://", "https://")):
-        await m.answer("❌ يجب أن يكون رابطًا يبدأ بـ http(s)://")
+# ── File handlers ───────────────────────────────────────────────────────────
+@router.message(Publish.file, F.document)
+async def pub_file_doc(m: Message, state: FSMContext):
+    d0 = await state.get_data()
+    if d0.get("_uploading"):
+        await m.answer("⏳ جاري معالجة الملف السابق… انتظر لحظة.")
         return
-    await state.update_data(fileUrl=file_url)
+    await state.update_data(_uploading=True)
+    try:
+        await _pub_file_doc_impl(m, state)
+    finally:
+        await state.update_data(_uploading=False)
+
+
+async def _pub_file_doc_impl(m: Message, state: FSMContext):
+    doc = m.document
+    file_id = doc.file_id
+    size = doc.file_size or 0
+    file_name = doc.file_name or "book"
+    mime = _guess_mime(file_name, doc.mime_type) or ""
+
+    if mime not in FILE_MIME:
+        await m.answer(
+            "❌ صيغة الملف غير مسموحة. الصيغ المقبولة: <b>PDF / EPUB / ZIP / MP3</b>.",
+            parse_mode="HTML",
+        )
+        return
+    if size <= 0 or size > FILE_MAX_BYTES:
+        await m.answer(
+            f"❌ حجم الملف يتجاوز {FILE_MAX_BYTES // (1024*1024)} MB.\n"
+            "يمكنك ضغطه أو رفعه عبر الموقع للملفات الأكبر."
+        )
+        return
+
+    status_msg = await m.answer("⏳ جاري رفع الملف…")
+    try:
+        upload = await api.request_upload_url(kind="file", content_type=mime, size_bytes=size)
+        data = await _download_from_telegram(m.bot, file_id)
+        await _upload_to_signed_url(upload["uploadUrl"], mime, data)
+        await state.update_data(fileUrl=upload["objectPath"], fileSize=size, fileName=file_name)
+        await status_msg.edit_text("✅ تم رفع الملف.")
+    except httpx.HTTPStatusError as e:
+        msg = "تعذّر رفع الملف"
+        try:
+            msg = e.response.json().get("error", msg)
+        except Exception:
+            pass
+        await status_msg.edit_text(f"❌ {msg}")
+        return
+    except Exception as e:
+        logger.exception("file upload failed")
+        await status_msg.edit_text(f"❌ فشل الرفع: {str(e)[:120]}")
+        return
+
     d = await state.get_data()
     summary = (
         f"📤 <b>تأكيد النشر</b>\n\n"
         f"📖 العنوان: <b>{d['title']}</b>\n"
         f"💰 السعر: <code>{d['price']:.2f}</code> SKZ\n"
         f"🏷️ التصنيف: #{d['categoryId']}\n"
+        f"🖼️ الغلاف: {'مرفق ✓' if d.get('coverUrl') else 'لا يوجد'}\n"
+        f"📎 الملف: <code>{file_name}</code> ({size // 1024} KB)\n"
         f"📄 الوصف: {d['description'][:120]}…\n\n"
-        f"بعد الإرسال سيخضع الكتاب لمراجعة إدارية قبل النشر."
+        f"بعد الإرسال سيخضع الكتاب لمراجعة إدارية قبل النشر، وسيصلك إشعار فور الموافقة."
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ إرسال للمراجعة", callback_data="pub_confirm")],
@@ -527,6 +713,14 @@ async def pub_file(m: Message, state: FSMContext):
     ])
     await state.set_state(Publish.confirm)
     await m.answer(summary, parse_mode="HTML", reply_markup=kb)
+
+
+@router.message(Publish.file)
+async def pub_file_fallback(m: Message, state: FSMContext):
+    await m.answer(
+        "❌ أرسل <b>ملفًا مرفقًا</b> (📎) — لا روابط ولا صور.",
+        parse_mode="HTML",
+    )
 
 
 @router.callback_query(F.data == "pub_confirm", Publish.confirm)

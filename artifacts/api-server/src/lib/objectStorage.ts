@@ -107,6 +107,21 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityUploadURL(): Promise<string> {
+    return this.getNamedUploadURL("uploads");
+  }
+
+  /**
+   * Issue a signed PUT URL under a caller-chosen sub-namespace, e.g.
+   *   getNamedUploadURL("books/covers") → ${PRIVATE_OBJECT_DIR}/books/covers/<uuid>
+   * The returned URL is valid for 15 minutes. The persistent /objects/<id>
+   * path the caller should store is "<subdir>/<uuid>".
+   *
+   * Using distinct sub-namespaces is how we keep public-readable assets
+   * (covers) separate from private-only assets (paid book files) — the
+   * /api/objects/* route only serves objects whose path starts with a
+   * whitelisted public prefix.
+   */
+  async getNamedUploadURL(subdir: string): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -114,18 +129,33 @@ export class ObjectStorageService {
           "tool and set PRIVATE_OBJECT_DIR env var."
       );
     }
-
+    const cleanSub = subdir.replace(/^\/+|\/+$/g, "");
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-
+    const fullPath = `${privateObjectDir}/${cleanSub}/${objectId}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
-
     return signObjectURL({
       bucketName,
       objectName,
       method: "PUT",
       ttlSec: 900,
     });
+  }
+
+  /**
+   * Issue a short-lived signed GCS GET URL for an /objects/<id> entity.
+   * Use this when handing a download link to an end user — never share the
+   * persistent /objects/<id> path for private files, because that path is
+   * forever-valid.
+   */
+  async getDownloadURL(objectPath: string, ttlSec: number = 300): Promise<string> {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = objectPath.slice("/objects/".length);
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) entityDir = `${entityDir}/`;
+    const { bucketName, objectName } = parseObjectPath(`${entityDir}${entityId}`);
+    return signObjectURL({ bucketName, objectName, method: "GET", ttlSec });
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {

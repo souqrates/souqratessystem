@@ -113,6 +113,21 @@ class BooksBotClient:
             r.raise_for_status()
             return r.json()
 
+    async def request_upload_url(self, kind: str, content_type: str, size_bytes: int) -> dict:
+        """Ask the api-server for a one-time signed GCS PUT URL + the persistent
+        /objects/<id> path to store. `kind` is 'cover' or 'file'. The server
+        validates MIME + size before issuing the URL, so a 4xx here means the
+        upload would have been rejected anyway."""
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.base_url}/internal/books/upload-url",
+                json={"kind": kind, "contentType": content_type, "sizeBytes": size_bytes},
+                headers=self.headers,
+                timeout=10.0,
+            )
+            r.raise_for_status()
+            return r.json()
+
     async def submit_product(self, telegram_id: str, title: str, file_url: str, price_usdt: float,
                               description: str = "", cover_url: Optional[str] = None,
                               category_id: Optional[int] = None, file_size: int = 0) -> dict:
