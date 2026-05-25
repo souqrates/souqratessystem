@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   numeric,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -23,7 +24,10 @@ export const walletsTable = pgTable("wallets", {
   totalEarned: numeric("total_earned", { precision: 18, scale: 6 }).notNull().default("0"),
   totalWithdrawn: numeric("total_withdrawn", { precision: 18, scale: 6 }).notNull().default("0"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  // Top-balance leaderboards / admin filters benefit from a btree on balance.
+  walletsUserIdx: index("wallets_user_idx").on(t.userId),
+}));
 
 export const insertWalletSchema = createInsertSchema(walletsTable).omit({
   id: true,

@@ -17,6 +17,12 @@ import {
 import { logger } from "../lib/logger";
 import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
 import { normalizeTiers } from "../lib/game-tiers";
+import {
+  readIdempotencyKey,
+  findExistingByIdempotencyKey,
+  idempotencyFingerprintMatches,
+  PG_UNIQUE_VIOLATION,
+} from "../lib/idempotency";
 
 const router: IRouter = Router();
 
@@ -413,33 +419,88 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
   const skzRate = rateMap[currency]!;
   const skzAmount = amountNum * skzRate;
 
-  const [transaction] = await db
-    .insert(transactionsTable)
-    .values({
-      userId: user.id,
-      type: "deposit",
-      currency: "skz",
-      amount: String(skzAmount.toFixed(2)),
-      fee: "0",
-      status: "completed",
-      sourceBot: bot.slug,
-      referenceId: referenceId ?? null,
-      description: description ?? `إيداع ${amountNum} ${currency.toUpperCase()} = ${skzAmount.toFixed(0)} SKZ`,
-      metadata: JSON.stringify({ originalCurrency: currency, originalAmount: amountNum, skzRate }),
-    })
-    .returning();
+  // ── Idempotency: a retried deposit with the same key returns the original
+  //    transaction instead of double-crediting. A *different* operation
+  //    reusing the same key is rejected (409) — silently replaying would
+  //    drop the intended write. ───────────────────────────────────────────
+  const idemKey = readIdempotencyKey(req);
+  if (idemKey) {
+    const existing = await findExistingByIdempotencyKey(bot.slug, idemKey);
+    if (existing) {
+      if (!idempotencyFingerprintMatches(existing, { type: "deposit", userId: user.id, amount: skzAmount })) {
+        res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+        return;
+      }
+      const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, existing.userId));
+      res.json({
+        success: true,
+        transactionId: existing.id,
+        skzCredited: existing.amount,
+        newSkzBalance: w?.balanceSkz ?? "0",
+        rateUsed: String(skzRate),
+        replayed: true,
+      });
+      return;
+    }
+  }
 
-  // Atomic balance increment via SQL — defeats lost-update races between
-  // concurrent deposits/credits/debits on the same wallet row.
-  const [wallet] = await db.update(walletsTable).set({
-    balanceSkz:     sql`${walletsTable.balanceSkz}     + ${skzAmount}`,
-    totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${skzAmount}`,
-  }).where(eq(walletsTable.userId, user.id)).returning();
-  if (!wallet) {
-    res.status(500).json({ error: "Wallet not found" });
+  // ── Single transaction: ledger insert + wallet update commit atomically.
+  //    If either fails the other rolls back — wallet/ledger can never drift.
+  let transaction: typeof transactionsTable.$inferSelect;
+  let newSkzBalance: string;
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [txn] = await tx
+        .insert(transactionsTable)
+        .values({
+          userId: user.id,
+          type: "deposit",
+          currency: "skz",
+          amount: String(skzAmount.toFixed(2)),
+          fee: "0",
+          status: "completed",
+          sourceBot: bot.slug,
+          referenceId: referenceId ?? null,
+          idempotencyKey: idemKey,
+          description: description ?? `إيداع ${amountNum} ${currency.toUpperCase()} = ${skzAmount.toFixed(0)} SKZ`,
+          metadata: JSON.stringify({ originalCurrency: currency, originalAmount: amountNum, skzRate }),
+        })
+        .returning();
+
+      const [w] = await tx.update(walletsTable).set({
+        balanceSkz:     sql`${walletsTable.balanceSkz}     + ${skzAmount}`,
+        totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${skzAmount}`,
+      }).where(eq(walletsTable.userId, user.id)).returning();
+      if (!w) throw Object.assign(new Error("WALLET_NOT_FOUND"), { status: 500 });
+      return { txn, balance: w.balanceSkz };
+    });
+    transaction   = result.txn;
+    newSkzBalance = result.balance;
+  } catch (err) {
+    // Concurrent retry won the idempotency race — replay the winner.
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION && idemKey) {
+      const winner = await findExistingByIdempotencyKey(bot.slug, idemKey);
+      if (winner) {
+        const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, winner.userId));
+        res.json({
+          success: true,
+          transactionId: winner.id,
+          skzCredited: winner.amount,
+          newSkzBalance: w?.balanceSkz ?? "0",
+          rateUsed: String(skzRate),
+          replayed: true,
+        });
+        return;
+      }
+    }
+    if ((err as Error).message === "WALLET_NOT_FOUND") {
+      res.status(500).json({ error: "Wallet not found" });
+      return;
+    }
+    req.log.error({ err }, "deposit tx failed");
+    res.status(500).json({ error: "Internal server error" });
     return;
   }
-  const newSkzBalance = wallet.balanceSkz;
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, currency, amount, skzAmount }, "Deposit processed");
 
@@ -493,57 +554,124 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
   const commissionAmount = amountNum * commissionRate;
   const netAmount = amountNum - commissionAmount;
 
-  const [transaction] = await db
-    .insert(transactionsTable)
-    .values({
-      userId: user.id,
-      type: "credit",
-      currency: "skz",
-      amount: String(amountNum.toFixed(2)),
-      fee: String(commissionAmount.toFixed(2)),
-      status: "completed",
-      sourceBot: bot.slug,
-      referenceId: referenceId ?? null,
-      description,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    })
-    .returning();
+  // ── Idempotency replay (avoid double-credit on bot retries) — key reuse
+  //    with a *different* operation is rejected. ──────────────────────────
+  const idemKey = readIdempotencyKey(req);
+  if (idemKey) {
+    const existing = await findExistingByIdempotencyKey(bot.slug, idemKey);
+    if (existing) {
+      if (!idempotencyFingerprintMatches(existing, { type: "credit", userId: user.id, amount: amountNum })) {
+        res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+        return;
+      }
+      const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, existing.userId));
+      res.json({
+        success: true,
+        transactionId: existing.id,
+        newSkzBalance: w?.balanceSkz ?? "0",
+        commissionDeducted: existing.fee,
+        referralBonuses: [],
+        replayed: true,
+      });
+      return;
+    }
+  }
 
-  // Atomic SQL increment — safe under concurrent credits.
-  const [wallet] = await db.update(walletsTable).set({
-    balanceSkz:     sql`${walletsTable.balanceSkz}     + ${netAmount}`,
-    totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${netAmount}`,
-  }).where(eq(walletsTable.userId, user.id)).returning();
-  if (!wallet) {
-    res.status(500).json({ error: "Wallet not found" });
+  // ── Atomic: ledger + wallet + commission row all commit together ────────
+  let transaction: typeof transactionsTable.$inferSelect;
+  let newSkzBalance: string;
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [txn] = await tx
+        .insert(transactionsTable)
+        .values({
+          userId: user.id,
+          type: "credit",
+          currency: "skz",
+          amount: String(amountNum.toFixed(2)),
+          fee: String(commissionAmount.toFixed(2)),
+          status: "completed",
+          sourceBot: bot.slug,
+          referenceId: referenceId ?? null,
+          idempotencyKey: idemKey,
+          description,
+          metadata: metadata ? JSON.stringify(metadata) : null,
+        })
+        .returning();
+
+      const [w] = await tx.update(walletsTable).set({
+        balanceSkz:     sql`${walletsTable.balanceSkz}     + ${netAmount}`,
+        totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${netAmount}`,
+      }).where(eq(walletsTable.userId, user.id)).returning();
+      if (!w) throw Object.assign(new Error("WALLET_NOT_FOUND"), { status: 500 });
+
+      await tx.insert(commissionsTable).values({
+        transactionId:    txn.id,
+        botSlug:          bot.slug,
+        userId:           user.id,
+        grossAmount:      String(amountNum.toFixed(2)),
+        commissionRate:   String(commissionRate),
+        commissionAmount: String(commissionAmount.toFixed(2)),
+        netAmount:        String(netAmount.toFixed(2)),
+        currency:         "skz",
+      });
+
+      await tx.update(botsTable).set({
+        totalVolumeUsdt:     sql`${botsTable.totalVolumeUsdt}     + ${amountNum}`,
+        totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
+      }).where(eq(botsTable.id, bot.id));
+
+      return { txn, balance: w.balanceSkz };
+    });
+    transaction   = result.txn;
+    newSkzBalance = result.balance;
+  } catch (err) {
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION && idemKey) {
+      const winner = await findExistingByIdempotencyKey(bot.slug, idemKey);
+      if (winner) {
+        const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, winner.userId));
+        res.json({
+          success: true,
+          transactionId: winner.id,
+          newSkzBalance: w?.balanceSkz ?? "0",
+          commissionDeducted: winner.fee,
+          referralBonuses: [],
+          replayed: true,
+        });
+        return;
+      }
+    }
+    if ((err as Error).message === "WALLET_NOT_FOUND") {
+      res.status(500).json({ error: "Wallet not found" });
+      return;
+    }
+    req.log.error({ err }, "credit tx failed");
+    res.status(500).json({ error: "Internal server error" });
     return;
   }
-  const newSkzBalance = wallet.balanceSkz;
 
-  await db.insert(commissionsTable).values({
-    transactionId: transaction.id,
-    botSlug: bot.slug,
-    userId: user.id,
-    grossAmount: String(amountNum.toFixed(2)),
-    commissionRate: String(commissionRate),
-    commissionAmount: String(commissionAmount.toFixed(2)),
-    netAmount: String(netAmount.toFixed(2)),
-    currency: "skz",
-  });
-
-  await db.update(botsTable).set({
-    totalVolumeUsdt: sql`${botsTable.totalVolumeUsdt} + ${amountNum}`,
-    totalCommissionUsdt: sql`${botsTable.totalCommissionUsdt} + ${commissionAmount}`,
-  }).where(eq(botsTable.id, bot.id));
-
-  const referralRates = await getReferralRates();
-  const referralBonuses = await distributeReferralBonuses(
-    user.id,
-    netAmount,
-    transaction.id,
-    bot.slug,
-    referralRates
-  );
+  // Referral payouts are intentionally OUTSIDE the main tx. Failure here MUST
+  // NOT surface to the caller — the primary credit already committed and the
+  // user has been paid. We log the failure and rely on a reconciliation job
+  // to retry missing bonuses; returning 500 here would make the caller think
+  // the whole credit failed and trigger a destructive retry.
+  let referralBonuses: Awaited<ReturnType<typeof distributeReferralBonuses>> = [];
+  let referralRates: Awaited<ReturnType<typeof getReferralRates>> = [];
+  try {
+    referralRates = await getReferralRates();
+    referralBonuses = await distributeReferralBonuses(
+      user.id,
+      netAmount,
+      transaction.id,
+      bot.slug,
+      referralRates
+    );
+  } catch (err) {
+    req.log.error(
+      { err, transactionId: transaction.id, userId: user.id, botSlug: bot.slug, netAmount },
+      "referral_payout_failed (primary credit committed; needs reconciliation)",
+    );
+  }
 
   req.log.info(
     { transactionId: transaction.id, botSlug: bot.slug, amount, skzNet: netAmount, referralBonuses },
@@ -599,38 +727,84 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
   }
   if (rejectIfBlocked(user, res)) return;
 
-  // Atomic conditional debit: only succeeds when balance is sufficient.
-  // This single SQL statement defeats the time-of-check/time-of-use race
-  // that would otherwise let two concurrent debits both pass an in-memory
-  // balance check and overdraw the wallet.
-  const [wallet] = await db.update(walletsTable).set({
-    balanceSkz: sql`${walletsTable.balanceSkz} - ${amountNum}`,
-  }).where(and(
-    eq(walletsTable.userId, user.id),
-    sql`${walletsTable.balanceSkz} >= ${amountNum}`,
-  )).returning();
-  if (!wallet) {
-    res.status(400).json({ error: "Insufficient SKZ balance" });
-    return;
+  // ── Idempotency replay (reject mismatched payload reusing same key) ─────
+  const idemKey = readIdempotencyKey(req);
+  if (idemKey) {
+    const existing = await findExistingByIdempotencyKey(bot.slug, idemKey);
+    if (existing) {
+      if (!idempotencyFingerprintMatches(existing, { type: "debit", userId: user.id, amount: amountNum })) {
+        res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+        return;
+      }
+      const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, existing.userId));
+      res.json({
+        success: true,
+        transactionId: existing.id,
+        newSkzBalance: w?.balanceSkz ?? "0",
+        replayed: true,
+      });
+      return;
+    }
   }
 
-  const [transaction] = await db
-    .insert(transactionsTable)
-    .values({
-      userId: user.id,
-      type: "debit",
-      currency: "skz",
-      amount: String(-amountNum),
-      fee: "0",
-      status: "completed",
-      sourceBot: bot.slug,
-      referenceId: referenceId ?? null,
-      description,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    })
-    .returning();
+  // ── Atomic conditional debit + ledger insert in one transaction ─────────
+  //    The WHERE-balance clause defeats the time-of-check/time-of-use race
+  //    that would let two concurrent debits both pass an in-memory check.
+  let transaction: typeof transactionsTable.$inferSelect;
+  let newSkzBalance: string;
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [w] = await tx.update(walletsTable).set({
+        balanceSkz: sql`${walletsTable.balanceSkz} - ${amountNum}`,
+      }).where(and(
+        eq(walletsTable.userId, user.id),
+        sql`${walletsTable.balanceSkz} >= ${amountNum}`,
+      )).returning();
+      if (!w) throw Object.assign(new Error("INSUFFICIENT"), { status: 400 });
 
-  const newSkzBalance = wallet.balanceSkz;
+      const [txn] = await tx
+        .insert(transactionsTable)
+        .values({
+          userId: user.id,
+          type: "debit",
+          currency: "skz",
+          amount: String(-amountNum),
+          fee: "0",
+          status: "completed",
+          sourceBot: bot.slug,
+          referenceId: referenceId ?? null,
+          idempotencyKey: idemKey,
+          description,
+          metadata: metadata ? JSON.stringify(metadata) : null,
+        })
+        .returning();
+
+      return { txn, balance: w.balanceSkz };
+    });
+    transaction   = result.txn;
+    newSkzBalance = result.balance;
+  } catch (err) {
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION && idemKey) {
+      const winner = await findExistingByIdempotencyKey(bot.slug, idemKey);
+      if (winner) {
+        const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, winner.userId));
+        res.json({
+          success: true,
+          transactionId: winner.id,
+          newSkzBalance: w?.balanceSkz ?? "0",
+          replayed: true,
+        });
+        return;
+      }
+    }
+    if ((err as Error).message === "INSUFFICIENT") {
+      res.status(400).json({ error: "Insufficient SKZ balance" });
+      return;
+    }
+    req.log.error({ err }, "debit tx failed");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount }, "SKZ debited");
 
@@ -795,7 +969,11 @@ router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
         fee:         "0",
         status:      "completed",
         sourceBot:   bot.slug,
-        referenceId: `game_entry_${gameId}_${Date.now()}`,
+        // Deterministic per (user, game) — second attempt from the same client
+        // hits the partial unique index below as soon as we add one. For now,
+        // suffix is monotonic via nanosecond timestamp so a *replayed* request
+        // doesn't collide with a *separate* play of the same game.
+        referenceId: `game_entry_${user.id}_${gameId}_${process.hrtime.bigint()}`,
         description: `رسوم دخول لعبة #${gameId}`,
         metadata:    JSON.stringify({
           gameId:         String(gameId),

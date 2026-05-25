@@ -1,11 +1,30 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { verifyAdminToken } from "./lib/admin-auth";
+import {
+  globalLimiter,
+  internalWriteLimiter,
+  adminLoginLimiter,
+} from "./lib/rate-limit";
 
 const app: Express = express();
+
+// We sit behind Replit's reverse proxy. Tell Express to trust it so
+// req.ip + rate-limit keys reflect the real client IP, not the proxy.
+app.set("trust proxy", 1);
+
+// Strong default security headers. CSP is permissive here because the API
+// only serves JSON; the Mini App frontends set their own CSPs in Vite/HTML.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 app.use(
   pinoHttp({
@@ -27,14 +46,21 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "256kb" }));
+app.use(express.urlencoded({ extended: true, limit: "256kb" }));
+
+// Coarse-grained global limiter — applied before any handler so abusive
+// bursts are dropped early without touching DB.
+app.use(globalLimiter);
+
+// Bot-scoped tighter limit on the financial surface.
+app.use("/api/internal", internalWriteLimiter);
 
 // Public admin login: trades a known admin token for an OK response. The
 // client then stores the same token and sends it as Authorization: Bearer
 // on every subsequent admin request. We do not mint a separate session
 // token — the admin shared secret IS the credential.
-app.post("/api/admin/login", (req, res): void => {
+app.post("/api/admin/login", adminLoginLimiter, (req, res): void => {
   const { token } = (req.body ?? {}) as { token?: string };
   if (typeof token !== "string" || !token) {
     res.status(400).json({ error: "token is required" });
