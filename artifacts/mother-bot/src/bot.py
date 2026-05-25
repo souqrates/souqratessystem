@@ -32,6 +32,7 @@ MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
+_BASE_CONTESTS_APP_URL = os.getenv("CONTESTS_APP_URL", "https://souqrates.com/contests-bot-web/")
 BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
 CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
@@ -51,6 +52,7 @@ CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot"
 # So URLs MUST stay byte-identical across bot restarts.
 MINI_APP_URL  = _BASE_MINI_APP_URL
 GAMES_APP_URL = _BASE_GAMES_APP_URL
+CONTESTS_APP_URL = _BASE_CONTESTS_APP_URL
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
@@ -181,11 +183,11 @@ def main_keyboard() -> InlineKeyboardMarkup:
                 url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother",
             )
         ],
-        # ②.6 Launch Contests / Voting (jumps user into the contests child bot)
+        # ②.6 Launch Contests / Voting Mini App inline (no bot hop)
         [
             InlineKeyboardButton(
                 text="★ SOUQRATES STAGE",
-                url=f"https://t.me/{CONTESTS_BOT_USERNAME}?start=from_mother",
+                web_app=WebAppInfo(url=CONTESTS_APP_URL),
             )
         ],
         # ③ Quick text shortcuts
