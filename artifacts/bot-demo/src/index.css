@@ -208,17 +208,73 @@ body {
 .orb-1 { animation: float-1 7s ease-in-out infinite; }
 .orb-2 { animation: float-2 9s ease-in-out infinite; }
 
+/* ─── App shell (iOS-safe viewport height) ───
+   100dvh recalculates as Safari's URL bar shows/hides, which causes the
+   entire layout to JUMP every time the user scrolls. 100svh (small viewport)
+   is stable. Fallbacks chain: vh → -webkit-fill-available → svh. */
+.app-shell {
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: 100svh;
+}
+
 /* ─── Navigation ─── */
 .nav-bar {
-  background: rgba(8, 12, 26, 0.95);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(8, 12, 26, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  /* Promote to its own GPU layer so it never repaints on scroll (iOS Safari
+     otherwise flickers the blur every frame while the body is scrolling). */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* ─── Safe area ─── */
 .safe-bottom {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+/* ─── iOS / reduced-motion: kill expensive infinite animations ───
+   On iOS Safari, an 8s shimmer on a 400%-sized gradient + two floating orbs
+   + a constantly pulsing box-shadow cause compositor thrashing that the user
+   sees as flicker. Disable them on touch devices that flag reduced-motion
+   AND keep them off on any device where the user has opted in. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-card,
+  .orb-1,
+  .orb-2,
+  .skz-coin {
+    animation: none !important;
+  }
+}
+
+/* iOS Safari: detect via @supports for -webkit-touch-callout (iOS-only) */
+@supports (-webkit-touch-callout: none) {
+  .hero-card {
+    /* Static gradient — no shimmer animation that forces a 400% bg repaint
+       every frame. The card already looks rich from its box-shadows. */
+    animation: none !important;
+    background-size: 100% 100% !important;
+  }
+  .orb-1,
+  .orb-2 {
+    animation: none !important;
+  }
+  .skz-coin {
+    animation: none !important;
+  }
+  /* Reduce backdrop-filter blur radius — iOS struggles above ~12px,
+     especially when stacked with translucent backgrounds. */
+  .glass,
+  .glass-card,
+  .glass-card-skz {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 /* ─── Noise texture overlay ─── */

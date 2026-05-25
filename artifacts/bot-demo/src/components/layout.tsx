@@ -31,7 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-base text-white relative">
+    <div className="app-shell flex flex-col w-full overflow-hidden bg-base text-white relative">
 
       {/* Main scrollable content */}
       <div className="flex-1 overflow-y-auto overscroll-contain">

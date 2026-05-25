@@ -222,7 +222,7 @@ export function Home() {
                 style={{ border: bot.live && bi ? `1px solid ${bi.color}40` : undefined }}
               >
                 {bot.live && (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.7)" }} />
                 )}
                 <IconBox iconKey={bi.iconKey} size={20} color={bi.color} bg={bi.bg}
                   border={`${bi.color}25`} glow={bi.glow} boxSize={42} radius={12} />
