@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { withdrawalsTable, walletsTable } from "@workspace/db";
+import { withdrawalsTable, walletsTable, usersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../lib/admin-auth";
+import { logAdminAction } from "../lib/audit-log";
+import { notifyUser } from "../lib/notify-user";
 
 const router: IRouter = Router();
 
@@ -195,12 +197,52 @@ router.post("/withdrawals/:id/approve", requireAdmin, async (req, res): Promise<
 
     if (result.error || !result.updated) {
       const status = result.error === "Withdrawal not found" ? 404 : 400;
+      await logAdminAction(req, "admin", {
+        action: "withdrawal.approve",
+        targetType: "withdrawal",
+        targetId: id,
+        payload: { txHash },
+        success: false,
+        errorMessage: result.error ?? "Approval failed",
+      });
       res.status(status).json({ error: result.error ?? "Approval failed" });
       return;
     }
 
+    await logAdminAction(req, "admin", {
+      action: "withdrawal.approve",
+      targetType: "withdrawal",
+      targetId: id,
+      payload: {
+        amount: result.updated.amount,
+        currency: result.updated.currency,
+        method: result.updated.method,
+        txHash,
+      },
+    });
+
+    // Tell the user their funds went out.
+    void (async () => {
+      const [u] = await db.select({ tid: usersTable.telegramId })
+        .from(usersTable).where(eq(usersTable.id, result.updated.userId));
+      if (u) {
+        await notifyUser(
+          String(u.tid),
+          `✅ تمت الموافقة على طلب السحب #${id}\nالمبلغ: ${result.updated.amount} ${result.updated.currency.toUpperCase()}${txHash ? `\nهاش العملية: ${txHash}` : ""}`,
+        );
+      }
+    })();
+
     res.json(result.updated);
   } catch (err) {
+    await logAdminAction(req, "admin", {
+      action: "withdrawal.approve",
+      targetType: "withdrawal",
+      targetId: id,
+      payload: { txHash },
+      success: false,
+      errorMessage: err instanceof Error ? err.message : "Approval failed",
+    });
     req.log.error({ err, id }, "Withdrawal approve failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
   }
@@ -233,11 +275,37 @@ router.post("/withdrawals/:id/reject", requireAdmin, async (req, res): Promise<v
       .select({ id: withdrawalsTable.id })
       .from(withdrawalsTable)
       .where(eq(withdrawalsTable.id, id));
+    await logAdminAction(req, "admin", {
+      action: "withdrawal.reject",
+      targetType: "withdrawal",
+      targetId: id,
+      payload: { reason },
+      success: false,
+      errorMessage: exists ? "not_pending" : "not_found",
+    });
     res.status(exists ? 400 : 404).json({
       error: exists ? "Can only reject pending withdrawals" : "Withdrawal not found",
     });
     return;
   }
+
+  await logAdminAction(req, "admin", {
+    action: "withdrawal.reject",
+    targetType: "withdrawal",
+    targetId: id,
+    payload: { reason, amount: updated.amount, currency: updated.currency },
+  });
+
+  void (async () => {
+    const [u] = await db.select({ tid: usersTable.telegramId })
+      .from(usersTable).where(eq(usersTable.id, updated.userId));
+    if (u) {
+      await notifyUser(
+        String(u.tid),
+        `❌ تم رفض طلب السحب #${id}\nالمبلغ: ${updated.amount} ${updated.currency.toUpperCase()}${reason ? `\nالسبب: ${reason}` : ""}\nالرصيد لم يُخصم من محفظتك.`,
+      );
+    }
+  })();
 
   res.json(updated);
 });

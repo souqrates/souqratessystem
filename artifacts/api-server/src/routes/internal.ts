@@ -23,6 +23,8 @@ import {
   idempotencyFingerprintMatches,
   PG_UNIQUE_VIOLATION,
 } from "../lib/idempotency";
+import { notifyUser } from "../lib/notify-user";
+import { checkAndRegisterWithdrawalAddress } from "../lib/withdrawal-whitelist";
 
 const router: IRouter = Router();
 
@@ -80,6 +82,10 @@ router.post("/internal/wallets/transfer-referral", async (req, res): Promise<voi
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
   if (rejectIfBlocked(user, res)) return;
 
+  // ── Idempotency: a retried referral-transfer with the same key returns
+  //    the original transaction instead of double-moving funds. Without
+  //    this, a stuck client retrying the button click would empty the
+  //    referral sub-balance multiple times into the main balance.
   const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id));
   if (!wallet) { res.status(404).json({ error: "Wallet not found" }); return; }
 
@@ -94,6 +100,30 @@ router.post("/internal/wallets/transfer-referral", async (req, res): Promise<voi
     return;
   }
   const amt = parseFloat(requested.toFixed(2));
+
+  // ── Idempotency: a retried referral-transfer with the same key returns
+  //    the original transaction. We validate the fingerprint (type + user +
+  //    amount) so a key reused for a *different* operation never returns
+  //    success — that would silently drop the new write AND could leak
+  //    another user's balance if the key was guessed/reused.
+  const idemKey = readIdempotencyKey(req);
+  if (idemKey) {
+    const existing = await findExistingByIdempotencyKey(bot.slug, idemKey);
+    if (existing) {
+      if (!idempotencyFingerprintMatches(existing, { type: "credit", userId: user.id, amount: amt })) {
+        res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+        return;
+      }
+      res.json({
+        success: true,
+        transferred: existing.amount,
+        newBalanceSkz: wallet.balanceSkz,
+        newReferralBalanceSkz: wallet.referralBalanceSkz,
+        replayed: true,
+      });
+      return;
+    }
+  }
 
   let updatedWallet: typeof walletsTable.$inferSelect | undefined;
   try {
@@ -121,12 +151,31 @@ router.post("/internal/wallets/transfer-referral", async (req, res): Promise<voi
         status:      "completed",
         sourceBot:   bot.slug,
         referenceId: `referral_transfer_${user.id}_${Date.now()}`,
+        idempotencyKey: idemKey,
         description: `تحويل أرباح الإحالة إلى المحفظة الرئيسية`,
         metadata:    JSON.stringify({ action: "referral_transfer", amount: amt }),
       });
       return w;
     });
   } catch (err) {
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION && idemKey) {
+      const winner = await findExistingByIdempotencyKey(bot.slug, idemKey);
+      if (winner) {
+        if (!idempotencyFingerprintMatches(winner, { type: "credit", userId: user.id, amount: amt })) {
+          res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+          return;
+        }
+        const [w] = await db.select().from(walletsTable).where(eq(walletsTable.userId, winner.userId));
+        res.json({
+          success: true,
+          transferred: winner.amount,
+          newBalanceSkz: w?.balanceSkz ?? "0",
+          newReferralBalanceSkz: w?.referralBalanceSkz ?? "0",
+          replayed: true,
+        });
+        return;
+      }
+    }
     const e = err as Error;
     if (e.message === "INSUFFICIENT") {
       res.status(400).json({ error: "Insufficient referral balance (race condition)" });
@@ -503,6 +552,12 @@ router.post("/internal/deposit", async (req, res): Promise<void> => {
   }
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, currency, amount, skzAmount }, "Deposit processed");
+
+  // Best-effort confirmation to the user via Telegram.
+  void notifyUser(
+    telegramId,
+    `✅ تم إيداع ${amountNum} ${currency.toUpperCase()}\nأُضيف إلى محفظتك: ${skzAmount.toFixed(2)} SKZ\nالرصيد الجديد: ${newSkzBalance} SKZ`,
+  );
 
   res.json({
     success: true,
@@ -1612,6 +1667,36 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
   }
   if (rejectIfBlocked(user, res)) return;
 
+  // ── Idempotency: a retried withdraw with the same key returns the
+  //    original pending request. We validate (userId, amount, method) so
+  //    a reused key for a *different* withdraw is rejected with 409
+  //    instead of silently confirming success on the wrong row.
+  const idemKey = readIdempotencyKey(req);
+  if (idemKey) {
+    const [existing] = await db
+      .select()
+      .from(withdrawalsTable)
+      .where(and(
+        eq(withdrawalsTable.sourceBot, bot.slug),
+        eq(withdrawalsTable.idempotencyKey, idemKey),
+      ))
+      .limit(1);
+    if (existing) {
+      const amtMatch = Math.abs(parseFloat(existing.amount) - amountNum) < 0.0001;
+      if (existing.userId !== user.id || existing.method !== methodCode || !amtMatch) {
+        res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+        return;
+      }
+      res.status(200).json({
+        success: true,
+        withdrawalId: existing.id,
+        status: existing.status,
+        replayed: true,
+      });
+      return;
+    }
+  }
+
   const [wallet] = await db
     .select()
     .from(walletsTable)
@@ -1627,29 +1712,108 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
     return;
   }
 
+  // ── New-address cooldown: any never-seen (user, network, address) tuple
+  //    gets auto-registered with usableAt = now() + 24h and this withdrawal
+  //    is refused. The legitimate user is told to wait 24h; an attacker
+  //    who hijacked the session cannot drain to their own address in real time.
+  //    We derive `network` from either explicit destination.network or the
+  //    methodCode prefix ("usdt_trc20" → "trc20", "ton_*" → "ton").
+  const destAddr = destination && typeof destination.address === "string"
+    ? destination.address.trim()
+    : null;
+  const destNetwork = (() => {
+    if (destination && typeof destination.network === "string") return destination.network;
+    if (methodCode.startsWith("usdt") || methodCode.includes("trc20")) return "trc20";
+    if (methodCode.startsWith("ton")) return "ton";
+    return methodCode;
+  })();
+
+  if (destAddr) {
+    const check = await checkAndRegisterWithdrawalAddress(user.id, destNetwork, destAddr);
+    if (!check.ok) {
+      if (check.reason === "new_address_cooldown") {
+        const hoursLeft = Math.ceil((check.usableAt.getTime() - Date.now()) / (60 * 60 * 1000));
+        res.status(429).json({
+          error: "new_withdrawal_address_cooldown",
+          message: `لأمانك، يجب الانتظار ${hoursLeft} ساعة قبل السحب إلى عنوان جديد`,
+          usableAt: check.usableAt.toISOString(),
+        });
+        // Best-effort security alert — a fresh withdrawal address is the
+        // strongest signal of account takeover we have.
+        void notifyUser(
+          telegramId,
+          `⚠️ تنبيه أمني\nتم تسجيل عنوان سحب جديد على حسابك (${destNetwork}). إن لم تكن أنت، غيّر كلمة المرور وراجع نشاطك فوراً.\nالعنوان يصبح صالحاً بعد ${hoursLeft} ساعة.`,
+        );
+        return;
+      }
+      if (check.reason === "address_revoked") {
+        res.status(403).json({ error: "withdrawal_address_revoked" });
+        return;
+      }
+    }
+  }
+
   // Do NOT pre-deduct — balance is deducted when admin approves the withdrawal.
   // This prevents permanent fund loss if the withdrawal is rejected.
   const addressStr = destination && Object.keys(destination).length > 0
     ? JSON.stringify(destination)
     : null;
 
-  const [withdrawal] = await db
-    .insert(withdrawalsTable)
-    .values({
-      userId: user.id,
-      currency: "skz",
-      amount: String(amountNum.toFixed(2)),
-      fee: "0",
-      netAmount: String(amountNum.toFixed(2)),
-      method: methodCode,
-      address: addressStr,
-      status: "pending",
-    })
-    .returning();
+  let withdrawal: typeof withdrawalsTable.$inferSelect;
+  try {
+    [withdrawal] = await db
+      .insert(withdrawalsTable)
+      .values({
+        userId: user.id,
+        currency: "skz",
+        amount: String(amountNum.toFixed(2)),
+        fee: "0",
+        netAmount: String(amountNum.toFixed(2)),
+        method: methodCode,
+        address: addressStr,
+        status: "pending",
+        sourceBot: bot.slug,
+        idempotencyKey: idemKey,
+      })
+      .returning();
+  } catch (err) {
+    // Race: a concurrent retry won the idempotency insert.
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION && idemKey) {
+      const [winner] = await db
+        .select()
+        .from(withdrawalsTable)
+        .where(and(
+          eq(withdrawalsTable.sourceBot, bot.slug),
+          eq(withdrawalsTable.idempotencyKey, idemKey),
+        ))
+        .limit(1);
+      if (winner) {
+        const amtMatch = Math.abs(parseFloat(winner.amount) - amountNum) < 0.0001;
+        if (winner.userId !== user.id || winner.method !== methodCode || !amtMatch) {
+          res.status(409).json({ error: "idempotency_key_reused_with_different_payload" });
+          return;
+        }
+        res.status(200).json({
+          success: true,
+          withdrawalId: winner.id,
+          status: winner.status,
+          replayed: true,
+        });
+        return;
+      }
+    }
+    throw err;
+  }
 
   req.log.info(
     { withdrawalId: withdrawal.id, botSlug: bot.slug, telegramId, amountNum, methodCode },
     "Internal withdrawal request created"
+  );
+
+  // Confirm to the user that the request was received and is pending review.
+  void notifyUser(
+    telegramId,
+    `📤 طلب سحب قيد المراجعة\nالمبلغ: ${amountNum.toFixed(2)} SKZ\nطريقة: ${methodCode}\nسيتم إعلامك فور الموافقة أو الرفض.`,
   );
 
   res.status(201).json({

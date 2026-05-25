@@ -17,6 +17,9 @@ import {
   requireSuperAdmin,
   verifySuperAdminCode,
 } from "../lib/super-admin-auth";
+import { logAdminAction } from "../lib/audit-log";
+import { notifyUser } from "../lib/notify-user";
+import { withdrawalAddressesTable, adminAuditLogTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -80,6 +83,10 @@ router.patch("/superadmin/bots/:slug", requireSuperAdmin, async (req, res): Prom
 
   const [updated] = await db.update(botsTable).set(updates).where(eq(botsTable.slug, raw)).returning();
   const { apiKey: _k, webhookSecret: _s, ...safe } = updated;
+  await logAdminAction(req, "superadmin", {
+    action: "bot.update", targetType: "bot", targetId: raw,
+    payload: updates,
+  });
   req.log.info({ slug: raw, updates }, "superadmin: bot updated");
   res.json(safe);
 });
@@ -166,6 +173,10 @@ router.post("/superadmin/commission-overrides", requireSuperAdmin, async (req, r
     })
     .returning();
 
+  await logAdminAction(req, "superadmin", {
+    action: "commission_override.upsert", targetType: "user", targetId: tid.toString(),
+    payload: { botSlug, commissionRate: rate, note: note ?? null },
+  });
   req.log.info({ telegramId: tid.toString(), botSlug, rate }, "superadmin: commission override upserted");
   res.json(row);
 });
@@ -182,6 +193,10 @@ router.delete("/superadmin/commission-overrides/:id", requireSuperAdmin, async (
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await logAdminAction(req, "superadmin", {
+    action: "commission_override.delete", targetType: "commission_override", targetId: id,
+    payload: { telegramId: result[0]?.telegramId?.toString?.(), botSlug: result[0]?.botSlug },
+  });
   res.json({ ok: true });
 });
 
@@ -246,6 +261,10 @@ router.post("/superadmin/bot-texts", requireSuperAdmin, async (req, res): Promis
       set: { label, draftValue: draftValue ?? "", updatedAt: new Date() },
     })
     .returning();
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.upsert", targetType: "bot_text", targetId: row.id,
+    payload: { botSlug, key, label },
+  });
   res.json(row);
 });
 
@@ -264,6 +283,10 @@ router.patch("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): P
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.update", targetType: "bot_text", targetId: id,
+    payload: { fields: Object.keys(updates).filter((k) => k !== "updatedAt") },
+  });
   res.json(row);
 });
 
@@ -286,6 +309,10 @@ router.post("/superadmin/bot-texts/:id/publish", requireSuperAdmin, async (req, 
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.publish", targetType: "bot_text", targetId: id,
+    payload: { botSlug: row.botSlug, key: row.key },
+  });
   res.json(row);
 });
 
@@ -304,6 +331,10 @@ router.post("/superadmin/bot-texts/publish-all", requireSuperAdmin, async (req, 
     })
     .where(eq(botTextsTable.botSlug, botSlug))
     .returning({ id: botTextsTable.id });
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.publish_all", targetType: "bot", targetId: botSlug,
+    payload: { count: rows.length },
+  });
   res.json({ ok: true, count: rows.length });
 });
 
@@ -318,6 +349,10 @@ router.delete("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): 
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.delete", targetType: "bot_text", targetId: id,
+    payload: { botSlug: result[0]?.botSlug, key: result[0]?.key },
+  });
   res.json({ ok: true });
 });
 
@@ -402,7 +437,20 @@ router.patch("/superadmin/users/:telegramId", requireSuperAdmin, async (req, res
     .set({ isBlocked })
     .where(eq(usersTable.telegramId, tid))
     .returning();
-  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  if (!updated) {
+    await logAdminAction(req, "superadmin", {
+      action: isBlocked ? "user.block" : "user.unblock",
+      targetType: "user", targetId: tid.toString(),
+      success: false, errorMessage: "not_found",
+    });
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  await logAdminAction(req, "superadmin", {
+    action: isBlocked ? "user.block" : "user.unblock",
+    targetType: "user", targetId: tid.toString(),
+    payload: { isBlocked },
+  });
   req.log.info({ telegramId: tid.toString(), isBlocked }, "superadmin: user block toggled");
   res.json(updated);
 });
@@ -475,10 +523,19 @@ router.post("/superadmin/users/:telegramId/credit", requireSuperAdmin, async (re
 
   try {
     const out = await adjustWalletSkz(tid, "credit", amt, reason.trim(), "superadmin");
+    await logAdminAction(req, "superadmin", {
+      action: "wallet.credit", targetType: "user", targetId: tid.toString(),
+      payload: { amountSkz: amt, reason: reason.trim(), transactionId: out.transactionId },
+    });
     req.log.info({ telegramId: tid.toString(), amount: amt, txId: out.transactionId }, "superadmin: manual credit");
     res.json({ ok: true, wallet: out.wallet, transactionId: out.transactionId });
   } catch (e) {
     const err = e as { status?: number; message: string };
+    await logAdminAction(req, "superadmin", {
+      action: "wallet.credit", targetType: "user", targetId: tid.toString(),
+      payload: { amountSkz: amt, reason: reason.trim() },
+      success: false, errorMessage: err.message,
+    });
     res.status(err.status ?? 500).json({ error: err.message });
   }
 });
@@ -494,10 +551,19 @@ router.post("/superadmin/users/:telegramId/debit", requireSuperAdmin, async (req
 
   try {
     const out = await adjustWalletSkz(tid, "debit", amt, reason.trim(), "superadmin");
+    await logAdminAction(req, "superadmin", {
+      action: "wallet.debit", targetType: "user", targetId: tid.toString(),
+      payload: { amountSkz: amt, reason: reason.trim(), transactionId: out.transactionId },
+    });
     req.log.info({ telegramId: tid.toString(), amount: amt, txId: out.transactionId }, "superadmin: manual debit");
     res.json({ ok: true, wallet: out.wallet, transactionId: out.transactionId });
   } catch (e) {
     const err = e as { status?: number; message: string };
+    await logAdminAction(req, "superadmin", {
+      action: "wallet.debit", targetType: "user", targetId: tid.toString(),
+      payload: { amountSkz: amt, reason: reason.trim() },
+      success: false, errorMessage: err.message,
+    });
     res.status(err.status ?? 500).json({ error: err.message });
   }
 });
@@ -622,6 +688,11 @@ router.post("/superadmin/broadcasts", requireSuperAdmin, async (req, res): Promi
     })
     .returning();
 
+  await logAdminAction(req, "superadmin", {
+    action: "broadcast.create", targetType: "broadcast", targetId: row.id,
+    payload: { audience, targetValue: targetValue ?? null, recipients: recipients.length },
+  });
+
   // Dispatch in the background — respond immediately with the job id.
   void dispatchBroadcast(row.id, token, recipients, body.trim()).catch((err) => {
     req.log.error({ err, broadcastId: row.id }, "broadcast dispatch crashed");
@@ -707,6 +778,10 @@ router.post("/superadmin/links", requireSuperAdmin, async (req, res): Promise<vo
       isActive: isActive ?? true,
       notes: notes ?? null,
     }).returning();
+    await logAdminAction(req, "superadmin", {
+      action: "link.create", targetType: "link", targetId: row.id,
+      payload: { key: row.key, category: row.category },
+    });
     res.json(row);
   } catch (e) {
     res.status(400).json({ error: `فشلت الإضافة: ${(e as Error).message}` });
@@ -727,6 +802,10 @@ router.patch("/superadmin/links/:id", requireSuperAdmin, async (req, res): Promi
   if (typeof notes === "string") updates.notes = notes;
   const [row] = await db.update(externalLinksTable).set(updates).where(eq(externalLinksTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  await logAdminAction(req, "superadmin", {
+    action: "link.update", targetType: "link", targetId: id,
+    payload: { fields: Object.keys(updates).filter((k) => k !== "updatedAt") },
+  });
   res.json(row);
 });
 
@@ -735,6 +814,10 @@ router.delete("/superadmin/links/:id", requireSuperAdmin, async (req, res): Prom
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const result = await db.delete(externalLinksTable).where(eq(externalLinksTable.id, id)).returning();
   if (result.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+  await logAdminAction(req, "superadmin", {
+    action: "link.delete", targetType: "link", targetId: id,
+    payload: { key: result[0]?.key },
+  });
   res.json({ ok: true });
 });
 
@@ -882,11 +965,34 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
     });
 
     if (result.error || !result.row) {
+      await logAdminAction(req, "superadmin", {
+        action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
+        payload: { txHash }, success: false, errorMessage: result.error ?? "Approval failed",
+      });
       res.status(400).json({ error: result.error ?? "Approval failed" });
       return;
     }
+    await logAdminAction(req, "superadmin", {
+      action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
+      payload: { amount: result.row.amount, currency: result.row.currency, method: result.row.method, txHash },
+    });
+    void (async () => {
+      const [u] = await db.select({ tid: usersTable.telegramId })
+        .from(usersTable).where(eq(usersTable.id, result.row.userId));
+      if (u) {
+        await notifyUser(
+          String(u.tid),
+          `✅ تمت الموافقة على طلب السحب #${id}\nالمبلغ: ${result.row.amount} ${result.row.currency.toUpperCase()}${txHash ? `\nهاش العملية: ${txHash}` : ""}`,
+        );
+      }
+    })();
     res.json(result.row);
   } catch (err) {
+    await logAdminAction(req, "superadmin", {
+      action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
+      payload: { txHash }, success: false,
+      errorMessage: err instanceof Error ? err.message : "Approval failed",
+    });
     req.log.error({ err, id }, "superadmin withdrawal approve failed");
     res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
   }
@@ -902,8 +1008,104 @@ router.post("/superadmin/withdrawals/:id/reject", requireSuperAdmin, async (req,
     .set({ status: "rejected", rejectedReason: reason ?? null, processedAt: new Date() })
     .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
     .returning();
-  if (!updated) { res.status(400).json({ error: "Only pending withdrawals can be rejected" }); return; }
+  if (!updated) {
+    await logAdminAction(req, "superadmin", {
+      action: "withdrawal.reject", targetType: "withdrawal", targetId: id,
+      payload: { reason }, success: false, errorMessage: "not_pending",
+    });
+    res.status(400).json({ error: "Only pending withdrawals can be rejected" });
+    return;
+  }
+  await logAdminAction(req, "superadmin", {
+    action: "withdrawal.reject", targetType: "withdrawal", targetId: id,
+    payload: { reason, amount: updated.amount, currency: updated.currency },
+  });
+  void (async () => {
+    const [u] = await db.select({ tid: usersTable.telegramId })
+      .from(usersTable).where(eq(usersTable.id, updated.userId));
+    if (u) {
+      await notifyUser(
+        String(u.tid),
+        `❌ تم رفض طلب السحب #${id}\nالمبلغ: ${updated.amount} ${updated.currency.toUpperCase()}${reason ? `\nالسبب: ${reason}` : ""}\nالرصيد لم يُخصم من محفظتك.`,
+      );
+    }
+  })();
   res.json(updated);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Withdrawal address whitelist (per-user) — admin tooling
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * List a user's known withdrawal destinations. Used by support to see
+ * which addresses have already passed the 24-hour cooldown and which are
+ * still pending. `userId` is the internal id (not telegramId).
+ */
+router.get("/superadmin/users/:telegramId/withdrawal-addresses", requireSuperAdmin, async (req, res): Promise<void> => {
+  const raw = String(req.params.telegramId);
+  let tid: bigint;
+  try { tid = BigInt(raw); } catch { res.status(400).json({ error: "Invalid telegramId" }); return; }
+
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, tid));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const rows = await db.select().from(withdrawalAddressesTable)
+    .where(eq(withdrawalAddressesTable.userId, user.id))
+    .orderBy(desc(withdrawalAddressesTable.addedAt));
+  res.json({ data: rows });
+});
+
+/**
+ * Revoke a whitelisted address. Sets revokedAt — the next withdrawal
+ * attempt to it is refused (`address_revoked`). Soft-delete so we keep
+ * the history for forensics.
+ */
+router.delete("/superadmin/withdrawal-addresses/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [updated] = await db.update(withdrawalAddressesTable)
+    .set({ revokedAt: new Date() })
+    .where(eq(withdrawalAddressesTable.id, id))
+    .returning();
+  if (!updated) {
+    await logAdminAction(req, "superadmin", {
+      action: "withdrawal_address.revoke", targetType: "withdrawal_address", targetId: id,
+      success: false, errorMessage: "not_found",
+    });
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await logAdminAction(req, "superadmin", {
+    action: "withdrawal_address.revoke", targetType: "withdrawal_address", targetId: id,
+    payload: { network: updated.network, userId: updated.userId },
+  });
+  res.json(updated);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Admin audit log — read-only view of who did what
+// ─────────────────────────────────────────────────────────────────────────
+router.get("/superadmin/audit-log", requireSuperAdmin, async (req, res): Promise<void> => {
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
+  const offset = (page - 1) * limit;
+  const action = req.query.action as string | undefined;
+  const targetType = req.query.targetType as string | undefined;
+
+  const conds = [];
+  if (action) conds.push(eq(adminAuditLogTable.action, action));
+  if (targetType) conds.push(eq(adminAuditLogTable.targetType, targetType));
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, count] = await Promise.all([
+    db.select().from(adminAuditLogTable).where(where)
+      .orderBy(desc(adminAuditLogTable.createdAt))
+      .limit(limit).offset(offset),
+    db.select({ c: sql<number>`count(*)::int` }).from(adminAuditLogTable).where(where),
+  ]);
+  res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
 });
 
 // ── Platform stats (lightweight overview) ────────────────────────────────

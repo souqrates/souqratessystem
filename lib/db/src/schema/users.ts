@@ -6,7 +6,9 @@ import {
   bigint,
   boolean,
   integer,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,7 +28,11 @@ export const usersTable = pgTable("users", {
   totalGamesWon: integer("total_games_won").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  // A user cannot be their own referrer. Enforced at the DB layer so no app
+  // bug or admin SQL fix-up can ever insert a self-loop into the graph.
+  noSelfReferral: check("users_no_self_referral", sql`${t.id} <> ${t.referrerId}`),
+}));
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,

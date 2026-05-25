@@ -14,3 +14,5 @@ export * from "./gameConfigs";
 export * from "./agreements";
 export * from "./products";
 export * from "./contests";
+export * from "./withdrawalAddresses";
+export * from "./adminAuditLog";

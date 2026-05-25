@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { platformSettingsTable } from "@workspace/db";
 import { requireAdmin } from "../lib/admin-auth";
+import { logAdminAction } from "../lib/audit-log";
 
 const router: IRouter = Router();
 
@@ -136,6 +137,12 @@ router.put("/settings", requireAdmin, async (req, res): Promise<void> => {
 
   await Promise.all(updates.map(([key, value]) => upsertSetting(key, value)));
 
+  await logAdminAction(req, "admin", {
+    action: "settings.update",
+    targetType: "platform_settings",
+    payload: Object.fromEntries(updates),
+  });
+
   req.log.info({ updatedKeys: updates.map(([k]) => k) }, "Platform settings updated");
   res.json(await buildSettingsResponse());
 });
@@ -171,6 +178,14 @@ router.put("/settings/skz-rates", requireAdmin, async (req, res): Promise<void> 
   if (skzPerTon) updates.push(["skz_per_ton", skzPerTon]);
 
   await Promise.all(updates.map(([key, value]) => upsertSetting(key, value)));
+
+  if (updates.length > 0) {
+    await logAdminAction(req, "admin", {
+      action: "settings.skz_rates",
+      targetType: "platform_settings",
+      payload: Object.fromEntries(updates),
+    });
+  }
 
   const [perUsdtFinal, perStarFinal, perTonFinal, updatedRow] = await Promise.all([
     getSetting("skz_per_usdt"),
