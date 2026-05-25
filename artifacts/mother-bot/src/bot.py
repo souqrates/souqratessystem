@@ -2,6 +2,12 @@ import asyncio
 import os
 import logging
 import time
+
+# Sentry must be initialised before any aiogram/business-logic import so it
+# can capture even bootstrap failures. Silent no-op if not enabled in panel.
+from sentry_init import init_sentry
+init_sentry("mother-bot")
+
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import (
     Message,

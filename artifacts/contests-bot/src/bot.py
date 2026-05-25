@@ -17,6 +17,10 @@ import logging
 import os
 from typing import Optional
 
+# Sentry must init before any business-logic import — captures bootstrap errors.
+from sentry_init import init_sentry
+init_sentry("contests-bot")
+
 import httpx
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties

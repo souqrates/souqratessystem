@@ -19,6 +19,7 @@ import {
 } from "../lib/super-admin-auth";
 import { logAdminAction } from "../lib/audit-log";
 import { notifyUser } from "../lib/notify-user";
+import { capture } from "../lib/analytics";
 import { withdrawalAddressesTable, adminAuditLogTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -976,14 +977,28 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
       action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
       payload: { amount: result.row.amount, currency: result.row.currency, method: result.row.method, txHash },
     });
+    // Detached side-effects: response is already going out, but a DB
+    // hiccup inside this IIFE must NOT become an unhandled rejection
+    // (Node 24 default kills the process on those). Inner try/catch
+    // keeps the failure isolated and logged.
     void (async () => {
-      const [u] = await db.select({ tid: usersTable.telegramId })
-        .from(usersTable).where(eq(usersTable.id, result.row.userId));
-      if (u) {
-        await notifyUser(
-          String(u.tid),
-          `✅ تمت الموافقة على طلب السحب #${id}\nالمبلغ: ${result.row.amount} ${result.row.currency.toUpperCase()}${txHash ? `\nهاش العملية: ${txHash}` : ""}`,
-        );
+      try {
+        const [u] = await db.select({ tid: usersTable.telegramId })
+          .from(usersTable).where(eq(usersTable.id, result.row.userId));
+        if (u) {
+          await notifyUser(
+            String(u.tid),
+            `✅ تمت الموافقة على طلب السحب #${id}\nالمبلغ: ${result.row.amount} ${result.row.currency.toUpperCase()}${txHash ? `\nهاش العملية: ${txHash}` : ""}`,
+          );
+          capture("withdraw_approved", String(u.tid), {
+            withdrawal_id: id,
+            amount: result.row.amount,
+            currency: result.row.currency,
+            method: result.row.method,
+          });
+        }
+      } catch (err) {
+        req.log.warn({ err, withdrawalId: id }, "post-approve notify/capture failed");
       }
     })();
     res.json(result.row);
@@ -1020,14 +1035,26 @@ router.post("/superadmin/withdrawals/:id/reject", requireSuperAdmin, async (req,
     action: "withdrawal.reject", targetType: "withdrawal", targetId: id,
     payload: { reason, amount: updated.amount, currency: updated.currency },
   });
+  // See approve handler for rationale on the inner try/catch.
   void (async () => {
-    const [u] = await db.select({ tid: usersTable.telegramId })
-      .from(usersTable).where(eq(usersTable.id, updated.userId));
-    if (u) {
-      await notifyUser(
-        String(u.tid),
-        `❌ تم رفض طلب السحب #${id}\nالمبلغ: ${updated.amount} ${updated.currency.toUpperCase()}${reason ? `\nالسبب: ${reason}` : ""}\nالرصيد لم يُخصم من محفظتك.`,
-      );
+    try {
+      const [u] = await db.select({ tid: usersTable.telegramId })
+        .from(usersTable).where(eq(usersTable.id, updated.userId));
+      if (u) {
+        await notifyUser(
+          String(u.tid),
+          `❌ تم رفض طلب السحب #${id}\nالمبلغ: ${updated.amount} ${updated.currency.toUpperCase()}${reason ? `\nالسبب: ${reason}` : ""}\nالرصيد لم يُخصم من محفظتك.`,
+        );
+        capture("withdraw_rejected", String(u.tid), {
+          withdrawal_id: id,
+          amount: updated.amount,
+          currency: updated.currency,
+          method: updated.method,
+          reason: reason ?? null,
+        });
+      }
+    } catch (err) {
+      req.log.warn({ err, withdrawalId: id }, "post-reject notify/capture failed");
     }
   })();
   res.json(updated);

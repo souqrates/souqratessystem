@@ -18,6 +18,7 @@ import contestsRouter from "./contests";
 import objectsRouter from "./objects";
 import paymentsRouter from "./payments";
 import integrationsRouter from "./integrations";
+import runtimeConfigRouter from "./runtime-config";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(contestsRouter);
 router.use(objectsRouter);
 router.use(paymentsRouter);
 router.use(integrationsRouter);
+router.use(runtimeConfigRouter);
 
 export default router;

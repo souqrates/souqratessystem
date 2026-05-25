@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import * as Sentry from "@sentry/node";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { verifyAdminToken } from "./lib/admin-auth";
@@ -83,5 +84,9 @@ app.post("/api/admin/login", adminLoginLimiter, (req, res): void => {
 });
 
 app.use("/api", router);
+
+// Sentry error handler must be the LAST middleware. Captures any error that
+// bubbles out of a route handler. No-op if Sentry isn't initialised.
+Sentry.setupExpressErrorHandler(app);
 
 export default app;

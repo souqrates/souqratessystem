@@ -16,6 +16,10 @@ import asyncio
 import logging
 import os
 
+# Sentry must init before any business-logic import — captures bootstrap errors.
+from sentry_init import init_sentry
+init_sentry("books-bot")
+
 import httpx
 from aiogram import Bot, BaseMiddleware, Dispatcher, F, Router
 from aiogram.filters import CommandStart, Command

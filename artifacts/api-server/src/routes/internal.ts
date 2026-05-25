@@ -24,6 +24,8 @@ import {
   PG_UNIQUE_VIOLATION,
 } from "../lib/idempotency";
 import { notifyUser } from "../lib/notify-user";
+import { capture } from "../lib/analytics";
+import { notifyAdmin } from "../lib/email";
 import { checkAndRegisterWithdrawalAddress } from "../lib/withdrawal-whitelist";
 
 const router: IRouter = Router();
@@ -1845,6 +1847,26 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
   void notifyUser(
     telegramId,
     `📤 طلب سحب قيد المراجعة\nالمبلغ: ${amountNum.toFixed(2)} SKZ\nطريقة: ${methodCode}\nسيتم إعلامك فور الموافقة أو الرفض.`,
+  );
+
+  // Analytics + admin alert. Both are fire-and-forget — must not block
+  // the success response or fail the request if external services hiccup.
+  capture("withdraw_requested", telegramId, {
+    withdrawal_id: withdrawal.id,
+    amount_skz: amountNum,
+    method: methodCode,
+    bot_slug: bot.slug,
+  });
+  notifyAdmin(
+    `طلب سحب جديد #${withdrawal.id}`,
+    `<p>طلب سحب جديد قيد المراجعة.</p>
+     <ul>
+       <li>المعرّف: <b>#${withdrawal.id}</b></li>
+       <li>المستخدم (Telegram): <b>${telegramId}</b></li>
+       <li>المبلغ: <b>${amountNum.toFixed(2)} SKZ</b></li>
+       <li>الطريقة: <b>${methodCode}</b></li>
+       <li>البوت المصدر: <b>${bot.slug}</b></li>
+     </ul>`,
   );
 
   res.status(201).json({
