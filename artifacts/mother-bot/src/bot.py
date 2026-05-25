@@ -15,9 +15,11 @@ from aiogram.types import (
     BotCommandScopeChat,
 )
 from aiogram.filters import CommandStart, Command
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.storage.memory import MemoryStorage
 import httpx
 from dotenv import load_dotenv
+from client import MotherBotClient
 
 load_dotenv()
 
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
 MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
+MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
 BOOKS_BOT_USERNAME  = os.getenv("BOOKS_BOT_USERNAME", "Souqrates_souq_bot")
@@ -188,7 +191,24 @@ def main_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="ℹ️ Help",         callback_data="help"),
+            InlineKeyboardButton(text="☰ المزيد",        callback_data="info_menu"),
         ],
+    ])
+
+
+def info_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📜 السياسات",       callback_data="info_policies")],
+        [InlineKeyboardButton(text="⚖️ القوانين",       callback_data="info_rules")],
+        [InlineKeyboardButton(text="✉️ تواصل معنا",     callback_data="info_contact")],
+        [InlineKeyboardButton(text="🔙 رجوع",           callback_data="menu")],
+    ])
+
+
+def info_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀ القائمة",        callback_data="info_menu")],
+        [InlineKeyboardButton(text="🏠 الرئيسية",      callback_data="menu")],
     ])
 
 
@@ -446,6 +466,153 @@ async def cb_help(callback: CallbackQuery):
     await callback.answer()
 
 
+# ── Info menu (policies / rules / contact) — copy editable in superadmin ────
+# Bot copy is fetched from the published `bot-texts` for slug "mother-bot" via
+# the BotTexts TTL cache so any panel edit propagates in ~60s without restart.
+# Default values below are seeded on startup (idempotent) if the rows are
+# missing, so first-time installs already render real content.
+
+_mother_client = MotherBotClient(
+    api_key=MOTHER_BOT_API_KEY,
+    base_url=MOTHER_API_URL,
+)
+texts = _mother_client.texts(bot_slug="mother-bot", ttl_seconds=60)
+
+INFO_DEFAULTS: dict[str, tuple[str, str]] = {
+    "info_policies": (
+        "السياسات",
+        "📜 <b>سياسة الاستخدام</b>\n\n"
+        "• جميع المعاملات المالية في منظومة SOUQRATES SYSTEM موحّدة عبر محفظة SKZ.\n"
+        "• الإيداع والسحب يتمّان عبر القنوات المعتمدة فقط (Stars / USDT / TON).\n"
+        "• حماية بياناتك أولوية — لا نشارك معلوماتك مع أطراف ثالثة.\n"
+        "• استخدام البوت يعني موافقتك على هذه السياسة.\n\n"
+        "آخر تحديث: 2026"
+    ),
+    "info_rules": (
+        "القوانين",
+        "⚖️ <b>قوانين المنصة</b>\n\n"
+        "1. ممنوع التحايل على نظام الإحالة أو إنشاء حسابات وهمية.\n"
+        "2. يحقّ للإدارة تجميد أي رصيد ناتج عن نشاط مشبوه.\n"
+        "3. الحد الأدنى للسحب: 5 USDT أو 1 TON.\n"
+        "4. العمولات تُخصم تلقائياً وفق نسب البوت الفرعي.\n"
+        "5. أي مخالفة قد تؤدي لإيقاف الحساب نهائياً.\n\n"
+        "للاستفسار: استخدم زر «تواصل معنا»."
+    ),
+    "info_contact": (
+        "تواصل معنا",
+        "✉️ <b>قنوات التواصل الرسمية</b>\n\n"
+        "• الدعم الفني: @souqrates_support\n"
+        "• القناة الرسمية: @souqrates_official\n"
+        "• البريد: support@souqrates.com\n\n"
+        "نردّ خلال 24 ساعة كحد أقصى."
+    ),
+}
+
+
+async def _seed_info_texts_if_missing() -> None:
+    """Idempotent: POSTs the three info_* keys to superadmin/bot-texts.
+
+    The POST endpoint uses ON CONFLICT DO UPDATE on (botSlug, key) so this
+    is safe to call on every startup. We only set the draftValue — the
+    super-admin must explicitly hit "نشر" before users see the content,
+    matching the existing publish workflow.
+
+    No-op when MASTER_ADMIN_CODE is unset (e.g. local dev without super-admin),
+    so the bot still boots cleanly.
+    """
+    if not MASTER_ADMIN_CODE or len(MASTER_ADMIN_CODE) < 8:
+        logger.warning("MASTER_ADMIN_CODE not set — skipping info-texts seed")
+        return
+    headers = {"Authorization": f"Bearer {MASTER_ADMIN_CODE}"}
+    async with httpx.AsyncClient() as http:
+        # Map existing rows by key so we can detect both:
+        #   (a) row missing entirely → upsert + publish
+        #   (b) row exists but never published (publishedAt is null AND
+        #       publishedValue is empty) → re-publish so users finally see it
+        # We never touch a key whose admin already published or customised
+        # the draft — admin edits are sacred.
+        existing_by_key: dict[str, dict] = {}
+        try:
+            resp = await http.get(
+                f"{MOTHER_API_URL}/superadmin/bot-texts",
+                params={"botSlug": "mother-bot"},
+                headers=headers,
+                timeout=10.0,
+            )
+            if resp.status_code == 200:
+                for row in (resp.json().get("data") or []):
+                    existing_by_key[row["key"]] = row
+        except Exception as e:
+            logger.warning(f"info-texts seed: list failed: {e}")
+
+        for key, (label, default_value) in INFO_DEFAULTS.items():
+            existing = existing_by_key.get(key)
+            row_id: int | None = None
+            try:
+                if existing is None:
+                    # Brand-new key: upsert with default draft
+                    r = await http.post(
+                        f"{MOTHER_API_URL}/superadmin/bot-texts",
+                        json={"botSlug": "mother-bot", "key": key, "label": label, "draftValue": default_value},
+                        headers=headers,
+                        timeout=10.0,
+                    )
+                    if r.status_code >= 400:
+                        logger.warning(f"seed {key}: HTTP {r.status_code} {r.text[:120]}")
+                        continue
+                    row_id = r.json().get("id")
+                    logger.info(f"seeded default info-text: {key}")
+                else:
+                    # Row exists. Only auto-publish if admin hasn't done anything yet:
+                    # publishedAt is null AND publishedValue is empty. Otherwise leave it alone.
+                    if existing.get("publishedAt") or (existing.get("publishedValue") or "").strip():
+                        continue
+                    row_id = existing.get("id")
+
+                if row_id:
+                    pr = await http.post(
+                        f"{MOTHER_API_URL}/superadmin/bot-texts/{row_id}/publish",
+                        headers=headers, timeout=10.0,
+                    )
+                    if pr.status_code >= 400:
+                        logger.warning(f"publish {key}: HTTP {pr.status_code} {pr.text[:120]}")
+                    else:
+                        logger.info(f"published info-text: {key}")
+            except Exception as e:
+                logger.warning(f"seed {key} failed: {e}")
+
+
+async def _safe_edit(callback: CallbackQuery, text: str, kb: InlineKeyboardMarkup) -> None:
+    """edit_text that swallows Telegram's "message is not modified" 400 so a
+    user double-tap doesn't surface as a stuck loading spinner."""
+    try:
+        await callback.message.edit_text(
+            text, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True,
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e).lower():
+            raise
+
+
+@router.callback_query(F.data == "info_menu")
+async def cb_info_menu(callback: CallbackQuery):
+    text = (
+        "☰ <b>المزيد</b>\n\n"
+        "اختر ما تريد الاطلاع عليه:"
+    )
+    await _safe_edit(callback, text, info_menu_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data.in_({"info_policies", "info_rules", "info_contact"}))
+async def cb_info_page(callback: CallbackQuery):
+    key = callback.data
+    _, default_body = INFO_DEFAULTS.get(key, ("", "—"))
+    body = await texts.get(key, default=default_body)
+    await _safe_edit(callback, body, info_back_keyboard())
+    await callback.answer()
+
+
 @router.message(Command("balance"))
 async def cmd_balance(message: Message):
     try:
@@ -541,6 +708,12 @@ async def main():
                 logger.warning(f"set_my_commands(admin={admin_id}) failed: {e}")
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
+
+    # Seed default info-texts (policies / rules / contact) — idempotent.
+    try:
+        await _seed_info_texts_if_missing()
+    except Exception as e:
+        logger.warning(f"info-texts seed step failed (non-fatal): {e}")
 
     logger.info("Starting mother bot polling...")
     await dp.start_polling(bot)
