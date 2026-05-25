@@ -634,6 +634,18 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
 
   req.log.info({ transactionId: transaction.id, botSlug: bot.slug, amount }, "SKZ debited");
 
+  // Award XP based on SKZ spent (fire-and-forget — must not block debit response)
+  void import("../lib/xp").then(({ awardXp }) =>
+    awardXp({
+      telegramId: user.telegramId,
+      eventKind: "skz_spend",
+      units: Math.floor(amountNum),
+      sourceBotSlug: bot.slug,
+      refType: "transaction",
+      refId: String(transaction.id),
+    }).catch((e) => req.log.warn({ err: e }, "XP award failed (skz_spend)")),
+  );
+
   res.json({
     success: true,
     transactionId: transaction.id,

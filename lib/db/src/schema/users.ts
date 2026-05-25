@@ -22,6 +22,8 @@ export const usersTable = pgTable("users", {
   referrerId: integer("referrer_id"),
   xp: integer("xp").notNull().default(0),
   level: integer("level").notNull().default(1),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
   totalGamesPlayed: integer("total_games_played").notNull().default(0),
   totalGamesWon: integer("total_games_won").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
