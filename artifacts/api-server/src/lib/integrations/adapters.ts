@@ -138,14 +138,17 @@ const cloudflare: IntegrationAdapter = {
   async test(cfg) {
     if (!cfg.api_token) return { ok: false, error: "missing token" };
     try {
-      const r = await fetchWithTimeout("https://api.cloudflare.com/client/v4/user/tokens/verify", {
+      // /zones works for BOTH user-scoped and account-scoped tokens as long
+      // as the token has Zone:Read. /user/tokens/verify rejects
+      // account-scoped tokens with code 1000, which is misleading.
+      const r = await fetchWithTimeout("https://api.cloudflare.com/client/v4/zones?per_page=1", {
         headers: { Authorization: `Bearer ${cfg.api_token}` },
       });
-      const j = (await r.json()) as { success?: boolean; result?: { status?: string }; errors?: Array<{ message: string }> };
+      const j = (await r.json()) as { success?: boolean; result?: Array<unknown>; errors?: Array<{ message: string }> };
       if (!j.success) {
         return { ok: false, error: j.errors?.[0]?.message ?? `HTTP ${r.status}` };
       }
-      return { ok: true, metadata: { status: j.result?.status } };
+      return { ok: true, metadata: { zones_visible: j.result?.length ?? 0 } };
     } catch (e) {
       return { ok: false, error: describeError(e) };
     }
