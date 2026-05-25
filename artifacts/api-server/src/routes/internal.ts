@@ -1635,19 +1635,52 @@ router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
 // POST /internal/withdraw — create a pending withdrawal request for a user
 // Accepts: { telegramId, methodCode, amountSkz, destination? }
 // ─────────────────────────────────────────────────────────────────────────────
+// Whitelist of accepted withdrawal method codes. New methods MUST be added
+// here before the route accepts them — prevents typos and forged codes from
+// reaching the admin queue.
+const ALLOWED_WITHDRAW_METHODS = new Set<string>([
+  "usdt_trc20",
+  "usdt_bep20",
+  "ton",
+]);
+
 router.post("/internal/withdraw", async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
-  const { telegramId, methodCode, amountSkz, destination } = req.body as {
-    telegramId: string;
-    methodCode: string;
-    amountSkz: string | number;
+  const body = req.body as {
+    telegramId?: string;
+    methodCode?: string;
+    amountSkz?: string | number;
     destination?: Record<string, unknown>;
+    address?: string; // legacy/flat shape — normalised into destination below
   };
+  const { telegramId, methodCode, amountSkz } = body;
 
   if (!telegramId || !methodCode || amountSkz === undefined || amountSkz === null) {
     res.status(400).json({ error: "telegramId, methodCode, amountSkz are required" });
+    return;
+  }
+
+  if (!ALLOWED_WITHDRAW_METHODS.has(methodCode)) {
+    res.status(400).json({
+      error: "invalid_method_code",
+      allowed: Array.from(ALLOWED_WITHDRAW_METHODS),
+    });
+    return;
+  }
+
+  // Normalise destination: accept either `destination.address` (canonical) or
+  // a top-level `address` string (legacy). Reject if neither is present —
+  // an admin cannot pay out without knowing where to send funds.
+  const destination: Record<string, unknown> = body.destination && typeof body.destination === "object"
+    ? { ...body.destination }
+    : {};
+  if (typeof destination.address !== "string" && typeof body.address === "string") {
+    destination.address = body.address;
+  }
+  if (typeof destination.address !== "string" || destination.address.trim().length === 0) {
+    res.status(400).json({ error: "destination_address_required" });
     return;
   }
 
@@ -1716,19 +1749,17 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
   //    gets auto-registered with usableAt = now() + 24h and this withdrawal
   //    is refused. The legitimate user is told to wait 24h; an attacker
   //    who hijacked the session cannot drain to their own address in real time.
-  //    We derive `network` from either explicit destination.network or the
-  //    methodCode prefix ("usdt_trc20" → "trc20", "ton_*" → "ton").
-  const destAddr = destination && typeof destination.address === "string"
-    ? destination.address.trim()
-    : null;
+  //    `destination.address` is guaranteed non-empty by the validation above —
+  //    no withdraw reaches this point without a target.
+  const destAddr = (destination.address as string).trim();
   const destNetwork = (() => {
-    if (destination && typeof destination.network === "string") return destination.network;
+    if (typeof destination.network === "string") return destination.network;
     if (methodCode.startsWith("usdt") || methodCode.includes("trc20")) return "trc20";
     if (methodCode.startsWith("ton")) return "ton";
     return methodCode;
   })();
 
-  if (destAddr) {
+  {
     const check = await checkAndRegisterWithdrawalAddress(user.id, destNetwork, destAddr);
     if (!check.ok) {
       if (check.reason === "new_address_cooldown") {
