@@ -23,10 +23,14 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
+    BotCommand,
+    BotCommandScopeDefault,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
+    WebAppInfo,
 )
 
 from client import ContestsBotClient
@@ -36,6 +40,37 @@ BOT_TOKEN = os.getenv("CONTESTS_BOT_TOKEN")
 API_KEY = os.getenv("CONTESTS_BOT_API_KEY", "")
 API_URL = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "")  # for top-up link
+# Public URL of the contests-bot-web mini-app (used for the chat menu button).
+# Falls back to the Replit dev domain when REPLIT_DOMAINS is present.
+_REPLIT_DOMAIN = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
+WEB_APP_URL = os.getenv(
+    "CONTESTS_WEB_APP_URL",
+    f"https://{_REPLIT_DOMAIN}/contests-bot-web/" if _REPLIT_DOMAIN else "",
+)
+
+# ── Slash-command menu (single source of truth for /setcommands) ───────────
+COMMANDS: list[BotCommand] = [
+    BotCommand(command="start",  description="بدء استخدام البوت وفتح القائمة الرئيسية"),
+    BotCommand(command="vote",   description="🗳 صَوِّت في المسابقة النشطة"),
+    BotCommand(command="board",  description="🏆 لوحة المتسابقين المباشرة"),
+    BotCommand(command="packs",  description="🎟 باقات التصويت المدفوعة"),
+    BotCommand(command="mybal",  description="💼 رصيد أصواتي ومكافآتي"),
+    BotCommand(command="wallet", description="💰 محفظتي بـ SKZ"),
+    BotCommand(command="help",   description="عرض المساعدة وقواعد التصويت"),
+]
+
+COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
+    "ar": COMMANDS,
+    "en": [
+        BotCommand(command="start",  description="Start the bot and open the main menu"),
+        BotCommand(command="vote",   description="🗳 Vote in the active contest"),
+        BotCommand(command="board",  description="🏆 Live leaderboard"),
+        BotCommand(command="packs",  description="🎟 Buy vote packs"),
+        BotCommand(command="mybal",  description="💼 My votes & bonus files"),
+        BotCommand(command="wallet", description="💰 My SKZ wallet"),
+        BotCommand(command="help",   description="Help and voting rules"),
+    ],
+}
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("contests-bot")
@@ -135,16 +170,7 @@ async def cmd_start_deeplink(message: Message, command: CommandObject):
     if not payload:
         return
 
-    # Build a faux callback-like context by reusing the inline-handler logic
-    # via direct re-renders against the freshly sent message.
-    class _FauxCb:
-        def __init__(self, m: Message, user, data: str):
-            self.message = m
-            self.from_user = user
-            self.data = data
-        async def answer(self, *_a, **_k):
-            return None
-
+    # Reuse the module-level _FauxCb adapter to call inline-handler renderers.
     if payload == "vote":
         await _render_vote_menu(_FauxCb(msg, message.from_user, "vote_menu"))  # type: ignore[arg-type]
     elif payload == "packs":
@@ -485,6 +511,63 @@ async def cb_wallet(cb: CallbackQuery):
     await cb.answer()
 
 
+class _FauxCb:
+    """Adapter so /slash commands can reuse the callback-query renderers."""
+    def __init__(self, m: Message, user, data: str):
+        self.message = m
+        self.from_user = user
+        self.data = data
+    async def answer(self, *_a, **_k):
+        return None
+
+
+async def _send_home_then(message: Message, route: str) -> None:
+    if message.from_user is None:
+        return
+    try:
+        await api.upsert_user(message.from_user)
+    except Exception as e:
+        logger.error(f"upsert_user failed: {e}")
+    body, kb = await render_home(str(message.from_user.id))
+    msg = await message.answer(body, reply_markup=kb, disable_web_page_preview=True)
+    cb = _FauxCb(msg, message.from_user, route)  # type: ignore[arg-type]
+    if route == "vote_menu":
+        await _render_vote_menu(cb)  # type: ignore[arg-type]
+    elif route == "board":
+        await cb_board(cb)  # type: ignore[arg-type]
+    elif route == "packs":
+        await cb_packs(cb)  # type: ignore[arg-type]
+    elif route == "mybal":
+        await cb_mybal(cb)  # type: ignore[arg-type]
+    elif route == "wallet":
+        await cb_wallet(cb)  # type: ignore[arg-type]
+
+
+@router.message(Command("vote"))
+async def cmd_vote(message: Message):
+    await _send_home_then(message, "vote_menu")
+
+
+@router.message(Command("board"))
+async def cmd_board(message: Message):
+    await _send_home_then(message, "board")
+
+
+@router.message(Command("packs"))
+async def cmd_packs(message: Message):
+    await _send_home_then(message, "packs")
+
+
+@router.message(Command("mybal"))
+async def cmd_mybal(message: Message):
+    await _send_home_then(message, "mybal")
+
+
+@router.message(Command("wallet"))
+async def cmd_wallet(message: Message):
+    await _send_home_then(message, "wallet")
+
+
 @router.message(Command("help"))
 async def cmd_help(message: Message):
     await message.answer(
@@ -506,6 +589,37 @@ async def main():
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(router)
+
+    # Publish slash-command menu (Arabic default + per-language overrides).
+    try:
+        await bot.set_my_commands(COMMANDS, scope=BotCommandScopeDefault())
+        logger.info(f"published {len(COMMANDS)} default commands")
+        for lang_code, cmds in COMMANDS_BY_LANG.items():
+            try:
+                await bot.set_my_commands(
+                    cmds, scope=BotCommandScopeDefault(), language_code=lang_code,
+                )
+            except Exception as e:
+                logger.warning(f"set_my_commands(lang={lang_code}) failed: {e}")
+    except Exception as e:
+        logger.warning(f"set_my_commands failed: {e}")
+
+    # Wire the chat menu button to the web mini-app (Telegram Web App).
+    # Telegram requires an HTTPS URL; we silently skip when only http://localhost is available.
+    if WEB_APP_URL.startswith("https://"):
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="🎭 المسرح",
+                    web_app=WebAppInfo(url=WEB_APP_URL),
+                ),
+            )
+            logger.info(f"menu button → web app: {WEB_APP_URL}")
+        except Exception as e:
+            logger.warning(f"set_chat_menu_button failed: {e}")
+    else:
+        logger.info("WEB_APP_URL not HTTPS; skipping chat menu button setup")
+
     logger.info("SOUQRATES STAGE bot starting…")
     await dp.start_polling(bot)
 
