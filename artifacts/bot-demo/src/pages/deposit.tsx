@@ -5,16 +5,18 @@ import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { showTelegramAlert } from "../lib/telegram";
 
-type Method = "card" | "usdt" | "stars" | "ton";
+// Telegram Stars deposit path is intentionally hidden from the UI per
+// product decision — keeping the underlying API/handlers in place so the
+// option can be re-enabled later without code surgery, just by adding
+// "stars" back to METHODS below.
+type Method = "card" | "usdt" | "ton";
 
-const STAR_AMOUNTS = [50, 100, 250, 500, 1000, 2500];
 const CARD_AMOUNTS_USDT = [5, 10, 25, 50, 100, 250];
 
 const METHODS: { id: Method; label: string; sub: string; currencyKey: string }[] = [
-  { id: "card",  label: "💳 شحن بالبطاقة", sub: "فيزا / ماستركارد · فوري عبر Cryptomus", currencyKey: "USDT" },
-  { id: "usdt",  label: "USDT",            sub: "Tether · شبكة TRC20",                   currencyKey: "USDT"  },
-  { id: "stars", label: "نجوم تيليغرام",   sub: "Telegram Stars · فوري",                 currencyKey: "Stars" },
-  { id: "ton",   label: "TON",             sub: "The Open Network",                      currencyKey: "TON"   },
+  { id: "card", label: "💳 شحن بالبطاقة", sub: "فيزا / ماستركارد · فوري عبر Cryptomus", currencyKey: "USDT" },
+  { id: "usdt", label: "USDT",            sub: "Tether · شبكة TRC20",                   currencyKey: "USDT" },
+  { id: "ton",  label: "TON",             sub: "The Open Network",                      currencyKey: "TON"  },
 ];
 
 export function Deposit() {
@@ -26,7 +28,7 @@ export function Deposit() {
   const address    = settings.usdtDepositAddress;
   const tonAddress = settings.tonDepositAddress;
   const activeAddress = method === "usdt" ? address : tonAddress;
-  const addressConfigured = method === "stars" || activeAddress.trim().length > 0;
+  const addressConfigured = method === "card" || activeAddress.trim().length > 0;
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -38,24 +40,22 @@ export function Deposit() {
   };
 
   const getRate = () => {
-    if (method === "usdt")  return settings.skzPerUsdt;
-    if (method === "stars") return settings.skzPerStar;
-    return settings.skzPerTon;
+    if (method === "ton") return settings.skzPerTon;
+    return settings.skzPerUsdt;
   };
 
   const num = parseFloat(amount || "0");
   const skzPreview = amount && num > 0 ? Math.floor(num * getRate()) : null;
-  const currencyKey = method === "usdt" ? "USDT" : method === "stars" ? "Stars" : "TON";
+  const currencyKey = method === "ton" ? "TON" : "USDT";
 
   const minForMethod =
-    method === "usdt"  ? parseFloat(settings.minDepositUsdt) :
-    method === "stars" ? parseFloat(settings.minDepositStars) :
-                         parseFloat(settings.minDepositTon);
+    method === "ton" ? parseFloat(settings.minDepositTon) :
+                       parseFloat(settings.minDepositUsdt);
 
   const isBelowMin = num > 0 && num < minForMethod;
   const canSubmitCrypto = num >= minForMethod && addressConfigured;
 
-  const methodUnit = method === "usdt" ? "USDT" : method === "stars" ? "نجمة" : "TON";
+  const methodUnit = method === "ton" ? "TON" : "USDT";
 
   return (
     <div className="px-4 pt-4 pb-6 space-y-5" dir="rtl">
@@ -91,11 +91,11 @@ export function Deposit() {
           {METHODS.map((m) => {
             const isActive = method === m.id;
             const ci = CURRENCY_ICONS[m.currencyKey];
-            const rateStr = m.id === "usdt"
+            const rateStr = m.id === "ton"
+              ? `1 TON = ${settings.skzPerTon} SKZ`
+              : m.id === "usdt"
               ? `1 USDT = ${settings.skzPerUsdt} SKZ`
-              : m.id === "stars"
-              ? `1 ⭐ = ${settings.skzPerStar} SKZ`
-              : `1 TON = ${settings.skzPerTon} SKZ`;
+              : `1 USDT = ${settings.skzPerUsdt} SKZ · بطاقة فيزا`;
 
             return (
               <motion.div
@@ -239,87 +239,6 @@ export function Deposit() {
                 : num > 10000
                 ? "الحد الأعلى $10,000 USDT"
                 : `ادفع $${num} USDT بالبطاقة`}
-            </motion.button>
-          </motion.div>
-        )}
-
-        {method === "stars" && (
-          <motion.div key="stars"
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-            className="space-y-4">
-            <div className="divider" />
-            <p className="section-label">اختر الباقة</p>
-            <div className="grid grid-cols-3 gap-2">
-              {STAR_AMOUNTS.map((val) => {
-                const isSel = amount === val.toString();
-                const ci = CURRENCY_ICONS["Stars"];
-                return (
-                  <motion.button key={val} onClick={() => setAmount(val.toString())} whileTap={{ scale: 0.93 }}
-                    className="py-3.5 rounded-2xl font-bold text-sm transition-all"
-                    style={{
-                      background: isSel ? `${ci.color}20` : "rgba(255,255,255,0.04)",
-                      border: isSel ? `1.5px solid ${ci.color}50` : "1.5px solid rgba(255,255,255,0.07)",
-                      color: isSel ? ci.color : "rgba(255,255,255,0.7)",
-                      boxShadow: isSel ? `0 4px 16px ${ci.glow}` : "none",
-                    }}>
-                    {val.toLocaleString()} ⭐
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {skzPreview !== null && (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="glass-card-skz rounded-2xl p-4 flex items-center justify-between">
-                <p className="text-sm text-white/60">ستستلم</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-white/40 font-bold">SKZ</p>
-                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
-                  <Zap size={15} className="text-skz-light" />
-                </div>
-              </motion.div>
-            )}
-
-            {/* Stars policy disclaimer */}
-            <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
-              style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
-              <p className="text-warn font-bold mb-1 flex items-center gap-1.5">
-                <AlertCircle size={12} /> قبل المتابعة
-              </p>
-              <p className="text-white/55">
-                ستفتح نافذة دفع Telegram Stars داخل تيليغرام. الدفع نهائي وغير قابل للإلغاء بعد التأكيد.
-                في حال فشل العملية لن يُخصم أي رصيد، وفي حال نجاحها يُضاف SKZ مباشرة إلى محفظتك.
-              </p>
-            </div>
-
-            <AnimatePresence>
-              {isBelowMin && (
-                <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
-                  <AlertCircle size={12} /> الحد الأدنى {minForMethod} نجمة
-                </motion.p>
-              )}
-            </AnimatePresence>
-
-            <motion.button disabled={!amount || isBelowMin} whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                if (!amount || isBelowMin) return;
-                showTelegramAlert(
-                  `سيُفتح دفع Telegram Stars الآن.\nالمبلغ: ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ\n\nيتم تجهيز معالج الدفع — الزر سيعمل فور تفعيله.`
-                );
-              }}
-              className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
-              style={{
-                background: amount && !isBelowMin ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
-                boxShadow: amount && !isBelowMin ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
-                opacity: amount && !isBelowMin ? 1 : 0.5,
-              }}>
-              {!amount
-                ? "اختر عدد النجوم"
-                : isBelowMin
-                ? `الحد الأدنى ${minForMethod} نجمة`
-                : `ادفع ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ`}
             </motion.button>
           </motion.div>
         )}
