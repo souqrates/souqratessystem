@@ -341,6 +341,7 @@ async def cb_transactions(callback: CallbackQuery):
             resp = await client.get(
                 f"{MOTHER_API_URL}/transactions",
                 params={"userId": user_id, "limit": 10},
+                headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
                 timeout=10.0,
             )
             transactions = resp.json()["data"]

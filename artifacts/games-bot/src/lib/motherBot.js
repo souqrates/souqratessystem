@@ -1,5 +1,5 @@
 /**
- * Mother Bot SDK for SOUQRATESSKILLZ (Games Bot)
+ * Mother Bot SDK for SOUQRATES SKILLZ (Games Bot)
  *
  * Authentication: Telegram Mini App initData is sent as X-Telegram-Init-Data
  * header. The api-server verifies the HMAC-SHA256 signature server-side using

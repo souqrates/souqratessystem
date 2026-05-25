@@ -1,5 +1,5 @@
 /**
- * /api/games/* — Secure BFF proxy for the Games-Bot (SOUQRATESSKILLZ) frontend.
+ * /api/games/* — Secure BFF proxy for the Games-Bot (SOUQRATES SKILLZ) frontend.
  *
  * Authentication: Every request must carry the `X-Telegram-Init-Data` header
  * with the raw Telegram Mini App initData string. The server verifies the
