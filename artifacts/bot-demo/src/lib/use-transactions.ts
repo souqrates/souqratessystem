@@ -29,7 +29,7 @@ export function useTransactions(userId: number | null, limit = 20) {
     queryFn: () => fetchTransactions(userId!, limit),
     enabled: !!userId,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 

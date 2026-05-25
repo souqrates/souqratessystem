@@ -19,16 +19,29 @@ const queryClient = new QueryClient({
   },
 });
 
+const SPLASH_KEY = "souqrates_splash_seen_v1";
+
 export default function App() {
-  const [splashDone, setSplashDone] = useState(false);
+  // Persist across iframe reloads / canvas re-mounts so the splash only ever
+  // plays once per browser session. This is the #1 cause of "flicker" the
+  // user perceives — the intro replaying on every navigation.
+  const [splashDone, setSplashDone] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try { return sessionStorage.getItem(SPLASH_KEY) === "1"; } catch { return false; }
+  });
 
   const isAgreementRoute =
     typeof window !== "undefined" &&
     window.location.pathname.replace(/\/$/, "").endsWith("/agreement");
 
+  const finishSplash = () => {
+    try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
+    setSplashDone(true);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      {!splashDone && !isAgreementRoute && <SplashScreen onDone={() => setSplashDone(true)} />}
+      {!splashDone && !isAgreementRoute && <SplashScreen onDone={finishSplash} />}
 
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <Switch>

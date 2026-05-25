@@ -48,7 +48,7 @@ export function useWallet() {
     queryFn: () => fetchWallet(telegramId!),
     enabled: !!telegramId,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 
