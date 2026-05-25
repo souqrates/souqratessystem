@@ -288,7 +288,19 @@ const resend: IntegrationAdapter = {
       const r = await fetchWithTimeout("https://api.resend.com/domains", {
         headers: { Authorization: `Bearer ${cfg.api_key}` },
       });
-      if (r.status === 401) return { ok: false, error: "invalid api_key" };
+      // A 401 with name=restricted_api_key means the key authenticated
+      // correctly but lacks the "domains" scope — i.e. it's a sending-only
+      // key. That is a perfectly valid setup for transactional email, so we
+      // treat it as success.
+      if (r.status === 401) {
+        try {
+          const err = (await r.json()) as { name?: string; message?: string };
+          if (err.name === "restricted_api_key") {
+            return { ok: true, metadata: { scope: "sending_only" } };
+          }
+        } catch {}
+        return { ok: false, error: "invalid api_key" };
+      }
       if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
       const j = (await r.json()) as { data?: Array<{ name: string; status: string }> };
       const domains = j.data ?? [];
