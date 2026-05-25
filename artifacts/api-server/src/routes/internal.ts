@@ -1570,6 +1570,161 @@ router.post("/internal/stars-invoice", async (req, res): Promise<void> => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/stars-confirm — credit user after a `successful_payment`
+// update arrives in the bot. Idempotent on telegramChargeId so duplicate
+// webhook deliveries from Telegram never double-credit the wallet.
+//
+// Trust model: only mother-bot calls this (with its own X-Bot-Api-Key). It
+// receives `successful_payment` from Telegram's secure HTTPS push, which is
+// only delivered after Telegram has actually charged the user's Stars. We do
+// NOT credit on `pre_checkout_query` — that is only an approval to charge.
+//
+// We trust `metadata.expectedSkz` snapshotted at invoice time rather than
+// re-deriving from the current rate: this guarantees the user is credited
+// exactly what they were shown when they paid, even if rates moved mid-flight.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/stars-confirm", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  // Mother-bot is the only entity that owns the Telegram payment flow for the
+  // platform wallet. Forbid any other bot key from confirming Stars deposits —
+  // even a leaked child-bot key cannot mint balances this way.
+  if (bot.slug !== "mother-bot") {
+    res.status(403).json({ error: "stars_confirm_requires_mother_bot" });
+    return;
+  }
+
+  // Request body is treated as a routing hint ONLY. The actual credited amounts
+  // are derived from the pending transaction that we created server-side at
+  // /stars-invoice time — never from caller-supplied numbers.
+  const { telegramId, payload, telegramChargeId, providerChargeId } = req.body as {
+    telegramId?: string;
+    payload?: string;
+    telegramChargeId?: string;
+    providerChargeId?: string;
+  };
+
+  if (!telegramId || !payload || !telegramChargeId) {
+    res.status(400).json({ error: "telegramId, payload, telegramChargeId are required" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  // NOTE: deliberately NOT calling rejectIfBlocked — if a user paid Stars
+  // and then got blocked, we must still credit (or we'd owe them money).
+
+  // ── Idempotency: look up the pending tx for THIS payload.
+  //    If it's already completed (duplicate webhook), return success with
+  //    the original tx so the bot still shows a confirmation message.
+  const [existing] = await db
+    .select()
+    .from(transactionsTable)
+    .where(and(
+      eq(transactionsTable.userId, user.id),
+      eq(transactionsTable.referenceId, payload),
+      eq(transactionsTable.type, "deposit"),
+      eq(transactionsTable.currency, "stars"),
+    ));
+
+  if (!existing) {
+    req.log.warn({ telegramId, payload }, "Stars-confirm: no matching pending tx");
+    res.status(404).json({ error: "no_pending_invoice_for_payload" });
+    return;
+  }
+
+  if (existing.status === "completed") {
+    // Already credited — duplicate Telegram delivery. Return ok so the bot
+    // can still render its "تم الشحن" confirmation.
+    req.log.info({ txId: existing.id, telegramChargeId }, "Stars-confirm: replay (already completed)");
+    res.json({ ok: true, replay: true, transactionId: existing.id });
+    return;
+  }
+
+  // Derive both credit amounts from the pending tx ONLY — never from the
+  // caller. Stars is the integer count stored on the tx row at invoice time;
+  // SKZ is the rate-snapshot saved into metadata.expectedSkz. If either is
+  // missing/malformed we refuse the confirm rather than guess: a corrupted
+  // metadata blob is an operational bug, not a user-recoverable condition.
+  const starsToCredit = Number(existing.amount);
+  let skzToCredit = 0;
+  try {
+    const meta = existing.metadata ? JSON.parse(existing.metadata) as { expectedSkz?: number } : null;
+    skzToCredit = meta?.expectedSkz != null ? Number(meta.expectedSkz) : 0;
+  } catch {
+    skzToCredit = 0;
+  }
+  if (!Number.isFinite(starsToCredit) || starsToCredit <= 0 ||
+      !Number.isFinite(skzToCredit)   || skzToCredit  <= 0) {
+    req.log.error(
+      { txId: existing.id, starsToCredit, skzToCredit },
+      "Stars-confirm: pending tx has invalid amount/metadata",
+    );
+    res.status(500).json({ error: "invoice_metadata_corrupt" });
+    return;
+  }
+
+  // CAS the tx to completed FIRST (atomic guard against concurrent webhooks),
+  // then credit the wallet only if WE were the ones who flipped it.
+  const result = await db.transaction(async (tx) => {
+    const flipped = await tx
+      .update(transactionsTable)
+      .set({
+        status: "completed",
+        metadata: JSON.stringify({
+          ...(existing.metadata ? JSON.parse(existing.metadata) : {}),
+          telegramChargeId,
+          providerChargeId: providerChargeId ?? null,
+          confirmedAt: new Date().toISOString(),
+        }),
+      })
+      .where(and(
+        eq(transactionsTable.id, existing.id),
+        eq(transactionsTable.status, "pending"),
+      ))
+      .returning({ id: transactionsTable.id });
+
+    if (flipped.length === 0) {
+      // Another coroutine completed it between our SELECT and UPDATE.
+      // Safe replay — do NOT credit again.
+      return { replay: true as const, txId: existing.id, newSkzBalance: null as string | null };
+    }
+
+    const [w] = await tx
+      .update(walletsTable)
+      .set({
+        balanceStars:   sql`${walletsTable.balanceStars}   + ${starsToCredit}`,
+        balanceSkz:     sql`${walletsTable.balanceSkz}     + ${skzToCredit}`,
+        totalEarnedSkz: sql`${walletsTable.totalEarnedSkz} + ${skzToCredit}`,
+      })
+      .where(eq(walletsTable.userId, user.id))
+      .returning({ balanceSkz: walletsTable.balanceSkz });
+
+    return { replay: false as const, txId: existing.id, newSkzBalance: w?.balanceSkz ?? null };
+  });
+
+  req.log.info(
+    { txId: result.txId, telegramId, starsToCredit, skzToCredit, telegramChargeId, replay: result.replay },
+    result.replay ? "Stars-confirm replay (CAS lost)" : "Stars deposit credited",
+  );
+
+  res.json({
+    ok: true,
+    replay: result.replay,
+    transactionId: result.txId,
+    creditedSkz: skzToCredit.toFixed(2),
+    newSkzBalance: result.newSkzBalance,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/ton-deposit-intent — create TON deposit intent with unique memo
 // ─────────────────────────────────────────────────────────────────────────────
 router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {

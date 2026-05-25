@@ -345,7 +345,10 @@ async def cb_wallet(callback: CallbackQuery):
     # Wallet view gets its own keyboard with the card top-up button so
     # users don't need to leave the wallet to add funds.
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 شحن بالبطاقة", callback_data="topup_card")],
+        [
+            InlineKeyboardButton(text="💳 شحن بالبطاقة", callback_data="topup_card"),
+            InlineKeyboardButton(text="⭐ شحن بـ Stars", callback_data="topup_stars"),
+        ],
         [
             InlineKeyboardButton(text="🚀 Open App", web_app=WebAppInfo(url=MINI_APP_URL)),
             InlineKeyboardButton(text="🔙 Back", callback_data="menu"),
@@ -370,6 +373,22 @@ class TopupStates(StatesGroup):
 
 
 TOPUP_PRESETS_USDT = [5, 10, 25, 50, 100]
+# Telegram Stars presets — round numbers that match common in-app prices.
+# Telegram itself enforces 1-2500 Stars per single transaction.
+TOPUP_PRESETS_STARS = [50, 100, 250, 500, 1000, 2500]
+
+
+def topup_stars_keyboard() -> InlineKeyboardMarkup:
+    """Stars-only top-up keyboard. Telegram processes payment in-app via the
+    invoice link — user never leaves the chat."""
+    rows = []
+    for chunk_start in range(0, len(TOPUP_PRESETS_STARS), 3):
+        rows.append([
+            InlineKeyboardButton(text=f"⭐ {n}", callback_data=f"topup_stars_amt:{n}")
+            for n in TOPUP_PRESETS_STARS[chunk_start:chunk_start + 3]
+        ])
+    rows.append([InlineKeyboardButton(text="🔙 رجوع", callback_data="wallet")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def topup_menu_keyboard() -> InlineKeyboardMarkup:
@@ -460,6 +479,142 @@ async def cb_topup_amt(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ مبلغ غير صالح", show_alert=True)
         return
     await _send_topup_link(callback, amount)
+
+
+@router.callback_query(F.data == "topup_stars")
+async def cb_topup_stars(callback: CallbackQuery, state: FSMContext):
+    """Show the Stars preset grid. Stars are charged inside Telegram (no
+    redirect, no card form) — fastest possible deposit UX."""
+    await state.clear()
+    text = (
+        "⭐ <b>شحن الرصيد بـ Telegram Stars</b>\n\n"
+        "ادفع داخل تيليغرام مباشرة بدون خروج من المحادثة.\n"
+        "يُضاف رصيد <b>SKZ</b> فور تأكيد الدفع تلقائياً.\n\n"
+        "اختر عدد النجوم:"
+    )
+    await _safe_edit(callback, text, topup_stars_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("topup_stars_amt:"))
+async def cb_topup_stars_amt(callback: CallbackQuery, state: FSMContext):
+    """Create a Stars invoice link via the API and DM it as a single-tap
+    pay button. Telegram will then POST a `successful_payment` update that
+    `msg_successful_payment` below picks up and credits the wallet."""
+    await state.clear()
+    try:
+        amount_stars = int(callback.data.split(":", 1)[1])
+    except (ValueError, IndexError):
+        await callback.answer("❌ مبلغ غير صالح", show_alert=True)
+        return
+
+    async with httpx.AsyncClient() as http:
+        try:
+            resp = await http.post(
+                f"{MOTHER_API_URL}/internal/stars-invoice",
+                json={"telegramId": str(callback.from_user.id), "amountStars": amount_stars},
+                headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
+                timeout=15.0,
+            )
+        except httpx.HTTPError as e:
+            logger.warning(f"stars-invoice network error: {e}")
+            await callback.answer("❌ تعذّر إنشاء الفاتورة، حاول لاحقاً.", show_alert=True)
+            return
+
+    if resp.status_code != 200:
+        logger.warning(f"stars-invoice failed: {resp.status_code} {resp.text[:200]}")
+        await callback.answer("❌ تعذّر إنشاء الفاتورة، حاول لاحقاً.", show_alert=True)
+        return
+
+    data = resp.json()
+    invoice_link = data.get("invoiceLink")
+    expected_skz = data.get("expectedSkz", "?")
+    if not invoice_link:
+        await callback.answer("❌ لم يتم استلام رابط الفاتورة.", show_alert=True)
+        return
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"⭐ ادفع {amount_stars} Stars الآن", url=invoice_link)],
+        [InlineKeyboardButton(text="🔙 رجوع", callback_data="wallet")],
+    ])
+    await callback.message.answer(
+        f"⭐ <b>فاتورة شحن جاهزة</b>\n\n"
+        f"المبلغ: <b>{amount_stars}</b> نجمة\n"
+        f"ستحصل على: <b>{expected_skz}</b> SKZ\n\n"
+        f"اضغط الزر أدناه لإتمام الدفع داخل تيليغرام.\n"
+        f"<i>سيُضاف الرصيد فور تأكيد الدفع.</i>",
+        parse_mode="HTML",
+        reply_markup=kb,
+    )
+    await callback.answer()
+
+
+@router.pre_checkout_query()
+async def pre_checkout_handler(pcq: PreCheckoutQuery):
+    """Telegram requires we answer pre_checkout_query within 10 seconds or
+    the charge is cancelled. Server already validated the user + amount when
+    creating the invoice, and the user can only pay what they were shown, so
+    we always approve here. Final credit happens in successful_payment."""
+    try:
+        await pcq.answer(ok=True)
+    except Exception as e:
+        logger.error(f"pre_checkout answer failed: {e}")
+
+
+@router.message(F.successful_payment)
+async def msg_successful_payment(message: Message):
+    """Credit the user's wallet once Telegram has actually charged the
+    Stars. Idempotent on the server side (telegramChargeId is unique per
+    payment), so retries/duplicate updates are safe."""
+    sp = message.successful_payment
+    if not sp:
+        return
+    payload = sp.invoice_payload  # = `stars_dep_{userId}_{ts}` we set server-side
+    amount_stars = int(sp.total_amount)  # Stars uses 1 unit = 1 Star
+    tg_charge_id = sp.telegram_payment_charge_id
+    prov_charge_id = sp.provider_payment_charge_id
+
+    async with httpx.AsyncClient() as http:
+        try:
+            resp = await http.post(
+                f"{MOTHER_API_URL}/internal/stars-confirm",
+                json={
+                    "telegramId": str(message.from_user.id),
+                    "payload": payload,
+                    "amountStars": amount_stars,
+                    "telegramChargeId": tg_charge_id,
+                    "providerChargeId": prov_charge_id,
+                },
+                headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
+                timeout=15.0,
+            )
+        except httpx.HTTPError as e:
+            logger.error(f"stars-confirm network error: {e}")
+            # The pending tx stays in DB — admin can reconcile manually.
+            await message.answer(
+                "⚠️ تم استلام دفعتك لكن تأخّر تأكيد القيد، سيتم إضافة الرصيد خلال دقائق."
+            )
+            return
+
+    if resp.status_code != 200:
+        logger.error(f"stars-confirm failed: {resp.status_code} {resp.text[:300]}")
+        await message.answer(
+            "⚠️ تم استلام دفعتك لكن واجه القيد مشكلة — راسل الدعم برقم العملية:\n"
+            f"<code>{tg_charge_id}</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    data = resp.json()
+    credited = data.get("creditedSkz", "?")
+    new_bal = data.get("newSkzBalance", "?")
+    await message.answer(
+        f"✅ <b>تم شحن الرصيد بنجاح</b>\n\n"
+        f"⭐ المدفوع: <b>{amount_stars}</b> Stars\n"
+        f"⚡ المضاف: <b>{credited}</b> SKZ\n"
+        f"💰 رصيدك الجديد: <b>{new_bal}</b> SKZ",
+        parse_mode="HTML",
+    )
 
 
 @router.callback_query(F.data == "topup_custom")

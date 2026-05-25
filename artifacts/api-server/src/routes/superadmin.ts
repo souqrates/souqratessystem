@@ -1354,15 +1354,80 @@ router.get("/superadmin/audit-log", requireSuperAdmin, async (req, res): Promise
 
 // ── Platform stats (lightweight overview) ────────────────────────────────
 router.get("/superadmin/overview", requireSuperAdmin, async (_req, res): Promise<void> => {
-  const [usersCount, botsCount, overridesCount] = await Promise.all([
+  // Single bundled query set so the dashboard renders all charts from one
+  // HTTP round-trip. All series are bounded (30 days / top-N) so payload
+  // size stays trivially small even at scale.
+  const [
+    usersCount,
+    botsCount,
+    overridesCount,
+    revenueByDay,
+    withdrawalsByStatus,
+    topBots,
+    totals,
+  ] = await Promise.all([
     db.select({ c: sql<number>`count(*)::int` }).from(usersTable),
     db.select({ c: sql<number>`count(*)::int` }).from(botsTable),
     db.select({ c: sql<number>`count(*)::int` }).from(commissionOverridesTable),
+    // Last 30 days of commission revenue (settled SKZ commissions only).
+    db.execute(sql`
+      SELECT
+        to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+        sum(commission_amount)::numeric(18,2) AS revenue
+      FROM commissions
+      WHERE created_at >= now() - interval '30 days'
+        AND status = 'settled'
+      GROUP BY 1
+      ORDER BY 1
+    `),
+    // Donut of current withdrawal funnel.
+    db.execute(sql`
+      SELECT status, count(*)::int AS count
+      FROM withdrawals
+      GROUP BY status
+    `),
+    // Top 7 bots by total commission revenue (lifetime).
+    db.execute(sql`
+      SELECT bot_slug AS slug,
+             sum(commission_amount)::numeric(18,2) AS revenue,
+             count(*)::int AS transactions
+      FROM commissions
+      WHERE status = 'settled'
+      GROUP BY bot_slug
+      ORDER BY revenue DESC NULLS LAST
+      LIMIT 7
+    `),
+    // Coarse lifetime totals for the top stat cards.
+    db.execute(sql`
+      SELECT
+        (SELECT coalesce(sum(commission_amount),0)::numeric(18,2) FROM commissions WHERE status = 'settled') AS total_revenue,
+        (SELECT coalesce(sum(amount),0)::numeric(18,2)            FROM withdrawals WHERE status = 'approved') AS total_withdrawn,
+        (SELECT count(*)::int FROM withdrawals WHERE status IN ('pending','processing')) AS pending_withdrawals
+    `),
   ]);
+
+  const totalsRow = (totals.rows?.[0] ?? {}) as Record<string, unknown>;
+
   res.json({
     users: Number(usersCount[0]?.c ?? 0),
     bots: Number(botsCount[0]?.c ?? 0),
     overrides: Number(overridesCount[0]?.c ?? 0),
+    totalRevenue: String(totalsRow.total_revenue ?? "0.00"),
+    totalWithdrawn: String(totalsRow.total_withdrawn ?? "0.00"),
+    pendingWithdrawals: Number(totalsRow.pending_withdrawals ?? 0),
+    revenueByDay: (revenueByDay.rows as Array<{ day: string; revenue: string }>).map((r) => ({
+      day: r.day,
+      revenue: Number(r.revenue),
+    })),
+    withdrawalsByStatus: (withdrawalsByStatus.rows as Array<{ status: string; count: number }>).map((r) => ({
+      status: r.status,
+      count: Number(r.count),
+    })),
+    topBots: (topBots.rows as Array<{ slug: string; revenue: string; transactions: number }>).map((r) => ({
+      slug: r.slug,
+      revenue: Number(r.revenue),
+      transactions: Number(r.transactions),
+    })),
   });
 });
 
