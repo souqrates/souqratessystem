@@ -92,4 +92,22 @@ export function getDeviceTier() {
 
 export const isLowEnd  = () => getDeviceTier() === 'low';
 export const isMidEnd  = () => getDeviceTier() === 'mid';
+
+// iOS / iPadOS detection. iPadOS 13+ reports as Mac with touch points, so
+// check both userAgent and the Mac+touch combo. Used to disable expensive
+// effects (backdrop-filter blur, infinite shimmer text) that flicker on
+// iOS Safari / Telegram WebView when they share a compositor layer.
+let _isIOS = null;
+export function isIOS() {
+  if (_isIOS !== null) return _isIOS;
+  try {
+    const ua = navigator.userAgent || '';
+    const iOSUA = /iPad|iPhone|iPod/.test(ua);
+    const iPadOS = ua.includes('Mac') && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1;
+    _isIOS = iOSUA || iPadOS;
+  } catch (_) {
+    _isIOS = false;
+  }
+  return _isIOS;
+}
 export const isHighEnd = () => getDeviceTier() === 'high';

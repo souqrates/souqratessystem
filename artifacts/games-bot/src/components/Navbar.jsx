@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import useAppStore from '../store/appStore';
 import { LANGUAGES } from '../constants';
 import { triggerHaptic } from '../lib/telegram';
-import { isLowEnd, isMidEnd } from '../lib/deviceProfile';
+import { isLowEnd, isMidEnd, isIOS } from '../lib/deviceProfile';
 
 // NOTE: hamburger / InfoMenu intentionally removed — Terms, Privacy,
 // FAQ, contact, etc. now live in the Mother Bot (the central hub).
@@ -33,7 +33,14 @@ export default function Navbar() {
   return (
     <header
       className="flex-shrink-0 z-40"
-      style={{ background: 'rgba(4,3,10,0.92)', ...(isLowEnd() ? {} : { backdropFilter: isMidEnd() ? 'blur(8px)' : 'blur(28px) saturate(180%)' }) }}
+      style={{
+        // iOS Safari/Telegram WebView flickers when a backdrop-filter element
+        // contains a continuously-animated child (shimmer text, etc.) — every
+        // text-paint forces the whole blurred layer to re-composite. On iOS
+        // we go fully opaque; on Android/desktop the blur stays for vibe.
+        background: isIOS() ? '#04030a' : 'rgba(4,3,10,0.92)',
+        ...(isLowEnd() || isIOS() ? {} : { backdropFilter: isMidEnd() ? 'blur(8px)' : 'blur(28px) saturate(180%)' }),
+      }}
     >
       <div className="accent-line-top" />
       <div className="max-w-xl mx-auto flex items-center justify-between px-4 py-2.5" style={{ paddingTop: 14 }}>
@@ -52,7 +59,10 @@ export default function Navbar() {
             style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}
           >
             <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span className="font-orbitron text-xs font-black shimmer-gold">
+            {/* No infinite shimmer animation — on iOS it forces the header's
+                backdrop-filter layer to repaint every frame, producing the
+                intermittent flicker the user reported. Static gold instead. */}
+            <span className="font-orbitron text-xs font-black" style={{ color: '#fbbf24' }}>
               {sc.toLocaleString()}
             </span>
             <span className="font-orbitron text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.75)' }}>
