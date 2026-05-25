@@ -22,7 +22,7 @@ const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: 
   { name: "Scene",  brand: "SOUQRATES SCENE",  short: "SCENE"  },
   { name: "Stream", brand: "SOUQRATES STREAM", short: "STREAM" },
   { name: "Signal", brand: "SOUQRATES SIGNAL", short: "SIGNAL" },
-  { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE"  },
+  { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE",  live: true, url: "https://souqrates.com/contests-bot-web/" },
 ];
 
 export function Home() {

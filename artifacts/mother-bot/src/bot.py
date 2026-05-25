@@ -32,7 +32,8 @@ MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
-BOOKS_BOT_USERNAME  = os.getenv("BOOKS_BOT_USERNAME", "Souqrates_souq_bot")
+BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
+CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
 # ── WebApp URL stability (CRITICAL) ──────────────────────────────────────────
 # DO NOT append a per-restart cache-buster (e.g. ?v=<timestamp>) to WebApp URLs.
@@ -178,6 +179,13 @@ def main_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="❖ SOUQRATES SOUQ",
                 url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother",
+            )
+        ],
+        # ②.6 Launch Contests / Voting (jumps user into the contests child bot)
+        [
+            InlineKeyboardButton(
+                text="★ SOUQRATES STAGE",
+                url=f"https://t.me/{CONTESTS_BOT_USERNAME}?start=from_mother",
             )
         ],
         # ③ Quick text shortcuts
