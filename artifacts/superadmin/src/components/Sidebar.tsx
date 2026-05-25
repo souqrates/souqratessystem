@@ -112,6 +112,7 @@ export default function Sidebar() {
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon="🔗" label="الروابط/CDN" />
+        <SidebarLink href="/integrations" active={location.startsWith("/integrations")} icon="🔌" label="التكاملات الخارجية" sub="Redis, Sentry, Resend…" />
         <SidebarLink href="/error-logs" active={location.startsWith("/error-logs")} icon="⚠️" label="سجل الأخطاء" />
 
         {/* البوتات الفرعية الأخرى (قادمة) */}

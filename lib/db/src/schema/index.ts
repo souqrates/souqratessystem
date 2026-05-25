@@ -16,3 +16,4 @@ export * from "./products";
 export * from "./contests";
 export * from "./withdrawalAddresses";
 export * from "./adminAuditLog";
+export * from "./integrations";

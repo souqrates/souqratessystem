@@ -17,6 +17,7 @@ import booksRouter from "./books";
 import contestsRouter from "./contests";
 import objectsRouter from "./objects";
 import paymentsRouter from "./payments";
+import integrationsRouter from "./integrations";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(booksRouter);
 router.use(contestsRouter);
 router.use(objectsRouter);
 router.use(paymentsRouter);
+router.use(integrationsRouter);
 
 export default router;

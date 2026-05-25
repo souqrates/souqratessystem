@@ -18,6 +18,7 @@ import BooksPage from "@/pages/Books";
 import ContestsPage from "@/pages/Contests";
 import ContestDetailPage from "@/pages/ContestDetail";
 import VotePacksPage from "@/pages/VotePacks";
+import IntegrationsPage from "@/pages/Integrations";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -43,6 +44,7 @@ function AuthedRoutes() {
         <Route path="/broadcast" component={BroadcastPage} />
         <Route path="/links" component={LinksPage} />
         <Route path="/error-logs" component={ErrorLogsPage} />
+        <Route path="/integrations" component={IntegrationsPage} />
         <Route>
           <div className="p-8" dir="rtl">الصفحة غير موجودة</div>
         </Route>

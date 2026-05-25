@@ -82,6 +82,31 @@
 - الدفع: Telegram Stars + Crypto (USDT/TON)
 - البناء: بوت بوت بشكل تدريجي
 
+## External Integrations Framework
+
+10 service adapters wired through a single registry. Admin pastes the key
+in `/integrations` page, clicks "اختبر الاتصال", toggles enabled.
+
+- **Adapter registry**: `artifacts/api-server/src/lib/integrations/adapters.ts` — one entry per provider. Add a new provider = ~50 lines + zero changes to route or UI.
+- **Encryption at rest**: secrets are AES-256-GCM encrypted with SESSION_SECRET-derived key (`lib/integrations/crypto.ts`). Rotating SESSION_SECRET invalidates all stored integration secrets — by design.
+- **Runtime use**: `getActiveConfig(slug)` returns decrypted ready-to-use config IF `enabled=true` and a row exists. Returns null otherwise.
+- **DB**: `integrations` table (slug PK, enabled, jsonb config, last_test_*).
+- **Routes**: `GET/PUT/DELETE /api/superadmin/integrations[/:slug]` + `POST /:slug/test`.
+- **Saving wipes test result**: any config change resets `lastTestStatus` to null so the admin must re-test. Prevents stale green badges.
+- **Required-field gate**: refuses to enable an integration that has any required field missing.
+
+Currently registered (Tier 1 = critical for millions):
+1. Upstash Redis (cache, rate limit)
+2. Sentry (error tracking)
+3. Cloudflare (DNS/CDN/WAF)
+4. Cloudflare Turnstile (captcha)
+5. Better Stack (logs + uptime)
+6. Resend (email)
+7. PostHog (analytics)
+8. OneSignal (push)
+9. Bunny.net (storage + CDN)
+10. OpenRouter (LLM aggregator)
+
 ## Gotchas
 
 - أضف `SESSION_SECRET` كـ secret في Replit

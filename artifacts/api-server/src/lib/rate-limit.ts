@@ -33,3 +33,15 @@ export const adminLoginLimiter: RateLimitRequestHandler = rateLimit({
   legacyHeaders: false,
   message: { error: "too_many_login_attempts" },
 });
+
+// Integration test endpoint triggers an outbound HTTP fetch per call.
+// Even gated to super-admin, we cap it to prevent the API server from being
+// used as a probe/DoS amplifier (e.g. a compromised admin session).
+// 20 tests/min/IP is enough for legitimate admin clicks; abuse stops at 21.
+export const integrationTestLimiter: RateLimitRequestHandler = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "test_rate_limited" },
+});
