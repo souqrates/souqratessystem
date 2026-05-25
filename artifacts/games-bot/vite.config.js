@@ -7,8 +7,15 @@ export default defineConfig(({ mode }) => {
   const port = parseInt(env.PORT || '5173', 10)
   const basePath = env.BASE_PATH || '/'
 
+  const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || ''
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || ''
+
   return {
     base: basePath,
+    define: {
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
+    },
     plugins: [
       react(),
       compression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
