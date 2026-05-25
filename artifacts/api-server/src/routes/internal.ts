@@ -27,6 +27,7 @@ import { notifyUser } from "../lib/notify-user";
 import { capture } from "../lib/analytics";
 import { notifyAdmin } from "../lib/email";
 import { checkAndRegisterWithdrawalAddress } from "../lib/withdrawal-whitelist";
+import { validateCryptoAddress } from "../lib/crypto-address";
 
 const router: IRouter = Router();
 
@@ -1754,12 +1755,33 @@ router.post("/internal/withdraw", async (req, res): Promise<void> => {
   //    `destination.address` is guaranteed non-empty by the validation above —
   //    no withdraw reaches this point without a target.
   const destAddr = (destination.address as string).trim();
+  // ── Network derived ONLY from server-trusted methodCode. ───────────────
+  // Earlier draft accepted `destination.network` from the request body,
+  // which let a caller send methodCode="usdt_trc20" with network="eth"
+  // and bypass the per-network address checksum guard. We always
+  // resolve the network from the bot-chosen method instead, so the
+  // checksum validator runs against the correct chain.
   const destNetwork = (() => {
-    if (typeof destination.network === "string") return destination.network;
-    if (methodCode.startsWith("usdt") || methodCode.includes("trc20")) return "trc20";
+    if (methodCode.startsWith("usdt") || methodCode.includes("trc20") || methodCode === "tron") return "trc20";
     if (methodCode.startsWith("ton")) return "ton";
     return methodCode;
   })();
+
+  // ── Address format + checksum guard. Runs BEFORE the cooldown registration
+  //    so a typo doesn't burn the user a 24h wait. Offline-only (no RPC) —
+  //    catches > 99.99% of typos via the per-network checksum embedded in
+  //    the address itself. See lib/crypto-address.ts.
+  {
+    const fmt = validateCryptoAddress(destNetwork, destAddr);
+    if (!fmt.ok) {
+      res.status(400).json({
+        error: "invalid_address_format",
+        reason: fmt.reason ?? "bad_checksum",
+        message: "عنوان السحب غير صالح — تحقّق من نسخه كاملاً وحاول مرة أخرى",
+      });
+      return;
+    }
+  }
 
   {
     const check = await checkAndRegisterWithdrawalAddress(user.id, destNetwork, destAddr);

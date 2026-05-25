@@ -185,6 +185,71 @@ class MotherBotClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def wallet_summary_text(
+        self,
+        telegram_id: str,
+        *,
+        title: str = "محفظتك الموحّدة",
+        show_pending: bool = True,
+    ) -> str:
+        """
+        Build the canonical Arabic wallet summary used across every child bot.
+        Returning a fully-formatted string (instead of a dict the caller has
+        to render) keeps wallet UX identical everywhere — when we add a new
+        currency or change the layout, every bot picks it up on next call
+        without coordinated releases.
+
+        Falls back to a friendly "couldn't fetch" message on any API error
+        so a network blip never crashes a /wallet handler. Callers should
+        send the result with ``parse_mode="HTML"``.
+        """
+        try:
+            data = await self.get_user(telegram_id)
+        except Exception:  # noqa: BLE001 — UX must not crash on network errors
+            return (
+                f"🏦 <b>{title}</b>\n\n"
+                "⚠️ تعذّر جلب الرصيد الآن. حاول مرة أخرى بعد لحظات."
+            )
+
+        if not data:
+            return (
+                f"🏦 <b>{title}</b>\n\n"
+                "لم نجد حساباً لك بعد. أرسل /start في البوت الأم لإنشاء محفظتك."
+            )
+
+        wallet = (data.get("wallet") or {}) if isinstance(data, dict) else {}
+
+        def _num(key: str) -> float:
+            try:
+                return float(wallet.get(key, "0") or 0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        skz   = _num("balanceSkz")
+        usdt  = _num("balanceUsdt")
+        stars = _num("balanceStars")
+        ton   = _num("balanceTon")
+        earned = _num("totalEarnedSkz")
+        withdrawn = _num("totalWithdrawnSkz")
+
+        lines = [
+            f"🏦 <b>{title}</b>",
+            "",
+            "<b>الأرصدة الحالية</b>",
+            f"⚡ SKZ: <code>{skz:,.2f}</code>",
+            f"💵 USDT: <code>{usdt:,.2f}</code>",
+            f"⭐ Stars: <code>{int(stars):,}</code>",
+            f"💎 TON: <code>{ton:,.4f}</code>",
+        ]
+        if show_pending and (earned or withdrawn):
+            lines += [
+                "",
+                "<b>الإجماليات</b>",
+                f"📈 إجمالي الأرباح: <code>{earned:,.2f}</code> SKZ",
+                f"📉 إجمالي المسحوب: <code>{withdrawn:,.2f}</code> SKZ",
+            ]
+        return "\n".join(lines)
+
 
 # Usage example for child bots:
 #

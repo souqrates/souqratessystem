@@ -34,6 +34,7 @@ import {
   walletsTable,
   transactionsTable,
   botsTable,
+  withdrawalsTable,
 } from "@workspace/db";
 import { getSkzRates } from "../lib/finance";
 import { notifyUser } from "../lib/notify-user";
@@ -78,7 +79,7 @@ router.post("/internal/payments/cryptomus/create", async (req, res): Promise<voi
     return;
   }
 
-  const env = getCryptomusEnv();
+  const env = await getCryptomusEnv();
   if (!env) {
     res.status(503).json({ error: "Payment gateway not configured" });
     return;
@@ -107,12 +108,13 @@ router.post("/internal/payments/cryptomus/create", async (req, res): Promise<voi
   if (!user) { res.status(404).json({ error: "User not found — open the bot first" }); return; }
   if (user.isBlocked) { res.status(403).json({ error: "Account is blocked" }); return; }
 
-  // Build the public URL Cryptomus should POST the IPN to. We rely on the
-  // PUBLIC_WEBHOOK_BASE env so the URL is identical across restarts —
-  // Cryptomus rejects callbacks to localhost or non-https.
-  const webhookBase = process.env.PUBLIC_WEBHOOK_BASE;
+  // Build the public URL Cryptomus should POST the IPN to. Sourced from
+  // the /integrations panel (or PUBLIC_WEBHOOK_BASE env as fallback) so
+  // the URL is identical across restarts — Cryptomus rejects callbacks
+  // to localhost or non-https.
+  const webhookBase = env.publicWebhookBase;
   if (!webhookBase) {
-    res.status(503).json({ error: "PUBLIC_WEBHOOK_BASE not configured" });
+    res.status(503).json({ error: "public_webhook_base not configured in /integrations" });
     return;
   }
   const urlCallback = `${webhookBase.replace(/\/$/, "")}/api/payments/cryptomus/webhook`;
@@ -143,7 +145,7 @@ router.post("/internal/payments/cryptomus/create", async (req, res): Promise<voi
     amount: amountStr,
     currency: "USDT",
     orderId,
-    network: process.env.CRYPTOMUS_NETWORK ?? "tron",
+    network: env.defaultNetwork,
     urlCallback,
     ...(returnUrl ? { urlReturn: returnUrl, urlSuccess: returnUrl } : {}),
     lifetime: 3600,
@@ -192,7 +194,7 @@ router.post("/internal/payments/cryptomus/create", async (req, res): Promise<voi
  * that wins the WHERE status='pending' clause will do the credit.
  */
 router.post("/payments/cryptomus/webhook", async (req, res): Promise<void> => {
-  const env = getCryptomusEnv();
+  const env = await getCryptomusEnv();
   if (!env) {
     req.log.warn("cryptomus webhook: gateway not configured");
     res.status(503).json({ error: "not configured" });
@@ -389,5 +391,191 @@ function safeParseMetadata(meta: string | null): Record<string, unknown> {
   try { return JSON.parse(meta) as Record<string, unknown>; }
   catch { return {}; }
 }
+
+/**
+ * POST /api/payments/cryptomus/payout-webhook  (public, signature-verified)
+ *
+ * Cryptomus notifies us asynchronously when a payout settles or fails on
+ * chain. Until this IPN arrives the withdrawal row stays in `processing`
+ * (set by /superadmin/withdrawals/:id/auto-payout) with the wallet
+ * already deducted.
+ *
+ *   payout settled (`paid`, `complete`, `success`) → status `approved`,
+ *     txHash replaced with the real on-chain hash. User notified.
+ *   payout failed  (`fail`, `cancel`, `system_fail`) → status back to
+ *     `pending`, wallet refunded, txHash cleared, admin can retry.
+ *
+ * Idempotent: a duplicate IPN finds the row already approved or already
+ * refunded and returns 200 without touching the wallet.
+ */
+router.post("/payments/cryptomus/payout-webhook", async (req, res): Promise<void> => {
+  const env = await getCryptomusEnv();
+  if (!env) {
+    req.log.warn("cryptomus payout webhook: gateway not configured");
+    res.status(503).json({ error: "not configured" });
+    return;
+  }
+
+  const raw = (req as Request & { rawBody?: string }).rawBody
+    ?? (typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}));
+
+  const v = verifyCryptomusWebhook(raw, env.webhookApiKey);
+  if (!v.ok) {
+    req.log.warn({ ip: req.ip }, "cryptomus payout webhook: invalid signature");
+    res.status(401).json({ error: "invalid signature" });
+    return;
+  }
+  const payload = v.payload as {
+    type?: string;
+    uuid?: string;
+    order_id?: string;
+    status?: string;
+    amount?: string;
+    currency?: string;
+    network?: string;
+    is_final?: boolean;
+    txid?: string;
+  };
+
+  const orderId = payload.order_id;
+  if (!orderId) {
+    res.status(400).json({ error: "missing order_id" });
+    return;
+  }
+
+  // Cryptomus payout terminal statuses. We treat `paid`, `complete`, and
+  // `success` as wins (the docs and dashboard each use slightly different
+  // wording over time). `fail`, `cancel`, and `system_fail` are losses.
+  const status = (payload.status ?? "").toLowerCase();
+  const isWin = status === "paid" || status === "complete" || status === "success";
+  const isLoss = status === "fail" || status === "cancel" || status === "system_fail" || status === "canceled";
+
+  // Resolve the withdrawal: txHash is stamped as `cm:<orderId>` (pre-call)
+  // or `cm:<orderId>:<gatewayUuid>` (post-call). Use SQL LIKE to match
+  // either form without parsing the suffix.
+  const [row] = await db.select().from(withdrawalsTable)
+    .where(sql`${withdrawalsTable.txHash} LIKE ${'cm:' + orderId + '%'}`)
+    .limit(1);
+
+  if (!row) {
+    req.log.warn({ orderId, status }, "cryptomus payout webhook: unknown order");
+    res.json({ ok: true, ignored: "unknown_order" });
+    return;
+  }
+
+  // Idempotent replays — terminal states already handled.
+  if (row.status === "approved" || row.status === "rejected") {
+    req.log.info({ orderId, currentStatus: row.status }, "cryptomus payout webhook: duplicate, terminal");
+    res.json({ ok: true, replayed: true });
+    return;
+  }
+
+  if (!isWin && !isLoss) {
+    // Non-terminal (processing/check). Cryptomus will retry later.
+    req.log.info({ orderId, status }, "cryptomus payout webhook: non-terminal status");
+    res.json({ ok: true });
+    return;
+  }
+
+  if (isWin) {
+    // ── Settled. Replace marker txHash with the real on-chain txid. ──
+    const [flipped] = await db.update(withdrawalsTable)
+      .set({
+        status: "approved",
+        txHash: payload.txid ?? `cm-paid:${orderId}`,
+        processedAt: new Date(),
+      })
+      .where(and(
+        eq(withdrawalsTable.id, row.id),
+        eq(withdrawalsTable.status, "processing"),
+      ))
+      .returning();
+    if (!flipped) {
+      // Lost the race to another IPN or to an admin override. Re-read.
+      const [current] = await db.select().from(withdrawalsTable).where(eq(withdrawalsTable.id, row.id));
+      req.log.info({ orderId, currentStatus: current?.status }, "cryptomus payout webhook: win lost race");
+      res.json({ ok: true, replayed: true });
+      return;
+    }
+    void (async () => {
+      try {
+        const [u] = await db.select({ tid: usersTable.telegramId })
+          .from(usersTable).where(eq(usersTable.id, flipped.userId));
+        if (u) {
+          await notifyUser(
+            String(u.tid),
+            `✅ تم إرسال السحب #${flipped.id} بنجاح\n` +
+            `المبلغ: ${flipped.netAmount} ${flipped.currency.toUpperCase()}\n` +
+            `هاش العملية: ${flipped.txHash}`,
+          );
+        }
+      } catch (err) {
+        req.log.warn({ err, id: flipped.id }, "post-payout-win notify failed");
+      }
+    })();
+    req.log.info({ orderId, id: flipped.id, txid: payload.txid }, "cryptomus payout: settled");
+    res.json({ ok: true, settled: true });
+    return;
+  }
+
+  // ── Loss path: refund wallet, return row to pending so admin can retry. ──
+  const amt = parseFloat(row.amount);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [reverted] = await tx.update(withdrawalsTable)
+        .set({
+          status: "pending",
+          txHash: null,
+          processedAt: null,
+          rejectedReason: `payout_failed:${status}`,
+        })
+        .where(and(eq(withdrawalsTable.id, row.id), eq(withdrawalsTable.status, "processing")))
+        .returning();
+      if (!reverted) return { refunded: false as const };
+
+      if (reverted.currency === "usdt") {
+        await tx.update(walletsTable).set({
+          balanceUsdt:    sql`${walletsTable.balanceUsdt}    + ${amt}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} - ${amt}`,
+        }).where(eq(walletsTable.userId, reverted.userId));
+      } else if (reverted.currency === "ton") {
+        await tx.update(walletsTable).set({
+          balanceTon:     sql`${walletsTable.balanceTon}     + ${amt}`,
+          totalWithdrawn: sql`${walletsTable.totalWithdrawn} - ${amt}`,
+        }).where(eq(walletsTable.userId, reverted.userId));
+      }
+      return { refunded: true as const, row: reverted };
+    });
+
+    if (!result.refunded) {
+      req.log.info({ orderId }, "cryptomus payout webhook: loss lost race");
+      res.json({ ok: true, replayed: true });
+      return;
+    }
+
+    void (async () => {
+      try {
+        const [u] = await db.select({ tid: usersTable.telegramId })
+          .from(usersTable).where(eq(usersTable.id, result.row.userId));
+        if (u) {
+          await notifyUser(
+            String(u.tid),
+            `⚠️ فشل تنفيذ السحب #${result.row.id}\n` +
+            `تمت إعادة الرصيد إلى محفظتك. يمكنك إعادة المحاولة من قائمة السحب.\n` +
+            `السبب: ${status}`,
+          );
+        }
+      } catch (err) {
+        req.log.warn({ err, id: result.row.id }, "post-payout-loss notify failed");
+      }
+    })();
+
+    req.log.warn({ orderId, status, id: row.id }, "cryptomus payout: failed, refunded");
+    res.json({ ok: true, refunded: true });
+  } catch (err) {
+    req.log.error({ err, orderId }, "cryptomus payout webhook: refund failed");
+    res.status(500).json({ error: "refund_failed" });
+  }
+});
 
 export default router;

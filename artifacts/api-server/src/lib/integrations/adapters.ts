@@ -469,6 +469,92 @@ const openrouter: IntegrationAdapter = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// Payments — Cryptomus (card-to-crypto deposits + crypto payouts)
+// ─────────────────────────────────────────────────────────────────────────
+
+const cryptomus: IntegrationAdapter = {
+  slug: "cryptomus",
+  name: "Cryptomus",
+  brand: "Cryptomus",
+  category: "payments",
+  tier: 1,
+  description:
+    "بوابة دفع: المستخدم يدفع بالبطاقة → نستلم USDT/TON على محفظتنا. تستخدم أيضاً للسحب التلقائي (payout API).",
+  signupUrl: "https://app.cryptomus.com/signup",
+  docsUrl: "https://doc.cryptomus.com/business/",
+  pricing: "0.4% على الإيداع، رسوم شبكة فقط على السحب",
+  fields: [
+    { key: "merchant_id", label: "Merchant ID", type: "text", required: true, placeholder: "UUID من Settings → API" },
+    { key: "payment_api_key", label: "Payment API Key", type: "password", required: true, secret: true },
+    {
+      key: "payout_api_key",
+      label: "Payout API Key",
+      type: "password",
+      secret: true,
+      help: "اختياري للآن — مطلوب لاحقاً لتفعيل السحب التلقائي",
+    },
+    {
+      key: "webhook_api_key",
+      label: "Webhook Signing Key",
+      type: "password",
+      secret: true,
+      help: "اتركه فارغاً لاستخدام Payment API Key (افتراضي Cryptomus)",
+    },
+    {
+      key: "default_network",
+      label: "الشبكة الافتراضية للإيداع",
+      type: "select",
+      default: "tron",
+      options: [
+        { value: "tron", label: "Tron (USDT TRC20) — الأرخص" },
+        { value: "ton", label: "TON" },
+        { value: "eth", label: "Ethereum (USDT ERC20)" },
+        { value: "bsc", label: "BSC (USDT BEP20)" },
+      ],
+    },
+    {
+      key: "public_webhook_base",
+      label: "Public Webhook Base URL",
+      type: "url",
+      required: true,
+      placeholder: "https://your-app.replit.app",
+      help: "Cryptomus يرفض الـ callbacks على localhost. ضع الـ HTTPS الرئيسي.",
+    },
+  ],
+  async test(cfg) {
+    if (!cfg.merchant_id || !cfg.payment_api_key) {
+      return { ok: false, error: "missing merchant_id or payment_api_key" };
+    }
+    try {
+      // /v1/balance is the cheapest authenticated read — returns the merchant
+      // balance per currency. Confirms creds without creating any side-effect.
+      const body = JSON.stringify({});
+      const b64 = Buffer.from(body, "utf8").toString("base64");
+      const sign = (await import("crypto"))
+        .createHash("md5")
+        .update(b64 + cfg.payment_api_key)
+        .digest("hex");
+      const r = await fetchWithTimeout("https://api.cryptomus.com/v1/balance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          merchant: cfg.merchant_id,
+          sign,
+        },
+        body,
+      });
+      if (r.status === 401 || r.status === 403) return { ok: false, error: "invalid credentials" };
+      if (!r.ok) return { ok: false, error: `HTTP ${r.status}` };
+      const j = (await r.json()) as { state?: number; message?: string; result?: unknown };
+      if (j.state !== 0) return { ok: false, error: j.message ?? "gateway rejected" };
+      return { ok: true, metadata: { balance_endpoint: "ok" } };
+    } catch (e) {
+      return { ok: false, error: describeError(e) };
+    }
+  },
+};
+
 export const ALL_ADAPTERS: IntegrationAdapter[] = [
   upstashRedis,
   sentry,
@@ -480,4 +566,5 @@ export const ALL_ADAPTERS: IntegrationAdapter[] = [
   onesignal,
   bunny,
   openrouter,
+  cryptomus,
 ];
