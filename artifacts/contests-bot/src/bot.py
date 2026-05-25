@@ -82,13 +82,19 @@ router = Router()
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 def main_kb() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+    rows = [
         [InlineKeyboardButton(text="🏆 لوحة المتسابقين", callback_data="board")],
         [InlineKeyboardButton(text="🗳 صَوِّت الآن", callback_data="vote_menu")],
         [InlineKeyboardButton(text="🎟 باقات التصويت", callback_data="packs")],
         [InlineKeyboardButton(text="💼 رصيد أصواتي", callback_data="mybal")],
         [InlineKeyboardButton(text="💰 محفظتي (SKZ)", callback_data="wallet")],
-    ])
+    ]
+    if MOTHER_BOT_USERNAME:
+        rows.append([InlineKeyboardButton(
+            text="🏛 SOUQRATES SYSTEM — المحفظة الموحّدة",
+            url=f"https://t.me/{MOTHER_BOT_USERNAME}",
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def back_kb() -> InlineKeyboardMarkup:
@@ -113,7 +119,10 @@ async def safe_edit(msg: Message, text: str, reply_markup: Optional[InlineKeyboa
 
 async def render_home(tg_id: str) -> tuple[str, InlineKeyboardMarkup]:
     title = await texts.get("welcome_title", "★ SOUQRATES STAGE")
-    subtitle = await texts.get("welcome_subtitle", "مسرح المسابقات والتصويت")
+    subtitle = await texts.get(
+        "welcome_subtitle",
+        "مسرح المسابقات والتصويت — جزء من منظومة 🏛 SOUQRATES SYSTEM",
+    )
     try:
         active = await api.get_active_contest()
     except Exception as e:
@@ -505,7 +514,13 @@ async def cb_wallet(cb: CallbackQuery):
     rows.append([InlineKeyboardButton(text="◀ القائمة الرئيسية", callback_data="home")])
     await safe_edit(
         cb.message,
-        f"💰 <b>محفظتك</b>\n\n⚡ رصيد SKZ: <b>{skz}</b>\n\nاستخدم رصيد SKZ لشراء باقات التصويت.",
+        (
+            f"💰 <b>محفظتك الموحّدة</b>\n\n"
+            f"⚡ رصيد SKZ: <b>{skz}</b>\n\n"
+            "محفظتك مُدارة مركزيًّا عبر 🏛 <b>SOUQRATES SYSTEM</b>\n"
+            "(نفس الرصيد يعمل في كل بوتات سوقراط).\n\n"
+            "استخدم رصيد SKZ لشراء باقات التصويت."
+        ),
         InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await cb.answer()
