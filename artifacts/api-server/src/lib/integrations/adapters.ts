@@ -92,10 +92,11 @@ const sentry: IntegrationAdapter = {
       if (!u.username) return { ok: false, error: "DSN missing public key" };
       const projectId = u.pathname.replace(/^\//, "");
       if (!projectId) return { ok: false, error: "DSN missing project id" };
-      // GET /api/<projectId>/store/ returns 405 for GET — but a 405 means the
-      // ingest endpoint exists and accepted our public key. Anything else
-      // (DNS error, 404, network) → fail.
-      const ingest = `${u.protocol}//${u.host}/api/${projectId}/store/`;
+      // Sentry's ingest endpoint requires auth. Pass the DSN public key as
+      // ?sentry_key=… so the server identifies the project. A GET on the
+      // store endpoint with a valid key returns 400 ("method not allowed"
+      // body but 400 status). 401/403 means the key/project is wrong.
+      const ingest = `${u.protocol}//${u.host}/api/${projectId}/store/?sentry_key=${encodeURIComponent(u.username)}`;
       const r = await fetchWithTimeout(ingest, { method: "GET" });
       if (r.status === 405 || r.status === 400 || r.status === 200) {
         return { ok: true, metadata: { host: u.host, projectId } };
