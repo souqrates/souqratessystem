@@ -1,0 +1,49 @@
+uploads = []
+
+[[generated]]
+id = "wWitImXehNANK7SHkng2T"
+uri = "file://attached_assets/generated_images/souqrates_system_logo.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Q5keX_TvTUNWJ-BLTzih8"
+uri = "file://attached_assets/generated_images/souqrates_skillz_logo.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "k_vaq9pEhmBtGcxvshoap"
+uri = "file://attached_assets/generated_images/souqrates_souq_logo.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "AoXaHM9Pg1carm5Kgu48S"
+uri = "file://attached_assets/generated_images/souqrates_stage_logo.png"
+type = "image"
+title = "generated_image"
+
+[[outputs]]
+id = "3NxYzjBbXv6uqa25IvFfj"
+uri = "file://attached_assets/generated_images/souqrates_system_logo.png"
+type = "image"
+title = "SOUQRATES SYSTEM — اللوجو الرئيسي"
+
+[[outputs]]
+id = "ca-rBBjLaitbU8hEAYzRt"
+uri = "file://attached_assets/generated_images/souqrates_skillz_logo.png"
+type = "image"
+title = "SOUQRATES SKILLZ — بوت الألعاب"
+
+[[outputs]]
+id = "hM46ZjZGeHi9ex9p6K0qe"
+uri = "file://attached_assets/generated_images/souqrates_souq_logo.png"
+type = "image"
+title = "SOUQRATES SOUQ — بوت الكتب"
+
+[[outputs]]
+id = "57-tV9ubPtJwRJGK-6woS"
+uri = "file://attached_assets/generated_images/souqrates_stage_logo.png"
+type = "image"
+title = "SOUQRATES STAGE — بوت المسابقات"
