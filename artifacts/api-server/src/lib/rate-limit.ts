@@ -1,4 +1,4 @@
-import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
+import rateLimit, { ipKeyGenerator, type RateLimitRequestHandler } from "express-rate-limit";
 
 // Global cheap limiter: blunts trivial floods without affecting real users.
 // 600 req/min/IP is generous for a Mini App + bot mix (≈10 rps sustained).
@@ -19,7 +19,8 @@ export const internalWriteLimiter: RateLimitRequestHandler = rateLimit({
   limit: 200, // 20 rps per bot
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  keyGenerator: (req) => req.header("X-Bot-Api-Key") ?? req.ip ?? "anon",
+  keyGenerator: (req) =>
+    req.header("X-Bot-Api-Key") ?? ipKeyGenerator(req.ip ?? "anon"),
   message: { error: "rate_limited_bot" },
 });
 
