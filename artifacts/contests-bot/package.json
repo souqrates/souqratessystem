@@ -1,0 +1,6 @@
+{
+  "name": "@workspace/contests-bot",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SOUQRATES STAGE — voting contests child bot (Python aiogram)"
+}

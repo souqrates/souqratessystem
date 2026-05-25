@@ -15,6 +15,9 @@ import AgreementsPage from "@/pages/Agreements";
 import GamesPage from "@/pages/Games";
 import GameDetailPage from "@/pages/GameDetail";
 import BooksPage from "@/pages/Books";
+import ContestsPage from "@/pages/Contests";
+import ContestDetailPage from "@/pages/ContestDetail";
+import VotePacksPage from "@/pages/VotePacks";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -34,6 +37,9 @@ function AuthedRoutes() {
         <Route path="/games" component={GamesPage} />
         <Route path="/games/:gameId" component={GameDetailPage} />
         <Route path="/books" component={BooksPage} />
+        <Route path="/contests" component={ContestsPage} />
+        <Route path="/contests/:id" component={ContestDetailPage} />
+        <Route path="/vote-packs" component={VotePacksPage} />
         <Route path="/broadcast" component={BroadcastPage} />
         <Route path="/links" component={LinksPage} />
         <Route path="/error-logs" component={ErrorLogsPage} />

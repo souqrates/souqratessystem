@@ -13,3 +13,4 @@ export * from "./errorLogs";
 export * from "./gameConfigs";
 export * from "./agreements";
 export * from "./products";
+export * from "./contests";
