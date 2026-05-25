@@ -96,8 +96,8 @@ export default function Games({ onOpenGame }) {
             <button
               key={game.id}
               onClick={() => { triggerHaptic('medium'); onOpenGame?.(game); }}
-              className="glass-card rounded-2xl p-3.5 text-left flex flex-col gap-2 relative overflow-hidden"
-              style={{ border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', background: 'none', minHeight: 120 }}
+              className="game-tile rounded-2xl p-3.5 text-left flex flex-col gap-2 relative overflow-hidden"
+              style={{ cursor: 'pointer', minHeight: 120 }}
             >
               <div className="text-3xl leading-none">{game.emoji}</div>
               <div>

@@ -249,6 +249,21 @@ main {
   -webkit-backface-visibility: hidden;
 }
 
+/*
+ * Game grid tile — used by the dense 2-col grid on /games (often 50–100+ items).
+ * NO backdrop-filter and NO GPU promotion: iOS Safari/Telegram WebView caps the
+ * number of compositor layers per page, and stacking ~100 blurred glass cards
+ * exhausted that budget, producing a visible flicker on every scroll frame.
+ * Looks identical to .glass-card because the background is already near-opaque.
+ */
+.game-tile {
+  background: rgba(15, 10, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 /* Stat tile (small inset card) */
 .stat-tile {
   background: rgba(109, 40, 217, 0.06);
