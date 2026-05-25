@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, Copy, Check, Download } from "lucide-react";
+import { Zap, Copy, Check, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
@@ -10,9 +10,9 @@ type Method = "usdt" | "stars" | "ton";
 const STAR_AMOUNTS = [50, 100, 250, 500, 1000, 2500];
 
 const METHODS: { id: Method; label: string; sub: string; currencyKey: string }[] = [
-  { id: "usdt",  label: "USDT",           sub: "Tether · TRC20 Network",     currencyKey: "USDT"  },
-  { id: "stars", label: "Telegram Stars", sub: "In-app Stars · Instant",     currencyKey: "Stars" },
-  { id: "ton",   label: "TON",            sub: "The Open Network",           currencyKey: "TON"   },
+  { id: "usdt",  label: "USDT",           sub: "Tether · شبكة TRC20",     currencyKey: "USDT"  },
+  { id: "stars", label: "نجوم تيليغرام",  sub: "Telegram Stars · فوري",   currencyKey: "Stars" },
+  { id: "ton",   label: "TON",            sub: "The Open Network",         currencyKey: "TON"   },
 ];
 
 export function Deposit() {
@@ -21,15 +21,17 @@ export function Deposit() {
   const [copied, setCopied] = useState(false);
   const { settings } = usePlatformSettings();
 
-  const address    = "TRX9xKmN4pQ8vLs2wYjF7bDcAeR6hZmU1";
-  const tonAddress = "UQCk9pn7Xm8kGzR3LwV1uQ2aJ5mBfD8sYeT6Xm8k";
+  const address    = settings.usdtDepositAddress;
+  const tonAddress = settings.tonDepositAddress;
+  const activeAddress = method === "usdt" ? address : tonAddress;
+  const addressConfigured = method === "stars" || activeAddress.trim().length > 0;
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: "✓ Copied!" });
+      window.Telegram.WebApp.showPopup({ message: "✓ تم النسخ" });
     }
   };
 
@@ -39,16 +41,27 @@ export function Deposit() {
     return settings.skzPerTon;
   };
 
-  const skzPreview = amount ? Math.floor(parseFloat(amount) * getRate()) : null;
+  const num = parseFloat(amount || "0");
+  const skzPreview = amount && num > 0 ? Math.floor(num * getRate()) : null;
   const currencyKey = method === "usdt" ? "USDT" : method === "stars" ? "Stars" : "TON";
 
+  const minForMethod =
+    method === "usdt"  ? parseFloat(settings.minDepositUsdt) :
+    method === "stars" ? parseFloat(settings.minDepositStars) :
+                         parseFloat(settings.minDepositTon);
+
+  const isBelowMin = num > 0 && num < minForMethod;
+  const canSubmitCrypto = num >= minForMethod && addressConfigured;
+
+  const methodUnit = method === "usdt" ? "USDT" : method === "stars" ? "نجمة" : "TON";
+
   return (
-    <div className="px-4 pt-4 pb-6 space-y-5">
+    <div className="px-4 pt-4 pb-6 space-y-5" dir="rtl">
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black">Deposit SKZ</h1>
-        <p className="text-[11px] text-white/40 font-medium mt-0.5">Deposit and auto-convert to SKZ</p>
+        <h1 className="text-2xl font-black">إيداع SKZ</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">أودِع وتحوَّل تلقائيًا إلى SKZ</p>
       </div>
 
       {/* Conversion banner */}
@@ -59,10 +72,10 @@ export function Deposit() {
           <IconBox iconKey="download" size={18} color="white" bg="transparent" border="transparent" boxSize={40} radius={10} />
         </div>
         <div>
-          <p className="text-sm font-bold text-skz-light">Auto-converted to SKZ</p>
-          <p className="text-[11px] text-white/40">At the current rate set by the admin</p>
+          <p className="text-sm font-bold text-skz-light">تحويل تلقائي إلى SKZ</p>
+          <p className="text-[11px] text-white/40">بالسعر الحالي المعتمد من الإدارة</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-xl"
+        <div className="mr-auto flex items-center gap-1.5 px-2.5 py-1 rounded-xl"
           style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.2)" }}>
           <Zap size={10} className="text-skz-light" />
           <span className="text-[10px] font-black text-skz-light">+50 XP</span>
@@ -71,7 +84,7 @@ export function Deposit() {
 
       {/* Method tabs */}
       <div>
-        <p className="section-label mb-3">Select Deposit Method</p>
+        <p className="section-label mb-3">اختر وسيلة الإيداع</p>
         <div className="space-y-2.5">
           {METHODS.map((m) => {
             const isActive = method === m.id;
@@ -136,7 +149,7 @@ export function Deposit() {
             exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
             className="space-y-4">
             <div className="divider" />
-            <p className="section-label">Select Amount</p>
+            <p className="section-label">اختر الباقة</p>
             <div className="grid grid-cols-3 gap-2">
               {STAR_AMOUNTS.map((val) => {
                 const isSel = amount === val.toString();
@@ -159,31 +172,54 @@ export function Deposit() {
             {skzPreview !== null && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 className="glass-card-skz rounded-2xl p-4 flex items-center justify-between">
-                <p className="text-sm text-white/60">You will receive</p>
+                <p className="text-sm text-white/60">ستستلم</p>
                 <div className="flex items-center gap-2">
-                  <Zap size={15} className="text-skz-light" />
-                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
                   <p className="text-sm text-white/40 font-bold">SKZ</p>
+                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
+                  <Zap size={15} className="text-skz-light" />
                 </div>
               </motion.div>
             )}
 
-            <motion.button disabled={!amount} whileTap={{ scale: 0.97 }}
+            {/* Stars policy disclaimer */}
+            <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
+              style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)" }}>
+              <p className="text-warn font-bold mb-1 flex items-center gap-1.5">
+                <AlertCircle size={12} /> قبل المتابعة
+              </p>
+              <p className="text-white/55">
+                ستفتح نافذة دفع Telegram Stars داخل تيليغرام. الدفع نهائي وغير قابل للإلغاء بعد التأكيد.
+                في حال فشل العملية لن يُخصم أي رصيد، وفي حال نجاحها يُضاف SKZ مباشرة إلى محفظتك.
+              </p>
+            </div>
+
+            <AnimatePresence>
+              {isBelowMin && (
+                <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
+                  <AlertCircle size={12} /> الحد الأدنى {minForMethod} نجمة
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <motion.button disabled={!amount || isBelowMin} whileTap={{ scale: 0.97 }}
               onClick={() => {
-                if (!amount) return;
+                if (!amount || isBelowMin) return;
                 showTelegramAlert(
-                  `Telegram Stars payment will open here.\nAmount: ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ\n\nPayment processor is being finalized — the button will work once Stars is connected.`
+                  `سيُفتح دفع Telegram Stars الآن.\nالمبلغ: ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ\n\nيتم تجهيز معالج الدفع — الزر سيعمل فور تفعيله.`
                 );
               }}
               className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
               style={{
-                background: amount ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
-                boxShadow: amount ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
-                opacity: amount ? 1 : 0.5,
+                background: amount && !isBelowMin ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
+                boxShadow: amount && !isBelowMin ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
+                opacity: amount && !isBelowMin ? 1 : 0.5,
               }}>
-              {amount
-                ? `Pay ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ`
-                : "Select Star Amount"}
+              {!amount
+                ? "اختر عدد النجوم"
+                : isBelowMin
+                ? `الحد الأدنى ${minForMethod} نجمة`
+                : `ادفع ${parseInt(amount).toLocaleString()} ⭐ → ${skzPreview?.toLocaleString()} SKZ`}
             </motion.button>
           </motion.div>
         )}
@@ -197,7 +233,7 @@ export function Deposit() {
 
             {/* Amount input */}
             <div className="space-y-2">
-              <p className="section-label">Amount ({method.toUpperCase()})</p>
+              <p className="section-label">المبلغ ({methodUnit})</p>
               <div className="relative">
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
@@ -215,85 +251,93 @@ export function Deposit() {
                 </div>
               </div>
               <AnimatePresence>
-                {skzPreview !== null && (
+                {isBelowMin && (
+                  <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
+                    <AlertCircle size={12} /> الحد الأدنى للإيداع {minForMethod} {methodUnit}
+                  </motion.p>
+                )}
+                {skzPreview !== null && !isBelowMin && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     className="glass-card-skz rounded-2xl p-3.5 flex items-center justify-between">
-                    <p className="text-sm text-white/50">You will receive</p>
+                    <p className="text-sm text-white/50">ستستلم</p>
                     <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-skz-light" />
-                      <p className="font-black text-xl gradient-text">{skzPreview.toLocaleString()}</p>
                       <span className="text-[11px] text-white/40 font-bold">SKZ</span>
+                      <p className="font-black text-xl gradient-text">{skzPreview.toLocaleString()}</p>
+                      <Zap size={14} className="text-skz-light" />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* QR placeholder */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-36 h-36 bg-white rounded-2xl flex items-center justify-center relative p-3">
-                <div className="absolute inset-3 border-4 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <div className="absolute inset-6 bg-gray-200 rounded" />
-                  <div className="absolute top-0 left-0 w-8 h-8 bg-gray-700 rounded-sm" />
-                  <div className="absolute top-0 right-0 w-8 h-8 bg-gray-700 rounded-sm" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 bg-gray-700 rounded-sm" />
-                </div>
-              </div>
-              <p className="text-[11px] text-white/35 font-medium">Scan QR to copy address</p>
-            </div>
-
             {/* Address */}
             <div className="rounded-2xl p-4 relative"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <p className="section-label mb-2">
-                Deposit Address ({method === "usdt" ? "TRC20" : "TON Network"})
+                عنوان الإيداع ({method === "usdt" ? "TRC20" : "TON Network"})
               </p>
-              <p className="font-mono text-sm text-white/70 break-all pr-12 leading-relaxed text-left" dir="ltr">
-                {method === "usdt" ? address : tonAddress}
-              </p>
-              <motion.button
-                onClick={() => handleCopy(method === "usdt" ? address : tonAddress)}
-                whileTap={{ scale: 0.9 }}
-                className="absolute top-4 right-4 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-                style={{ background: copied ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.08)" }}>
-                {copied
-                  ? <Check size={15} className="text-success" strokeWidth={2.5} />
-                  : <Copy size={15} className="text-white/60" />}
-              </motion.button>
+              {addressConfigured ? (
+                <>
+                  <p className="font-mono text-sm text-white/70 break-all pl-12 leading-relaxed text-left" dir="ltr">
+                    {activeAddress}
+                  </p>
+                  <motion.button
+                    onClick={() => handleCopy(activeAddress)}
+                    whileTap={{ scale: 0.9 }}
+                    className="absolute top-4 left-4 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                    style={{ background: copied ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.08)" }}>
+                    {copied
+                      ? <Check size={15} className="text-success" strokeWidth={2.5} />
+                      : <Copy size={15} className="text-white/60" />}
+                  </motion.button>
+                </>
+              ) : (
+                <p className="text-[12px] text-warn font-bold leading-relaxed">
+                  ⚠️ عنوان الإيداع غير مفعَّل حاليًا. يرجى التواصل مع الدعم
+                  (@{settings.supportUsername}) أو انتظار تفعيله من قِبَل الإدارة.
+                </p>
+              )}
             </div>
 
-            {/* Warning */}
+            {/* Warning + rules */}
             <div className="rounded-2xl p-4 space-y-1.5 text-[11px] font-medium"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div className="text-danger font-bold flex items-center gap-2">
                 <IconBox iconKey="shield" size={12} color="#ef4444" bg="rgba(239,68,68,0.15)"
                   border="rgba(239,68,68,0.2)" boxSize={20} radius={5} />
-                Send only {method.toUpperCase()} on this network
+                أرسل {method.toUpperCase()} فقط عبر هذه الشبكة — أي عملة أخرى تُفقد نهائيًا
               </div>
               <p className="text-white/40">
-                Minimum: {method === "usdt" ? `${settings.minDepositUsdt} USDT` : `${settings.minDepositTon} TON`}
+                الحد الأدنى: {minForMethod} {methodUnit}
               </p>
-              <p className="text-white/40">Auto-credited in SKZ after network confirmation</p>
+              <p className="text-white/40">يُضاف الرصيد تلقائيًا بعد تأكيد الشبكة (٢-٥ دقائق)</p>
               <p style={{ color: CURRENCY_ICONS[currencyKey].color }}>
-                Today's rate: 1 {method.toUpperCase()} = {getRate()} SKZ
+                سعر اليوم: 1 {method.toUpperCase()} = {getRate()} SKZ
               </p>
             </div>
 
-            <motion.button disabled={!amount || parseFloat(amount) <= 0} whileTap={{ scale: 0.97 }}
+            <motion.button disabled={!canSubmitCrypto} whileTap={{ scale: canSubmitCrypto ? 0.97 : 1 }}
               onClick={() => {
-                if (!amount || parseFloat(amount) <= 0) return;
+                if (!canSubmitCrypto) return;
                 showTelegramAlert(
-                  `Deposit registered.\nAmount: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nSend the funds to the address above. Your balance will update automatically once the network confirms the transaction.`
+                  `تم تسجيل نية الإيداع.\nالمبلغ: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nأرسل المبلغ إلى العنوان أعلاه. سيُضاف الرصيد تلقائيًا فور تأكيد المعاملة على الشبكة.`
                 );
               }}
               className="w-full py-4 rounded-2xl font-black text-base text-white"
               style={{
-                background: amount ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
-                boxShadow: amount ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
-                opacity: amount ? 1 : 0.45,
+                background: canSubmitCrypto ? "linear-gradient(135deg, #9333ea, #7c3aed)" : "rgba(255,255,255,0.06)",
+                boxShadow: canSubmitCrypto ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
+                opacity: canSubmitCrypto ? 1 : 0.45,
               }}>
-              {amount ? "I've Sent the Funds" : "Enter Amount"}
+              {!amount || num <= 0
+                ? "أدخل المبلغ"
+                : isBelowMin
+                ? `الحد الأدنى ${minForMethod} ${methodUnit}`
+                : !addressConfigured
+                ? "العنوان غير مفعَّل"
+                : "لقد أرسلت المبلغ"}
             </motion.button>
           </motion.div>
         )}

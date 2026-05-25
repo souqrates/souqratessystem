@@ -15,6 +15,9 @@ export interface PlatformSettingsData {
   minWithdrawalSkz: string;
   withdrawalFeeUsdtPercent: string;
   withdrawalFeeTonPercent: string;
+  usdtDepositAddress: string;
+  tonDepositAddress: string;
+  withdrawalEtaHours: string;
   referralBonusPercent: string;
   referralL2Percent: string;
   referralL3Percent: string;
@@ -35,6 +38,9 @@ const DEFAULTS: PlatformSettingsData = {
   minWithdrawalSkz: "100",
   withdrawalFeeUsdtPercent: "2",
   withdrawalFeeTonPercent: "1.5",
+  usdtDepositAddress: "",
+  tonDepositAddress: "",
+  withdrawalEtaHours: "24",
   referralBonusPercent: "5",
   referralL2Percent: "2",
   referralL3Percent: "1",
@@ -61,6 +67,9 @@ async function fetchSettings(): Promise<PlatformSettingsData> {
     minWithdrawalSkz: data.financial?.minWithdrawalSkz ?? DEFAULTS.minWithdrawalSkz,
     withdrawalFeeUsdtPercent: data.financial?.withdrawalFeeUsdtPercent ?? DEFAULTS.withdrawalFeeUsdtPercent,
     withdrawalFeeTonPercent: data.financial?.withdrawalFeeTonPercent ?? DEFAULTS.withdrawalFeeTonPercent,
+    usdtDepositAddress: data.financial?.usdtDepositAddress ?? DEFAULTS.usdtDepositAddress,
+    tonDepositAddress: data.financial?.tonDepositAddress ?? DEFAULTS.tonDepositAddress,
+    withdrawalEtaHours: data.financial?.withdrawalEtaHours ?? DEFAULTS.withdrawalEtaHours,
     referralBonusPercent: data.financial?.referralBonusPercent ?? DEFAULTS.referralBonusPercent,
     referralL2Percent: data.financial?.referralL2Percent ?? DEFAULTS.referralL2Percent,
     referralL3Percent: data.financial?.referralL3Percent ?? DEFAULTS.referralL3Percent,

@@ -16,6 +16,9 @@ const DEFAULTS: Record<string, string> = {
   min_withdrawal_skz: "100",
   withdrawal_fee_usdt_percent: "2",
   withdrawal_fee_ton_percent: "1.5",
+  usdt_deposit_address: "",
+  ton_deposit_address: "",
+  withdrawal_eta_hours: "24",
   referral_bonus_percent: "5",
   platform_name: "البوت الأم",
   platform_tagline: "منصة البوتات المالية الأولى",
@@ -54,6 +57,9 @@ async function buildSettingsResponse() {
       minWithdrawalSkz: map["min_withdrawal_skz"],
       withdrawalFeeUsdtPercent: map["withdrawal_fee_usdt_percent"],
       withdrawalFeeTonPercent: map["withdrawal_fee_ton_percent"],
+      usdtDepositAddress: map["usdt_deposit_address"] ?? "",
+      tonDepositAddress: map["ton_deposit_address"] ?? "",
+      withdrawalEtaHours: map["withdrawal_eta_hours"] ?? "24",
       referralBonusPercent: map["referral_bonus_percent"],
       referralL2Percent: map["referral_l2_percent"] ?? "2",
       referralL3Percent: map["referral_l3_percent"] ?? "1",
@@ -97,6 +103,9 @@ router.put("/settings", requireAdmin, async (req, res): Promise<void> => {
     minWithdrawalSkz: "min_withdrawal_skz",
     withdrawalFeeUsdtPercent: "withdrawal_fee_usdt_percent",
     withdrawalFeeTonPercent: "withdrawal_fee_ton_percent",
+    usdtDepositAddress: "usdt_deposit_address",
+    tonDepositAddress: "ton_deposit_address",
+    withdrawalEtaHours: "withdrawal_eta_hours",
     referralBonusPercent: "referral_bonus_percent",
     referralL2Percent: "referral_l2_percent",
     referralL3Percent: "referral_l3_percent",
@@ -107,12 +116,17 @@ router.put("/settings", requireAdmin, async (req, res): Promise<void> => {
     referralMessage: "referral_message",
   };
 
+  // Fields that may be deliberately blanked (e.g. admin disables a deposit
+  // address in an emergency). For these, an empty string is a valid update.
+  const blankable = new Set(["usdt_deposit_address", "ton_deposit_address"]);
+
   const updates: Array<[string, string]> = [];
   for (const [field, dbKey] of Object.entries(keyMap)) {
     const val = body[field];
-    if (val !== undefined && val !== null && String(val).trim() !== "") {
-      updates.push([dbKey, String(val).trim()]);
-    }
+    if (val === undefined || val === null) continue;
+    const trimmed = String(val).trim();
+    if (trimmed === "" && !blankable.has(dbKey)) continue;
+    updates.push([dbKey, trimmed]);
   }
 
   if (updates.length === 0) {

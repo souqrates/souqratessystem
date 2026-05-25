@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { useWallet } from "../lib/use-wallet";
-import { Zap, AlertCircle, Upload, Loader2 } from "lucide-react";
+import { Zap, AlertCircle, Upload, Loader2, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { showTelegramAlert } from "../lib/telegram";
@@ -12,6 +12,26 @@ const TARGETS: { id: Target; label: string; currencyKey: string }[] = [
   { id: "usdt", label: "USDT", currencyKey: "USDT" },
   { id: "ton",  label: "TON",  currencyKey: "TON"  },
 ];
+
+// Address format validation
+// TRC20: starts with 'T', 34 chars total, Base58 (no 0, O, I, l)
+// TON: starts with EQ/UQ/kQ/0Q (non-bounceable/bounceable mainnet), 48 chars, base64url
+const TRC20_RE = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+const TON_RE   = /^(EQ|UQ)[A-Za-z0-9_-]{46}$/;
+
+function validateAddress(target: Target, addr: string): { ok: boolean; reason?: string } {
+  if (!addr) return { ok: false };
+  if (target === "usdt") {
+    if (!TRC20_RE.test(addr)) {
+      return { ok: false, reason: "عنوان TRC20 غير صحيح (يبدأ بـ T وطوله 34 خانة)" };
+    }
+  } else {
+    if (!TON_RE.test(addr)) {
+      return { ok: false, reason: "عنوان TON غير صحيح (يبدأ بـ EQ/UQ/kQ/0Q وطوله 48 خانة)" };
+    }
+  }
+  return { ok: true };
+}
 
 export function Withdraw() {
   const [target, setTarget] = useState<Target>("usdt");
@@ -34,15 +54,20 @@ export function Withdraw() {
   const realAmount = numSkz / getRate();
   const fee        = realAmount * feePercent;
   const netReal    = Math.max(0, realAmount - fee);
-  const isValid    = numSkz >= minSkz && !isOverMax && address.length > 10;
+
+  const addrCheck = address ? validateAddress(target, address.trim()) : { ok: false };
+  const isValid   = numSkz >= minSkz && !isOverMax && addrCheck.ok;
+
+  const etaHours = parseInt(settings.withdrawalEtaHours) || 24;
+  const targetLabel = target === "usdt" ? "USDT" : "TON";
 
   return (
-    <div className="px-4 pt-4 pb-8 space-y-5">
+    <div className="px-4 pt-4 pb-8 space-y-5" dir="rtl">
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black">Withdraw SKZ</h1>
-        <p className="text-[11px] text-white/40 font-medium mt-0.5">Convert SKZ to external currency</p>
+        <h1 className="text-2xl font-black">سحب SKZ</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">حوِّل SKZ إلى عملة خارجية</p>
       </div>
 
       {/* Balance card */}
@@ -54,7 +79,7 @@ export function Withdraw() {
             <IconBox iconKey="zap" size={20} color="white" bg="transparent" border="transparent" boxSize={44} radius={12} />
           </div>
           <div>
-            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Available Balance</p>
+            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">الرصيد المتاح</p>
             {walletLoading ? (
               <Loader2 size={16} className="text-skz-light animate-spin mt-1" />
             ) : (
@@ -62,7 +87,7 @@ export function Withdraw() {
             )}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-left">
           <p className="text-[10px] text-white/30 font-medium">≈</p>
           <p className="text-sm font-bold text-white/50">
             ${(maxSkz / settings.skzPerUsdt).toFixed(2)}
@@ -72,7 +97,7 @@ export function Withdraw() {
 
       {/* Target currency */}
       <div>
-        <p className="section-label mb-3">Convert To</p>
+        <p className="section-label mb-3">حوِّل إلى</p>
         <div className="grid grid-cols-2 gap-2.5">
           {TARGETS.map((t) => {
             const isActive = target === t.id;
@@ -81,8 +106,8 @@ export function Withdraw() {
               ? `${settings.skzPerUsdt} SKZ = 1 USDT`
               : `${settings.skzPerTon} SKZ = 1 TON`;
             return (
-              <motion.button key={t.id} onClick={() => setTarget(t.id)} whileTap={{ scale: 0.96 }}
-                className="p-4 rounded-2xl text-left transition-all"
+              <motion.button key={t.id} onClick={() => { setTarget(t.id); setAddress(""); }} whileTap={{ scale: 0.96 }}
+                className="p-4 rounded-2xl text-right transition-all"
                 style={{
                   background: isActive ? `${tci.color}12` : "rgba(255,255,255,0.04)",
                   border: isActive ? `1.5px solid ${tci.color}40` : "1.5px solid rgba(255,255,255,0.07)",
@@ -110,13 +135,32 @@ export function Withdraw() {
         </div>
       </div>
 
+      {/* Rules info box */}
+      <div className="rounded-2xl p-3.5 space-y-1.5 text-[11px] font-medium"
+        style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}>
+        <p className="text-info font-bold flex items-center gap-1.5 mb-1" style={{ color: "#60a5fa" }}>
+          <Info size={12} /> قواعد السحب
+        </p>
+        <p className="text-white/55">• الحد الأدنى: {minSkz.toLocaleString()} SKZ</p>
+        <p className="text-white/55">• رسوم الشبكة: {(feePercent * 100).toFixed(1)}% (تُخصم من المبلغ المُستلَم)</p>
+        <p className="text-white/55">• مدة المعالجة: حتى {etaHours} ساعة بعد الموافقة</p>
+        <p className="text-white/55">
+          • صيغة العنوان: {target === "usdt"
+            ? "TRC20 يبدأ بـ T (٣٤ خانة)"
+            : "TON يبدأ بـ EQ/UQ (٤٨ خانة)"}
+        </p>
+        <p className="text-warn text-[10px] mt-1.5">
+          ⚠️ تأكَّد من صحة العنوان والشبكة — أي خطأ يُفقد المبلغ نهائيًا
+        </p>
+      </div>
+
       {/* SKZ amount */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="section-label">Amount in SKZ</p>
+          <p className="section-label">المبلغ بـ SKZ</p>
           <motion.button onClick={() => setSkzAmount(maxSkz.toString())} whileTap={{ scale: 0.93 }}
             className="chip chip-skz pressable">
-            Max — {maxSkz.toLocaleString()}
+            الأقصى — {maxSkz.toLocaleString()}
           </motion.button>
         </div>
         <div className="relative">
@@ -135,13 +179,13 @@ export function Withdraw() {
           {isOverMax && (
             <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
-              <AlertCircle size={12} /> Exceeds available balance
+              <AlertCircle size={12} /> المبلغ يتجاوز رصيدك المتاح
             </motion.p>
           )}
           {isBelowMin && (
             <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="text-[11px] text-warn flex items-center gap-1.5 font-bold">
-              <AlertCircle size={12} /> Minimum is {minSkz.toLocaleString()} SKZ
+              <AlertCircle size={12} /> الحد الأدنى للسحب {minSkz.toLocaleString()} SKZ
             </motion.p>
           )}
         </AnimatePresence>
@@ -149,10 +193,10 @@ export function Withdraw() {
 
       {/* Wallet address */}
       <div className="space-y-2">
-        <p className="section-label">Wallet Address ({target === "usdt" ? "TRC20" : "TON"})</p>
+        <p className="section-label">عنوان المحفظة ({target === "usdt" ? "TRC20" : "TON"})</p>
         <div className="relative">
           <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
-            placeholder={`Enter ${target.toUpperCase()} address...`}
+            placeholder={`أدخل عنوان ${targetLabel}...`}
             className="premium-input w-full px-4 py-3.5 text-sm font-mono text-left pl-14"
             dir="ltr" />
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
@@ -162,6 +206,20 @@ export function Withdraw() {
             </div>
           </div>
         </div>
+        <AnimatePresence>
+          {address.length > 0 && !addrCheck.ok && addrCheck.reason && (
+            <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
+              <AlertCircle size={12} /> {addrCheck.reason}
+            </motion.p>
+          )}
+          {address.length > 0 && addrCheck.ok && (
+            <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="text-[11px] text-success flex items-center gap-1.5 font-bold">
+              ✓ صيغة العنوان صحيحة
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Summary */}
@@ -173,9 +231,9 @@ export function Withdraw() {
             style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="p-1">
               {[
-                { label: "Amount (SKZ)",                                  value: `${numSkz.toLocaleString()} SKZ`,                   color: "rgba(255,255,255,0.85)" },
-                { label: "Equivalent",                                    value: `${realAmount.toFixed(4)} ${target.toUpperCase()}`, color: "rgba(255,255,255,0.85)" },
-                { label: `Network Fee (${(feePercent*100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${target.toUpperCase()}`,       color: "#f87171" },
+                { label: "المبلغ (SKZ)",                                 value: `${numSkz.toLocaleString()} SKZ`,                   color: "rgba(255,255,255,0.85)" },
+                { label: "المعادل",                                       value: `${realAmount.toFixed(4)} ${targetLabel}`, color: "rgba(255,255,255,0.85)" },
+                { label: `رسوم الشبكة (${(feePercent*100).toFixed(1)}%)`, value: `-${fee.toFixed(4)} ${targetLabel}`,       color: "#f87171" },
               ].map((row, i) => (
                 <div key={i} className="flex justify-between items-center px-4 py-3">
                   <span className="text-[12px] text-white/45 font-medium">{row.label}</span>
@@ -184,13 +242,13 @@ export function Withdraw() {
               ))}
               <div className="divider mx-3" />
               <div className="flex justify-between items-center px-4 py-3.5">
-                <span className="text-sm font-bold text-white/70">You Receive</span>
+                <span className="text-sm font-bold text-white/70">صافي الاستلام</span>
                 <div className="flex items-center gap-2">
+                  <span className="text-lg font-black text-success">
+                    {netReal.toFixed(target === "usdt" ? 2 : 4)} {targetLabel}
+                  </span>
                   <IconBox iconKey={ci.iconKey} size={14} color={ci.color} bg={`${ci.color}15`}
                     border={`${ci.color}20`} boxSize={24} radius={6} />
-                  <span className="text-lg font-black text-success">
-                    {netReal.toFixed(target === "usdt" ? 2 : 4)} {target.toUpperCase()}
-                  </span>
                 </div>
               </div>
             </div>
@@ -203,7 +261,7 @@ export function Withdraw() {
         onClick={() => {
           if (!isValid) return;
           showTelegramAlert(
-            `Withdrawal request submitted.\nAmount: ${numSkz.toLocaleString()} SKZ\nYou receive: ${netReal.toFixed(target === "usdt" ? 2 : 4)} ${target.toUpperCase()}\nTo: ${address.slice(0, 8)}...${address.slice(-6)}\n\nYour request is now pending review. You'll be notified once it's processed (usually within 24 hours).`
+            `تم إرسال طلب السحب.\nالمبلغ: ${numSkz.toLocaleString()} SKZ\nصافي الاستلام: ${netReal.toFixed(target === "usdt" ? 2 : 4)} ${targetLabel}\nإلى: ${address.slice(0, 8)}...${address.slice(-6)}\n\nطلبك قيد المراجعة وسيُعالَج خلال ${etaHours} ساعة كحد أقصى.`
           );
         }}
         className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
@@ -212,7 +270,17 @@ export function Withdraw() {
           boxShadow: isValid ? "0 4px 24px rgba(147,51,234,0.4)" : "none",
           opacity: isValid ? 1 : 0.4,
         }}>
-        {isValid ? `Withdraw ${netReal.toFixed(2)} ${target.toUpperCase()}` : "Enter Details"}
+        {!skzAmount || numSkz <= 0
+          ? "أدخل المبلغ"
+          : isOverMax
+          ? "المبلغ يتجاوز الرصيد"
+          : isBelowMin
+          ? `الحد الأدنى ${minSkz.toLocaleString()} SKZ`
+          : !address
+          ? "أدخل عنوان المحفظة"
+          : !addrCheck.ok
+          ? "عنوان المحفظة غير صحيح"
+          : `اسحب ${netReal.toFixed(2)} ${targetLabel}`}
       </motion.button>
     </div>
   );
