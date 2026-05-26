@@ -46,9 +46,7 @@ MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
 #   3) https://$REPLIT_DEV_DOMAIN (auto-set in dev)
 #   4) https://souqrates.com (production default once DNS is live)
 _DEV_DOMAIN = os.getenv("REPLIT_DEV_DOMAIN", "").strip()
-_DEFAULT_BASE = os.getenv("PUBLIC_BASE_URL", "").strip() or (
-    f"https://{_DEV_DOMAIN}" if _DEV_DOMAIN else "https://souqrates.com"
-)
+_DEFAULT_BASE = os.getenv("PUBLIC_BASE_URL", "").strip() or "https://souqrates.com"
 _DEFAULT_BASE = _DEFAULT_BASE.rstrip("/")
 _BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", f"{_DEFAULT_BASE}/")
 _BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", f"{_DEFAULT_BASE}/games-bot/")
