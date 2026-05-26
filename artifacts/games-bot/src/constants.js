@@ -146,6 +146,13 @@ export const GAMES = priced([
   { id: 193, name: 'Color Grid Logic', emoji: '🟩',  difficulty: 'Hard',   color: 'from-emerald-500 to-blue-500',   desc: 'Fill the grid by color rules — 4x4 grows to 8x8', targetScore: 1000 },
   { id: 194, name: 'Pixel Paint Pro',  emoji: '🖌️',  difficulty: 'Medium', color: 'from-pink-400 to-fuchsia-400',   desc: 'Paint pixels within the lines — canvas grows from 16x16 to 32x32', targetScore: 1500 },
   { id: 195, name: 'Vocal Pitch',      emoji: '🎤',  difficulty: 'Hard',   color: 'from-fuchsia-500 to-rose-400',   desc: 'Match the pitch within ±10Hz — notes get closer and faster', targetScore: 1000 },
+
+  /* ── 5 ELITE ADDICTIVE SOLO (196-200) ── */
+  { id: 196, name: 'Vortex Lock',     emoji: '🌀', difficulty: 'Hard', color: 'from-cyan-500 to-fuchsia-500',  desc: 'Two rings spin opposite — tap when BOTH gaps lock on target. Speed climbs each hit', targetScore: 1500 },
+  { id: 197, name: 'Mirror Sync',     emoji: '🪞', difficulty: 'Hard', color: 'from-emerald-500 to-amber-400', desc: 'Two-finger sync — tap LEFT and RIGHT targets within 250ms. Window shrinks',          targetScore: 1200 },
+  { id: 198, name: 'Reverse Reflex',  emoji: '🔃', difficulty: 'Hard', color: 'from-fuchsia-500 to-rose-500',  desc: 'Swipe the OPPOSITE direction of the arrow — your brain fights you. Window shrinks',  targetScore: 1500 },
+  { id: 199, name: 'Chrono Stack',    emoji: '⏳', difficulty: 'Hard', color: 'from-emerald-500 to-cyan-400',  desc: 'Stack perfectly — every 8s TIME REWINDS and only PERFECT blocks survive',            targetScore: 1500 },
+  { id: 200, name: 'Pulse Sniper',    emoji: '🎯', difficulty: 'Hard', color: 'from-cyan-500 to-blue-600',     desc: 'Predict where the dot will be in 0.5s — tap the FUTURE, not the present',            targetScore: 1500 },
 ]);
 
 export const LANGUAGES = {

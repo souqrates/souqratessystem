@@ -112,6 +112,11 @@ const GAME_MAP = {
   193: lazy(() => import('./games/ColorGridLogic')),
   194: lazy(() => import('./games/PixelPaintPro')),
   195: lazy(() => import('./games/VocalPitch')),
+  196: lazy(() => import('./games/VortexLock')),
+  197: lazy(() => import('./games/MirrorSync')),
+  198: lazy(() => import('./games/ReverseReflex')),
+  199: lazy(() => import('./games/ChronoStack')),
+  200: lazy(() => import('./games/PulseSniper')),
 };
 
 const FallbackGame = lazy(() => import('./games/FlashTap'));
