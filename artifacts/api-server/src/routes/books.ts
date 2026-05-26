@@ -48,6 +48,7 @@ import {
 } from "@workspace/db";
 import { requireSuperAdmin } from "../lib/super-admin-auth";
 import { ObjectStorageService } from "../lib/objectStorage";
+import { getSkzRates } from "../lib/finance";
 
 const router: IRouter = Router();
 const BOT_SLUG = "books-bot";
@@ -406,7 +407,12 @@ router.post("/internal/books/products/purchase", async (req, res): Promise<void>
     .limit(1);
   if (existing) { res.status(409).json({ error: "You already own this product", purchaseId: existing.id }); return; }
 
-  const priceNum = parseFloat(product.priceUsdt);
+  // Convert listing price (USDT) → SKZ using the live super-admin rate.
+  // Without this, a 0.40 USDT book would debit only 0.40 SKZ (instead of 40 SKZ
+  // at the default 1 USDT = 100 SKZ rate) → balance changes invisibly.
+  const priceUsdtNum = parseFloat(product.priceUsdt);
+  const { perUsdt } = await getSkzRates();
+  const priceNum = +(priceUsdtNum * perUsdt).toFixed(6);
   // Fresh per-buyer commission rate (super-admin override wins).
   const rate = await getEffectiveCommissionRate(buyer.telegramId, BOT_SLUG, bot.commissionRate);
   const commission = +(priceNum * rate).toFixed(6);
