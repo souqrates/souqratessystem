@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
+import { isIOS } from '../lib/deviceProfile';
 import GamificationCard from '../components/GamificationCard';
 import PlayerRankCard from '../components/PlayerRankCard';
 import ProfileEditModal from '../components/ProfileEditModal';
@@ -272,19 +273,25 @@ export default function Dashboard() {
                   cursor: 'not-allowed',
                 }}
               >
-                {/* Shimmer animation */}
-                <motion.div
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 4 }}
-                  style={{
-                    position: 'absolute', top: 0, left: 0, width: '40%', height: '100%',
-                    background: `linear-gradient(90deg, transparent, ${hex}08, transparent)`,
-                    pointerEvents: 'none',
-                  }}
-                />
-                {/* Blur overlay */}
+                {/* Shimmer animation — iOS WebView composites the entire
+                    backdrop-filter layer every frame when this moves,
+                    which presents as full-screen strobe. Skip on iOS. */}
+                {!isIOS() && (
+                  <motion.div
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 4 }}
+                    style={{
+                      position: 'absolute', top: 0, left: 0, width: '40%', height: '100%',
+                      background: `linear-gradient(90deg, transparent, ${hex}08, transparent)`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+                {/* Dim overlay — solid color on iOS, blur elsewhere. */}
                 <div className="absolute inset-0 rounded-2xl pointer-events-none"
-                  style={{ backdropFilter: 'blur(0.5px)', background: 'rgba(0,0,0,0.18)' }} />
+                  style={isIOS()
+                    ? { background: 'rgba(0,0,0,0.22)' }
+                    : { backdropFilter: 'blur(0.5px)', background: 'rgba(0,0,0,0.18)' }} />
 
                 <div className="relative z-10 flex items-center gap-2.5 mb-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center"

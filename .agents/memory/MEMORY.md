@@ -1,2 +1,3 @@
 - [Bot user.languageCode overwrite](bot-language-overwrite.md) — routine /start upserts must NOT send languageCode; only the explicit /lang path may write it, or the user's choice resets on every interaction.
 - [set_user_lang cache-on-success](set-user-lang-cache.md) — never cache a language preference whose persistence call failed; pop the entry instead, or UI lies about saved state.
+- [Custom-domain stale-build trap](custom-domain-stale-build.md) — `.replit` pinning MINI_APP_URL to a brand domain silently serves an older deploy when DNS hasn't moved; derive from REPLIT_DOMAINS, gate overrides on PUBLIC_BASE_URL only.

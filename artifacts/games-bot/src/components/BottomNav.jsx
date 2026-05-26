@@ -4,6 +4,7 @@ import { LayoutDashboard, Gamepad2, Wallet, Medal } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { triggerHaptic } from '../lib/telegram';
 import { t } from '../lib/i18n';
+import { isIOS } from '../lib/deviceProfile';
 
 // Simplified per user request — the leaderboard lives in the Mother Bot
 // (central hub), so we keep just the 4 essentials inside the games bot.
@@ -99,14 +100,16 @@ export default function BottomNav() {
                 />
               )}
 
-              {/* Icon */}
+              {/* Icon — `drop-shadow` on SVG combined with a layout-id
+                  animation flickers on iPhone every tab switch, so we
+                  drop the glow filter on iOS and keep color only. */}
               <Icon
                 size={22}
                 strokeWidth={active ? 2.2 : 1.6}
                 style={{
                   position: 'relative', zIndex: 1,
                   color: active ? c.main : 'rgba(100,116,139,0.6)',
-                  filter: active
+                  filter: active && !isIOS()
                     ? `drop-shadow(0 0 6px ${c.main}) drop-shadow(0 0 14px ${c.glow})`
                     : 'none',
                   transition: 'color 0.2s, filter 0.2s',

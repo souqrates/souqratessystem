@@ -47,19 +47,39 @@ BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
 MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
-# Public base URL for Telegram WebApp buttons. Until the production domain
-# (souqrates.com) is wired up via Replit Deployments, fall back to the
-# current Replit dev domain so WebApps actually load. Order of precedence:
+# Public base URL for Telegram WebApp buttons. Order of precedence:
 #   1) Explicit MINI_APP_URL / GAMES_APP_URL / CONTESTS_APP_URL env vars
 #   2) PUBLIC_BASE_URL env var (single override for all three)
-#   3) https://$REPLIT_DEV_DOMAIN (auto-set in dev)
-#   4) https://souqrates.com (production default once DNS is live)
+#   3) https://<first of REPLIT_DOMAINS>  (the canonical published-deploy
+#      domain; always serves the freshest dist that was deployed)
+#   4) https://$REPLIT_DEV_DOMAIN          (dev preview, auto-set in dev)
+#   5) https://souqrates.com               (custom brand domain — last
+#      resort, because if its DNS is pinned to an older host the user
+#      will see a stale build and missing games/features)
+def _resolve_default_base() -> str:
+    explicit = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    replit_domains = os.getenv("REPLIT_DOMAINS", "").strip()
+    if replit_domains:
+        first = replit_domains.split(",")[0].strip()
+        if first:
+            return f"https://{first}".rstrip("/")
+    dev = os.getenv("REPLIT_DEV_DOMAIN", "").strip()
+    if dev:
+        return f"https://{dev}".rstrip("/")
+    return "https://souqrates.com"
+
 _DEV_DOMAIN = os.getenv("REPLIT_DEV_DOMAIN", "").strip()
-_DEFAULT_BASE = os.getenv("PUBLIC_BASE_URL", "").strip() or "https://souqrates.com"
-_DEFAULT_BASE = _DEFAULT_BASE.rstrip("/")
-_BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", f"{_DEFAULT_BASE}/")
-_BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", f"{_DEFAULT_BASE}/games-bot/")
-_BASE_CONTESTS_APP_URL = os.getenv("CONTESTS_APP_URL", f"{_DEFAULT_BASE}/contests-bot-web/")
+_DEFAULT_BASE = _resolve_default_base()
+# IMPORTANT: do NOT honor per-artifact env vars (MINI_APP_URL etc.) anymore.
+# `.replit` ships with MINI_APP_URL = "https://souqrates.com/" pinned to the
+# brand domain, whose DNS currently points at a stale build (missing newer
+# games, wrong tier labels). Always derive from the resolved base; the
+# single supported override is PUBLIC_BASE_URL (set as a Replit secret).
+_BASE_MINI_APP_URL     = f"{_DEFAULT_BASE}/"
+_BASE_GAMES_APP_URL    = f"{_DEFAULT_BASE}/games-bot/"
+_BASE_CONTESTS_APP_URL = f"{_DEFAULT_BASE}/contests-bot-web/"
 BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
 CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
@@ -462,18 +482,159 @@ def topup_stars_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
 
 @router.callback_query(F.data == "topup_card")
 async def cb_topup_card(callback: CallbackQuery, state: FSMContext):
-    """Card top-up via @wallet: user buys USDT/TON with their bank card
-    inside Telegram's official Wallet bot, then sends the crypto to our
-    deposit addresses (shown in the Mini App → Deposit page)."""
+    """Deposit hub — splits into two clear paths so users with an existing
+    wallet aren't forced through onboarding, and users without a wallet
+    get a real install guide instead of being dropped at a raw address."""
     await state.clear()
     lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
-    text = t(lang, "topup_card_body")
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=t(lang, "btn_open_wallet"),  url="https://t.me/wallet")],
-        [InlineKeyboardButton(text=t(lang, "btn_open_deposit"), web_app=WebAppInfo(url=MINI_APP_URL))],
-        [InlineKeyboardButton(text=t(lang, "btn_back_wallet"),  callback_data="wallet")],
+        [InlineKeyboardButton(text=t(lang, "btn_deposit_have_wallet"), callback_data="deposit_have")],
+        [InlineKeyboardButton(text=t(lang, "btn_deposit_no_wallet"),   callback_data="deposit_nowallet")],
+        [InlineKeyboardButton(text=t(lang, "btn_back_wallet"),         callback_data="wallet")],
     ])
-    await _safe_edit(callback, text, kb)
+    await _safe_edit(callback, t(lang, "deposit_hub_body"), kb)
+    await callback.answer()
+
+
+# Deposit preset amounts (kept small + sane — large amounts should be split).
+DEPOSIT_TON_PRESETS  = [0.5, 1, 2, 5, 10, 20]
+DEPOSIT_USDT_PRESETS = [1, 5, 10, 25, 50, 100]
+
+
+@router.callback_query(F.data == "deposit_have")
+async def cb_deposit_have(callback: CallbackQuery, state: FSMContext):
+    """Section 1: user already has a TON/USDT wallet → show preset
+    amounts. Picking one calls the deposit-intent endpoint which assigns
+    a unique memo so the on-chain watcher can credit the user's SKZ
+    balance automatically."""
+    await state.clear()
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    # Two rows of buttons per currency. cb data encodes currency + amount.
+    ton_btns = [InlineKeyboardButton(text=f"💎 {a} TON",
+                                     callback_data=f"deposit_ton:{a}")
+                for a in DEPOSIT_TON_PRESETS]
+    usdt_btns = [InlineKeyboardButton(text=f"💵 {a} USDT",
+                                      callback_data=f"deposit_usdt:{a}")
+                 for a in DEPOSIT_USDT_PRESETS]
+    rows = [
+        [InlineKeyboardButton(text=t(lang, "label_deposit_ton"), callback_data="noop")],
+        ton_btns[0:3],
+        ton_btns[3:6],
+        [InlineKeyboardButton(text=t(lang, "label_deposit_usdt"), callback_data="noop")],
+        usdt_btns[0:3],
+        usdt_btns[3:6],
+        [InlineKeyboardButton(text=t(lang, "btn_back_deposit"), callback_data="topup_card")],
+    ]
+    await _safe_edit(callback, t(lang, "deposit_have_body"),
+                     InlineKeyboardMarkup(inline_keyboard=rows))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "noop")
+async def cb_noop(callback: CallbackQuery):
+    """Section headers are buttons (Telegram doesn't have inline labels);
+    swallow taps silently."""
+    await callback.answer()
+
+
+async def _create_deposit_intent(
+    tg_id: str, currency: str, amount: float
+) -> dict | None:
+    """Call the API's deposit-intent endpoint. Returns
+    {depositAddress, memo, amount, expectedSkz} or None on failure."""
+    path = "ton-deposit-intent" if currency == "ton" else "usdt-deposit-intent"
+    body_key = "amountTon" if currency == "ton" else "amountUsdt"
+    async with httpx.AsyncClient() as http:
+        try:
+            resp = await http.post(
+                f"{MOTHER_API_URL}/internal/{path}",
+                json={"telegramId": tg_id, body_key: amount},
+                headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
+                timeout=15.0,
+            )
+        except httpx.HTTPError as e:
+            logger.warning(f"{path} network error: {e}")
+            return None
+    if resp.status_code != 200:
+        logger.warning(f"{path} failed: {resp.status_code} {resp.text[:200]}")
+        return None
+    return resp.json()
+
+
+@router.callback_query(F.data.startswith("deposit_ton:") | F.data.startswith("deposit_usdt:"))
+async def cb_deposit_amount(callback: CallbackQuery, state: FSMContext):
+    """Generate the per-user deposit intent and show the address + memo
+    + amount. The memo is what links the on-chain transfer back to this
+    user; we surface it as <code> so Telegram makes it tap-to-copy."""
+    await state.clear()
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    try:
+        prefix, raw_amt = callback.data.split(":", 1)
+        amount = float(raw_amt)
+    except (ValueError, IndexError):
+        await callback.answer(t(lang, "err_invalid_amt"), show_alert=True)
+        return
+    currency = "ton" if prefix == "deposit_ton" else "usdt"
+
+    # Belt-and-braces: any unexpected exception below (malformed JSON, missing
+    # keys, render error) must NOT leave the Telegram callback spinner stuck.
+    # We always ack the callback in `finally`.
+    try:
+        data = await _create_deposit_intent(str(callback.from_user.id), currency, amount)
+        if not data or not data.get("depositAddress") or not data.get("memo"):
+            await callback.answer(t(lang, "deposit_intent_err"), show_alert=True)
+            return
+
+        addr = data["depositAddress"]
+        memo = data["memo"]
+        skz = data.get("expectedSkz", "?")
+        body_key = "deposit_ready_ton" if currency == "ton" else "deposit_ready_usdt"
+        amt_str = f"{amount:g}"  # 1.0 → "1", 0.5 → "0.5"
+        text = t(lang, body_key, amt=amt_str, addr=addr, memo=memo, skz=skz)
+
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t(lang, "btn_back_deposit"), callback_data="deposit_have")],
+            [InlineKeyboardButton(text=t(lang, "btn_back_wallet"),  callback_data="wallet")],
+        ])
+        await _safe_edit(callback, text, kb)
+    except Exception:
+        logger.exception("cb_deposit_amount failed")
+        try:
+            await callback.answer(t(lang, "deposit_intent_err"), show_alert=True)
+            return
+        except Exception:
+            pass
+    finally:
+        # Safe to call twice — Telegram tolerates a no-op second answer.
+        try:
+            await callback.answer()
+        except Exception:
+            pass
+
+
+# Public TON Keeper download URLs (official, verified). Hard-coded
+# rather than env vars because they're brand-stable.
+TONKEEPER_APPSTORE_URL  = "https://apps.apple.com/app/tonkeeper/id1587742107"
+TONKEEPER_PLAYSTORE_URL = "https://play.google.com/store/apps/details?id=com.ton_keeper"
+
+
+@router.callback_query(F.data == "deposit_nowallet")
+async def cb_deposit_nowallet(callback: CallbackQuery, state: FSMContext):
+    """Section 2: user has no crypto wallet → install + Visa top-up
+    guide for TON Keeper. The small-print line about future earnings
+    going to this wallet is part of the body, not a separate message,
+    so users see it before they finish onboarding."""
+    await state.clear()
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=t(lang, "btn_appstore_tonkeeper"),  url=TONKEEPER_APPSTORE_URL),
+            InlineKeyboardButton(text=t(lang, "btn_playstore_tonkeeper"), url=TONKEEPER_PLAYSTORE_URL),
+        ],
+        [InlineKeyboardButton(text=t(lang, "btn_deposit_have_wallet"), callback_data="deposit_have")],
+        [InlineKeyboardButton(text=t(lang, "btn_back_deposit"),        callback_data="topup_card")],
+    ])
+    await _safe_edit(callback, t(lang, "deposit_no_wallet_body"), kb)
     await callback.answer()
 
 

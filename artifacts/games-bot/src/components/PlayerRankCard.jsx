@@ -7,6 +7,7 @@ import {
 import useAppStore from '../store/appStore';
 import { fetchGamification } from '../lib/gamification';
 import { rankProgress, RANKS } from '../lib/ranks';
+import { isIOS } from '../lib/deviceProfile';
 
 const ICONS = {
   sprout: Sprout, sparkles: Sparkles, rocket: Rocket, swords: Swords, shield: Shield,
@@ -123,11 +124,15 @@ export default function PlayerRankCard() {
                   background: rank.grad,
                   boxShadow: `0 0 16px ${rank.glow}`,
                 }}>
-                <motion.span
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
-                  className="absolute inset-y-0 w-1/3 pointer-events-none"
-                  style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }} />
+                {/* Continuous shimmer is a known iOS WebView strobe
+                    source — keep static highlight on iOS. */}
+                {!isIOS() && (
+                  <motion.span
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+                    className="absolute inset-y-0 w-1/3 pointer-events-none"
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }} />
+                )}
               </motion.div>
             </div>
 

@@ -93,7 +93,7 @@ TR: dict[str, dict[str, str]] = {
                           "en": "<b>Total Earned:</b>    <code>{n}</code> SKZ"},
     "total_withdrawn":   {"ar": "<b>إجمالي السحوبات:</b>  <code>{n}</code> SKZ",
                           "en": "<b>Total Withdrawn:</b> <code>{n}</code> SKZ"},
-    "btn_topup_card":    {"ar": "💳 شحن بالبطاقة",      "en": "💳 Card Top-up"},
+    "btn_topup_card":    {"ar": "💎 إيداع TON/USDT",    "en": "💎 Deposit TON/USDT"},
     "btn_topup_stars":   {"ar": "⭐ شحن بـ Stars",       "en": "⭐ Stars Top-up"},
     # Errors / common toasts
     "err_fetch_data":    {"ar": "❌ خطأ في جلب البيانات", "en": "❌ Error fetching data"},
@@ -117,30 +117,112 @@ TR: dict[str, dict[str, str]] = {
                                   "⭐ Paid: <b>{stars}</b> Stars\n"
                                   "⚡ Credited: <b>{skz}</b> SKZ\n"
                                   "💰 New balance: <b>{bal}</b> SKZ")},
-    # Top-up
-    "topup_card_body":   {"ar": ("💳 <b>الشحن بالبطاقة عبر @wallet</b>\n\n"
-                                  "اشترِ <b>USDT</b> أو <b>TON</b> بالفيزا/ماستركارد من محفظة تيليغرام "
-                                  "الرسمية <b>@wallet</b>، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت "
-                                  "ليُحوَّل تلقائياً إلى SKZ.\n\n"
+    # ── Deposit hub (split flow: has-wallet vs needs-wallet) ────────────
+    "btn_topup_card_label": {"ar": "💎 إيداع TON/USDT", "en": "💎 Deposit TON/USDT"},
+    "deposit_hub_body":  {"ar": ("💎 <b>الإيداع</b>\n\n"
+                                  "اختر الطريقة الأنسب لك:\n\n"
+                                  "• إذا كانت لديك محفظة <b>TON Keeper</b> أو أي محفظة تدعم TON/USDT-Jetton، "
+                                  "اختر <b>«لديّ محفظة رقمية»</b> وأرسل المبلغ مباشرة.\n"
+                                  "• إذا لم تكن لديك محفظة بعد، اختر <b>«أحتاج إنشاء محفظة»</b> "
+                                  "وسنرشدك خطوة بخطوة (لا تستغرق أكثر من <b>5 دقائق</b>)."),
+                          "en": ("💎 <b>Deposit</b>\n\n"
+                                  "Choose the option that fits you:\n\n"
+                                  "• If you already have a <b>TON Keeper</b> wallet (or any wallet that "
+                                  "supports TON / USDT-Jetton on TON), pick <b>“I have a wallet”</b> and "
+                                  "send directly.\n"
+                                  "• If you don't have a wallet yet, pick <b>“I need a wallet”</b> and we'll "
+                                  "walk you through it (takes less than <b>5 minutes</b>).")},
+    "btn_deposit_have_wallet": {"ar": "👛 لديّ محفظة رقمية", "en": "👛 I have a wallet"},
+    "btn_deposit_no_wallet":   {"ar": "🆕 أحتاج إنشاء محفظة", "en": "🆕 I need a wallet"},
+
+    # Section 1 — direct deposit (presets)
+    "deposit_have_body": {"ar": ("👛 <b>الإيداع المباشر</b>\n\n"
+                                  "أرسل <b>TON</b> أو <b>USDT</b> (شبكة TON) من محفظتك إلى عنوان البوت، "
+                                  "وسيُحوَّل المبلغ تلقائياً إلى رصيد <b>SKZ</b> بعد تأكيد الشبكة "
+                                  "(عادة 1–5 دقائق).\n\n"
+                                  "اختر العملة والمبلغ لإنشاء عنوان إيداع مخصّص بمذكرة (memo) خاصة بك:"),
+                          "en": ("👛 <b>Direct deposit</b>\n\n"
+                                  "Send <b>TON</b> or <b>USDT</b> (TON network) from your wallet to the "
+                                  "bot's address — it auto-converts to your <b>SKZ</b> balance once the "
+                                  "network confirms (usually 1–5 minutes).\n\n"
+                                  "Pick a currency and amount to generate a deposit address with your "
+                                  "unique memo:")},
+    "label_deposit_ton":   {"ar": "💎 TON",  "en": "💎 TON"},
+    "label_deposit_usdt":  {"ar": "💵 USDT", "en": "💵 USDT"},
+    "deposit_ready_ton":  {"ar": ("💎 <b>إيداع {amt} TON</b>\n\n"
+                                  "أرسل بالضبط <b>{amt} TON</b> إلى:\n\n"
+                                  "📬 <b>العنوان:</b>\n<code>{addr}</code>\n\n"
+                                  "📝 <b>المذكرة (memo / comment):</b>\n<code>{memo}</code>\n\n"
+                                  "⚡ ستحصل على ~ <b>{skz} SKZ</b> فور تأكيد الشبكة.\n\n"
+                                  "⚠️ <b>إلزامي:</b> ضع الـmemo في حقل الرسالة/التعليق داخل محفظتك، "
+                                  "وإلا لن يُربط الإيداع بحسابك."),
+                          "en": ("💎 <b>Deposit {amt} TON</b>\n\n"
+                                  "Send exactly <b>{amt} TON</b> to:\n\n"
+                                  "📬 <b>Address:</b>\n<code>{addr}</code>\n\n"
+                                  "📝 <b>Memo (comment):</b>\n<code>{memo}</code>\n\n"
+                                  "⚡ You'll receive ~ <b>{skz} SKZ</b> once the network confirms.\n\n"
+                                  "⚠️ <b>Required:</b> set the memo in the message/comment field inside "
+                                  "your wallet, otherwise the deposit won't be linked to your account.")},
+    "deposit_ready_usdt": {"ar": ("💵 <b>إيداع {amt} USDT</b>\n\n"
+                                  "أرسل بالضبط <b>{amt} USDT</b> (شبكة TON / Jetton) إلى:\n\n"
+                                  "📬 <b>العنوان:</b>\n<code>{addr}</code>\n\n"
+                                  "📝 <b>المذكرة (memo / comment):</b>\n<code>{memo}</code>\n\n"
+                                  "⚡ ستحصل على ~ <b>{skz} SKZ</b> فور تأكيد الشبكة.\n\n"
+                                  "⚠️ <b>إلزامي:</b> ضع الـmemo في حقل الرسالة/التعليق داخل محفظتك، "
+                                  "وإلا لن يُربط الإيداع بحسابك."),
+                          "en": ("💵 <b>Deposit {amt} USDT</b>\n\n"
+                                  "Send exactly <b>{amt} USDT</b> (TON network / Jetton) to:\n\n"
+                                  "📬 <b>Address:</b>\n<code>{addr}</code>\n\n"
+                                  "📝 <b>Memo (comment):</b>\n<code>{memo}</code>\n\n"
+                                  "⚡ You'll receive ~ <b>{skz} SKZ</b> once the network confirms.\n\n"
+                                  "⚠️ <b>Required:</b> set the memo in the message/comment field inside "
+                                  "your wallet, otherwise the deposit won't be linked to your account.")},
+    "deposit_intent_err": {"ar": "تعذّر إنشاء عنوان الإيداع، حاول لاحقاً.",
+                          "en": "Could not create deposit address, please try again."},
+
+    # Section 2 — install TON Keeper guide
+    "deposit_no_wallet_body": {"ar": ("🆕 <b>إنشاء محفظة في 5 دقائق</b>\n\n"
+                                  "محفظة <b>TON Keeper</b> هي الأسرع والأبسط — تعمل على iPhone و Android "
+                                  "وتقبل الشحن بـ <b>Visa / Mastercard</b> مباشرة بدون KYC.\n\n"
                                   "<b>الخطوات:</b>\n"
-                                  "1️⃣ افتح <b>@wallet</b> واشترِ USDT (TRC20) أو TON بالبطاقة.\n"
-                                  "2️⃣ ارجع إلى هنا واضغط <b>🚀 افتح التطبيق → 💸 إيداع</b>.\n"
-                                  "3️⃣ انسخ عنوان الإيداع المطابق للعملة وأرسل المبلغ من @wallet.\n"
-                                  "4️⃣ يُضاف رصيد <b>SKZ</b> تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة. ⚡"),
-                          "en": ("💳 <b>Card top-up via @wallet</b>\n\n"
-                                  "Buy <b>USDT</b> or <b>TON</b> with Visa/Mastercard inside Telegram's "
-                                  "official <b>@wallet</b>, then send the crypto to the bot's deposit "
-                                  "address — it auto-converts to SKZ.\n\n"
+                                  "1️⃣ <b>نزّل التطبيق</b> من الزر المناسب أدناه.\n"
+                                  "2️⃣ افتح التطبيق ← <b>«إنشاء محفظة جديدة»</b> ← احفظ الكلمات الـ24 "
+                                  "في مكان آمن.\n"
+                                  "3️⃣ اضغط <b>«Buy» / «شراء»</b> داخل التطبيق ← اختر <b>TON</b> أو <b>USDT</b> "
+                                  "← ادفع بالفيزا (يصل خلال دقائق).\n"
+                                  "4️⃣ من شاشة المحفظة اضغط <b>«Send» / «إرسال»</b> ← الصق "
+                                  "<b>عنوان البوت</b> ← أدخل المبلغ ← الصق <b>المذكرة (memo)</b> ← أرسل.\n"
+                                  "5️⃣ ارجع هنا واضغط <b>«لديّ محفظة رقمية»</b> للحصول على العنوان والـmemo "
+                                  "الخاصَّين بك.\n\n"
+                                  "💡 العملية كاملة لا تأخذ أكثر من <b>5 دقائق</b>.\n\n"
+                                  "<i>ℹ️ ملاحظة صغيرة: أرباحك المستقبلية سترسَل إلى محفظتك في TON Keeper، "
+                                  "لذا وجودها ضروري للمرحلة القادمة من المنصّة.</i>"),
+                          "en": ("🆕 <b>Create a wallet in 5 minutes</b>\n\n"
+                                  "<b>TON Keeper</b> is the fastest and simplest option — runs on iPhone "
+                                  "and Android, and lets you top up with <b>Visa / Mastercard</b> directly "
+                                  "(no KYC).\n\n"
                                   "<b>Steps:</b>\n"
-                                  "1️⃣ Open <b>@wallet</b> and buy USDT (TRC20) or TON with your card.\n"
-                                  "2️⃣ Come back here and tap <b>🚀 Open App → 💸 Deposit</b>.\n"
-                                  "3️⃣ Copy the deposit address for that currency and send from @wallet.\n"
-                                  "4️⃣ <b>SKZ</b> is credited automatically within 2-5 minutes once the network confirms. ⚡")},
+                                  "1️⃣ <b>Install the app</b> from the appropriate button below.\n"
+                                  "2️⃣ Open the app → <b>“Create new wallet”</b> → store the 24 words in a "
+                                  "safe place.\n"
+                                  "3️⃣ Tap <b>“Buy”</b> inside the app → pick <b>TON</b> or <b>USDT</b> → "
+                                  "pay with Visa (arrives in minutes).\n"
+                                  "4️⃣ From the wallet screen tap <b>“Send”</b> → paste the <b>bot's "
+                                  "address</b> → enter the amount → paste the <b>memo</b> → send.\n"
+                                  "5️⃣ Come back here and tap <b>“I have a wallet”</b> to get your own "
+                                  "address and memo.\n\n"
+                                  "💡 The whole thing takes less than <b>5 minutes</b>.\n\n"
+                                  "<i>ℹ️ Small note: your future earnings will be sent to your TON Keeper "
+                                  "wallet, so having one is essential for the next stage of the platform.</i>")},
+    "btn_appstore_tonkeeper": {"ar": "🍏 App Store", "en": "🍏 App Store"},
+    "btn_playstore_tonkeeper": {"ar": "🤖 Google Play", "en": "🤖 Google Play"},
+
     "btn_open_wallet":   {"ar": "💳 افتح @wallet للشراء بالبطاقة",
                           "en": "💳 Open @wallet to buy with card"},
     "btn_open_deposit":  {"ar": "💸 افتح صفحة الإيداع",
                           "en": "💸 Open deposit page"},
     "btn_back_wallet":   {"ar": "🔙 المحفظة",            "en": "🔙 Wallet"},
+    "btn_back_deposit":  {"ar": "🔙 رجوع",               "en": "🔙 Back"},
     "topup_stars_body":  {"ar": ("⭐ <b>شحن الرصيد بـ Telegram Stars</b>\n\n"
                                   "ادفع داخل تيليغرام مباشرة بدون خروج من المحادثة.\n"
                                   "يُضاف رصيد <b>SKZ</b> فور تأكيد الدفع تلقائياً.\n\n"
