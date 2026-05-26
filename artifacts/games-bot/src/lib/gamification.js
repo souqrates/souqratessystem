@@ -6,9 +6,14 @@ let _userStateCache = null;
 let _userStateCacheAt = 0;
 const USER_STATE_TTL = 5000;
 
-async function fetchUserState() {
+export function invalidateUserState() {
+  _userStateCache = null;
+  _userStateCacheAt = 0;
+}
+
+async function fetchUserState({ force = false } = {}) {
   const now = Date.now();
-  if (_userStateCache && now - _userStateCacheAt < USER_STATE_TTL) return _userStateCache;
+  if (!force && _userStateCache && now - _userStateCacheAt < USER_STATE_TTL) return _userStateCache;
   const sid = getVerifiedSession()?.session_id;
   if (!sid) return null;
   const { data, error } = await supabase.rpc('gm_get_user_state', { p_session_id: sid });
@@ -44,10 +49,19 @@ export async function fetchStreak() {
   return streak && Object.keys(streak).length ? streak : null;
 }
 
+async function notifyGamificationChange() {
+  invalidateUserState();
+  try {
+    const mod = await import('../store/appStore');
+    mod.default.getState().bumpGamification?.();
+  } catch { /* non-fatal */ }
+}
+
 export async function claimDailyStreak(telegramId) {
   if (!telegramId) return null;
   const { data, error } = await supabase.rpc('claim_daily_streak', { p_telegram_id: telegramId });
   if (error) return null;
+  await notifyGamificationChange();
   return Array.isArray(data) ? data[0] : data;
 }
 
@@ -55,6 +69,7 @@ export async function awardXp(telegramId, amount) {
   if (!telegramId || !amount || amount <= 0) return null;
   const { data, error } = await supabase.rpc('award_xp', { p_telegram_id: telegramId, p_amount: amount });
   if (error) return null;
+  await notifyGamificationChange();
   return Array.isArray(data) ? data[0] : data;
 }
 
@@ -62,6 +77,7 @@ export async function unlockAchievement(telegramId, code) {
   if (!telegramId || !code) return null;
   const { data, error } = await supabase.rpc('unlock_achievement', { p_telegram_id: telegramId, p_code: code });
   if (error) return null;
+  await notifyGamificationChange();
   return Array.isArray(data) ? data[0] : data;
 }
 
@@ -73,11 +89,8 @@ export async function recordGameEnd(telegramId, won, difficulty = 'Medium') {
     p_difficulty: String(difficulty || 'Medium'),
   });
   if (error) return null;
-  // Signal subscribers (rank card, dashboard) that XP changed so they re-fetch.
-  try {
-    const mod = await import('../store/appStore');
-    mod.default.getState().bumpGamification?.();
-  } catch { /* non-fatal */ }
+  // Invalidate cache + signal subscribers (rank card, dashboard) to re-fetch.
+  await notifyGamificationChange();
   return Array.isArray(data) ? data[0] : data;
 }
 
