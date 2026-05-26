@@ -1,0 +1,50 @@
+;;
+;; Domain:     souqrates.com.
+;; Exported:   2026-05-26 08:45:09
+;;
+;; This file is intended for use for informational and archival
+;; purposes ONLY and MUST be edited before use on a production
+;; DNS server.  In particular, you must:
+;;   -- update the SOA record with the correct authoritative name server
+;;   -- update the SOA record with the contact e-mail address information
+;;   -- update the NS record(s) with the authoritative name servers for this domain.
+;;
+;; For further information, please consult the BIND documentation
+;; located on the following website:
+;;
+;; http://www.isc.org/
+;;
+;; And RFC 1035:
+;;
+;; http://www.ietf.org/rfc/rfc1035.txt
+;;
+;; Please note that we do NOT offer technical support for any use
+;; of this zone data, the BIND name server, or any other third-party
+;; DNS software.
+;;
+;; Use at your own risk.
+;; SOA Record
+souqrates.com	3600	IN	SOA	gemma.ns.cloudflare.com. dns.cloudflare.com. 2053145170 10000 2400 604800 3600
+
+;; NS Records
+souqrates.com.	86400	IN	NS	gemma.ns.cloudflare.com.
+souqrates.com.	86400	IN	NS	jaime.ns.cloudflare.com.
+
+;; A Records
+souqrates.com.	1	IN	A	34.117.33.233 ; Replit Deployments cf_tags=cf-proxied:false
+www.souqrates.com.	1	IN	A	34.117.33.233 ; cf_tags=cf-proxied:false
+
+;; AAAA Records
+souqrates.com.	1	IN	AAAA	2600:1901:0:e91d:: ; Replit Deployments cf_tags=cf-proxied:false
+www.souqrates.com.	1	IN	AAAA	2600:1901:0:e91d:: ; cf_tags=cf-proxied:false
+
+;; MX Records
+souqrates.com.	1	IN	MX	50 mx3.zoho.com.
+souqrates.com.	1	IN	MX	20 mx2.zoho.com.
+souqrates.com.	1	IN	MX	10 mx.zoho.com.
+
+;; TXT Records
+_dmarc.souqrates.com.	1	IN	TXT	"v=DMARC1; p=none;"
+souqrates.com.	1	IN	TXT	"v=spf1 include:zohomail.com include:resend.io ~all"
+souqrates.com.	1	IN	TXT	"replit-verify=f1632180-4b98-4913-9899-bdfe8e5779df"
+www.souqrates.com.	1	IN	TXT	"replit-verify=f1632180-4b98-4913-9899-bdfe8e5779df"
