@@ -8,7 +8,6 @@ import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
 import GamificationCard from '../components/GamificationCard';
 import PlayerRankCard from '../components/PlayerRankCard';
-import TrialTimer from '../components/TrialTimer';
 import ProfileEditModal from '../components/ProfileEditModal';
 import DailyStreakCard from '../components/DailyStreakCard';
 import ShareProfileCard from '../components/ShareProfileCard';
@@ -219,11 +218,6 @@ export default function Dashboard() {
           />
         </motion.div>
       )}
-
-      {/* TRIAL TIMER */}
-      <motion.div variants={item}>
-        <TrialTimer />
-      </motion.div>
 
       {/* PLAY NOW */}
       <motion.button
