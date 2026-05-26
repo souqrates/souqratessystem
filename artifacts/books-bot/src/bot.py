@@ -34,7 +34,18 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
+
+from i18n import (
+    t,
+    get_user_lang,
+    set_user_lang,
+    lang_keyboard,
+    invalidate_lang_cache,
+    DEFAULT_LANG,
+    LANGS,
+)
 
 # ── Upload limits (must mirror api-server /internal/books/upload-url) ────────
 COVER_MAX_BYTES = 5 * 1024 * 1024     # 5 MB
@@ -111,18 +122,21 @@ class Publish(StatesGroup):
 
 
 # ── Keyboards ───────────────────────────────────────────────────────────────
-def main_kb() -> InlineKeyboardMarkup:
+def main_kb(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📚 تصفح الكتب", callback_data="browse")],
-        [InlineKeyboardButton(text="📤 نشر كتاب", callback_data="pub_start"),
-         InlineKeyboardButton(text="📂 مكتبتي", callback_data="my_lib")],
-        [InlineKeyboardButton(text="💰 رصيدي", callback_data="wallet"),
-         InlineKeyboardButton(text="🌐 المتجر", url=WEB_URL)],
+        [InlineKeyboardButton(text=t(lang, "btn_browse"),  callback_data="browse")],
+        [InlineKeyboardButton(text=t(lang, "btn_publish"), callback_data="pub_start"),
+         InlineKeyboardButton(text=t(lang, "btn_library"), callback_data="my_lib")],
+        [InlineKeyboardButton(text=t(lang, "btn_wallet"),  callback_data="wallet"),
+         InlineKeyboardButton(text="🌐 SOUQ Web", url=WEB_URL)],
+        [InlineKeyboardButton(text="🌐 Language / اللغة", callback_data="lang_menu")],
     ])
 
 
-def back_kb(cb: str = "menu") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 رجوع", callback_data=cb)]])
+def back_kb(cb: str = "menu", lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=t(lang, "btn_back"), callback_data=cb)]
+    ])
 
 
 # ── Bot command menu (single source of truth for /setcommands) ──────────────
@@ -136,6 +150,7 @@ COMMANDS: list[BotCommand] = [
     BotCommand(command="publish", description="نشر كتاب جديد للمراجعة"),
     BotCommand(command="library", description="مكتبتي (مشترياتي وإصداراتي)"),
     BotCommand(command="wallet",  description="رصيد محفظتي بـ SKZ"),
+    BotCommand(command="lang",    description="🌐 تغيير اللغة (عربي / إنجليزي)"),
     BotCommand(command="help",    description="عرض قائمة الأوامر والمساعدة"),
 ]
 
@@ -153,6 +168,7 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
         BotCommand(command="publish", description="Submit a new book for review"),
         BotCommand(command="library", description="My library (purchases & publications)"),
         BotCommand(command="wallet",  description="My SKZ wallet balance"),
+        BotCommand(command="lang",    description="🌐 Change language (Arabic / English)"),
         BotCommand(command="help",    description="Show commands list and help"),
     ],
     "ru": [
@@ -234,14 +250,69 @@ async def cmd_start(message: Message, state: FSMContext):
                 await message.answer(txt, parse_mode="HTML", reply_markup=kb)
                 return
 
-    title = await texts.get("welcome_title", "❖ أهلًا بك في SOUQRATES SOUQ")
-    body = await texts.get(
-        "welcome_body",
-        "متجر الكتب والمنتجات الرقمية على تيليجرام.\n"
-        "اشترِ ما يلهمك، أو انشر إبداعك واربح بكل بيع.\n\n"
-        "العملة الموحدة: <b>SKZ</b> ⚡",
+    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
+    # English speakers get the static bilingual welcome (no admin override yet).
+    # Arabic continues to use admin-editable copy via the texts cache so panel
+    # tweaks still propagate without a code change.
+    if lang == "en":
+        await message.answer(t("en", "welcome"), parse_mode="HTML", reply_markup=main_kb(lang))
+    else:
+        title = await texts.get("welcome_title", "❖ أهلًا بك في SOUQRATES SOUQ")
+        body = await texts.get(
+            "welcome_body",
+            "متجر الكتب والمنتجات الرقمية على تيليجرام.\n"
+            "اشترِ ما يلهمك، أو انشر إبداعك واربح بكل بيع.\n\n"
+            "العملة الموحدة: <b>SKZ</b> ⚡",
+        )
+        await message.answer(f"{title}\n\n{body}", parse_mode="HTML", reply_markup=main_kb(lang))
+
+
+# ── /lang — let the user pick Arabic / English ────────────────────────────
+@router.message(Command("lang"))
+async def cmd_lang(message: Message, state: FSMContext):
+    await state.clear()
+    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
+    await message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+
+
+@router.callback_query(F.data == "lang_menu")
+async def cb_lang_menu(cb: CallbackQuery):
+    lang = await get_user_lang(str(cb.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
+    try:
+        await cb.message.edit_text(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    except TelegramBadRequest:
+        await cb.message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def cb_lang_set(cb: CallbackQuery):
+    parts = (cb.data or "").split(":", 1)
+    new_lang = parts[1] if len(parts) == 2 else ""
+    if not new_lang or new_lang not in LANGS:
+        await cb.answer("❌", show_alert=False)
+        return
+    tg_id = str(cb.from_user.id)
+    ok = await set_user_lang(
+        tg_id, new_lang,
+        MOTHER_API_URL, BOOKS_BOT_API_KEY,
+        first_name=cb.from_user.first_name or "User",
+        username=cb.from_user.username,
     )
-    await message.answer(f"{title}\n\n{body}", parse_mode="HTML", reply_markup=main_kb())
+    if not ok:
+        await cb.answer(t(new_lang, "lang_set_fail"), show_alert=True)
+        return
+    invalidate_lang_cache(tg_id)
+    await cb.answer(t(new_lang, "lang_set_ok"), show_alert=False)
+    try:
+        await cb.message.edit_text(
+            t(new_lang, "welcome") if new_lang == "en" else
+            "❖ <b>SOUQRATES SOUQ</b>\n\nاختر إجراءً:",
+            parse_mode="HTML",
+            reply_markup=main_kb(new_lang),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 @router.callback_query(F.data == "menu")

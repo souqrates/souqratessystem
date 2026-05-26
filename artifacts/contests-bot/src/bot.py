@@ -37,7 +37,17 @@ from aiogram.types import (
     WebAppInfo,
 )
 
+from aiogram.exceptions import TelegramBadRequest
 from client import ContestsBotClient
+from i18n import (
+    t,
+    get_user_lang,
+    set_user_lang,
+    lang_keyboard,
+    invalidate_lang_cache,
+    DEFAULT_LANG,
+    LANGS,
+)
 
 # ── Configuration ──────────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv("CONTESTS_BOT_TOKEN")
@@ -60,6 +70,7 @@ COMMANDS: list[BotCommand] = [
     BotCommand(command="packs",  description="🎟 باقات التصويت المدفوعة"),
     BotCommand(command="mybal",  description="💼 رصيد أصواتي ومكافآتي"),
     BotCommand(command="wallet", description="💰 محفظتي بـ SKZ"),
+    BotCommand(command="lang",   description="🌐 تغيير اللغة (عربي / إنجليزي)"),
     BotCommand(command="help",   description="عرض المساعدة وقواعد التصويت"),
 ]
 
@@ -72,6 +83,7 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
         BotCommand(command="packs",  description="🎟 Buy vote packs"),
         BotCommand(command="mybal",  description="💼 My votes & bonus files"),
         BotCommand(command="wallet", description="💰 My SKZ wallet"),
+        BotCommand(command="lang",   description="🌐 Change language (Arabic / English)"),
         BotCommand(command="help",   description="Help and voting rules"),
     ],
 }
@@ -213,6 +225,56 @@ async def cmd_start(message: Message):
         logger.error(f"upsert_user failed: {e}")
     body, kb = await render_home(str(message.from_user.id))
     await message.answer(body, reply_markup=kb, disable_web_page_preview=True)
+
+
+# ── /lang — let the user pick Arabic / English ────────────────────────────
+@router.message(Command("lang"))
+async def cmd_lang(message: Message):
+    if message.from_user is None:
+        return
+    lang = await get_user_lang(str(message.from_user.id), API_URL, API_KEY)
+    await message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+
+
+@router.callback_query(F.data == "lang_menu")
+async def cb_lang_menu(cb: CallbackQuery):
+    if cb.from_user is None or cb.message is None:
+        return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
+    try:
+        await cb.message.edit_text(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    except TelegramBadRequest:
+        await cb.message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def cb_lang_set(cb: CallbackQuery):
+    if cb.from_user is None or cb.message is None or cb.data is None:
+        return
+    parts = cb.data.split(":", 1)
+    new_lang = parts[1] if len(parts) == 2 else ""
+    if not new_lang or new_lang not in LANGS:
+        await cb.answer("❌", show_alert=False)
+        return
+    tg_id = str(cb.from_user.id)
+    ok = await set_user_lang(
+        tg_id, new_lang,
+        API_URL, API_KEY,
+        first_name=cb.from_user.first_name or "User",
+        username=cb.from_user.username,
+    )
+    if not ok:
+        await cb.answer(t(new_lang, "lang_set_fail"), show_alert=True)
+        return
+    invalidate_lang_cache(tg_id)
+    await cb.answer(t(new_lang, "lang_set_ok"), show_alert=False)
+    # Re-render home in the new language so the change is visible immediately.
+    try:
+        body, kb = await render_home(tg_id)
+        await cb.message.edit_text(body, reply_markup=kb, disable_web_page_preview=True)
+    except TelegramBadRequest:
+        pass
 
 
 @router.callback_query(F.data == "home")

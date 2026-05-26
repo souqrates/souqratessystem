@@ -319,6 +319,11 @@ router.post("/internal/users/upsert", async (req, res): Promise<void> => {
         firstName,
         lastName: lastName ?? null,
         isPremium: isPremium ?? false,
+        // Only overwrite languageCode when the caller explicitly sent one.
+        // This lets the /lang command persist the user's choice via upsert
+        // without other code paths (e.g. games-bot upsert from web init data)
+        // accidentally resetting it back to the Telegram client locale.
+        ...(languageCode ? { languageCode } : {}),
         updatedAt: new Date(),
       },
     })

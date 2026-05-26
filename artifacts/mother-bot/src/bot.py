@@ -28,6 +28,15 @@ from aiogram.fsm.storage.memory import MemoryStorage
 import httpx
 from dotenv import load_dotenv
 from client import MotherBotClient
+from i18n import (
+    t,
+    get_user_lang,
+    set_user_lang,
+    lang_keyboard,
+    invalidate_lang_cache,
+    DEFAULT_LANG,
+    LANGS,
+)
 
 load_dotenv()
 
@@ -84,6 +93,7 @@ router = Router()
 COMMANDS: list[BotCommand] = [
     BotCommand(command="start",   description="Open the main menu and your wallet"),
     BotCommand(command="balance", description="Show SKZ / USDT / Stars / TON balances"),
+    BotCommand(command="lang",    description="🌐 Change language (Arabic / English)"),
 ]
 
 # Extra commands published only to admin chats (scope=BotCommandScopeChat per
@@ -102,6 +112,7 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
     "ar": [
         BotCommand(command="start",   description="فتح القائمة الرئيسية والمحفظة"),
         BotCommand(command="balance", description="عرض أرصدة SKZ / USDT / Stars / TON"),
+        BotCommand(command="lang",    description="🌐 تغيير اللغة (عربي / إنجليزي)"),
     ],
     "ru": [
         BotCommand(command="start",   description="Открыть главное меню и кошелёк"),
@@ -147,12 +158,17 @@ async def api_upsert_user(user) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{MOTHER_API_URL}/internal/users/upsert",
+            # NOTE: We deliberately do NOT send `languageCode` here.
+            # `/internal/users/upsert` only overwrites it when the caller
+            # passes one explicitly, so routine upserts on /start preserve
+            # any explicit `/lang` choice the user made earlier. The only
+            # path that should ever set `languageCode` is `set_user_lang()`
+            # in i18n.py.
             json={
                 "telegramId": str(user.id),
                 "username": user.username,
                 "firstName": user.first_name or "User",
                 "lastName": user.last_name,
-                "languageCode": user.language_code or "en",
                 "isPremium": getattr(user, "is_premium", False),
             },
             headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
@@ -177,49 +193,37 @@ async def api_get_wallet(telegram_id: str) -> dict | None:
 
 # ── Keyboards ────────────────────────────────────────────────────────────────
 
-def main_keyboard() -> InlineKeyboardMarkup:
-    """Main menu — big open-app button on top, quick actions below."""
+def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    """Main menu — big open-app button on top, quick actions below.
+    Labels are localised by the caller-provided `lang` (ar/en)."""
     return InlineKeyboardMarkup(inline_keyboard=[
         # ① Launch the full Mini App
-        [
-            InlineKeyboardButton(
-                text="🚀 Open SKZ Platform",
-                web_app=WebAppInfo(url=MINI_APP_URL),
-            )
-        ],
+        [InlineKeyboardButton(text=t(lang, "btn_open_platform"),
+                              web_app=WebAppInfo(url=MINI_APP_URL))],
         # ② Launch Games
-        [
-            InlineKeyboardButton(
-                text="🎮 Play Games",
-                web_app=WebAppInfo(url=GAMES_APP_URL),
-            )
-        ],
+        [InlineKeyboardButton(text=t(lang, "btn_play_games"),
+                              web_app=WebAppInfo(url=GAMES_APP_URL))],
         # ②.5 Launch Books (jumps user into the books child bot via deep-link)
+        [InlineKeyboardButton(text="❖ SOUQRATES SOUQ",
+                              url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother")],
+        # ②.6 Launch Contests / Voting Mini App inline
+        [InlineKeyboardButton(text="★ SOUQRATES STAGE",
+                              web_app=WebAppInfo(url=CONTESTS_APP_URL))],
+        # ③ Quick text shortcuts (localised)
         [
-            InlineKeyboardButton(
-                text="❖ SOUQRATES SOUQ",
-                url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother",
-            )
-        ],
-        # ②.6 Launch Contests / Voting Mini App inline (no bot hop)
-        [
-            InlineKeyboardButton(
-                text="★ SOUQRATES STAGE",
-                web_app=WebAppInfo(url=CONTESTS_APP_URL),
-            )
-        ],
-        # ③ Quick text shortcuts
-        [
-            InlineKeyboardButton(text="💰 Balance",      callback_data="wallet"),
-            InlineKeyboardButton(text="📊 Transactions", callback_data="transactions"),
+            InlineKeyboardButton(text=t(lang, "btn_balance"),      callback_data="wallet"),
+            InlineKeyboardButton(text=t(lang, "btn_transactions"), callback_data="transactions"),
         ],
         [
-            InlineKeyboardButton(text="💸 Withdraw",     callback_data="withdraw"),
-            InlineKeyboardButton(text="🤝 Referral",     callback_data="referral"),
+            InlineKeyboardButton(text=t(lang, "btn_withdraw"), callback_data="withdraw"),
+            InlineKeyboardButton(text=t(lang, "btn_referral"), callback_data="referral"),
         ],
         [
-            InlineKeyboardButton(text="ℹ️ Help",         callback_data="help"),
-            InlineKeyboardButton(text="☰ المزيد",        callback_data="info_menu"),
+            InlineKeyboardButton(text=t(lang, "btn_help"), callback_data="help"),
+            InlineKeyboardButton(text=t(lang, "btn_lang"), callback_data="lang_menu"),
+        ],
+        [
+            InlineKeyboardButton(text=t(lang, "btn_more"), callback_data="info_menu"),
         ],
     ])
 
@@ -257,6 +261,7 @@ def back_keyboard() -> InlineKeyboardMarkup:
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     first_name = message.from_user.first_name or "User"
+    tg_id = str(message.from_user.id)
 
     # 1. Upsert — registers / updates the user record. Fire regardless of wallet.
     try:
@@ -266,10 +271,10 @@ async def cmd_start(message: Message):
         logger.error(f"Upsert failed: {e}")
 
     # 2. Always fetch balance fresh — ensures any admin credit/debit is visible.
-    skz_bal  = 0
+    skz_bal  = 0.0
     usdt_bal = 0.0
     try:
-        wallet_data = await api_get_wallet(str(message.from_user.id))
+        wallet_data = await api_get_wallet(tg_id)
         if wallet_data:
             w        = wallet_data.get("wallet") or {}
             skz_bal  = float(w.get("balanceSkz",  "0"))
@@ -277,22 +282,21 @@ async def cmd_start(message: Message):
     except Exception as e:
         logger.error(f"Balance fetch failed: {e}")
 
-    text = (
-        f"👋 Welcome, <b>{first_name}</b>!\n\n"
-        f"🏦 <b>Your SKZ Wallet</b>\n"
-        f"├ ⚡ SKZ: <code>{skz_bal:,.2f}</code>\n"
-        f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
-        f"Tap <b>Open SKZ Platform</b> to access your full dashboard, "
-        f"manage balances, play games, and more."
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    text = t(
+        lang, "welcome",
+        name=first_name,
+        skz=f"{skz_bal:,.2f}",
+        usdt=f"{usdt_bal:.2f}",
     )
-
-    await message.answer(text, parse_mode="HTML", reply_markup=main_keyboard())
+    await message.answer(text, parse_mode="HTML", reply_markup=main_keyboard(lang))
 
 
 @router.callback_query(F.data == "menu")
 async def cb_menu(callback: CallbackQuery):
+    tg_id = str(callback.from_user.id)
     try:
-        data = await api_get_wallet(str(callback.from_user.id))
+        data = await api_get_wallet(tg_id)
     except Exception:
         data = None
 
@@ -300,16 +304,79 @@ async def cb_menu(callback: CallbackQuery):
     skz_bal   = float(wallet["balanceSkz"])  if wallet else 0.0
     usdt_bal  = float(wallet["balanceUsdt"])  if wallet else 0.0
 
-    text = (
-        f"👋 Welcome back, <b>{callback.from_user.first_name}</b>!\n\n"
-        f"🏦 <b>Your SKZ Wallet</b>\n"
-        f"├ ⚡ SKZ: <code>{skz_bal:,.2f}</code>\n"
-        f"└ 💵 ≈ <code>${usdt_bal:.2f}</code> USDT\n\n"
-        f"Tap <b>Open SKZ Platform</b> to access the full app."
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    text = t(
+        lang, "welcome_back",
+        name=callback.from_user.first_name or "User",
+        skz=f"{skz_bal:,.2f}",
+        usdt=f"{usdt_bal:.2f}",
     )
 
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=main_keyboard())
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=main_keyboard(lang))
     await callback.answer()
+
+
+# ── /lang — let the user pick Arabic / English ────────────────────────────
+@router.message(Command("lang"))
+async def cmd_lang(message: Message):
+    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    await message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+
+
+@router.callback_query(F.data == "lang_menu")
+async def cb_lang_menu(callback: CallbackQuery):
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    try:
+        await callback.message.edit_text(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    except TelegramBadRequest:
+        await callback.message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def cb_lang_set(callback: CallbackQuery):
+    # Defensive: callback data is filtered by `startswith("lang:")` so the
+    # split is guaranteed to produce 2 elements, but guard anyway against
+    # any future filter change so a malformed payload can never raise an
+    # uncaught IndexError that bypasses `cb.answer()`.
+    parts = (callback.data or "").split(":", 1)
+    new_lang = parts[1] if len(parts) == 2 else ""
+    if not new_lang or new_lang not in LANGS:
+        await callback.answer("❌", show_alert=False)
+        return
+    tg_id = str(callback.from_user.id)
+    ok = await set_user_lang(
+        tg_id, new_lang,
+        MOTHER_API_URL, MOTHER_BOT_API_KEY,
+        first_name=callback.from_user.first_name or "User",
+        username=callback.from_user.username,
+    )
+    if not ok:
+        await callback.answer(t(new_lang, "lang_set_fail"), show_alert=True)
+        return
+    invalidate_lang_cache(tg_id)
+    await callback.answer(t(new_lang, "lang_set_ok"), show_alert=False)
+    # Re-render main menu in the new language so the user sees the effect instantly.
+    try:
+        # Refresh wallet for fresh balances in the welcome card.
+        data = await api_get_wallet(tg_id)
+        w = (data or {}).get("wallet") or {}
+        skz_bal  = float(w.get("balanceSkz",  "0"))
+        usdt_bal = float(w.get("balanceUsdt", "0"))
+    except Exception:
+        skz_bal, usdt_bal = 0.0, 0.0
+    text = t(
+        new_lang, "welcome_back",
+        name=callback.from_user.first_name or "User",
+        skz=f"{skz_bal:,.2f}",
+        usdt=f"{usdt_bal:.2f}",
+    )
+    try:
+        await callback.message.edit_text(text, parse_mode="HTML",
+                                          reply_markup=main_keyboard(new_lang))
+    except TelegramBadRequest:
+        await callback.message.answer(text, parse_mode="HTML",
+                                       reply_markup=main_keyboard(new_lang))
 
 
 @router.callback_query(F.data == "wallet")

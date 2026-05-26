@@ -92,23 +92,32 @@ class MotherBotClient:
         first_name: str,
         username: Optional[str] = None,
         last_name: Optional[str] = None,
-        language_code: str = "ar",
+        language_code: Optional[str] = None,
         is_premium: bool = False,
         referrer_telegram_id: Optional[str] = None,
     ) -> dict:
-        """Register or update a user. Call this every time a user interacts with your bot."""
+        """Register or update a user. Call this every time a user interacts with your bot.
+
+        ⚠️  `language_code` is OPTIONAL on purpose. Routine upserts (e.g. on
+        every /start) should NOT pass it, otherwise the user's explicit
+        `/lang` choice gets overwritten by the Telegram-UI locale on the
+        next interaction. Only `set_user_lang()` in `i18n.py` should ever
+        send a `languageCode` to this endpoint.
+        """
+        payload: dict = {
+            "telegramId": telegram_id,
+            "firstName": first_name,
+            "username": username,
+            "lastName": last_name,
+            "isPremium": is_premium,
+            "referrerTelegramId": referrer_telegram_id,
+        }
+        if language_code is not None:
+            payload["languageCode"] = language_code
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{self.base_url}/internal/users/upsert",
-                json={
-                    "telegramId": telegram_id,
-                    "firstName": first_name,
-                    "username": username,
-                    "lastName": last_name,
-                    "languageCode": language_code,
-                    "isPremium": is_premium,
-                    "referrerTelegramId": referrer_telegram_id,
-                },
+                json=payload,
                 headers=self.headers,
                 timeout=10.0,
             )

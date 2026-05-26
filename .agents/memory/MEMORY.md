@@ -1,0 +1,1 @@
+- [Bot user.languageCode overwrite](bot-language-overwrite.md) — routine /start upserts must NOT send languageCode; only the explicit /lang path may write it, or the user's choice resets on every interaction.

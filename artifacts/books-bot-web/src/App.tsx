@@ -1,6 +1,7 @@
 import "./index.css";
 import { useEffect, useState } from "react";
 import { Router, Route, Switch, useLocation } from "wouter";
+import { useLang } from "@/lib/i18n";
 import { Splash } from "@/components/Splash";
 import { Page } from "@/components/Layout";
 import Home from "@/pages/Home";
@@ -20,6 +21,22 @@ function ScrollToTop() {
   return null;
 }
 
+function FloatingLangToggle() {
+  const [lang, setLang] = useLang();
+  const next = lang === "ar" ? "en" : "ar";
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(next)}
+      className="fixed top-3 left-3 z-50 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/70 text-white border border-white/20 backdrop-blur hover:bg-black/85 transition shadow-lg"
+      aria-label="Toggle language"
+      title={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
+    >
+      {lang === "ar" ? "EN" : "ع"}
+    </button>
+  );
+}
+
 export default function App() {
   const [splashDone, setSplashDone] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -37,6 +54,7 @@ export default function App() {
   return (
     <>
       {!splashDone && <Splash onDone={finishSplash} />}
+      <FloatingLangToggle />
       <Router base={base}>
         <ScrollToTop />
         <Page>

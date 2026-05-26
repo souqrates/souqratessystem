@@ -2,6 +2,23 @@ import "./index.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getActive, type ActivePayload, type Contestant, type VotePack } from "@/lib/api";
 import { fmtInt, fmtSkz, pct } from "@/lib/format";
+import { useLang, useT } from "@/lib/i18n";
+
+function LangToggle() {
+  const [lang, setLang] = useLang();
+  const next = lang === "ar" ? "en" : "ar";
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(next)}
+      className="text-xs font-bold px-2.5 py-1 rounded-md border border-stage-gold/50 text-stage-gold hover:bg-stage-gold/10 transition"
+      aria-label="Toggle language"
+      title={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
+    >
+      {lang === "ar" ? "EN" : "ع"}
+    </button>
+  );
+}
 
 const BOT_USERNAME = "Souqrates_stage_bot";
 const POLL_MS = 3000;
@@ -22,17 +39,21 @@ function BotLink({ children, payload, className }: { children: React.ReactNode; 
 }
 
 function Header() {
+  const t = useT();
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-stage-bg/70 border-b border-stage-line">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-stage-gold to-amber-700 grid place-items-center text-black font-black text-lg shadow-lg">★</div>
           <div className="leading-tight">
-            <div className="text-lg font-extrabold tracking-wide text-glow-gold">SOUQRATES STAGE</div>
-            <div className="text-[11px] text-stage-mute">مسرح المسابقات والتصويت</div>
+            <div className="text-lg font-extrabold tracking-wide text-glow-gold">{t("app_name")}</div>
+            <div className="text-[11px] text-stage-mute">{t("app_tagline")}</div>
           </div>
         </div>
-        <BotLink className="btn-primary text-sm hidden sm:inline-flex">افتح البوت</BotLink>
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <BotLink className="btn-primary text-sm hidden sm:inline-flex">{t("open_bot")}</BotLink>
+        </div>
       </div>
     </header>
   );

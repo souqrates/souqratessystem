@@ -60,12 +60,14 @@ class BooksBotClient:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{self.base_url}/internal/users/upsert",
+                # No `languageCode` — preserves the user's explicit /lang
+                # choice across routine upserts. set_user_lang() in i18n.py
+                # is the only path that should write it.
                 json={
                     "telegramId": str(user.id),
                     "username": user.username,
                     "firstName": user.first_name or "User",
                     "lastName": user.last_name,
-                    "languageCode": user.language_code or "ar",
                     "isPremium": bool(getattr(user, "is_premium", False)),
                 },
                 headers=self.headers,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/layout";
 import { Route, Switch, Router as WouterRouter } from "wouter";
+import { useLang } from "./lib/i18n";
 import { Home } from "./pages/home";
 import { Wallet } from "./pages/wallet";
 import { Deposit } from "./pages/deposit";
@@ -20,6 +21,22 @@ const queryClient = new QueryClient({
 });
 
 const SPLASH_KEY = "souqrates_splash_seen_v1";
+
+function FloatingLangToggle() {
+  const [lang, setLang] = useLang();
+  const next = lang === "ar" ? "en" : "ar";
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(next)}
+      className="fixed top-3 left-3 z-50 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/70 text-white border border-white/20 backdrop-blur hover:bg-black/85 transition shadow-lg"
+      aria-label="Toggle language"
+      title={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
+    >
+      {lang === "ar" ? "EN" : "ع"}
+    </button>
+  );
+}
 
 export default function App() {
   // Persist across iframe reloads / canvas re-mounts so the splash only ever
@@ -42,6 +59,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       {!splashDone && !isAgreementRoute && <SplashScreen onDone={finishSplash} />}
+      <FloatingLangToggle />
 
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <Switch>
