@@ -96,9 +96,17 @@ const sentry: IntegrationAdapter = {
       // ?sentry_key=… so the server identifies the project. A GET on the
       // store endpoint with a valid key returns 400 ("method not allowed"
       // body but 400 status). 401/403 means the key/project is wrong.
+      // The Sentry ingest host must end in sentry.io (any region). Accept
+      // only well-known Sentry response codes: 405 (method not allowed) or
+      // 400 (Sentry-specific "method not allowed" with body). 200 is NOT a
+      // valid response from this endpoint — accepting it would false-pass
+      // a misrouted DSN whose host happens to return 200 to a GET.
+      if (!/(^|\.)sentry\.io$/i.test(u.host)) {
+        return { ok: false, error: `unexpected DSN host: ${u.host}` };
+      }
       const ingest = `${u.protocol}//${u.host}/api/${projectId}/store/?sentry_key=${encodeURIComponent(u.username)}`;
       const r = await fetchWithTimeout(ingest, { method: "GET" });
-      if (r.status === 405 || r.status === 400 || r.status === 200) {
+      if (r.status === 405 || r.status === 400) {
         return { ok: true, metadata: { host: u.host, projectId } };
       }
       return { ok: false, error: `ingest returned ${r.status}` };
@@ -141,14 +149,27 @@ const cloudflare: IntegrationAdapter = {
       // /zones works for BOTH user-scoped and account-scoped tokens as long
       // as the token has Zone:Read. /user/tokens/verify rejects
       // account-scoped tokens with code 1000, which is misleading.
-      const r = await fetchWithTimeout("https://api.cloudflare.com/client/v4/zones?per_page=1", {
+      // If a specific zone_id is configured, probe it directly so a token
+      // that can list zones but lacks access to *this* zone is rejected.
+      const zoneId = typeof cfg["zone_id"] === "string" ? (cfg["zone_id"] as string).trim() : "";
+      const probeUrl = zoneId
+        ? `https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zoneId)}`
+        : "https://api.cloudflare.com/client/v4/zones?per_page=1";
+      const r = await fetchWithTimeout(probeUrl, {
         headers: { Authorization: `Bearer ${cfg.api_token}` },
       });
-      const j = (await r.json()) as { success?: boolean; result?: Array<unknown>; errors?: Array<{ message: string }> };
+      const j = (await r.json()) as {
+        success?: boolean;
+        result?: Array<unknown> | { name?: string; status?: string };
+        errors?: Array<{ message: string }>;
+      };
       if (!j.success) {
         return { ok: false, error: j.errors?.[0]?.message ?? `HTTP ${r.status}` };
       }
-      return { ok: true, metadata: { zones_visible: j.result?.length ?? 0 } };
+      if (zoneId && !Array.isArray(j.result)) {
+        return { ok: true, metadata: { zone: j.result?.name, status: j.result?.status } };
+      }
+      return { ok: true, metadata: { zones_visible: Array.isArray(j.result) ? j.result.length : 0 } };
     } catch (e) {
       return { ok: false, error: describeError(e) };
     }

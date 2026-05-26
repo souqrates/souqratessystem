@@ -19,6 +19,10 @@ import crypto from "crypto";
 const ALGO = "aes-256-gcm";
 const KEY_LEN = 32;
 const IV_LEN = 12;
+// Pin the GCM authentication tag length to 16 bytes (the maximum). Without
+// this, Node would accept a shorter tag at decrypt time, which weakens the
+// forgery resistance of the cipher (Semgrep gcm-no-tag-length).
+const TAG_LEN = 16;
 const SALT = Buffer.from("souqrates:integrations:v1");
 
 let cachedKey: Buffer | null = null;
@@ -56,7 +60,7 @@ export function isEncrypted(v: unknown): v is EncryptedEnvelope {
 export function encryptString(plaintext: string): EncryptedEnvelope {
   const key = getKey();
   const iv = crypto.randomBytes(IV_LEN);
-  const cipher = crypto.createCipheriv(ALGO, key, iv);
+  const cipher = crypto.createCipheriv(ALGO, key, iv, { authTagLength: TAG_LEN });
   const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return {
@@ -72,7 +76,10 @@ export function decryptString(env: EncryptedEnvelope): string {
   const iv = Buffer.from(env.iv, "base64url");
   const tag = Buffer.from(env.tag, "base64url");
   const ct = Buffer.from(env.ct, "base64url");
-  const decipher = crypto.createDecipheriv(ALGO, key, iv);
+  if (tag.length !== TAG_LEN) {
+    throw new Error("integration secret: bad auth tag length");
+  }
+  const decipher = crypto.createDecipheriv(ALGO, key, iv, { authTagLength: TAG_LEN });
   decipher.setAuthTag(tag);
   const pt = Buffer.concat([decipher.update(ct), decipher.final()]);
   return pt.toString("utf8");
