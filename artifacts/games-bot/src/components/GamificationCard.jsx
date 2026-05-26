@@ -94,7 +94,7 @@ export default function GamificationCard() {
           whileTap={{ scale: 0.94 }}
           onClick={onClaim}
           disabled={claimed || busy}
-          className="flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl flex-shrink-0"
+          className="flex items-center justify-center px-4 py-2.5 rounded-2xl flex-shrink-0 flex-row"
           style={{
             background: claimed
               ? 'rgba(16,185,129,0.12)'

@@ -355,31 +355,6 @@ export default function Dashboard() {
       {/* Top-earners leaderboard moved to the Mother Bot (single central hub) —
           removed from here to avoid duplicating the same list across bots. */}
 
-      {/* REAL BALANCE CARD */}
-      <motion.div variants={item} className="glass-card rounded-2xl p-4 relative overflow-hidden"
-        style={{ border: '1px solid rgba(16,185,129,0.20)' }}>
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(16,185,129,0.10)' }} />
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.30)' }}>
-              <Coins size={16} className="text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Real Balance</p>
-              <p className="text-[10px] font-semibold mt-0.5 flex items-center gap-1 text-emerald-400">
-                <TrendingUp size={9} /> Withdrawable to TON
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-orbitron text-2xl font-black text-white leading-none">{scBalance.toLocaleString()}</p>
-            <p className="text-[10px] font-bold mt-1 text-emerald-400">{sym}</p>
-          </div>
-        </div>
-      </motion.div>
-
       {/* HOW TO EARN */}
       <motion.div variants={item}>
         <SectionTitle icon={Sparkles} label={t(language, 'howXpWorks')} />
