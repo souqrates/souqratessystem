@@ -462,14 +462,39 @@ async def cb_buy(cb: CallbackQuery):
         return
 
     dl = await api.resolve_download(r["downloadToken"])
-    txt = (
+    file_url = dl["fileUrl"]
+    title = dl.get("title", "كتاب")
+    receipt = (
         f"✅ <b>تم الشراء بنجاح</b>\n\n"
+        f"📖 {title}\n"
         f"💰 المدفوع: <code>{r['pricePaid']}</code> SKZ\n"
-        f"💵 الرصيد الجديد: <code>{r['newBalance']}</code> SKZ\n\n"
-        f"📥 <a href=\"{dl['fileUrl']}\">اضغط للتنزيل</a>\n"
-        f"⏱ الرابط صالح لمدة 7 أيام."
+        f"💵 الرصيد الجديد: <code>{r['newBalance']}</code> SKZ"
     )
-    await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=back_kb(), disable_web_page_preview=True)
+    # Always show the receipt first so the user has a record even if delivery fails.
+    await cb.message.edit_text(receipt, parse_mode="HTML", reply_markup=back_kb(), disable_web_page_preview=True)
+
+    # Deliver the file as an in-chat Telegram document so it lands in the chat
+    # like any other attachment (no browser detour). Passing the URL as a string
+    # lets Telegram fetch and forward the bytes (≤ 20 MB). If Telegram cannot
+    # reach the URL (placeholder/private host/too large), fall back to a
+    # tap-to-download link button so the user still has access.
+    try:
+        await cb.message.answer_document(
+            document=file_url,
+            caption=f"📖 <b>{title}</b>\n⏱ الرابط صالح 7 أيام.",
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        logger.warning(f"sendDocument failed for purchase {r.get('purchaseId')}: {e}")
+        link_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📥 تنزيل الكتاب", url=file_url)],
+            [InlineKeyboardButton(text="⬅️ رجوع", callback_data="menu")],
+        ])
+        await cb.message.answer(
+            "⚠️ تعذّر إرسال الملف مباشرة داخل Telegram (قد يكون حجمه كبيرًا أو الرابط من سيرفر خارجي).\n"
+            "اضغط الزر التالي لتنزيله من المتصفح:",
+            reply_markup=link_kb,
+        )
     await cb.answer("تم الشراء ✅")
 
 
