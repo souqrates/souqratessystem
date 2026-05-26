@@ -180,40 +180,38 @@ TR: dict[str, dict[str, str]] = {
     "deposit_intent_err": {"ar": "تعذّر إنشاء عنوان الإيداع، حاول لاحقاً.",
                           "en": "Could not create deposit address, please try again."},
 
-    # Section 2 — install TON Keeper guide
-    "deposit_no_wallet_body": {"ar": ("🆕 <b>إنشاء محفظة في 5 دقائق</b>\n\n"
-                                  "محفظة <b>TON Keeper</b> هي الأسرع والأبسط — تعمل على iPhone و Android "
-                                  "وتقبل الشحن بـ <b>Visa / Mastercard</b> مباشرة بدون KYC.\n\n"
+    # Section 2 — install TON Keeper guide (sent as photo caption, must
+    # stay under Telegram's 1024-char caption limit per language).
+    "deposit_no_wallet_body": {"ar": ("🆕 <b>محفظتك جاهزة في أقل من 5 دقائق</b>\n\n"
+                                  "<b>TON Keeper</b> هي محفظتك الخاصّة بالكامل — لا أحد يملك مفاتيحها غيرك. "
+                                  "تعمل على iPhone و Android.\n\n"
                                   "<b>الخطوات:</b>\n"
-                                  "1️⃣ <b>نزّل التطبيق</b> من الزر المناسب أدناه.\n"
+                                  "1️⃣ نزّل التطبيق من الزر المناسب أدناه.\n"
                                   "2️⃣ افتح التطبيق ← <b>«إنشاء محفظة جديدة»</b> ← احفظ الكلمات الـ24 "
-                                  "في مكان آمن.\n"
-                                  "3️⃣ اضغط <b>«Buy» / «شراء»</b> داخل التطبيق ← اختر <b>TON</b> أو <b>USDT</b> "
-                                  "← ادفع بالفيزا (يصل خلال دقائق).\n"
-                                  "4️⃣ من شاشة المحفظة اضغط <b>«Send» / «إرسال»</b> ← الصق "
-                                  "<b>عنوان البوت</b> ← أدخل المبلغ ← الصق <b>المذكرة (memo)</b> ← أرسل.\n"
-                                  "5️⃣ ارجع هنا واضغط <b>«لديّ محفظة رقمية»</b> للحصول على العنوان والـmemo "
-                                  "الخاصَّين بك.\n\n"
-                                  "💡 العملية كاملة لا تأخذ أكثر من <b>5 دقائق</b>.\n\n"
-                                  "<i>ℹ️ ملاحظة صغيرة: أرباحك المستقبلية سترسَل إلى محفظتك في TON Keeper، "
-                                  "لذا وجودها ضروري للمرحلة القادمة من المنصّة.</i>"),
-                          "en": ("🆕 <b>Create a wallet in 5 minutes</b>\n\n"
-                                  "<b>TON Keeper</b> is the fastest and simplest option — runs on iPhone "
-                                  "and Android, and lets you top up with <b>Visa / Mastercard</b> directly "
-                                  "(no KYC).\n\n"
+                                  "في مكان آمن جداً.\n"
+                                  "3️⃣ مَوِّل محفظتك بـ <b>TON</b> أو <b>USDT</b> بأي طريقة تناسبك.\n"
+                                  "4️⃣ من شاشة محفظتك اضغط <b>«Send»</b> ← الصق عنوان البوت ← أدخل المبلغ "
+                                  "← الصق <b>الـmemo</b> ← أرسل.\n"
+                                  "5️⃣ ارجع هنا واضغط <b>«لديّ محفظة»</b> لاستلام العنوان والـmemo الخاصَّين بك.\n\n"
+                                  "⏱️ كامل العملية لا تتجاوز <b>5 دقائق</b>.\n\n"
+                                  "💎 <b>مهم:</b> كل أرباحك المستقبلية من المنصّة ستُحوَّل مباشرة إلى محفظتك "
+                                  "في TON Keeper — لذا وجودها شرط أساسي لاستلام مكافآتك."),
+                          "en": ("🆕 <b>Your wallet — ready in under 5 minutes</b>\n\n"
+                                  "<b>TON Keeper</b> is fully your own wallet — only you hold the keys. "
+                                  "Runs on iPhone and Android.\n\n"
                                   "<b>Steps:</b>\n"
-                                  "1️⃣ <b>Install the app</b> from the appropriate button below.\n"
-                                  "2️⃣ Open the app → <b>“Create new wallet”</b> → store the 24 words in a "
-                                  "safe place.\n"
-                                  "3️⃣ Tap <b>“Buy”</b> inside the app → pick <b>TON</b> or <b>USDT</b> → "
-                                  "pay with Visa (arrives in minutes).\n"
-                                  "4️⃣ From the wallet screen tap <b>“Send”</b> → paste the <b>bot's "
-                                  "address</b> → enter the amount → paste the <b>memo</b> → send.\n"
+                                  "1️⃣ Install the app from the appropriate button below.\n"
+                                  "2️⃣ Open the app → <b>“Create new wallet”</b> → save the 24 words "
+                                  "somewhere very safe.\n"
+                                  "3️⃣ Fund your wallet with <b>TON</b> or <b>USDT</b> in any way that suits you.\n"
+                                  "4️⃣ From your wallet screen tap <b>“Send”</b> → paste the bot's address "
+                                  "→ enter the amount → paste the <b>memo</b> → send.\n"
                                   "5️⃣ Come back here and tap <b>“I have a wallet”</b> to get your own "
                                   "address and memo.\n\n"
-                                  "💡 The whole thing takes less than <b>5 minutes</b>.\n\n"
-                                  "<i>ℹ️ Small note: your future earnings will be sent to your TON Keeper "
-                                  "wallet, so having one is essential for the next stage of the platform.</i>")},
+                                  "⏱️ The whole flow takes under <b>5 minutes</b>.\n\n"
+                                  "💎 <b>Important:</b> all your future earnings from the platform will be "
+                                  "sent directly to your TON Keeper wallet — having one is essential to "
+                                  "receive your rewards.")},
     "btn_appstore_tonkeeper": {"ar": "🍏 App Store", "en": "🍏 App Store"},
     "btn_playstore_tonkeeper": {"ar": "🤖 Google Play", "en": "🤖 Google Play"},
 

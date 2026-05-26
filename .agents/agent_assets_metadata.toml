@@ -24,6 +24,12 @@ uri = "file://attached_assets/generated_images/souqrates_stage_logo.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "eByCQ0nvBxUoDOdfUgXTN"
+uri = "file://artifacts/mother-bot/assets/deposit_guide.png"
+type = "image"
+title = "tonkeeper deposit guide"
+
 [[outputs]]
 id = "3NxYzjBbXv6uqa25IvFfj"
 uri = "file://attached_assets/generated_images/souqrates_system_logo.png"

@@ -19,6 +19,7 @@ from aiogram.types import (
     BotCommand,
     BotCommandScopeDefault,
     BotCommandScopeChat,
+    FSInputFile,
 )
 from aiogram.filters import CommandStart, Command
 from aiogram.exceptions import TelegramBadRequest
@@ -617,13 +618,19 @@ async def cb_deposit_amount(callback: CallbackQuery, state: FSMContext):
 TONKEEPER_APPSTORE_URL  = "https://apps.apple.com/app/tonkeeper/id1587742107"
 TONKEEPER_PLAYSTORE_URL = "https://play.google.com/store/apps/details?id=com.ton_keeper"
 
+# Illustrative infographic shown above the no-wallet guide. Path is
+# resolved relative to the bot module so it works regardless of CWD.
+_DEPOSIT_GUIDE_IMG = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "assets", "deposit_guide.png",
+)
+
 
 @router.callback_query(F.data == "deposit_nowallet")
 async def cb_deposit_nowallet(callback: CallbackQuery, state: FSMContext):
-    """Section 2: user has no crypto wallet → install + Visa top-up
-    guide for TON Keeper. The small-print line about future earnings
-    going to this wallet is part of the body, not a separate message,
-    so users see it before they finish onboarding."""
+    """Section 2: user has no crypto wallet → TON Keeper install guide
+    sent as an illustrated photo + caption. No payment-method specifics
+    (Visa etc.) per product decision — we just point them at the app and
+    let them fund it however they prefer."""
     await state.clear()
     lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -634,7 +641,14 @@ async def cb_deposit_nowallet(callback: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text=t(lang, "btn_deposit_have_wallet"), callback_data="deposit_have")],
         [InlineKeyboardButton(text=t(lang, "btn_back_deposit"),        callback_data="topup_card")],
     ])
-    await _safe_edit(callback, t(lang, "deposit_no_wallet_body"), kb)
+    caption = t(lang, "deposit_no_wallet_body")
+    if os.path.exists(_DEPOSIT_GUIDE_IMG):
+        await _safe_send_photo(callback, _DEPOSIT_GUIDE_IMG, caption, kb)
+    else:
+        # Image missing in this environment → text-only fallback so the
+        # flow never breaks because of a missing asset.
+        logger.warning(f"deposit guide image missing at {_DEPOSIT_GUIDE_IMG}")
+        await _safe_edit(callback, caption, kb)
     await callback.answer()
 
 
@@ -1007,14 +1021,56 @@ async def _seed_info_texts_if_missing() -> None:
 
 async def _safe_edit(callback: CallbackQuery, text: str, kb: InlineKeyboardMarkup) -> None:
     """edit_text that swallows Telegram's "message is not modified" 400 so a
-    user double-tap doesn't surface as a stuck loading spinner."""
+    user double-tap doesn't surface as a stuck loading spinner.
+
+    Also handles photo→text transitions: if the previous screen sent a
+    photo (e.g. the no-wallet guide), `edit_text` returns
+    "there is no text in the message"; in that case we delete the photo
+    message and send the text as a new message so the back-navigation
+    keeps working seamlessly."""
     try:
         await callback.message.edit_text(
             text, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True,
         )
+        return
     except TelegramBadRequest as e:
-        if "message is not modified" not in str(e).lower():
-            raise
+        msg = str(e).lower()
+        if "message is not modified" in msg:
+            return
+        if "there is no text in the message" in msg or "message can't be edited" in msg:
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
+            await callback.message.answer(
+                text, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True,
+            )
+            return
+        raise
+
+
+async def _safe_send_photo(
+    callback: CallbackQuery, photo_path: str, caption: str, kb: InlineKeyboardMarkup,
+) -> None:
+    """Replace the current message with a fresh photo + caption + keyboard.
+    Used by screens that need an illustration (e.g. TON Keeper guide).
+    Telegram caption limit is 1024 chars — keep the caption under that."""
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    try:
+        await callback.message.answer_photo(
+            FSInputFile(photo_path),
+            caption=caption,
+            parse_mode="HTML",
+            reply_markup=kb,
+        )
+    except Exception as e:
+        logger.warning(f"answer_photo failed, falling back to text: {e}")
+        await callback.message.answer(
+            caption, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True,
+        )
 
 
 @router.callback_query(F.data == "info_menu")
