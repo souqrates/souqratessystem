@@ -1,9 +1,28 @@
 import { useState } from "react";
-import { Zap, Copy, Check, AlertCircle, ChevronRight } from "lucide-react";
+import {
+  Zap, Copy, Check, AlertCircle, ChevronRight,
+  Wallet, Sparkles, Clock, Gem, ArrowLeft, ArrowRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { useT, useLang } from "../lib/i18n";
+
+// Brand glyphs — inline SVGs (monochrome, currentColor). Kept here so
+// we don't pull in an icon-pack dependency just for two logos.
+const AppleGlyph = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M16.365 1.43c0 1.14-.41 2.23-1.23 3.06-.99 1.01-2.21 1.6-3.49 1.49-.14-1.1.4-2.27 1.23-3.06.83-.86 2.27-1.51 3.49-1.49zM20.5 17.27c-.45 1.04-.66 1.5-1.24 2.42-.81 1.28-1.95 2.87-3.36 2.89-1.26.01-1.58-.82-3.28-.81-1.7.01-2.06.82-3.32.81-1.41-.02-2.49-1.45-3.3-2.73C3.6 16.66 3.36 11.16 4.94 8.39c1.11-1.94 2.86-3.07 4.51-3.07 1.69 0 2.74.92 4.13.92 1.36 0 2.18-.92 4.13-.92 1.47 0 3.03.81 4.14 2.2-3.64 1.99-3.05 7.2-1.35 9.75z"/>
+  </svg>
+);
+const PlayGlyph = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#34A853" d="M3.6 21.4l9.6-9.4-2.7-2.7L3.1 21z"/>
+    <path fill="#FBBC05" d="M16.8 8.6l-3.6 3.4 3.6 3.5 4.2-2.4c1-.6 1-2 0-2.6z"/>
+    <path fill="#EA4335" d="M3.1 3l7.4 7.3 2.7-2.7L3.6 2.6z"/>
+    <path fill="#4285F4" d="M3.1 3v18l9.6-9z"/>
+  </svg>
+);
 
 // Visual + UX parity with the mother-bot Telegram chat deposit flow:
 //   1) Hub screen — 2 large cards: "I have a wallet" vs "I need a wallet"
@@ -87,11 +106,13 @@ export function Deposit() {
     </div>
   );
 
+  const BackArrow = lang === "ar" ? ArrowRight : ArrowLeft;
   const BackButton = (
     <button
       onClick={() => setView("hub")}
-      className="text-[12px] font-bold text-white/60 hover:text-white/90 transition-colors px-3 py-2 rounded-xl"
+      className="inline-flex items-center gap-1.5 text-[12px] font-bold text-white/60 hover:text-white/90 transition-colors px-3 py-2 rounded-xl"
       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <BackArrow size={13} strokeWidth={2.5} />
       {t("deposit.back")}
     </button>
   );
@@ -123,9 +144,9 @@ export function Deposit() {
                 boxShadow: "0 4px 20px rgba(0,152,234,0.18)",
               }}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center"
                   style={{ background: "rgba(0,152,234,0.18)", border: "1px solid rgba(0,152,234,0.3)" }}>
-                  👛
+                  <Wallet size={22} strokeWidth={2} style={{ color: "#0098EA" }} />
                 </div>
                 <div className="flex-1">
                   <p className="font-black text-[15px] text-white">{t("deposit.hub.have")}</p>
@@ -145,9 +166,9 @@ export function Deposit() {
                 boxShadow: "0 4px 20px rgba(255,215,0,0.15)",
               }}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center"
                   style={{ background: "rgba(255,215,0,0.18)", border: "1px solid rgba(255,215,0,0.3)" }}>
-                  🆕
+                  <Sparkles size={22} strokeWidth={2} style={{ color: "#FFD700" }} />
                 </div>
                 <div className="flex-1">
                   <p className="font-black text-[15px] text-white">{t("deposit.hub.nowallet")}</p>
@@ -355,27 +376,31 @@ export function Deposit() {
             </div>
 
             {/* Time note */}
-            <p className="text-center text-[12px] font-bold text-skz-light">
+            <p className="inline-flex items-center justify-center gap-1.5 w-full text-[12px] font-bold text-skz-light">
+              <Clock size={13} strokeWidth={2.5} />
               {t("deposit.nowallet.timeNote")}
             </p>
 
             {/* Store buttons — open in external browser via _blank */}
             <div className="grid grid-cols-2 gap-2.5">
               <a href={TONKEEPER_APPSTORE_URL} target="_blank" rel="noopener noreferrer"
-                className="rounded-2xl py-3.5 text-center font-bold text-sm transition-all"
+                className="rounded-2xl py-3.5 font-bold text-sm transition-all inline-flex items-center justify-center gap-2"
                 style={{ background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.12)", color: "white" }}>
+                <AppleGlyph size={18} />
                 {t("deposit.nowallet.appstore")}
               </a>
               <a href={TONKEEPER_PLAYSTORE_URL} target="_blank" rel="noopener noreferrer"
-                className="rounded-2xl py-3.5 text-center font-bold text-sm transition-all"
+                className="rounded-2xl py-3.5 font-bold text-sm transition-all inline-flex items-center justify-center gap-2"
                 style={{ background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.12)", color: "white" }}>
+                <PlayGlyph size={18} />
                 {t("deposit.nowallet.playstore")}
               </a>
             </div>
 
             {/* Earnings footer — the key encouragement line */}
-            <div className="rounded-2xl p-4"
+            <div className="rounded-2xl p-4 flex items-start gap-3"
               style={{ background: "rgba(255,215,0,0.08)", border: "1.5px solid rgba(255,215,0,0.25)" }}>
+              <Gem size={18} strokeWidth={2} style={{ color: "#FFE066", flexShrink: 0, marginTop: 2 }} />
               <p className="text-[12px] leading-relaxed font-medium" style={{ color: "#FFE066" }}>
                 {t("deposit.nowallet.earnings")}
               </p>
@@ -384,11 +409,12 @@ export function Deposit() {
             {/* CTA: jump back to "have wallet" once installed */}
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => setView("have")}
-              className="w-full py-4 rounded-2xl font-black text-base text-white transition-all"
+              className="w-full py-4 rounded-2xl font-black text-base text-white transition-all inline-flex items-center justify-center gap-2"
               style={{
                 background: "linear-gradient(135deg, #0098EA, #7c3aed)",
                 boxShadow: "0 4px 24px rgba(0,152,234,0.35)",
               }}>
+              <Wallet size={18} strokeWidth={2.5} />
               {t("deposit.nowallet.haveNow")}
             </motion.button>
           </motion.div>
