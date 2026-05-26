@@ -167,33 +167,6 @@ export const dailyFreeVoteUsageTable = pgTable(
   }),
 );
 
-// ── Contest live chat messages ──────────────────────────────────────────────
-// Append-only public chat tied to a contest. Posting requires Telegram
-// WebApp initData auth (validated in route handler). Reads are public.
-// Rate-limit + length cap enforced in route.
-export const contestMessagesTable = pgTable(
-  "contest_messages",
-  {
-    id: serial("id").primaryKey(),
-    contestId: integer("contest_id").notNull(),
-    telegramId: bigint("telegram_id", { mode: "bigint" }).notNull(),
-    displayName: text("display_name").notNull(),
-    body: text("body").notNull(),
-    isHidden: boolean("is_hidden").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => ({
-    byContestCreated: index("contest_msgs_contest_created_idx").on(
-      t.contestId,
-      t.createdAt,
-    ),
-  }),
-);
-
-export type ContestMessage = typeof contestMessagesTable.$inferSelect;
-
 // ── Insert schemas (Zod) ────────────────────────────────────────────────────
 export const insertContestSchema = createInsertSchema(contestsTable).omit({
   id: true,
