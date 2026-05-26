@@ -5,6 +5,7 @@ import { Download, Upload, TrendingUp, ArrowUpRight, Zap, Loader2 } from "lucide
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
+import { useT } from "../lib/i18n";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } } };
 const fadeUp = {
@@ -13,6 +14,7 @@ const fadeUp = {
 };
 
 export function Wallet() {
+  const t = useT();
   const { settings } = usePlatformSettings();
   const { balanceSkz, balanceUsdt, balanceStars, balanceTon, totalEarnedSkz, totalWithdrawnSkz, isLoading: walletLoading, internalUserId } = useWallet();
   const { transactions, isLoading: txLoading } = useTransactions(internalUserId, 30);
@@ -25,8 +27,8 @@ export function Wallet() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black">Wallet</h1>
-          <p className="text-[11px] text-white/40 font-medium mt-0.5">All your balances in one place</p>
+          <h1 className="text-2xl font-black">{t("wallet.title")}</h1>
+          <p className="text-[11px] text-white/40 font-medium mt-0.5">{t("wallet.subtitle")}</p>
         </div>
         <div className="chip chip-skz"><Zap size={10} />SKZ</div>
       </motion.div>
@@ -45,7 +47,7 @@ export function Wallet() {
                 S
               </div>
               <div>
-                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Main Balance</p>
+                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">{t("wallet.mainBalance")}</p>
                 <p className="text-[11px] text-white/30 font-medium">≈ ${usdtEquiv} USDT</p>
               </div>
             </div>
@@ -64,14 +66,14 @@ export function Wallet() {
                 <motion.button whileTap={{ scale: 0.96 }}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm text-white"
                   style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", boxShadow: "0 4px 20px rgba(147,51,234,0.4)" }}>
-                  <Download size={16} /> Deposit
+                  <Download size={16} /> {t("wallet.deposit")}
                 </motion.button>
               </Link>
               <Link href="/withdraw">
                 <motion.button whileTap={{ scale: 0.96 }}
                   className="w-full glass-card flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm">
                   <Upload size={16} className="text-white/60" />
-                  <span className="text-white/80">Withdraw</span>
+                  <span className="text-white/80">{t("wallet.withdraw")}</span>
                 </motion.button>
               </Link>
             </div>
@@ -82,8 +84,8 @@ export function Wallet() {
       {/* Stats */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
         {[
-          { icon: TrendingUp,   label: "Total Earned",  value: totalEarnedSkz,    color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-          { icon: ArrowUpRight, label: "Withdrawn",     value: totalWithdrawnSkz, color: "rgba(255,255,255,0.5)", bg: "rgba(255,255,255,0.05)" },
+          { icon: TrendingUp,   label: t("wallet.stats.totalEarned"), value: totalEarnedSkz,    color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+          { icon: ArrowUpRight, label: t("wallet.stats.withdrawn"),   value: totalWithdrawnSkz, color: "rgba(255,255,255,0.5)", bg: "rgba(255,255,255,0.05)" },
         ].map((s) => (
           <div key={s.label} className="glass-card rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2.5">
@@ -102,12 +104,12 @@ export function Wallet() {
 
       {/* Currency deposit sources */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">Currency Balances</p>
+        <p className="section-label mb-3">{t("wallet.currencyBalances")}</p>
         <div className="space-y-2.5">
           {[
-            { key: "USDT",  label: "USDT",           sub: "TRC20 · Tether",    val: balanceUsdt.toFixed(2),    rate: settings.skzPerUsdt, balance: balanceUsdt   },
-            { key: "Stars", label: "Telegram Stars",  sub: "In-app payment",    val: balanceStars.toString(),   rate: settings.skzPerStar, balance: balanceStars  },
-            { key: "TON",   label: "TON",             sub: "The Open Network",  val: balanceTon.toFixed(4),     rate: settings.skzPerTon,  balance: balanceTon    },
+            { key: "USDT",  label: "USDT",                          sub: t("wallet.currency.usdt.sub"),  val: balanceUsdt.toFixed(2),    rate: settings.skzPerUsdt, balance: balanceUsdt   },
+            { key: "Stars", label: t("wallet.currency.stars.label"), sub: t("wallet.currency.stars.sub"), val: balanceStars.toString(),   rate: settings.skzPerStar, balance: balanceStars  },
+            { key: "TON",   label: "TON",                          sub: t("wallet.currency.ton.sub"),    val: balanceTon.toFixed(4),     rate: settings.skzPerTon,  balance: balanceTon    },
           ].map((item) => {
             const ci = CURRENCY_ICONS[item.key];
             return (
@@ -146,7 +148,7 @@ export function Wallet() {
 
       {/* Transaction History */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">Transaction History</p>
+        <p className="section-label mb-3">{t("wallet.history")}</p>
 
         {txLoading ? (
           <div className="flex justify-center py-8">
@@ -154,8 +156,8 @@ export function Wallet() {
           </div>
         ) : transactions.length === 0 ? (
           <div className="glass-card rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm font-medium">No transactions yet</p>
-            <p className="text-white/20 text-[11px] mt-1">Deposit or earn SKZ to see your history</p>
+            <p className="text-white/30 text-sm font-medium">{t("wallet.history.empty")}</p>
+            <p className="text-white/20 text-[11px] mt-1">{t("wallet.history.emptyHint")}</p>
           </div>
         ) : (
           <div className="glass-card rounded-3xl overflow-hidden">

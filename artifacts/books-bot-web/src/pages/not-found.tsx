@@ -1,18 +1,20 @@
 import { Link } from "wouter";
 import { Ornament } from "@/components/Ornaments";
+import { useT } from "@/lib/i18n";
 
 export default function NotFound() {
+  const t = useT();
   return (
     <section className="py-32 px-6 text-center">
       <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-        Error · 404
+        {t("nf.eyebrow")}
       </div>
       <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-        الصفحة غير موجودة.
+        {t("nf.title")}
       </h1>
       <Ornament className="mb-8" />
       <p className="max-w-md mx-auto mb-8" style={{ color: "var(--muted)" }}>
-        ربما حُذف العنوان أو نُقل إلى موضعٍ آخر. عد إلى الواجهة لاستكشاف المكتبة.
+        {t("nf.lead")}
       </p>
       <Link
         href="/"
@@ -20,7 +22,7 @@ export default function NotFound() {
         style={{ background: "var(--ink)", color: "var(--ivory)" }}
         data-testid="link-not-found-home"
       >
-        العودة إلى الواجهة
+        {t("nf.back")}
       </Link>
     </section>
   );

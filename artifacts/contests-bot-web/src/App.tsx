@@ -2,18 +2,19 @@ import "./index.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getActive, type ActivePayload, type Contestant, type VotePack } from "@/lib/api";
 import { fmtInt, fmtSkz, pct } from "@/lib/format";
-import { useLang, useT } from "@/lib/i18n";
+import { useLang, useT, t as tt } from "@/lib/i18n";
 
 function LangToggle() {
   const [lang, setLang] = useLang();
+  const t = useT();
   const next = lang === "ar" ? "en" : "ar";
   return (
     <button
       type="button"
       onClick={() => setLang(next)}
       className="text-xs font-bold px-2.5 py-1 rounded-md border border-stage-gold/50 text-stage-gold hover:bg-stage-gold/10 transition"
-      aria-label="Toggle language"
-      title={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
+      aria-label={t("langToggle_aria")}
+      title={t("langToggle_title")}
     >
       {lang === "ar" ? "EN" : "ع"}
     </button>
@@ -79,9 +80,10 @@ function useCountdown(target: string | null) {
 }
 
 function CountdownPill({ endsAt }: { endsAt: string | null }) {
+  const t = useT();
   const c = useCountdown(endsAt);
   if (!c) return null;
-  if (c.ended) return <span className="chip" style={{ background: "rgba(248,113,113,.10)", borderColor: "rgba(248,113,113,.35)", color: "#fca5a5" }}>⛔ انتهت المسابقة</span>;
+  if (c.ended) return <span className="chip" style={{ background: "rgba(248,113,113,.10)", borderColor: "rgba(248,113,113,.35)", color: "#fca5a5" }}>{t("contest_ended")}</span>;
   const urgent = c.d === 0 && c.h < 6;
   const style = urgent
     ? { background: "rgba(248,113,113,.12)", borderColor: "rgba(248,113,113,.40)", color: "#fca5a5" }
@@ -93,21 +95,22 @@ function CountdownPill({ endsAt }: { endsAt: string | null }) {
     </span>
   );
   return (
-    <span className="chip" style={style} title="الوقت المتبقي لانتهاء المسابقة">
+    <span className="chip" style={style} title={t("countdown_title")}>
       ⏳
-      {c.d > 0 && cell(c.d, "يوم")}
-      {cell(c.h, "ساعة")}
-      {cell(c.m, "دقيقة")}
-      {cell(c.s, "ثانية")}
+      {c.d > 0 && cell(c.d, t("day_full"))}
+      {cell(c.h, t("hour_full"))}
+      {cell(c.m, t("minute_full"))}
+      {cell(c.s, t("second_full"))}
     </span>
   );
 }
 
 // ── Activity bars ──────────────────────────────────────────────
 function ActivityTicker({ buckets }: { buckets: number[] }) {
+  const t = useT();
   const max = Math.max(1, ...buckets);
   return (
-    <div className="flex items-end gap-0 h-8 px-1" title="نشاط آخر 60 ثانية">
+    <div className="flex items-end gap-0 h-8 px-1" title={t("activity_title")}>
       {buckets.map((v, i) => (
         <span
           key={i}
@@ -121,6 +124,7 @@ function ActivityTicker({ buckets }: { buckets: number[] }) {
 
 // ── Donut: vote share ──────────────────────────────────────────
 function VoteShareDonut({ contestants, total }: { contestants: Contestant[]; total: number }) {
+  const t = useT();
   if (total <= 0 || contestants.length === 0) return null;
   const palette = ["#eab308", "#22d3ee", "#ec4899", "#34d399", "#f87171", "#a78bfa", "#fb923c"];
   const sorted = [...contestants].sort((a, b) => Number(b.voteCount) - Number(a.voteCount));
@@ -128,7 +132,7 @@ function VoteShareDonut({ contestants, total }: { contestants: Contestant[]; tot
   const c = 2 * Math.PI * radius;
   let acc = 0;
   return (
-    <div className="flex items-center gap-3" title="توزيع الأصوات بين المتسابقين">
+    <div className="flex items-center gap-3" title={t("donut_title")}>
       <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
         <circle cx="36" cy="36" r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="10" />
         {sorted.map((c2, i) => {
@@ -206,16 +210,17 @@ function Hero({
   votesLastMinute: number;
   buckets: number[];
 }) {
+  const t = useT();
   return (
     <section className="relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
         <div className="panel p-6 md:p-8 heartbeat">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="chip"><span className="pulse-dot" /> {live ? "بث مباشر" : "مسابقة نشطة"}</span>
+            <span className="chip"><span className="pulse-dot" /> {live ? t("live_broadcast") : t("active_contest")}</span>
             <CountdownPill endsAt={contest.endsAt} />
             {votesLastMinute > 0 && (
               <span className="chip" style={{ background: "rgba(52,211,153,.10)", borderColor: "rgba(52,211,153,.35)", color: "#6ee7b7" }}>
-                ⚡ {fmtInt(votesLastMinute)} صوت / آخر دقيقة
+                {t("votes_per_minute", { n: fmtInt(votesLastMinute) })}
               </span>
             )}
           </div>
@@ -227,25 +232,25 @@ function Hero({
           )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
-              <div className="text-[11px] text-stage-mute">إجمالي الأصوات</div>
+              <div className="text-[11px] text-stage-mute">{t("total_votes_label")}</div>
               <div className="text-2xl font-extrabold num-anim" key={totalVotes}>{fmtInt(totalVotes)}</div>
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
-              <div className="text-[11px] text-stage-mute">المتسابقون</div>
+              <div className="text-[11px] text-stage-mute">{t("contestants_label")}</div>
               <div className="text-2xl font-extrabold tabular-nums">{contestants.length}</div>
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
-              <div className="text-[11px] text-stage-mute">نشاط لحظي</div>
+              <div className="text-[11px] text-stage-mute">{t("live_activity")}</div>
               <ActivityTicker buckets={buckets} />
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
-              <div className="text-[11px] text-stage-mute mb-1">توزيع الأصوات</div>
+              <div className="text-[11px] text-stage-mute mb-1">{t("vote_distribution")}</div>
               <VoteShareDonut contestants={contestants} total={totalVotes} />
             </div>
-            <BotLink className="btn-primary" payload="vote">🗳 صَوِّت الآن</BotLink>
-            <BotLink className="btn-ghost" payload="packs">🎟 باقات التصويت</BotLink>
+            <BotLink className="btn-primary" payload="vote">{t("vote_now_cta")}</BotLink>
+            <BotLink className="btn-ghost" payload="packs">{t("vote_packs_cta")}</BotLink>
           </div>
-          <div className="mt-3 text-xs text-stage-mute">🎁 صوت مجاني واحد لكل مستخدم يوميًا — استخدمه قبل أن ينتهي!</div>
+          <div className="mt-3 text-xs text-stage-mute">{t("daily_free_vote_hint")}</div>
         </div>
       </div>
     </section>
@@ -254,6 +259,7 @@ function Hero({
 
 // ── Podium (top-3) ─────────────────────────────────────────────
 function Podium({ top3 }: { top3: Contestant[] }) {
+  const t = useT();
   if (top3.length === 0) return null;
   // Display order: 2nd, 1st, 3rd (1st in the middle)
   const order = [top3[1], top3[0], top3[2]].filter(Boolean) as Contestant[];
@@ -277,8 +283,8 @@ function Podium({ top3 }: { top3: Contestant[] }) {
               </div>
               <div className="text-2xl mb-1">{medal}</div>
               <div className="font-extrabold text-base text-stage-fg truncate">{c.name}</div>
-              <div className="mt-1 text-xs text-stage-mute">{fmtInt(c.voteCount)} صوت</div>
-              <BotLink className="btn-primary text-xs mt-3 inline-flex" payload={`vote_${c.id}`}>صوِّت له</BotLink>
+              <div className="mt-1 text-xs text-stage-mute">{fmtInt(c.voteCount)} {t("votes_unit")}</div>
+              <BotLink className="btn-primary text-xs mt-3 inline-flex" payload={`vote_${c.id}`}>{t("vote_for_him")}</BotLink>
             </div>
           );
         })}
@@ -291,11 +297,12 @@ function Podium({ top3 }: { top3: Contestant[] }) {
 type Event = { id: string; at: number; kind: "rise" | "fall" | "vote" | "new" | "take1"; text: string };
 
 function Marquee({ events }: { events: Event[] }) {
+  const t = useT();
   if (events.length === 0) return null;
   // Duplicate items so the seamless loop has content on both halves.
   const items = [...events, ...events];
   return (
-    <div className="marquee" title="آخر الأحداث المباشرة">
+    <div className="marquee" title={t("live_events_title")}>
       <div className="marquee-track">
         {items.map((e, i) => (
           <span key={`${e.id}-${i}`} className={`ev-${e.kind}`}>
@@ -315,6 +322,7 @@ function TrendingStrip({
   contestants: Contestant[];
   voteDeltasLastMinute: Map<number, number>;
 }) {
+  const t = useT();
   let best: { c: Contestant; gain: number } | null = null;
   for (const c of contestants) {
     const g = voteDeltasLastMinute.get(c.id) ?? 0;
@@ -326,13 +334,13 @@ function TrendingStrip({
       <div className="trending-strip">
         <span className="trending-pulse" />
         <span className="text-sm">
-          🚀 <b>الأسرع صعوداً</b> الآن:
+          🚀 <b>{t("trending_fastest")}</b> {t("now_word")}:
         </span>
         <span className="font-extrabold text-stage-gold">{best.c.name}</span>
         <span className="chip" style={{ background: "rgba(52,211,153,.12)", borderColor: "rgba(52,211,153,.35)", color: "#6ee7b7" }}>
-          +{best.gain} صوت / آخر دقيقة
+          {t("trending_gain", { n: best.gain })}
         </span>
-        <BotLink className="btn-primary text-xs mr-auto" payload={`vote_${best.c.id}`}>صوِّت معه</BotLink>
+        <BotLink className="btn-primary text-xs mr-auto" payload={`vote_${best.c.id}`}>{t("vote_with_him")}</BotLink>
       </div>
     </div>
   );
@@ -347,10 +355,11 @@ type RowMeta = {
 };
 
 function RankDelta({ meta }: { meta: RowMeta }) {
-  if (meta.isNew) return <span className="badge-new">✨ جديد</span>;
+  const t = useT();
+  if (meta.isNew) return <span className="badge-new">{t("new_badge")}</span>;
   if (meta.prevRank === null) return <span className="delta-flat">—</span>;
   const delta = meta.prevRank - meta.rank;
-  if (delta === 0) return <span className="delta-flat">— ثابت</span>;
+  if (delta === 0) return <span className="delta-flat">{t("flat_stable")}</span>;
   if (delta > 0) return <span className="delta-up">▲ {delta}</span>;
   return <span className="delta-down">▼ {Math.abs(delta)}</span>;
 }
@@ -366,6 +375,7 @@ function ContestantRow({
   totalVotes: number;
   history: number[];
 }) {
+  const t = useT();
   const p = pct(Number(c.voteCount), totalVotes);
   const medal = meta.rank === 0 ? "🥇" : meta.rank === 1 ? "🥈" : meta.rank === 2 ? "🥉" : `#${meta.rank + 1}`;
   const rankDelta = meta.prevRank !== null ? meta.prevRank - meta.rank : 0;
@@ -394,9 +404,9 @@ function ContestantRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-bold text-base truncate">{c.name}</h3>
-          {c.isDisqualified && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">مستبعد</span>}
-          {rankDelta >= 2 && <span className="badge-rising">🔥 صاعد</span>}
-          {rankDelta <= -2 && <span className="badge-falling">❄️ هابط</span>}
+          {c.isDisqualified && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">{t("disqualified")}</span>}
+          {rankDelta >= 2 && <span className="badge-rising">{t("rising_badge")}</span>}
+          {rankDelta <= -2 && <span className="badge-falling">{t("falling_badge")}</span>}
           <RankDelta meta={meta} />
         </div>
         {c.bio && <p className="text-xs text-stage-mute truncate">{c.bio}</p>}
@@ -409,7 +419,7 @@ function ContestantRow({
         <div className="text-lg font-extrabold num-anim" key={c.voteCount}>{fmtInt(c.voteCount)}</div>
         <div className="text-[11px] text-stage-mute">{p.toFixed(1)}%</div>
       </div>
-      <BotLink className="btn-primary text-sm hidden md:inline-flex" payload={`vote_${c.id}`}>صوِّت</BotLink>
+      <BotLink className="btn-primary text-sm hidden md:inline-flex" payload={`vote_${c.id}`}>{t("vote_short")}</BotLink>
     </div>
   );
 }
@@ -425,6 +435,7 @@ function Leaderboard({
   metaById: Map<number, RowMeta>;
   historyById: Map<number, number[]>;
 }) {
+  const t = useT();
   const sorted = useMemo(
     () => [...contestants].sort((a, b) => Number(b.voteCount) - Number(a.voteCount) || a.sortOrder - b.sortOrder),
     [contestants],
@@ -432,13 +443,13 @@ function Leaderboard({
   return (
     <section className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-extrabold flex items-center gap-2">🏆 لوحة المتسابقين المباشرة</h2>
+        <h2 className="text-xl font-extrabold flex items-center gap-2">{t("leaderboard_title")}</h2>
         <span className="text-xs text-stage-mute flex items-center gap-2">
-          <span className="pulse-dot" /> تحديث كل {POLL_MS / 1000} ثوانٍ
+          <span className="pulse-dot" /> {t("refresh_every", { n: POLL_MS / 1000 })}
         </span>
       </div>
       {sorted.length === 0 ? (
-        <div className="panel p-8 text-center text-stage-mute">لا يوجد متسابقون بعد.</div>
+        <div className="panel p-8 text-center text-stage-mute">{t("no_contestants_yet")}</div>
       ) : (
         <div className="grid gap-3">
           {sorted.map((c) => {
@@ -454,23 +465,24 @@ function Leaderboard({
 
 // ── Packs ──────────────────────────────────────────────────────
 function PackCard({ p }: { p: VotePack }) {
+  const t = useT();
   const total = p.votes + (p.bonusVotes || 0);
   return (
     <div className="panel p-5 flex flex-col gap-3 hover:translate-y-[-2px] transition-transform">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs text-stage-mute">باقة</div>
+          <div className="text-xs text-stage-mute">{t("pack_label")}</div>
           <h3 className="text-lg font-extrabold">{p.name}</h3>
         </div>
         {p.bonusFileUrl && (
-          <span className="text-[10px] px-2 py-1 rounded-full bg-stage-cyan/20 text-stage-cyan border border-stage-cyan/30">🎁 ملف مكافأة</span>
+          <span className="text-[10px] px-2 py-1 rounded-full bg-stage-cyan/20 text-stage-cyan border border-stage-cyan/30">{t("bonus_file_badge")}</span>
         )}
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-black text-stage-gold text-glow-gold">{fmtInt(total)}</span>
-        <span className="text-sm text-stage-mute">صوت</span>
+        <span className="text-sm text-stage-mute">{t("votes_unit")}</span>
         {p.bonusVotes > 0 && (
-          <span className="text-[11px] text-stage-green">(+{p.bonusVotes} مكافأة)</span>
+          <span className="text-[11px] text-stage-green">{t("bonus_votes_suffix", { n: p.bonusVotes })}</span>
         )}
       </div>
       {p.description && <p className="text-xs text-stage-mute">{p.description}</p>}
@@ -481,22 +493,23 @@ function PackCard({ p }: { p: VotePack }) {
       )}
       <div className="mt-auto flex items-center justify-between pt-2 border-t border-stage-line">
         <div>
-          <div className="text-[10px] text-stage-mute">السعر</div>
+          <div className="text-[10px] text-stage-mute">{t("price_label")}</div>
           <div className="text-lg font-extrabold">{fmtSkz(p.priceSkz)} <span className="text-xs text-stage-mute">SKZ</span></div>
         </div>
-        <BotLink className="btn-primary text-sm" payload={`buy_${p.id}`}>اشترِ الآن</BotLink>
+        <BotLink className="btn-primary text-sm" payload={`buy_${p.id}`}>{t("buy_now")}</BotLink>
       </div>
     </div>
   );
 }
 
 function Packs({ packs }: { packs: VotePack[] }) {
+  const t = useT();
   if (!packs.length) return null;
   return (
     <section className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-extrabold flex items-center gap-2">🎟 باقات التصويت</h2>
-        <span className="text-xs text-stage-mute">الدفع برصيد SKZ من البوت الأم</span>
+        <h2 className="text-xl font-extrabold flex items-center gap-2">{t("vote_packs_cta")}</h2>
+        <span className="text-xs text-stage-mute">{t("pay_with_skz")}</span>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {packs.map((p) => <PackCard key={p.id} p={p} />)}
@@ -539,22 +552,24 @@ function Confetti({ burstKey }: { burstKey: number }) {
 }
 
 function EmptyState() {
+  const t = useT();
   return (
     <section className="max-w-3xl mx-auto px-4 py-20 text-center">
       <div className="text-6xl mb-4">🌙</div>
-      <h1 className="text-2xl font-extrabold mb-2">لا توجد مسابقة نشطة حاليًّا</h1>
-      <p className="text-stage-mute mb-6">ترقّب المسابقة القادمة قريبًا على مسرح SOUQRATES STAGE.</p>
-      <BotLink className="btn-primary">افتح البوت لتلقّي الإشعارات</BotLink>
+      <h1 className="text-2xl font-extrabold mb-2">{t("empty_title")}</h1>
+      <p className="text-stage-mute mb-6">{t("empty_subtitle")}</p>
+      <BotLink className="btn-primary">{t("open_bot_notifications")}</BotLink>
     </section>
   );
 }
 
 function Footer() {
+  const t = useT();
   return (
     <footer className="mt-12 border-t border-stage-line">
       <div className="max-w-6xl mx-auto px-4 py-6 text-center text-xs text-stage-mute">
-        <div>★ SOUQRATES STAGE — جزء من منظومة SOUQRATES SYSTEM</div>
-        <div className="mt-1">جميع المعاملات مالية ومسجّلة وقابلة للتدقيق.</div>
+        <div>{t("footer_brand")}</div>
+        <div className="mt-1">{t("footer_legal")}</div>
       </div>
     </footer>
   );
@@ -585,6 +600,10 @@ function buildMeta(
 }
 
 export default function App() {
+  const t = useT();
+  const [lang] = useLang();
+  const langRef = useRef(lang);
+  useEffect(() => { langRef.current = lang; }, [lang]);
   const [data, setData] = useState<ActivePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -635,7 +654,7 @@ export default function App() {
                   id: `v-${c.id}-${now}-${eventSeq.current++}`,
                   at: now,
                   kind: "vote",
-                  text: `⚡ +${delta} لـ ${c.name}`,
+                  text: tt(langRef.current, "event_vote", { n: delta, name: c.name }),
                 });
               }
             } else {
@@ -643,7 +662,7 @@ export default function App() {
                 id: `n-${c.id}-${now}-${eventSeq.current++}`,
                 at: now,
                 kind: "new",
-                text: `✨ متسابق جديد: ${c.name}`,
+                text: tt(langRef.current, "event_new", { name: c.name }),
               });
             }
           }
@@ -658,15 +677,15 @@ export default function App() {
                   at: now,
                   kind: idx === 0 ? "take1" : "rise",
                   text: idx === 0
-                    ? `👑 ${c.name} يتصدّر القائمة!`
-                    : `🔥 ${c.name} صعد إلى المركز ${idx + 1}`,
+                    ? tt(langRef.current, "event_take1", { name: c.name })
+                    : tt(langRef.current, "event_rise", { name: c.name, rank: idx + 1 }),
                 });
               } else if (moved <= -2) {
                 newEventBatch.push({
                   id: `f-${c.id}-${now}-${eventSeq.current++}`,
                   at: now,
                   kind: "fall",
-                  text: `❄️ ${c.name} هبط إلى المركز ${idx + 1}`,
+                  text: tt(langRef.current, "event_fall", { name: c.name, rank: idx + 1 }),
                 });
               }
             }
@@ -733,7 +752,7 @@ export default function App() {
         }
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : "تعذّر الاتصال");
+        setError(e instanceof Error ? e.message : tt(langRef.current, "connection_failed_short"));
       } finally {
         inFlight.current = false;
         if (alive) setLoaded(true);
@@ -774,12 +793,12 @@ export default function App() {
       <Confetti burstKey={confettiKey} />
       <main className="flex-1">
         {!loaded && (
-          <div className="max-w-6xl mx-auto px-4 py-20 text-center text-stage-mute">جاري التحميل…</div>
+          <div className="max-w-6xl mx-auto px-4 py-20 text-center text-stage-mute">{t("loading")}</div>
         )}
         {loaded && error && !data && (
           <div className="max-w-6xl mx-auto px-4 py-20 text-center">
             <div className="panel p-6 inline-block">
-              <div className="text-stage-red font-bold mb-2">تعذّر الاتصال بالخادم</div>
+              <div className="text-stage-red font-bold mb-2">{t("connection_failed")}</div>
               <div className="text-xs text-stage-mute">{error}</div>
             </div>
           </div>

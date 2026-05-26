@@ -2,13 +2,14 @@ import { Link, useLocation } from "wouter";
 import { Home, Wallet, Download, Upload, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
+import { useT } from "../lib/i18n";
 
 const NAV_ITEMS = [
-  { href: "/referral", icon: Users,    label: "Referral", color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
-  { href: "/withdraw", icon: Upload,   label: "Withdraw", color: "#f87171", glow: "rgba(239,68,68,0.4)"  },
-  { href: "/",         icon: Home,     label: "Home",     color: "#22d3ee", glow: "rgba(34,211,238,0.4)" },
-  { href: "/deposit",  icon: Download, label: "Deposit",  color: "#34d399", glow: "rgba(16,185,129,0.4)" },
-  { href: "/wallet",   icon: Wallet,   label: "Wallet",   color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
+  { href: "/referral", icon: Users,    labelKey: "nav.referral", color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
+  { href: "/withdraw", icon: Upload,   labelKey: "nav.withdraw", color: "#f87171", glow: "rgba(239,68,68,0.4)"  },
+  { href: "/",         icon: Home,     labelKey: "nav.home",     color: "#22d3ee", glow: "rgba(34,211,238,0.4)" },
+  { href: "/deposit",  icon: Download, labelKey: "nav.deposit",  color: "#34d399", glow: "rgba(16,185,129,0.4)" },
+  { href: "/wallet",   icon: Wallet,   labelKey: "nav.wallet",   color: "#c084fc", glow: "rgba(168,85,247,0.4)" },
 ];
 
 const pageVariants = {
@@ -19,6 +20,7 @@ const pageVariants = {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const t = useT();
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
@@ -120,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         animate={{ color: isActive ? item.color : "rgba(255,255,255,0.35)" }}
                         transition={{ duration: 0.2 }}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </motion.span>
                     </>
                   )}

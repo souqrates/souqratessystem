@@ -5,9 +5,11 @@ import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
 import { L, Ornament } from "@/components/Ornaments";
 import { buyOnTelegram } from "@/lib/constants";
+import { useT } from "@/lib/i18n";
 import NotFound from "./not-found";
 
 export default function Book() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const { books, loading } = useBooks();
   const book = books.find((b) => b.id === (params.id ?? ""));
@@ -15,7 +17,7 @@ export default function Book() {
   if (loading) {
     return (
       <section className="py-32 text-center">
-        <p className="text-sm" style={{ color: "var(--muted)" }}>جارٍ التحميل…</p>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>{t("common.loadingLong")}</p>
       </section>
     );
   }
@@ -29,13 +31,13 @@ export default function Book() {
       <section className="relative py-12 md:py-20">
         <div className="max-w-5xl mx-auto px-6 md:px-10">
           <div className="text-xs mb-6" style={{ color: "var(--muted)" }}>
-            <Link href="/" className="refined" data-testid="bc-home">الواجهة</Link>
+            <Link href="/" className="refined" data-testid="bc-home">{t("book.bcHome")}</Link>
             <span className="mx-2" style={{ color: "var(--hairline)" }}>/</span>
-            <Link href="/library" className="refined" data-testid="bc-library">المكتبة</Link>
+            <Link href="/library" className="refined" data-testid="bc-library">{t("book.bcLibrary")}</Link>
             {category && (
               <>
                 <span className="mx-2" style={{ color: "var(--hairline)" }}>/</span>
-                <Link href={`/category/${category.slug}`} className="refined" data-testid="bc-category">{category.name}</Link>
+                <Link href={`/category/${category.slug}`} className="refined" data-testid="bc-category">{t(`cat.${category.slug}.name`)}</Link>
               </>
             )}
           </div>
@@ -54,7 +56,7 @@ export default function Book() {
                 <div className="absolute" style={{ inset: 10, border: "1px solid var(--gold-line)" }} />
                 <div className="relative px-6 text-center">
                   <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                    ❖ Vol. {book.year}
+                    {t("book.coverVol", { year: book.year })}
                   </div>
                   <div className="font-display leading-snug" style={{ color: "var(--ivory)", fontSize: "1.25rem" }}>
                     {book.title}
@@ -70,13 +72,13 @@ export default function Book() {
             {/* Details */}
             <div>
               <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                ❖ {category?.slug.replace("-", " ") ?? "Title"}
+                ❖ {category?.slug.replace("-", " ") ?? t("book.titleFallback")}
               </div>
               <h1 className="font-display mb-3" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.5rem)" }}>
                 {book.title}
               </h1>
               <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
-                بقلم <span style={{ color: "var(--ink)" }}>{book.author}</span>
+                {t("book.by")} <span style={{ color: "var(--ink)" }}>{book.author}</span>
                 {" · "}
                 <span dir="ltr" lang="en">{book.year}</span>
               </p>
@@ -90,7 +92,7 @@ export default function Book() {
                 {book.pages && (
                   <span className="inline-flex items-center gap-1">
                     <BookOpen size={14} strokeWidth={1.5} />
-                    {book.pages} صفحة
+                    {t("book.pages", { n: book.pages })}
                   </span>
                 )}
                 {book.duration && (
@@ -112,14 +114,14 @@ export default function Book() {
                 style={{ background: "var(--ivory)", border: "1px solid var(--hairline)" }}
               >
                 <div>
-                  <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>Price</div>
+                  <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("book.price")}</div>
                   <div className="font-display text-2xl mt-1" style={{ color: "var(--emerald)" }}>
                     {book.priceSkz.toLocaleString()} {L("SKZ")}
                   </div>
                 </div>
                 <div className="text-xs text-end" style={{ color: "var(--muted)" }}>
-                  دفع لحظي من<br />
-                  <span dir="ltr" lang="en">SOUQRATES SYSTEM</span>
+                  {t("book.instantPay1")}<br />
+                  <span dir="ltr" lang="en">{t("book.instantPay2")}</span>
                 </div>
               </div>
 
@@ -132,7 +134,7 @@ export default function Book() {
                   style={{ background: "var(--ink)", color: "var(--ivory)" }}
                   data-testid="button-buy"
                 >
-                  اشترِ عبر تيليغرام
+                  {t("book.buy")}
                   <ArrowLeft size={14} strokeWidth={1.8} />
                 </a>
                 <Link
@@ -141,14 +143,14 @@ export default function Book() {
                   style={{ color: "var(--emerald)" }}
                   data-testid="link-more-in-category"
                 >
-                  المزيد في {category?.name}
+                  {t("book.moreIn", { name: category ? t(`cat.${category.slug}.name`) : "" })}
                 </Link>
               </div>
 
               <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs" style={{ color: "var(--muted)" }}>
-                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> توقيع تحميل فريد</li>
-                <li className="inline-flex items-center gap-2"><Download size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> صالح ٧ أيام بعد الشراء</li>
-                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> حقوق المؤلِّف محفوظة</li>
+                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure1")}</li>
+                <li className="inline-flex items-center gap-2"><Download size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure2")}</li>
+                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure3")}</li>
               </ul>
             </div>
           </div>
@@ -159,9 +161,9 @@ export default function Book() {
         <section className="py-16 md:py-20" style={{ borderTop: "1px solid var(--hairline)", background: "var(--ivory)" }}>
           <div className="max-w-6xl mx-auto px-6 md:px-10">
             <div className="mb-10 text-center">
-              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>Also in this chapter</div>
+              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("book.alsoEyebrow")}</div>
               <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-                إصدارات قد تعجبك
+                {t("book.alsoTitle")}
               </h2>
             </div>
             <div

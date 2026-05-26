@@ -46,6 +46,191 @@ TR: dict[str, dict[str, str]] = {
                        "en": "✅ Language set to English."},
     "lang_set_fail":  {"ar": "❌ تعذّر حفظ اختيار اللغة. حاول لاحقاً.",
                        "en": "❌ Could not save language preference. Try again later."},
+    # Main menu / help
+    "menu_title": {
+        "ar": "❖ <b>SOUQRATES SOUQ</b>\n\nاختر إجراءً:",
+        "en": "❖ <b>SOUQRATES SOUQ</b>\n\nChoose an action:",
+    },
+    "help_body": {
+        "ar": ("<b>مساعدة — SOUQRATES SOUQ</b>\n\n"
+               "الأوامر المتاحة:\n"
+               "/start — القائمة الرئيسية\n"
+               "/browse — تصفّح الكتب حسب التصنيف\n"
+               "/publish — نشر كتاب جديد للمراجعة\n"
+               "/library — مكتبتي (مشترياتي وإصداراتي)\n"
+               "/wallet — رصيد محفظتي بـ SKZ\n"
+               "/help — عرض هذه القائمة\n"),
+        "en": ("<b>Help — SOUQRATES SOUQ</b>\n\n"
+               "Available commands:\n"
+               "/start — Main menu\n"
+               "/browse — Browse books by category\n"
+               "/publish — Submit a new book for review\n"
+               "/library — My library (purchases & publications)\n"
+               "/wallet — My SKZ wallet balance\n"
+               "/help — Show this list\n"),
+    },
+    # Browse
+    "browse_title":        {"ar": "📚 <b>اختر تصنيفًا</b>", "en": "📚 <b>Choose a category</b>"},
+    "browse_bestsellers":  {"ar": "🔥 الأكثر مبيعًا",       "en": "🔥 Best sellers"},
+    "browse_btn_back_cats":{"ar": "🔙 التصنيفات",            "en": "🔙 Categories"},
+    "browse_empty":        {"ar": "📭 لا توجد كتب في هذا التصنيف بعد.",
+                            "en": "📭 No books in this category yet."},
+    "books_header":        {"ar": "📚 <b>الكتب</b> ({total})\n",
+                            "en": "📚 <b>Books</b> ({total})\n"},
+    # Library
+    "lib_title":              {"ar": "📂 <b>مكتبتي</b>\n", "en": "📂 <b>My Library</b>\n"},
+    "lib_purchases_header":   {"ar": "🛒 <b>مشترياتي:</b>",  "en": "🛒 <b>My purchases:</b>"},
+    "lib_no_purchases":       {"ar": "لم تشترِ أي كتاب بعد.\n",
+                               "en": "You haven't purchased any books yet.\n"},
+    "lib_published_header":   {"ar": "📤 <b>إصداراتي:</b>",   "en": "📤 <b>My publications:</b>"},
+    "lib_published_line":     {"ar": "{icon} <b>{title}</b> — مبيعات: {sales}",
+                               "en": "{icon} <b>{title}</b> — Sales: {sales}"},
+    # Wallet
+    "wallet_text": {
+        "ar": ("💰 <b>رصيدك</b>\n\n"
+               "⚡ SKZ: <code>{skz}</code>\n"
+               "💵 USDT (تقديري): <code>{usdt}</code>"),
+        "en": ("💰 <b>Your Balance</b>\n\n"
+               "⚡ SKZ: <code>{skz}</code>\n"
+               "💵 USDT (estimated): <code>{usdt}</code>"),
+    },
+    "err_wallet_alert":  {"ar": "❌ لم يتم العثور على المحفظة", "en": "❌ Wallet not found"},
+    # Publish FSM
+    "pub_ask_title":      {"ar": "📝 أرسل <b>عنوان</b> الكتاب:", "en": "📝 Send the book <b>title</b>:"},
+    "pub_ask_desc":       {"ar": "📄 أرسل <b>وصف</b> الكتاب:",   "en": "📄 Send the book <b>description</b>:"},
+    "pub_ask_cat":        {"ar": "🏷️ اختر تصنيفًا:",              "en": "🏷️ Choose a category:"},
+    "pub_ask_price":      {"ar": "💰 أرسل السعر بـ SKZ (رقم فقط، مثال: <code>50</code>):",
+                           "en": "💰 Send the price in SKZ (number only, e.g. <code>50</code>):"},
+    "pub_invalid_price":  {"ar": "❌ سعر غير صالح. أرسل رقمًا فقط.",
+                           "en": "❌ Invalid price. Send a number only."},
+    "pub_ask_cover": {
+        "ar": ("🖼️ أرسل <b>صورة الغلاف</b> الآن:\n\n"
+               "• الصيغ المسموحة: <b>JPG / PNG / WEBP</b>\n"
+               "• الحد الأقصى للحجم: <b>{mb} MB</b>\n"
+               "• المقاس المفضّل: 800×1200 (نسبة 2:3)\n\n"
+               "أرسل الصورة كصورة (📷) أو ملف (📎). اكتب <code>تخطّى</code> لتركها فارغة."),
+        "en": ("🖼️ Send the <b>cover image</b> now:\n\n"
+               "• Allowed formats: <b>JPG / PNG / WEBP</b>\n"
+               "• Maximum size: <b>{mb} MB</b>\n"
+               "• Preferred dimensions: 800×1200 (2:3 ratio)\n\n"
+               "Send as photo (📷) or file (📎). Type <code>skip</code> to leave it empty."),
+    },
+    "pub_cover_busy":         {"ar": "⏳ جاري معالجة الصورة السابقة… انتظر لحظة.",
+                               "en": "⏳ Processing previous image… please wait."},
+    "pub_cover_bad_mime":     {"ar": "❌ صيغة الغلاف غير مسموحة. أرسل صورة <b>JPG / PNG / WEBP</b> فقط.",
+                               "en": "❌ Cover format not allowed. Send only <b>JPG / PNG / WEBP</b>."},
+    "pub_cover_too_large":    {"ar": "❌ حجم الصورة يتجاوز {mb} MB.",
+                               "en": "❌ Image exceeds {mb} MB."},
+    "pub_cover_uploading":    {"ar": "⏳ جاري رفع الغلاف…", "en": "⏳ Uploading cover…"},
+    "pub_cover_uploaded":     {"ar": "✅ تم رفع الغلاف.",    "en": "✅ Cover uploaded."},
+    "pub_cover_fail_default": {"ar": "تعذّر رفع الغلاف",     "en": "Cover upload failed"},
+    "pub_cover_fail":         {"ar": "❌ فشل الرفع: {err}",  "en": "❌ Upload failed: {err}"},
+    "pub_cover_fallback":     {"ar": ("❌ أرسل <b>صورة</b> فعلية (📷 أو 📎)، لا روابط.\n"
+                                      "أو اكتب <code>تخطّى</code> لتجاوز الغلاف."),
+                               "en": ("❌ Send an actual <b>image</b> (📷 or 📎), not a link.\n"
+                                      "Or type <code>skip</code> to skip the cover.")},
+    "pub_ask_file": {
+        "ar": ("📎 أرسل <b>ملف الكتاب</b> الآن:\n\n"
+               "• الصيغ المسموحة: <b>PDF / EPUB / ZIP / MP3</b>\n"
+               "• الحد الأقصى للحجم: <b>{mb} MB</b>\n\n"
+               "أرسله كملف مرفق (📎). الملف مطلوب لإكمال النشر."),
+        "en": ("📎 Send the <b>book file</b> now:\n\n"
+               "• Allowed formats: <b>PDF / EPUB / ZIP / MP3</b>\n"
+               "• Maximum size: <b>{mb} MB</b>\n\n"
+               "Send it as an attachment (📎). The file is required to complete publishing."),
+    },
+    "pub_file_busy":         {"ar": "⏳ جاري معالجة الملف السابق… انتظر لحظة.",
+                              "en": "⏳ Processing previous file… please wait."},
+    "pub_file_bad_mime":     {"ar": "❌ صيغة الملف غير مسموحة. الصيغ المقبولة: <b>PDF / EPUB / ZIP / MP3</b>.",
+                              "en": "❌ File format not allowed. Accepted: <b>PDF / EPUB / ZIP / MP3</b>."},
+    "pub_file_too_large":    {"ar": ("❌ حجم الملف يتجاوز {mb} MB.\n"
+                                     "يمكنك ضغطه أو رفعه عبر الموقع للملفات الأكبر."),
+                              "en": ("❌ File exceeds {mb} MB.\n"
+                                     "You can compress it or upload via the web for larger files.")},
+    "pub_file_uploading":    {"ar": "⏳ جاري رفع الملف…", "en": "⏳ Uploading file…"},
+    "pub_file_uploaded":     {"ar": "✅ تم رفع الملف.",    "en": "✅ File uploaded."},
+    "pub_file_fail_default": {"ar": "تعذّر رفع الملف",     "en": "File upload failed"},
+    "pub_file_fail":         {"ar": "❌ فشل الرفع: {err}", "en": "❌ Upload failed: {err}"},
+    "pub_file_fallback":     {"ar": "❌ أرسل <b>ملفًا مرفقًا</b> (📎) — لا روابط ولا صور.",
+                              "en": "❌ Send an <b>attached file</b> (📎) — no links or images."},
+    "pub_summary": {
+        "ar": ("📤 <b>تأكيد النشر</b>\n\n"
+               "📖 العنوان: <b>{title}</b>\n"
+               "💰 السعر: <code>{price}</code> SKZ\n"
+               "🏷️ التصنيف: #{cat}\n"
+               "🖼️ الغلاف: {cover}\n"
+               "📎 الملف: <code>{fname}</code> ({kb} KB)\n"
+               "📄 الوصف: {desc}…\n\n"
+               "بعد الإرسال سيخضع الكتاب لمراجعة إدارية قبل النشر، وسيصلك إشعار فور الموافقة."),
+        "en": ("📤 <b>Confirm Publication</b>\n\n"
+               "📖 Title: <b>{title}</b>\n"
+               "💰 Price: <code>{price}</code> SKZ\n"
+               "🏷️ Category: #{cat}\n"
+               "🖼️ Cover: {cover}\n"
+               "📎 File: <code>{fname}</code> ({kb} KB)\n"
+               "📄 Description: {desc}…\n\n"
+               "After submission, the book will undergo admin review before publishing. You'll be notified upon approval."),
+    },
+    "pub_cover_yes":   {"ar": "مرفق ✓",   "en": "attached ✓"},
+    "pub_cover_no":    {"ar": "لا يوجد",  "en": "none"},
+    "pub_btn_submit": {"ar": "✅ إرسال للمراجعة", "en": "✅ Submit for review"},
+    "pub_btn_cancel": {"ar": "❌ إلغاء",          "en": "❌ Cancel"},
+    "pub_submitted":  {"ar": "✅ تم استلام الكتاب بنجاح (#{id}). سنراجعه قريبًا.",
+                       "en": "✅ Book received successfully (#{id}). We'll review it shortly."},
+    # Product detail / purchase
+    "product_detail": {
+        "ar": ("📖 <b>{title}</b>\n\n"
+               "{desc}\n\n"
+               "💰 السعر: <code>{price}</code> SKZ\n"
+               "🛒 المبيعات: {sales}  ⭐ {rating} ({rcount})"),
+        "en": ("📖 <b>{title}</b>\n\n"
+               "{desc}\n\n"
+               "💰 Price: <code>{price}</code> SKZ\n"
+               "🛒 Sales: {sales}  ⭐ {rating} ({rcount})"),
+    },
+    "product_short": {
+        "ar": ("📖 <b>{title}</b>\n\n"
+               "{desc}\n\n"
+               "💰 السعر: <code>{price}</code> SKZ"),
+        "en": ("📖 <b>{title}</b>\n\n"
+               "{desc}\n\n"
+               "💰 Price: <code>{price}</code> SKZ"),
+    },
+    "product_not_found": {"ar": "❌ المنتج غير موجود", "en": "Product not found"},
+    "btn_buy":           {"ar": "🛒 شراء بـ {price} SKZ", "en": "🛒 Buy for {price} SKZ"},
+    "btn_back_menu":     {"ar": "🔙 القائمة",             "en": "🔙 Menu"},
+    "btn_back_browse":   {"ar": "🔙 رجوع",                "en": "🔙 Back"},
+    "btn_back_arrow":    {"ar": "⬅️ رجوع",                "en": "⬅️ Back"},
+    "buy_insufficient": {
+        "ar": ("❌ <b>رصيد SKZ غير كافٍ</b>\n\n"
+               "اشحن محفظتك من البوت الأم — يدعم Telegram Stars و USDT/TON.\n"
+               "بعد الشحن ارجع وأكمل الشراء."),
+        "en": ("❌ <b>Insufficient SKZ balance</b>\n\n"
+               "Top up your wallet from the Mother Bot — supports Telegram Stars and USDT/TON.\n"
+               "Return after topping up to complete your purchase."),
+    },
+    "btn_topup_wallet":  {"ar": "💳 شحن المحفظة (Stars / TON)",
+                          "en": "💳 Top up wallet (Stars / TON)"},
+    "buy_receipt": {
+        "ar": ("✅ <b>تم الشراء بنجاح</b>\n\n"
+               "📖 {title}\n"
+               "💰 المدفوع: <code>{paid}</code> SKZ\n"
+               "💵 الرصيد الجديد: <code>{balance}</code> SKZ"),
+        "en": ("✅ <b>Purchase successful</b>\n\n"
+               "📖 {title}\n"
+               "💰 Paid: <code>{paid}</code> SKZ\n"
+               "💵 New balance: <code>{balance}</code> SKZ"),
+    },
+    "buy_doc_caption":   {"ar": "📖 <b>{title}</b>\n⏱ الرابط صالح 7 أيام.",
+                          "en": "📖 <b>{title}</b>\n⏱ Link valid for 7 days."},
+    "buy_doc_failed":    {"ar": ("⚠️ تعذّر إرسال الملف مباشرة داخل Telegram (قد يكون حجمه كبيرًا أو الرابط من سيرفر خارجي).\n"
+                                 "اضغط الزر التالي لتنزيله من المتصفح:"),
+                          "en": ("⚠️ Couldn't send the file directly in Telegram (it may be too large or hosted externally).\n"
+                                 "Tap the button below to download it via browser:")},
+    "btn_download_book": {"ar": "📥 تنزيل الكتاب", "en": "📥 Download book"},
+    "buy_answer_ok":     {"ar": "تم الشراء ✅",    "en": "Purchase complete ✅"},
+    "buy_err_alert":     {"ar": "❌ {msg}",        "en": "❌ {msg}"},
+    "buy_default_title": {"ar": "كتاب",            "en": "book"},
 }
 
 
@@ -134,7 +319,10 @@ async def set_user_lang(
             ok = r.status_code == 200
     except Exception:
         pass
-    _LANG_CACHE[telegram_id] = (lang, time.time())
+    if ok:
+        _LANG_CACHE[telegram_id] = (lang, time.time())
+    else:
+        _LANG_CACHE.pop(telegram_id, None)
     return ok
 
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import logoUrl from "@/assets/souq-logo.jpg";
+import { useT } from "@/lib/i18n";
 
 interface SplashProps {
   onDone: () => void;
@@ -7,6 +8,7 @@ interface SplashProps {
 }
 
 export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
+  const t = useT();
   const [progress, setProgress] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
@@ -41,7 +43,7 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
         opacity: leaving ? 0 : 1,
         pointerEvents: leaving ? "none" : "auto",
       }}
-      aria-label="Loading SOUQRATES SOUQ"
+      aria-label={t("splash.aria")}
     >
       {/* gold double frame */}
       <div className="absolute pointer-events-none" style={{ inset: 18, border: "1px solid var(--gold)" }} />
@@ -101,7 +103,7 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
             lang="en"
             style={{ color: "rgba(184,137,58,0.7)", letterSpacing: "0.32em" }}
           >
-            digital books · est. 2026
+            {t("splash.tagline")}
           </div>
         </div>
 
@@ -119,7 +121,7 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
           aria-valuenow={progress}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label="Loading progress"
+          aria-label={t("splash.progressAria")}
         >
           <div
             className="relative h-[3px] w-full overflow-hidden"

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { L, Ornament, CornerFlourish } from "@/components/Ornaments";
 import { CATEGORIES } from "@/lib/catalog";
 import { TELEGRAM_BOT_URL, TELEGRAM_PUBLISH_URL } from "@/lib/constants";
+import { useT } from "@/lib/i18n";
 
 type IconKey = (typeof CATEGORIES)[number]["iconKey"];
 const ICON_MAP: Record<IconKey, LucideIcon> = {
@@ -14,42 +15,27 @@ const ICON_MAP: Record<IconKey, LucideIcon> = {
   audio: Headphones,
 };
 
-const FEATURES: { Icon: LucideIcon; title: string; desc: React.ReactNode }[] = [
-  { Icon: Wallet,      title: "محفظة موحّدة",      desc: <>ادفع بـ {L("SKZ")} من محفظتك في {L("SOUQRATES SYSTEM")} — بلا بطاقات، بلا تحويلات.</> },
-  { Icon: Zap,         title: "تسليم لحظي",         desc: <>روابط آمنة مُوقَّعة بـ {L("HMAC")}، صالحة لمدّة سبعة أيام بعد الشراء.</> },
-  { Icon: ShieldCheck, title: "حقوق النشر محفوظة", desc: <>كل عملية موثَّقة على السلسلة المالية، والمؤلِّف يستلم نصيبه تلقائيًا.</> },
-  { Icon: Globe2,      title: "للمكتبة العربية",    desc: <>ست فئات منتقاة تغطّي اهتمام القارئ العربي المعاصر.</> },
-];
-
-const STEPS: { n: string; t: React.ReactNode; d: React.ReactNode }[] = [
-  { n: "I",   t: <>افتح البوت</>,        d: <>ابدأ {L("/start")} في {L("SOUQRATES SOUQ")} عبر تيليغرام.</> },
-  { n: "II",  t: <>اختر إصدارًا</>,       d: <>تصفّح حسب الفئة، أو ابحث بعنوان أو مؤلِّف.</> },
-  { n: "III", t: <>ادفع بـ {L("SKZ")}</>, d: <>خصم لحظي من محفظتك الموحّدة، بلا وسطاء.</> },
-  { n: "IV",  t: <>حمِّل واقرأ</>,         d: <>رابط مُؤمَّن صالح سبعة أيام — لك وحدك.</> },
-];
-
 function Hero() {
+  const t = useT();
   return (
     <section className="relative">
       <div className="max-w-4xl mx-auto px-6 md:px-10 py-20 md:py-28 text-center rise">
         <div className="eyebrow mb-8" style={{ color: "var(--gold)" }}>
-          <span dir="ltr" lang="en">❖ Volume I</span> · المجلَّد الأوّل
+          <span dir="ltr" lang="en">{t("home.volume")}</span> {t("home.volumeAr")}
         </div>
 
         <h1 className="font-display leading-[1.05] mb-8" style={{ color: "var(--ink)", fontSize: "clamp(2.5rem, 6vw, 4.75rem)" }}>
-          مكتبةٌ كاملة
+          {t("home.heroTitleL1")}
           <br />
           <span className="font-serif-en" dir="ltr" lang="en" style={{ color: "var(--emerald)" }}>
-            in your pocket.
+            {t("home.heroTitleL2")}
           </span>
         </h1>
 
         <Ornament className="mb-8" />
 
         <p className="max-w-2xl mx-auto text-base md:text-lg leading-loose mb-12" style={{ color: "var(--muted)" }}>
-          اقتنِ، اقرأ، وانشر آلاف الإصدارات الرقمية مباشرةً عبر تيليغرام — مدفوعةً بمحفظة{" "}
-          <span className="font-display" style={{ color: "var(--emerald)" }}>{L("SKZ")}</span>{" "}
-          الموحَّدة، ومحميَّةً بتوقيع تحميل فريد لكلِّ نسخة.
+          {t("home.heroLead", { skz: "SKZ" })}
         </p>
 
         <div className="flex flex-wrap justify-center items-center gap-5">
@@ -59,7 +45,7 @@ function Hero() {
             style={{ background: "var(--ink)", color: "var(--ivory)" }}
             data-testid="button-enter-library"
           >
-            ادخل المكتبة
+            {t("home.enterLibrary")}
             <ArrowLeft size={14} strokeWidth={1.8} />
           </Link>
           <a
@@ -68,7 +54,7 @@ function Hero() {
             style={{ color: "var(--emerald)" }}
             data-testid="link-browse-categories"
           >
-            تصفَّح الفئات
+            {t("home.browseCategories")}
           </a>
         </div>
       </div>
@@ -77,24 +63,25 @@ function Hero() {
 }
 
 function Categories() {
+  const t = useT();
   return (
     <section id="categories" className="relative py-20 md:py-28">
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         <div className="text-center mb-16">
           <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            The Collection
+            {t("home.categoriesEyebrow")}
           </div>
           <h2 className="font-display mb-4" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            ست فئاتٍ. مكتبةٌ واحدة.
+            {t("home.categoriesTitle")}
           </h2>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
-            اختر اهتمامك، وابدأ القراءة في الحال.
+            {t("home.categoriesLead")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
           style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}>
-          {CATEGORIES.map(({ slug, name, desc, iconKey }, i) => {
+          {CATEGORIES.map(({ slug, iconKey }, i) => {
             const Icon = ICON_MAP[iconKey];
             return (
               <Link
@@ -110,8 +97,8 @@ function Categories() {
                     № {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
-                <div className="font-display text-xl mb-2" style={{ color: "var(--ink)" }}>{name}</div>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{desc}</p>
+                <div className="font-display text-xl mb-2" style={{ color: "var(--ink)" }}>{t(`cat.${slug}.name`)}</div>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{t(`cat.${slug}.desc`)}</p>
                 <div className="mt-6 h-px w-8 transition-all group-hover:w-16" style={{ background: "var(--gold)" }} />
               </Link>
             );
@@ -123,14 +110,21 @@ function Categories() {
 }
 
 function Features() {
+  const t = useT();
+  const FEATURES: { Icon: LucideIcon; title: string; desc: React.ReactNode }[] = [
+    { Icon: Wallet,      title: t("home.feat1Title"), desc: t("home.feat1Desc", { skz: "SKZ", system: "SOUQRATES SYSTEM" }) },
+    { Icon: Zap,         title: t("home.feat2Title"), desc: t("home.feat2Desc", { hmac: "HMAC" }) },
+    { Icon: ShieldCheck, title: t("home.feat3Title"), desc: t("home.feat3Desc") },
+    { Icon: Globe2,      title: t("home.feat4Title"), desc: t("home.feat4Desc") },
+  ];
   return (
     <section className="relative py-20 md:py-28"
       style={{ background: "var(--ivory)", borderTop: "1px solid var(--hairline)", borderBottom: "1px solid var(--hairline)" }}>
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         <div className="text-center mb-16">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>The Promise</div>
+          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("home.featuresEyebrow")}</div>
           <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            لماذا <span dir="ltr" lang="en" style={{ color: "var(--emerald)" }}>SOUQRATES SOUQ</span>؟
+            {t("home.featuresTitleA")} <span dir="ltr" lang="en" style={{ color: "var(--emerald)" }}>SOUQRATES SOUQ</span>{t("home.featuresTitleB")}
           </h2>
         </div>
 
@@ -150,13 +144,20 @@ function Features() {
 }
 
 function HowItWorks() {
+  const t = useT();
+  const STEPS: { n: string; t: React.ReactNode; d: React.ReactNode }[] = [
+    { n: "I",   t: t("home.step1Title"), d: <>{t("home.step1Desc").split(/\{start\}|\{souq\}/)[0]}{L("/start")}{t("home.step1Desc").split(/\{start\}|\{souq\}/)[1]}{L("SOUQRATES SOUQ")}{t("home.step1Desc").split(/\{start\}|\{souq\}/)[2]}</> },
+    { n: "II",  t: t("home.step2Title"), d: t("home.step2Desc") },
+    { n: "III", t: t("home.step3Title", { skz: "SKZ" }), d: t("home.step3Desc") },
+    { n: "IV",  t: t("home.step4Title"), d: t("home.step4Desc") },
+  ];
   return (
     <section className="relative py-20 md:py-28">
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         <div className="text-center mb-16">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>The Ritual</div>
+          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("home.ritualEyebrow")}</div>
           <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            أربعُ خطواتٍ بسيطة.
+            {t("home.ritualTitle")}
           </h2>
         </div>
 
@@ -178,6 +179,7 @@ function HowItWorks() {
 }
 
 function PublishCTA() {
+  const t = useT();
   return (
     <section className="relative py-20 md:py-28 px-6 md:px-10">
       <div className="max-w-5xl mx-auto">
@@ -188,13 +190,13 @@ function PublishCTA() {
           <div className="relative">
             <Feather size={36} strokeWidth={1.2} style={{ color: "var(--gold)", margin: "0 auto" }} />
             <div className="eyebrow mt-6 mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-              For Authors &amp; Publishers
+              {t("home.publishEyebrow")}
             </div>
             <h2 className="font-display mb-6" style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)" }}>
-              أنشر إبداعك. واستلم أرباحك.
+              {t("home.publishTitle")}
             </h2>
             <p className="max-w-xl mx-auto text-base leading-loose mb-10" style={{ color: "rgba(251, 246, 234, 0.7)" }}>
-              ارفع كتبك مباشرةً من البوت، حدِّد سعرك بـ {L("SKZ")}، واستلم نصيبك تلقائيًا في محفظتك بعد خصم العمولة الموثَّقة.
+              {t("home.publishLead", { skz: "SKZ" })}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <a
@@ -205,7 +207,7 @@ function PublishCTA() {
                 style={{ background: "var(--gold)", color: "var(--ink)" }}
                 data-testid="button-start-publishing"
               >
-                ابدأ النشر اليوم
+                {t("home.publishCta")}
                 <ArrowLeft size={14} strokeWidth={1.8} />
               </a>
               <Link
@@ -214,7 +216,7 @@ function PublishCTA() {
                 style={{ color: "var(--gold)" }}
                 data-testid="link-publish-details"
               >
-                التفاصيل والشروط
+                {t("home.publishDetails")}
               </Link>
             </div>
           </div>

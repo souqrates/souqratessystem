@@ -2,7 +2,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/layout";
 import { Route, Switch, Router as WouterRouter } from "wouter";
-import { useLang } from "./lib/i18n";
+import { useLang, useT } from "./lib/i18n";
 import { Home } from "./pages/home";
 import { Wallet } from "./pages/wallet";
 import { Deposit } from "./pages/deposit";
@@ -24,17 +24,27 @@ const SPLASH_KEY = "souqrates_splash_seen_v1";
 
 function FloatingLangToggle() {
   const [lang, setLang] = useLang();
+  const t = useT();
   const next = lang === "ar" ? "en" : "ar";
   return (
     <button
       type="button"
       onClick={() => setLang(next)}
       className="fixed top-3 left-3 z-50 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/70 text-white border border-white/20 backdrop-blur hover:bg-black/85 transition shadow-lg"
-      aria-label="Toggle language"
-      title={next === "en" ? "Switch to English" : "التبديل إلى العربية"}
+      aria-label={t("langToggle.aria")}
+      title={t("langToggle.title")}
     >
       {lang === "ar" ? "EN" : "ع"}
     </button>
+  );
+}
+
+function NotFoundFallback() {
+  const t = useT();
+  return (
+    <div className="flex items-center justify-center h-full">
+      <p>{t("app.notFound")}</p>
+    </div>
   );
 }
 
@@ -74,9 +84,7 @@ export default function App() {
                 <Route path="/withdraw" component={Withdraw} />
                 <Route path="/referral" component={Referral} />
                 <Route>
-                  <div className="flex items-center justify-center h-full">
-                    <p>الصفحة غير موجودة</p>
-                  </div>
+                  <NotFoundFallback />
                 </Route>
               </Switch>
             </Layout>

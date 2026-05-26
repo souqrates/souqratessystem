@@ -227,9 +227,10 @@ async def cmd_start(message: Message, state: FSMContext):
     # Web CTAs send `?start=publish` or `?start=buy_<numeric_id>`.
     parts = (message.text or "").split(maxsplit=1)
     payload = parts[1].strip() if len(parts) > 1 else ""
+    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
     if payload == "publish":
         await state.set_state(Publish.title)
-        await message.answer("📝 أرسل <b>عنوان</b> الكتاب:", parse_mode="HTML", reply_markup=back_kb())
+        await message.answer(t(lang, "pub_ask_title"), parse_mode="HTML", reply_markup=back_kb("menu", lang))
         return
     if payload.startswith("buy_"):
         raw = payload[4:]
@@ -238,19 +239,15 @@ async def cmd_start(message: Message, state: FSMContext):
             p = await api.get_product(pid)
             if p:
                 price = float(p["priceUsdt"])
-                txt = (
-                    f"📖 <b>{p['title']}</b>\n\n"
-                    f"{p['description'] or '—'}\n\n"
-                    f"💰 السعر: <code>{price:.2f}</code> SKZ"
-                )
+                txt = t(lang, "product_short",
+                        title=p["title"], desc=p["description"] or "—", price=f"{price:.2f}")
                 kb = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text=f"🛒 شراء بـ {price:.2f} SKZ", callback_data=f"buy:{pid}")],
-                    [InlineKeyboardButton(text="🔙 القائمة", callback_data="menu")],
+                    [InlineKeyboardButton(text=t(lang, "btn_buy", price=f"{price:.2f}"), callback_data=f"buy:{pid}")],
+                    [InlineKeyboardButton(text=t(lang, "btn_back_menu"), callback_data="menu")],
                 ])
                 await message.answer(txt, parse_mode="HTML", reply_markup=kb)
                 return
 
-    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
     # English speakers get the static bilingual welcome (no admin override yet).
     # Arabic continues to use admin-editable copy via the texts cache so panel
     # tweaks still propagate without a code change.
@@ -273,6 +270,10 @@ async def cmd_lang(message: Message, state: FSMContext):
     await state.clear()
     lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
     await message.answer(t(lang, "lang_prompt"), reply_markup=lang_keyboard("lang"))
+
+
+async def _get_lang(user_id) -> str:
+    return await get_user_lang(str(user_id), MOTHER_API_URL, BOOKS_BOT_API_KEY)
 
 
 @router.callback_query(F.data == "lang_menu")
@@ -318,7 +319,8 @@ async def cb_lang_set(cb: CallbackQuery):
 @router.callback_query(F.data == "menu")
 async def cb_menu(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text("❖ <b>SOUQRATES SOUQ</b>\n\nاختر إجراءً:", parse_mode="HTML", reply_markup=main_kb())
+    lang = await _get_lang(cb.from_user.id)
+    await cb.message.edit_text(t(lang, "menu_title"), parse_mode="HTML", reply_markup=main_kb(lang))
     await cb.answer()
 
 
@@ -326,39 +328,33 @@ async def cb_menu(cb: CallbackQuery, state: FSMContext):
 @router.message(Command("help"))
 async def cmd_help(message: Message, state: FSMContext):
     await state.clear()
-    txt = (
-        "<b>مساعدة — SOUQRATES SOUQ</b>\n\n"
-        "الأوامر المتاحة:\n"
-        "/start — القائمة الرئيسية\n"
-        "/browse — تصفّح الكتب حسب التصنيف\n"
-        "/publish — نشر كتاب جديد للمراجعة\n"
-        "/library — مكتبتي (مشترياتي وإصداراتي)\n"
-        "/wallet — رصيد محفظتي بـ SKZ\n"
-        "/help — عرض هذه القائمة\n"
-    )
-    await message.answer(txt, parse_mode="HTML", reply_markup=main_kb())
+    lang = await _get_lang(message.from_user.id)
+    await message.answer(t(lang, "help_body"), parse_mode="HTML", reply_markup=main_kb(lang))
 
 
 @router.message(Command("browse"))
 async def cmd_browse(message: Message, state: FSMContext):
     await state.clear()
-    txt, kb = await _build_browse_view()
+    lang = await _get_lang(message.from_user.id)
+    txt, kb = await _build_browse_view(lang)
     await message.answer(txt, parse_mode="HTML", reply_markup=kb)
 
 
 @router.message(Command("library"))
 async def cmd_library(message: Message, state: FSMContext):
     await state.clear()
-    txt, kb = await _build_my_lib_view(str(message.from_user.id))
+    lang = await _get_lang(message.from_user.id)
+    txt, kb = await _build_my_lib_view(str(message.from_user.id), lang)
     await message.answer(txt, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True)
 
 
 @router.message(Command("wallet"))
 async def cmd_wallet(message: Message, state: FSMContext):
     await state.clear()
-    view = await _build_wallet_view(str(message.from_user.id))
+    lang = await _get_lang(message.from_user.id)
+    view = await _build_wallet_view(str(message.from_user.id), lang)
     if view is None:
-        await message.answer("❌ لم يتم العثور على محفظتك. أرسل /start أولاً.")
+        await message.answer(t(lang, "err_no_wallet"))
         return
     txt, kb = view
     await message.answer(txt, parse_mode="HTML", reply_markup=kb)
@@ -366,26 +362,24 @@ async def cmd_wallet(message: Message, state: FSMContext):
 
 @router.message(Command("publish"))
 async def cmd_publish(message: Message, state: FSMContext):
+    lang = await _get_lang(message.from_user.id)
     await state.set_state(Publish.title)
-    await message.answer("📝 أرسل <b>عنوان</b> الكتاب:", parse_mode="HTML", reply_markup=back_kb())
+    await message.answer(t(lang, "pub_ask_title"), parse_mode="HTML", reply_markup=back_kb("menu", lang))
 
 
 # ── Shared view builders (reused by both commands and callbacks) ────────────
-async def _build_wallet_view(telegram_id: str) -> tuple[str, InlineKeyboardMarkup] | None:
+async def _build_wallet_view(telegram_id: str, lang: str = DEFAULT_LANG) -> tuple[str, InlineKeyboardMarkup] | None:
     data = await api.get_wallet(telegram_id)
     if not data:
         return None
     w = data["wallet"]
     skz = float(w.get("balanceSkz", "0"))
-    txt = (
-        f"💰 <b>رصيدك</b>\n\n"
-        f"⚡ SKZ: <code>{skz:,.2f}</code>\n"
-        f"💵 USDT (تقديري): <code>{float(w.get('balanceUsdt','0')):.4f}</code>"
-    )
-    return txt, back_kb()
+    usdt = float(w.get("balanceUsdt", "0"))
+    txt = t(lang, "wallet_text", skz=f"{skz:,.2f}", usdt=f"{usdt:.4f}")
+    return txt, back_kb("menu", lang)
 
 
-async def _build_browse_view() -> tuple[str, InlineKeyboardMarkup]:
+async def _build_browse_view(lang: str = DEFAULT_LANG) -> tuple[str, InlineKeyboardMarkup]:
     cats = await api.list_categories()
     rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
@@ -395,38 +389,40 @@ async def _build_browse_view() -> tuple[str, InlineKeyboardMarkup]:
             rows.append(row); row = []
     if row:
         rows.append(row)
-    rows.append([InlineKeyboardButton(text="🔥 الأكثر مبيعًا", callback_data="cat:0:0")])
-    rows.append([InlineKeyboardButton(text="🔙 رجوع", callback_data="menu")])
-    return "📚 <b>اختر تصنيفًا</b>", InlineKeyboardMarkup(inline_keyboard=rows)
+    rows.append([InlineKeyboardButton(text=t(lang, "browse_bestsellers"), callback_data="cat:0:0")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu")])
+    return t(lang, "browse_title"), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-async def _build_my_lib_view(telegram_id: str) -> tuple[str, InlineKeyboardMarkup]:
+async def _build_my_lib_view(telegram_id: str, lang: str = DEFAULT_LANG) -> tuple[str, InlineKeyboardMarkup]:
     data = await api.my_library(telegram_id)
     purchases = data.get("purchases", [])
     published = data.get("published", [])
-    lines = ["📂 <b>مكتبتي</b>\n"]
+    lines = [t(lang, "lib_title")]
     if purchases:
-        lines.append("🛒 <b>مشترياتي:</b>")
+        lines.append(t(lang, "lib_purchases_header"))
         for p in purchases[:10]:
             url = p.get("downloadUrl") or f"/api/internal/books/products/download/{p['downloadToken']}"
             lines.append(f"• <a href=\"{url}\">{p['title']}</a>")
         lines.append("")
     else:
-        lines.append("لم تشترِ أي كتاب بعد.\n")
+        lines.append(t(lang, "lib_no_purchases"))
     if published:
-        lines.append("📤 <b>إصداراتي:</b>")
+        lines.append(t(lang, "lib_published_header"))
         for p in published[:10]:
             status_icon = {"approved": "✅", "pending": "⏳", "rejected": "❌", "disabled": "⏸️"}.get(p["status"], "•")
-            lines.append(f"{status_icon} <b>{p['title']}</b> — مبيعات: {p['salesCount']}")
-    return "\n".join(lines), back_kb()
+            lines.append(t(lang, "lib_published_line",
+                           icon=status_icon, title=p["title"], sales=p["salesCount"]))
+    return "\n".join(lines), back_kb("menu", lang)
 
 
 # ── Wallet quick view ───────────────────────────────────────────────────────
 @router.callback_query(F.data == "wallet")
 async def cb_wallet(cb: CallbackQuery):
-    view = await _build_wallet_view(str(cb.from_user.id))
+    lang = await _get_lang(cb.from_user.id)
+    view = await _build_wallet_view(str(cb.from_user.id), lang)
     if view is None:
-        await cb.answer("❌ Wallet not found", show_alert=True)
+        await cb.answer(t(lang, "err_wallet_alert"), show_alert=True)
         return
     txt, kb = view
     await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
@@ -436,7 +432,8 @@ async def cb_wallet(cb: CallbackQuery):
 # ── Browse: categories → list → detail → buy ────────────────────────────────
 @router.callback_query(F.data == "browse")
 async def cb_browse(cb: CallbackQuery):
-    txt, kb = await _build_browse_view()
+    lang = await _get_lang(cb.from_user.id)
+    txt, kb = await _build_browse_view(lang)
     await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
     await cb.answer()
 
@@ -446,6 +443,7 @@ PAGE_SIZE = 5
 
 @router.callback_query(F.data.startswith("cat:"))
 async def cb_cat(cb: CallbackQuery):
+    lang = await _get_lang(cb.from_user.id)
     _, cid_s, page_s = cb.data.split(":")
     cid = int(cid_s) or None
     page = int(page_s)
@@ -454,10 +452,10 @@ async def cb_cat(cb: CallbackQuery):
     total = resp.get("total", 0)
 
     if not rows:
-        await cb.message.edit_text("📭 لا توجد كتب في هذا التصنيف بعد.", reply_markup=back_kb("browse"))
+        await cb.message.edit_text(t(lang, "browse_empty"), reply_markup=back_kb("browse", lang))
         await cb.answer(); return
 
-    lines = [f"📚 <b>الكتب</b> ({total})\n"]
+    lines = [t(lang, "books_header", total=total)]
     btns: list[list[InlineKeyboardButton]] = []
     for p in rows:
         price = float(p["priceUsdt"])
@@ -471,7 +469,7 @@ async def cb_cat(cb: CallbackQuery):
         nav.append(InlineKeyboardButton(text="▶️", callback_data=f"cat:{cid or 0}:{page + 1}"))
     if nav:
         btns.append(nav)
-    btns.append([InlineKeyboardButton(text="🔙 التصنيفات", callback_data="browse")])
+    btns.append([InlineKeyboardButton(text=t(lang, "browse_btn_back_cats"), callback_data="browse")])
 
     await cb.message.edit_text("\n".join(lines), parse_mode="HTML",
                                 reply_markup=InlineKeyboardMarkup(inline_keyboard=btns))
@@ -480,21 +478,20 @@ async def cb_cat(cb: CallbackQuery):
 
 @router.callback_query(F.data.startswith("prd:"))
 async def cb_product(cb: CallbackQuery):
+    lang = await _get_lang(cb.from_user.id)
     pid = int(cb.data.split(":")[1])
     p = await api.get_product(pid)
     if not p:
-        await cb.answer("Product not found", show_alert=True); return
+        await cb.answer(t(lang, "product_not_found"), show_alert=True); return
 
     price = float(p["priceUsdt"])
-    txt = (
-        f"📖 <b>{p['title']}</b>\n\n"
-        f"{p['description'] or '—'}\n\n"
-        f"💰 السعر: <code>{price:.2f}</code> SKZ\n"
-        f"🛒 المبيعات: {p['salesCount']}  ⭐ {float(p['rating']):.1f} ({p['ratingCount']})"
-    )
+    txt = t(lang, "product_detail",
+            title=p["title"], desc=p["description"] or "—",
+            price=f"{price:.2f}", sales=p["salesCount"],
+            rating=f"{float(p['rating']):.1f}", rcount=p["ratingCount"])
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🛒 شراء بـ {price:.2f} SKZ", callback_data=f"buy:{pid}")],
-        [InlineKeyboardButton(text="🔙 رجوع", callback_data="browse")],
+        [InlineKeyboardButton(text=t(lang, "btn_buy", price=f"{price:.2f}"), callback_data=f"buy:{pid}")],
+        [InlineKeyboardButton(text=t(lang, "btn_back_browse"), callback_data="browse")],
     ])
     await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
     await cb.answer()
@@ -502,6 +499,7 @@ async def cb_product(cb: CallbackQuery):
 
 @router.callback_query(F.data.startswith("buy:"))
 async def cb_buy(cb: CallbackQuery):
+    lang = await _get_lang(cb.from_user.id)
     pid = int(cb.data.split(":")[1])
     try:
         r = await api.purchase(str(cb.from_user.id), pid)
@@ -517,32 +515,26 @@ async def cb_buy(cb: CallbackQuery):
         if "غير كافٍ" in msg or "insufficient" in msg.lower():
             mother = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
             topup_kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="💳 شحن المحفظة (Stars / TON)", url=f"https://t.me/{mother}?start=deposit")],
-                [InlineKeyboardButton(text="⬅️ رجوع", callback_data="menu")],
+                [InlineKeyboardButton(text=t(lang, "btn_topup_wallet"), url=f"https://t.me/{mother}?start=deposit")],
+                [InlineKeyboardButton(text=t(lang, "btn_back_arrow"), callback_data="menu")],
             ])
             await cb.message.edit_text(
-                "❌ <b>رصيد SKZ غير كافٍ</b>\n\n"
-                "اشحن محفظتك من البوت الأم — يدعم Telegram Stars و USDT/TON.\n"
-                "بعد الشحن ارجع وأكمل الشراء.",
+                t(lang, "buy_insufficient"),
                 parse_mode="HTML",
                 reply_markup=topup_kb,
             )
             await cb.answer()
             return
-        await cb.answer(f"❌ {msg[:180]}", show_alert=True)
+        await cb.answer(t(lang, "buy_err_alert", msg=msg[:180]), show_alert=True)
         return
 
     dl = await api.resolve_download(r["downloadToken"])
     file_url = dl["fileUrl"]
-    title = dl.get("title", "كتاب")
-    receipt = (
-        f"✅ <b>تم الشراء بنجاح</b>\n\n"
-        f"📖 {title}\n"
-        f"💰 المدفوع: <code>{r['pricePaid']}</code> SKZ\n"
-        f"💵 الرصيد الجديد: <code>{r['newBalance']}</code> SKZ"
-    )
+    title = dl.get("title", t(lang, "buy_default_title"))
+    receipt = t(lang, "buy_receipt",
+                title=title, paid=r["pricePaid"], balance=r["newBalance"])
     # Always show the receipt first so the user has a record even if delivery fails.
-    await cb.message.edit_text(receipt, parse_mode="HTML", reply_markup=back_kb(), disable_web_page_preview=True)
+    await cb.message.edit_text(receipt, parse_mode="HTML", reply_markup=back_kb("menu", lang), disable_web_page_preview=True)
 
     # Deliver the file as an in-chat Telegram document so it lands in the chat
     # like any other attachment (no browser detour). Passing the URL as a string
@@ -552,102 +544,85 @@ async def cb_buy(cb: CallbackQuery):
     try:
         await cb.message.answer_document(
             document=file_url,
-            caption=f"📖 <b>{title}</b>\n⏱ الرابط صالح 7 أيام.",
+            caption=t(lang, "buy_doc_caption", title=title),
             parse_mode="HTML",
         )
     except Exception as e:
         logger.warning(f"sendDocument failed for purchase {r.get('purchaseId')}: {e}")
         link_kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📥 تنزيل الكتاب", url=file_url)],
-            [InlineKeyboardButton(text="⬅️ رجوع", callback_data="menu")],
+            [InlineKeyboardButton(text=t(lang, "btn_download_book"), url=file_url)],
+            [InlineKeyboardButton(text=t(lang, "btn_back_arrow"), callback_data="menu")],
         ])
         await cb.message.answer(
-            "⚠️ تعذّر إرسال الملف مباشرة داخل Telegram (قد يكون حجمه كبيرًا أو الرابط من سيرفر خارجي).\n"
-            "اضغط الزر التالي لتنزيله من المتصفح:",
+            t(lang, "buy_doc_failed"),
             reply_markup=link_kb,
         )
-    await cb.answer("تم الشراء ✅")
+    await cb.answer(t(lang, "buy_answer_ok"))
 
 
 # ── My library ──────────────────────────────────────────────────────────────
 @router.callback_query(F.data == "my_lib")
 async def cb_my_lib(cb: CallbackQuery):
-    data = await api.my_library(str(cb.from_user.id))
-    purchases = data.get("purchases", [])
-    published = data.get("published", [])
-
-    lines = ["📂 <b>مكتبتي</b>\n"]
-    if purchases:
-        lines.append("🛒 <b>مشترياتي:</b>")
-        for p in purchases[:10]:
-            url = p.get("downloadUrl") or f"/api/internal/books/products/download/{p['downloadToken']}"
-            lines.append(f"• <a href=\"{url}\">{p['title']}</a>")
-        lines.append("")
-    else:
-        lines.append("لم تشترِ أي كتاب بعد.\n")
-
-    if published:
-        lines.append("📤 <b>إصداراتي:</b>")
-        for p in published[:10]:
-            status_icon = {"approved": "✅", "pending": "⏳", "rejected": "❌", "disabled": "⏸️"}.get(p["status"], "•")
-            lines.append(f"{status_icon} <b>{p['title']}</b> — مبيعات: {p['salesCount']}")
-    await cb.message.edit_text("\n".join(lines), parse_mode="HTML",
-                                reply_markup=back_kb(), disable_web_page_preview=True)
+    lang = await _get_lang(cb.from_user.id)
+    txt, kb = await _build_my_lib_view(str(cb.from_user.id), lang)
+    await cb.message.edit_text(txt, parse_mode="HTML",
+                                reply_markup=kb, disable_web_page_preview=True)
     await cb.answer()
 
 
 # ── Publish FSM ─────────────────────────────────────────────────────────────
 @router.callback_query(F.data == "pub_start")
 async def cb_pub_start(cb: CallbackQuery, state: FSMContext):
+    lang = await _get_lang(cb.from_user.id)
     await state.set_state(Publish.title)
-    await cb.message.edit_text("📝 أرسل <b>عنوان</b> الكتاب:", parse_mode="HTML", reply_markup=back_kb())
+    await cb.message.edit_text(t(lang, "pub_ask_title"), parse_mode="HTML", reply_markup=back_kb("menu", lang))
     await cb.answer()
 
 
 @router.message(Publish.title)
 async def pub_title(m: Message, state: FSMContext):
+    lang = await _get_lang(m.from_user.id)
     await state.update_data(title=m.text.strip()[:200])
     await state.set_state(Publish.description)
-    await m.answer("📄 أرسل <b>وصف</b> الكتاب:", parse_mode="HTML")
+    await m.answer(t(lang, "pub_ask_desc"), parse_mode="HTML")
 
 
 @router.message(Publish.description)
 async def pub_desc(m: Message, state: FSMContext):
+    lang = await _get_lang(m.from_user.id)
     await state.update_data(description=m.text.strip()[:4000])
     cats = await api.list_categories()
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"{c['icon']} {c['nameAr']}",
                                                                        callback_data=f"pubcat:{c['id']}")]
                                                   for c in cats])
     await state.set_state(Publish.category)
-    await m.answer("🏷️ اختر تصنيفًا:", reply_markup=kb)
+    await m.answer(t(lang, "pub_ask_cat"), reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("pubcat:"), Publish.category)
 async def pub_cat(cb: CallbackQuery, state: FSMContext):
+    lang = await _get_lang(cb.from_user.id)
     cid = int(cb.data.split(":")[1])
     await state.update_data(categoryId=cid)
     await state.set_state(Publish.price)
-    await cb.message.edit_text("💰 أرسل السعر بـ SKZ (رقم فقط، مثال: <code>50</code>):", parse_mode="HTML")
+    await cb.message.edit_text(t(lang, "pub_ask_price"), parse_mode="HTML")
     await cb.answer()
 
 
 @router.message(Publish.price)
 async def pub_price(m: Message, state: FSMContext):
+    lang = await _get_lang(m.from_user.id)
     try:
         price = float(m.text.strip())
         if price < 0:
             raise ValueError
     except Exception:
-        await m.answer("❌ سعر غير صالح. أرسل رقمًا فقط.")
+        await m.answer(t(lang, "pub_invalid_price"))
         return
     await state.update_data(price=price)
     await state.set_state(Publish.cover)
     await m.answer(
-        "🖼️ أرسل <b>صورة الغلاف</b> الآن:\n\n"
-        "• الصيغ المسموحة: <b>JPG / PNG / WEBP</b>\n"
-        f"• الحد الأقصى للحجم: <b>{COVER_MAX_BYTES // (1024*1024)} MB</b>\n"
-        "• المقاس المفضّل: 800×1200 (نسبة 2:3)\n\n"
-        "أرسل الصورة كصورة (📷) أو ملف (📎). اكتب <code>تخطّى</code> لتركها فارغة.",
+        t(lang, "pub_ask_cover", mb=COVER_MAX_BYTES // (1024*1024)),
         parse_mode="HTML",
     )
 
@@ -664,18 +639,19 @@ async def pub_cover_media(m: Message, state: FSMContext):
     # Idempotency lock: if a previous upload is still in flight, silently drop
     # the new one. Prevents a user who spams photos from triggering parallel
     # downloads + duplicate GCS uploads (orphan objects, confused state).
+    lang = await _get_lang(m.from_user.id)
     d = await state.get_data()
     if d.get("_uploading"):
-        await m.answer("⏳ جاري معالجة الصورة السابقة… انتظر لحظة.")
+        await m.answer(t(lang, "pub_cover_busy"))
         return
     await state.update_data(_uploading=True)
     try:
-        await _pub_cover_media_impl(m, state)
+        await _pub_cover_media_impl(m, state, lang)
     finally:
         await state.update_data(_uploading=False)
 
 
-async def _pub_cover_media_impl(m: Message, state: FSMContext):
+async def _pub_cover_media_impl(m: Message, state: FSMContext, lang: str):
     # Telegram sends either a compressed photo (m.photo[-1] = highest res) or a
     # raw document. Both routes resolve to (file_id, size, mime) here.
     if m.photo:
@@ -692,21 +668,21 @@ async def _pub_cover_media_impl(m: Message, state: FSMContext):
         mime = _guess_mime(file_name, doc.mime_type) or ""
 
     if mime not in COVER_MIME:
-        await m.answer("❌ صيغة الغلاف غير مسموحة. أرسل صورة <b>JPG / PNG / WEBP</b> فقط.", parse_mode="HTML")
+        await m.answer(t(lang, "pub_cover_bad_mime"), parse_mode="HTML")
         return
     if size <= 0 or size > COVER_MAX_BYTES:
-        await m.answer(f"❌ حجم الصورة يتجاوز {COVER_MAX_BYTES // (1024*1024)} MB.")
+        await m.answer(t(lang, "pub_cover_too_large", mb=COVER_MAX_BYTES // (1024*1024)))
         return
 
-    status_msg = await m.answer("⏳ جاري رفع الغلاف…")
+    status_msg = await m.answer(t(lang, "pub_cover_uploading"))
     try:
         upload = await api.request_upload_url(kind="cover", content_type=mime, size_bytes=size)
         data = await _download_from_telegram(m.bot, file_id)
         await _upload_to_signed_url(upload["uploadUrl"], mime, data)
         await state.update_data(coverUrl=upload["objectPath"])
-        await status_msg.edit_text("✅ تم رفع الغلاف.")
+        await status_msg.edit_text(t(lang, "pub_cover_uploaded"))
     except httpx.HTTPStatusError as e:
-        msg = "تعذّر رفع الغلاف"
+        msg = t(lang, "pub_cover_fail_default")
         try:
             msg = e.response.json().get("error", msg)
         except Exception:
@@ -715,7 +691,7 @@ async def _pub_cover_media_impl(m: Message, state: FSMContext):
         return
     except Exception as e:
         logger.exception("cover upload failed")
-        await status_msg.edit_text(f"❌ فشل الرفع: {str(e)[:120]}")
+        await status_msg.edit_text(t(lang, "pub_cover_fail", err=str(e)[:120]))
         return
 
     await _ask_for_file(m, state)
@@ -724,20 +700,15 @@ async def _pub_cover_media_impl(m: Message, state: FSMContext):
 @router.message(Publish.cover)
 async def pub_cover_fallback(m: Message, state: FSMContext):
     # Catches plain text / unsupported types in the cover step.
-    await m.answer(
-        "❌ أرسل <b>صورة</b> فعلية (📷 أو 📎)، لا روابط.\n"
-        "أو اكتب <code>تخطّى</code> لتجاوز الغلاف.",
-        parse_mode="HTML",
-    )
+    lang = await _get_lang(m.from_user.id)
+    await m.answer(t(lang, "pub_cover_fallback"), parse_mode="HTML")
 
 
 async def _ask_for_file(m: Message, state: FSMContext) -> None:
+    lang = await _get_lang(m.from_user.id)
     await state.set_state(Publish.file)
     await m.answer(
-        "📎 أرسل <b>ملف الكتاب</b> الآن:\n\n"
-        "• الصيغ المسموحة: <b>PDF / EPUB / ZIP / MP3</b>\n"
-        f"• الحد الأقصى للحجم: <b>{FILE_MAX_BYTES // (1024*1024)} MB</b>\n\n"
-        "أرسله كملف مرفق (📎). الملف مطلوب لإكمال النشر.",
+        t(lang, "pub_ask_file", mb=FILE_MAX_BYTES // (1024*1024)),
         parse_mode="HTML",
     )
 
@@ -745,18 +716,19 @@ async def _ask_for_file(m: Message, state: FSMContext) -> None:
 # ── File handlers ───────────────────────────────────────────────────────────
 @router.message(Publish.file, F.document)
 async def pub_file_doc(m: Message, state: FSMContext):
+    lang = await _get_lang(m.from_user.id)
     d0 = await state.get_data()
     if d0.get("_uploading"):
-        await m.answer("⏳ جاري معالجة الملف السابق… انتظر لحظة.")
+        await m.answer(t(lang, "pub_file_busy"))
         return
     await state.update_data(_uploading=True)
     try:
-        await _pub_file_doc_impl(m, state)
+        await _pub_file_doc_impl(m, state, lang)
     finally:
         await state.update_data(_uploading=False)
 
 
-async def _pub_file_doc_impl(m: Message, state: FSMContext):
+async def _pub_file_doc_impl(m: Message, state: FSMContext, lang: str):
     doc = m.document
     file_id = doc.file_id
     size = doc.file_size or 0
@@ -764,27 +736,21 @@ async def _pub_file_doc_impl(m: Message, state: FSMContext):
     mime = _guess_mime(file_name, doc.mime_type) or ""
 
     if mime not in FILE_MIME:
-        await m.answer(
-            "❌ صيغة الملف غير مسموحة. الصيغ المقبولة: <b>PDF / EPUB / ZIP / MP3</b>.",
-            parse_mode="HTML",
-        )
+        await m.answer(t(lang, "pub_file_bad_mime"), parse_mode="HTML")
         return
     if size <= 0 or size > FILE_MAX_BYTES:
-        await m.answer(
-            f"❌ حجم الملف يتجاوز {FILE_MAX_BYTES // (1024*1024)} MB.\n"
-            "يمكنك ضغطه أو رفعه عبر الموقع للملفات الأكبر."
-        )
+        await m.answer(t(lang, "pub_file_too_large", mb=FILE_MAX_BYTES // (1024*1024)))
         return
 
-    status_msg = await m.answer("⏳ جاري رفع الملف…")
+    status_msg = await m.answer(t(lang, "pub_file_uploading"))
     try:
         upload = await api.request_upload_url(kind="file", content_type=mime, size_bytes=size)
         data = await _download_from_telegram(m.bot, file_id)
         await _upload_to_signed_url(upload["uploadUrl"], mime, data)
         await state.update_data(fileUrl=upload["objectPath"], fileSize=size, fileName=file_name)
-        await status_msg.edit_text("✅ تم رفع الملف.")
+        await status_msg.edit_text(t(lang, "pub_file_uploaded"))
     except httpx.HTTPStatusError as e:
-        msg = "تعذّر رفع الملف"
+        msg = t(lang, "pub_file_fail_default")
         try:
             msg = e.response.json().get("error", msg)
         except Exception:
@@ -793,23 +759,21 @@ async def _pub_file_doc_impl(m: Message, state: FSMContext):
         return
     except Exception as e:
         logger.exception("file upload failed")
-        await status_msg.edit_text(f"❌ فشل الرفع: {str(e)[:120]}")
+        await status_msg.edit_text(t(lang, "pub_file_fail", err=str(e)[:120]))
         return
 
     d = await state.get_data()
-    summary = (
-        f"📤 <b>تأكيد النشر</b>\n\n"
-        f"📖 العنوان: <b>{d['title']}</b>\n"
-        f"💰 السعر: <code>{d['price']:.2f}</code> SKZ\n"
-        f"🏷️ التصنيف: #{d['categoryId']}\n"
-        f"🖼️ الغلاف: {'مرفق ✓' if d.get('coverUrl') else 'لا يوجد'}\n"
-        f"📎 الملف: <code>{file_name}</code> ({size // 1024} KB)\n"
-        f"📄 الوصف: {d['description'][:120]}…\n\n"
-        f"بعد الإرسال سيخضع الكتاب لمراجعة إدارية قبل النشر، وسيصلك إشعار فور الموافقة."
-    )
+    summary = t(lang, "pub_summary",
+                title=d["title"],
+                price=f"{d['price']:.2f}",
+                cat=d["categoryId"],
+                cover=t(lang, "pub_cover_yes") if d.get("coverUrl") else t(lang, "pub_cover_no"),
+                fname=file_name,
+                kb=size // 1024,
+                desc=d["description"][:120])
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ إرسال للمراجعة", callback_data="pub_confirm")],
-        [InlineKeyboardButton(text="❌ إلغاء", callback_data="menu")],
+        [InlineKeyboardButton(text=t(lang, "pub_btn_submit"), callback_data="pub_confirm")],
+        [InlineKeyboardButton(text=t(lang, "pub_btn_cancel"), callback_data="menu")],
     ])
     await state.set_state(Publish.confirm)
     await m.answer(summary, parse_mode="HTML", reply_markup=kb)
@@ -817,14 +781,13 @@ async def _pub_file_doc_impl(m: Message, state: FSMContext):
 
 @router.message(Publish.file)
 async def pub_file_fallback(m: Message, state: FSMContext):
-    await m.answer(
-        "❌ أرسل <b>ملفًا مرفقًا</b> (📎) — لا روابط ولا صور.",
-        parse_mode="HTML",
-    )
+    lang = await _get_lang(m.from_user.id)
+    await m.answer(t(lang, "pub_file_fallback"), parse_mode="HTML")
 
 
 @router.callback_query(F.data == "pub_confirm", Publish.confirm)
 async def pub_confirm(cb: CallbackQuery, state: FSMContext):
+    lang = await _get_lang(cb.from_user.id)
     d = await state.get_data()
     try:
         row = await api.submit_product(
@@ -838,8 +801,8 @@ async def pub_confirm(cb: CallbackQuery, state: FSMContext):
         )
         await state.clear()
         await cb.message.edit_text(
-            f"✅ تم استلام الكتاب بنجاح (#{row['id']}). سنراجعه قريبًا.",
-            reply_markup=back_kb(),
+            t(lang, "pub_submitted", id=row["id"]),
+            reply_markup=back_kb("menu", lang),
         )
     except Exception as e:
         msg = str(e)
@@ -848,7 +811,7 @@ async def pub_confirm(cb: CallbackQuery, state: FSMContext):
                 msg = e.response.json().get("error", msg)  # type: ignore[attr-defined]
             except Exception:
                 pass
-        await cb.answer(f"❌ {msg[:180]}", show_alert=True)
+        await cb.answer(t(lang, "buy_err_alert", msg=msg[:180]), show_alert=True)
     await cb.answer()
 
 

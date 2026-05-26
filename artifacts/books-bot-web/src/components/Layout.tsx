@@ -3,10 +3,12 @@ import { Link, useLocation } from "wouter";
 import type { ReactNode } from "react";
 import { Monogram } from "./Ornaments";
 import { TELEGRAM_BOT_URL } from "@/lib/constants";
+import { useT } from "@/lib/i18n";
 
 export function Header() {
   const [location] = useLocation();
   const isHome = location === "/";
+  const t = useT();
 
   return (
     <header className="relative z-10 w-full" style={{ borderBottom: "1px solid var(--hairline)" }}>
@@ -22,7 +24,7 @@ export function Header() {
               SOUQRATES <span style={{ color: "var(--gold)" }}>SOUQ</span>
             </div>
             <div className="eyebrow mt-1" dir="ltr" lang="en" style={{ color: "var(--muted)" }}>
-              digital books · est. 2026
+              {t("header.eyebrow")}
             </div>
           </div>
         </Link>
@@ -35,7 +37,7 @@ export function Header() {
               style={{ color: "var(--emerald)" }}
               data-testid="link-library"
             >
-              المكتبة
+              {t("nav_library")}
             </Link>
           )}
           <Link
@@ -44,7 +46,7 @@ export function Header() {
             style={{ color: "var(--emerald)" }}
             data-testid="link-publish"
           >
-            انشر معنا
+            {t("nav_publish")}
           </Link>
           <a
             href={TELEGRAM_BOT_URL}
@@ -54,7 +56,7 @@ export function Header() {
             style={{ background: "var(--ink)", color: "var(--ivory)", border: "1px solid var(--ink)" }}
             data-testid="link-telegram-header"
           >
-            افتح في تيليغرام
+            {t("header.openInTelegram")}
             <ArrowLeft size={14} strokeWidth={1.8} />
           </a>
         </nav>
@@ -64,6 +66,7 @@ export function Header() {
 }
 
 export function Footer() {
+  const t = useT();
   return (
     <footer
       className="relative py-14 px-6 md:px-10"
@@ -87,16 +90,16 @@ export function Footer() {
                 SOUQRATES <span style={{ color: "var(--gold)" }}>SOUQ</span>
               </div>
               <div className="eyebrow mt-1" dir="ltr" lang="en" style={{ color: "var(--muted-soft)" }}>
-                a chapter of SOUQRATES SYSTEM
+                {t("footer.chapter")}
               </div>
             </div>
           </div>
 
           <div className="text-center md:text-left text-xs leading-relaxed" dir="ltr" lang="en">
             <div className="font-serif-en text-sm mb-2" style={{ color: "var(--gold)" }}>
-              The SOUQRATES Ecosystem
+              {t("footer.ecosystem")}
             </div>
-            <div>SYSTEM · SKILLZ · SOUQ · SCENE · STREAM · SIGNAL · STAGE</div>
+            <div>{t("footer.ecosystemList")}</div>
           </div>
         </div>
 
@@ -105,10 +108,10 @@ export function Footer() {
           style={{ borderTop: "1px solid rgba(184, 137, 58, 0.2)" }}
         >
           <div>
-            <span dir="ltr" lang="en">© 2026 SOUQRATES SOUQ</span> — جميع الحقوق محفوظة.
+            <span dir="ltr" lang="en">© 2026 SOUQRATES SOUQ</span> {t("footer.rights")}
           </div>
           <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--muted-soft)" }}>
-            crafted with precision
+            {t("footer.crafted")}
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Star, TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { IconBox, BOT_ICONS, CURRENCY_ICONS } from "../components/icons";
+import { useT } from "../lib/i18n";
 
 const stagger = { animate: { transition: { staggerChildren: 0.065, delayChildren: 0.04 } } };
 const fadeUp = {
@@ -26,6 +27,7 @@ const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: 
 ];
 
 export function Home() {
+  const t = useT();
   const user = getTelegramUser();
   const { settings } = usePlatformSettings();
   const { balanceSkz, balanceUsdt, balanceStars, balanceTon, totalEarnedSkz, totalWithdrawnSkz, isLoading: walletLoading, internalUserId } = useWallet();
@@ -34,7 +36,7 @@ export function Home() {
   const initials = `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ""}`;
   const usdtEquiv = (balanceSkz / settings.skzPerUsdt).toFixed(2);
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Welcome" : "Good evening";
+  const greeting = hour < 12 ? t("home.greeting.morning") : hour < 18 ? t("home.greeting.day") : t("home.greeting.evening");
 
   return (
     <motion.div variants={stagger} initial="initial" animate="animate" className="px-4 pt-3 space-y-3.5">
@@ -67,7 +69,7 @@ export function Home() {
         <div className="flex items-center gap-2">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => showTelegramAlert("لا توجد إشعارات جديدة الآن.")}
+            onClick={() => showTelegramAlert(t("home.noNotifications"))}
             className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center"
           >
             <Bell size={17} className="text-white/60" />
@@ -88,12 +90,12 @@ export function Home() {
               <Link href="/wallet">
                 <motion.div whileTap={{ scale: 0.9 }}
                   className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors">
-                  Details <ChevronRight size={12} />
+                  {t("home.hero.details")} <ChevronRight size={12} />
                 </motion.div>
               </Link>
             </div>
             <div className="text-center mb-5">
-              <p className="text-[11px] text-white/40 font-medium mb-1.5 tracking-wide uppercase">SKZ Balance</p>
+              <p className="text-[11px] text-white/40 font-medium mb-1.5 tracking-wide uppercase">{t("home.hero.skzBalance")}</p>
               {walletLoading ? (
                 <div className="flex justify-center items-center h-16">
                   <Loader2 size={28} className="text-skz-light animate-spin" />
@@ -117,14 +119,14 @@ export function Home() {
                 <motion.button whileTap={{ scale: 0.96 }}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm text-white"
                   style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", boxShadow: "0 4px 20px rgba(147,51,234,0.4)" }}>
-                  <Download size={16} /> Deposit
+                  <Download size={16} /> {t("home.hero.deposit")}
                 </motion.button>
               </Link>
               <Link href="/withdraw">
                 <motion.button whileTap={{ scale: 0.96 }}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm glass-card">
                   <Upload size={16} className="text-white/70" />
-                  <span className="text-white/80">Withdraw</span>
+                  <span className="text-white/80">{t("home.hero.withdraw")}</span>
                 </motion.button>
               </Link>
             </div>
@@ -139,7 +141,7 @@ export function Home() {
             <div className="w-6 h-6 rounded-lg bg-success/15 flex items-center justify-center">
               <TrendingUp size={12} className="text-success" />
             </div>
-            <p className="text-[11px] text-white/50 font-medium">Total Earned</p>
+            <p className="text-[11px] text-white/50 font-medium">{t("home.stats.totalEarned")}</p>
           </div>
           <p className="text-xl font-black text-success">
             {walletLoading ? "—" : totalEarnedSkz.toLocaleString()}
@@ -151,7 +153,7 @@ export function Home() {
             <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center">
               <ArrowUpRight size={12} className="text-white/50" />
             </div>
-            <p className="text-[11px] text-white/50 font-medium">Withdrawn</p>
+            <p className="text-[11px] text-white/50 font-medium">{t("home.stats.withdrawn")}</p>
           </div>
           <p className="text-xl font-black text-white/70">
             {walletLoading ? "—" : totalWithdrawnSkz.toLocaleString()}
@@ -162,7 +164,7 @@ export function Home() {
 
       {/* ── Currency pills ── */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-2.5">Currency Balances</p>
+        <p className="section-label mb-2.5">{t("home.currencyBalances")}</p>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {[
             { key: "USDT",  val: balanceUsdt.toFixed(2),   rate: settings.skzPerUsdt, balance: balanceUsdt  },
@@ -194,8 +196,8 @@ export function Home() {
       {/* ── Bots strip ── */}
       <motion.div variants={fadeUp}>
         <div className="flex items-center justify-between mb-2.5">
-          <p className="section-label">Bots</p>
-          <span className="chip chip-skz">6 Bots</span>
+          <p className="section-label">{t("home.bots")}</p>
+          <span className="chip chip-skz">{t("home.botsCount", { count: 6 })}</span>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {BOTS.map((bot) => {
@@ -215,7 +217,7 @@ export function Home() {
                     } catch {}
                     openTelegramApp(bot.url);
                   } else {
-                    showTelegramAlert(`${bot.brand} is launching soon. Stay tuned!`);
+                    showTelegramAlert(t("home.bot.launchingSoon", { brand: bot.brand }));
                   }
                 }}
                 className="flex-shrink-0 glass-card rounded-2xl p-3 flex flex-col items-center gap-1.5 min-w-[72px] pressable relative"
@@ -227,7 +229,7 @@ export function Home() {
                 <IconBox iconKey={bi.iconKey} size={20} color={bi.color} bg={bi.bg}
                   border={`${bi.color}25`} glow={bi.glow} boxSize={42} radius={12} />
                 <p className="text-[10px] font-bold text-white/80 text-center leading-tight tracking-wider" dir="ltr" lang="en" title={bot.brand}>{bot.short}</p>
-                <span className="text-[8px] font-bold text-white/30">{bot.live ? "Open" : "Soon"}</span>
+                <span className="text-[8px] font-bold text-white/30">{bot.live ? t("home.bot.open") : t("home.bot.soon")}</span>
               </motion.button>
             );
           })}
@@ -249,9 +251,9 @@ export function Home() {
                   <IconBox iconKey="users" size={20} color="#c084fc" bg="transparent" border="transparent" boxSize={44} radius={12} />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-white mb-1">Invite Friends</p>
+                  <p className="text-sm font-black text-white mb-1">{t("home.referral.invite")}</p>
                   <p className="text-[11px] text-white/50 leading-snug">
-                    Earn <span className="text-skz-light font-bold">{settings.referralBonusPercent}%</span> of their earnings — for life
+                    {t("home.referral.earnLine", { pct: settings.referralBonusPercent })}
                   </p>
                 </div>
               </div>
@@ -264,8 +266,8 @@ export function Home() {
       {/* ── Recent transactions ── */}
       <motion.div variants={fadeUp} className="pb-2">
         <div className="flex items-center justify-between mb-3">
-          <p className="section-label">Recent Transactions</p>
-          <Link href="/wallet"><span className="text-[11px] text-skz-light font-bold">View All</span></Link>
+          <p className="section-label">{t("home.recent")}</p>
+          <Link href="/wallet"><span className="text-[11px] text-skz-light font-bold">{t("home.viewAll")}</span></Link>
         </div>
 
         {txLoading ? (
@@ -274,8 +276,8 @@ export function Home() {
           </div>
         ) : transactions.length === 0 ? (
           <div className="glass-card rounded-2xl p-6 text-center">
-            <p className="text-white/30 text-sm font-medium">No transactions yet</p>
-            <p className="text-white/20 text-[11px] mt-1">Your activity will appear here</p>
+            <p className="text-white/30 text-sm font-medium">{t("home.tx.empty")}</p>
+            <p className="text-white/20 text-[11px] mt-1">{t("home.tx.emptyHint")}</p>
           </div>
         ) : (
           <div className="space-y-2">

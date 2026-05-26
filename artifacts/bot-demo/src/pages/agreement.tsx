@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, Eraser, ScrollText, ShieldCheck, Sparkles } from "lucide-react";
+import { useT } from "../lib/i18n";
 
 type SignatureCanvasHandle = {
   clear: () => void;
@@ -142,6 +143,7 @@ const labelStyles = "text-white/85 text-sm font-semibold";
 /* ────────────────────────────── Page ───────────────────────────────── */
 
 export function Agreement() {
+  const t = useT();
   const [content, setContent] = useState("");
   const [loadingText, setLoadingText] = useState(true);
 
@@ -169,7 +171,7 @@ export function Agreement() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (handle.isEmpty()) { setError("الرجاء التوقيع بإصبعك في المربع أدناه"); return; }
+    if (handle.isEmpty()) { setError(t("agreement.signRequired")); return; }
     setSubmitting(true);
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}api/agreement/sign`, {
@@ -181,10 +183,10 @@ export function Agreement() {
         }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(j?.error || "فشل الإرسال — حاول مرة أخرى"); return; }
+      if (!res.ok) { setError(j?.error || t("agreement.submitFailed")); return; }
       setDone(true);
     } catch {
-      setError("تعذّر الاتصال بالخادم");
+      setError(t("agreement.connFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -199,13 +201,13 @@ export function Agreement() {
             <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 ring-1 ring-emerald-300/30 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.35)]">
               <CheckCircle2 className="w-10 h-10 text-emerald-300" />
             </div>
-            <h2 className="text-2xl font-extrabold gradient-text-emerald">تم استلام توقيعك بنجاح</h2>
+            <h2 className="text-2xl font-extrabold gradient-text-emerald">{t("agreement.done.title")}</h2>
             <p className="text-white/70 leading-7">
-              شكرًا <span className="text-white font-semibold">{name}</span>. تم حفظ الاتفاقية الموقّعة وسيتم التواصل معك عبر بريدك الإلكتروني عند الحاجة.
+              {t("agreement.done.body", { name })}
             </p>
             <div className="pt-2 flex items-center justify-center gap-2 text-[12px] text-white/65">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>توقيع موثّق — SOUQRATES SYSTEM</span>
+              <span>{t("agreement.done.verified")}</span>
             </div>
           </CardContent>
         </Card>
@@ -231,7 +233,7 @@ export function Agreement() {
           <h1 className="mt-5 text-3xl font-extrabold tracking-tight gradient-text">SOUQRATES SYSTEM</h1>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-[12px] text-white/80">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-            اتفاقية المستخدم — Agreement Form
+            {t("agreement.badge")}
           </div>
         </div>
 
@@ -244,16 +246,16 @@ export function Agreement() {
               <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-400/25 flex items-center justify-center">
                 <ScrollText className="w-3.5 h-3.5 text-purple-300" />
               </div>
-              <span className="text-sm font-bold tracking-wide">نص الاتفاقية</span>
+              <span className="text-sm font-bold tracking-wide">{t("agreement.contractTitle")}</span>
             </div>
             <div className="bg-black/30 border border-white/8 rounded-xl p-4 max-h-72 overflow-y-auto whitespace-pre-wrap text-[13.5px] leading-7 text-white/80">
               {loadingText ? (
                 <div className="flex items-center gap-2 text-white/50">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  جاري التحميل…
+                  {t("agreement.loading")}
                 </div>
               ) : (
-                content || "لا توجد اتفاقية منشورة حاليًا."
+                content || t("agreement.empty")
               )}
             </div>
           </CardContent>
@@ -266,32 +268,32 @@ export function Agreement() {
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className={labelStyles}>الاسم الكامل *</Label>
-                  <Input id="name" required value={name} onChange={e => setName(e.target.value)} placeholder="مثال: أحمد محمد" className={inputStyles} />
+                  <Label htmlFor="name" className={labelStyles}>{t("agreement.fullName")}</Label>
+                  <Input id="name" required value={name} onChange={e => setName(e.target.value)} placeholder={t("agreement.fullName.ph")} className={inputStyles} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className={labelStyles}>البريد الإلكتروني *</Label>
+                  <Label htmlFor="email" className={labelStyles}>{t("agreement.email")}</Label>
                   <Input id="email" required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" dir="ltr" className={inputStyles} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className={labelStyles}>
-                  رقم الهاتف <span className="text-white/55 text-xs font-normal">(اختياري)</span>
+                  {t("agreement.phone")} <span className="text-white/55 text-xs font-normal">{t("agreement.optional")}</span>
                 </Label>
                 <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+970 …" dir="ltr" className={inputStyles} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="notes" className={labelStyles}>
-                  ملاحظات <span className="text-white/55 text-xs font-normal">(اختياري)</span>
+                  {t("agreement.notes")} <span className="text-white/55 text-xs font-normal">{t("agreement.optional")}</span>
                 </Label>
                 <Textarea
                   id="notes"
                   rows={3}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="أي ملاحظة تودّ إضافتها للإدارة"
+                  placeholder={t("agreement.notes.ph")}
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:border-purple-400/60 focus-visible:ring-2 focus-visible:ring-purple-500/20 rounded-xl"
                 />
               </div>
@@ -299,7 +301,7 @@ export function Agreement() {
               {/* Signature pad */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className={labelStyles}>التوقيع بالإصبع *</Label>
+                  <Label className={labelStyles}>{t("agreement.signature")}</Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -308,7 +310,7 @@ export function Agreement() {
                     className="h-7 text-xs text-white/70 hover:text-white hover:bg-white/10"
                   >
                     <Eraser className="w-3.5 h-3.5 ms-1" />
-                    مسح
+                    {t("agreement.clear")}
                   </Button>
                 </div>
                 <div className="relative rounded-xl p-[1.5px] bg-gradient-to-br from-purple-500/50 via-fuchsia-500/30 to-cyan-500/50">
@@ -321,7 +323,7 @@ export function Agreement() {
                   </div>
                 </div>
                 <p className="text-[12px] text-white/65">
-                  استخدم إصبعك (أو الفأرة على سطح المكتب) للتوقيع داخل المربع.
+                  {t("agreement.signHint")}
                 </p>
               </div>
 
@@ -343,12 +345,12 @@ export function Agreement() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin ms-2" />
-                    جاري الإرسال…
+                    {t("agreement.submitting")}
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 ms-2" />
-                    إرسال التوقيع — Submit
+                    {t("agreement.submit")}
                   </>
                 )}
               </Button>
@@ -357,7 +359,7 @@ export function Agreement() {
         </Card>
 
         <p className="text-center text-[12px] text-white/60 mt-6 mb-2 tracking-wider">
-          © SOUQRATES SYSTEM · جميع الحقوق محفوظة
+          {t("agreement.footer")}
         </p>
       </div>
     </div>

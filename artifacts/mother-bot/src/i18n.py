@@ -230,6 +230,19 @@ TR: dict[str, dict[str, str]] = {
                           "en": "📊 <b>Transaction History</b>\n\nNo transactions yet."},
     "tx_last_10":        {"ar": "📊 <b>آخر 10 معاملات:</b>\n",
                           "en": "📊 <b>Last 10 Transactions:</b>\n"},
+    # Info menu
+    "info_menu_prompt":  {"ar": "☰ <b>المزيد</b>\n\nاختر ما تريد الاطلاع عليه:",
+                          "en": "☰ <b>More</b>\n\nChoose what you'd like to view:"},
+    # /balance
+    "btn_open_full_app": {"ar": "🚀 افتح التطبيق الكامل",
+                          "en": "🚀 Open Full App"},
+    "err_no_wallet_start": {"ar": "❌ لا توجد محفظة. أرسل /start أولاً.",
+                            "en": "❌ No wallet found. Use /start first."},
+    "err_balance_fetch": {"ar": "❌ خطأ في جلب الرصيد.",
+                          "en": "❌ Error fetching balance."},
+    # /admin (non-admin reply)
+    "err_no_permission": {"ar": "❌ ليست لديك الصلاحية.",
+                          "en": "❌ No permission."},
 }
 
 
@@ -327,7 +340,10 @@ async def set_user_lang(
             ok = r.status_code == 200
     except Exception:
         pass
-    _LANG_CACHE[telegram_id] = (lang, time.time())
+    if ok:
+        _LANG_CACHE[telegram_id] = (lang, time.time())
+    else:
+        _LANG_CACHE.pop(telegram_id, None)
     return ok
 
 

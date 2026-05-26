@@ -6,6 +6,7 @@ import type { CategorySlug } from "@/lib/constants";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
 import { Ornament } from "@/components/Ornaments";
+import { useT } from "@/lib/i18n";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   religion: BookMarked,
@@ -17,6 +18,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 export default function Library() {
+  const t = useT();
   const [q, setQ] = useState("");
   const [active, setActive] = useState<CategorySlug | "all">("all");
   const { books, loading } = useBooks();
@@ -41,10 +43,10 @@ export default function Library() {
       <section className="relative py-16 md:py-20">
         <div className="max-w-5xl mx-auto px-6 md:px-10 text-center">
           <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            The Library
+            {t("library.eyebrow")}
           </div>
           <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 4.5vw, 3.25rem)" }}>
-            تصفَّح المكتبة كاملةً.
+            {t("library.title")}
           </h1>
           <Ornament className="mb-8" />
 
@@ -56,7 +58,7 @@ export default function Library() {
             <Search size={18} strokeWidth={1.6} style={{ color: "var(--muted)" }} />
             <input
               type="search"
-              placeholder="ابحث بعنوان أو مؤلِّف…"
+              placeholder={t("library.searchPh")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="w-full bg-transparent outline-none px-3 py-3 text-base"
@@ -70,7 +72,7 @@ export default function Library() {
                 style={{ color: "var(--muted)" }}
                 data-testid="button-clear-search"
               >
-                مسح
+                {t("library.clear")}
               </button>
             )}
           </div>
@@ -83,7 +85,7 @@ export default function Library() {
           <FilterChip
             active={active === "all"}
             onClick={() => setActive("all")}
-            label="الكلّ"
+            label={t("library.all")}
             testId="chip-all"
           />
           {CATEGORIES.map((c) => {
@@ -93,7 +95,7 @@ export default function Library() {
                 key={c.slug}
                 active={active === c.slug}
                 onClick={() => setActive(c.slug)}
-                label={c.name}
+                label={t(`cat.${c.slug}.name`)}
                 Icon={Icon}
                 testId={`chip-${c.slug}`}
               />
@@ -107,29 +109,29 @@ export default function Library() {
         <div className="max-w-6xl mx-auto px-6 md:px-10">
           <div className="flex items-baseline justify-between mb-8">
             <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-              {list.length} {list.length === 1 ? "Title" : "Titles"}
+              {list.length} {list.length === 1 ? t("library.titleOne") : t("library.titleMany")}
             </div>
             <div className="text-xs" style={{ color: "var(--muted)" }}>
-              {active === "all" ? "كل الفئات" : CATEGORIES.find((c) => c.slug === active)?.name}
+              {active === "all" ? t("library.allCats") : t(`cat.${active}.name`)}
             </div>
           </div>
 
           {loading ? (
             <div className="text-center py-20" data-testid="loading">
               <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                Loading…
+                {t("library.loadingEy")}
               </div>
               <p className="text-sm" style={{ color: "var(--muted)" }}>
-                جارٍ تحميل المكتبة…
+                {t("library.loadingMsg")}
               </p>
             </div>
           ) : list.length === 0 ? (
             <div className="text-center py-20" data-testid="empty-results">
               <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                Nothing found
+                {t("library.nothingEy")}
               </div>
               <p className="text-sm" style={{ color: "var(--muted)" }}>
-                لم نعثر على نتائج. جرّب كلمةً أخرى أو فئةً مختلفة.
+                {t("library.nothingMsg")}
               </p>
               <button
                 onClick={() => { setQ(""); setActive("all"); }}
@@ -137,7 +139,7 @@ export default function Library() {
                 style={{ color: "var(--emerald)" }}
                 data-testid="button-reset-filters"
               >
-                أعد ضبط الفلاتر
+                {t("library.resetFilters")}
               </button>
             </div>
           ) : (
@@ -156,7 +158,7 @@ export default function Library() {
               style={{ color: "var(--emerald)" }}
               data-testid="link-back-home"
             >
-              ← العودة إلى الواجهة
+              {t("library.backHome")}
             </Link>
           </div>
         </div>
@@ -190,4 +192,3 @@ function FilterChip({
     </button>
   );
 }
-

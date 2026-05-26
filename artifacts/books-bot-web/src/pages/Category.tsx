@@ -3,9 +3,11 @@ import { findCategory } from "@/lib/catalog";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
 import { Ornament } from "@/components/Ornaments";
+import { useT } from "@/lib/i18n";
 import NotFound from "./not-found";
 
 export default function Category() {
+  const t = useT();
   const params = useParams<{ slug: string }>();
   const cat = findCategory(params.slug ?? "");
   const { books: all, loading } = useBooks();
@@ -17,14 +19,14 @@ export default function Category() {
       <section className="relative py-16 md:py-20">
         <div className="max-w-4xl mx-auto px-6 md:px-10 text-center">
           <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            Chapter · {cat.slug.replace("-", " ")}
+            {t("category.chapter")} · {cat.slug.replace("-", " ")}
           </div>
           <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 4.5vw, 3rem)" }}>
-            {cat.name}
+            {t(`cat.${cat.slug}.name`)}
           </h1>
           <Ornament className="mb-6" />
           <p className="text-sm md:text-base" style={{ color: "var(--muted)" }}>
-            {cat.desc}
+            {t(`cat.${cat.slug}.desc`)}
           </p>
         </div>
       </section>
@@ -34,13 +36,13 @@ export default function Category() {
           {loading ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ color: "var(--muted)" }}>
-                جارٍ التحميل…
+                {t("common.loadingLong")}
               </p>
             </div>
           ) : books.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ color: "var(--muted)" }}>
-                لا توجد عناوين في هذه الفئة بعد. عد قريبًا.
+                {t("category.empty")}
               </p>
             </div>
           ) : (
@@ -54,11 +56,11 @@ export default function Category() {
 
           <div className="mt-12 flex items-center justify-center gap-6 text-sm">
             <Link href="/library" className="refined" style={{ color: "var(--emerald)" }} data-testid="link-all-library">
-              ← كل المكتبة
+              {t("category.allLibrary")}
             </Link>
             <span style={{ color: "var(--hairline)" }}>·</span>
             <Link href="/" className="refined" style={{ color: "var(--emerald)" }} data-testid="link-home">
-              الواجهة
+              {t("category.home")}
             </Link>
           </div>
         </div>

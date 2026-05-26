@@ -4,6 +4,7 @@ import { useWallet, getTelegramId } from "../lib/use-wallet";
 import { Users, Copy, Share2, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox } from "../components/icons";
+import { useT, useLang } from "../lib/i18n";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
 const fadeUp = {
@@ -12,12 +13,14 @@ const fadeUp = {
 };
 
 const TIERS_CONFIG = [
-  { level: "L1", settingKey: "referralBonusPercent", label: "Generation 1", color: "#a855f7", glow: "rgba(168,85,247,0.3)", iconKey: "users" },
-  { level: "L2", settingKey: "referralL2Percent",    label: "Generation 2", color: "#22d3ee", glow: "rgba(34,211,238,0.3)",  iconKey: "users" },
-  { level: "L3", settingKey: "referralL3Percent",    label: "Generation 3", color: "#10b981", glow: "rgba(16,185,129,0.3)",  iconKey: "users" },
+  { level: "L1", settingKey: "referralBonusPercent", labelKey: "referral.tier.gen1", color: "#a855f7", glow: "rgba(168,85,247,0.3)", iconKey: "users" },
+  { level: "L2", settingKey: "referralL2Percent",    labelKey: "referral.tier.gen2", color: "#22d3ee", glow: "rgba(34,211,238,0.3)",  iconKey: "users" },
+  { level: "L3", settingKey: "referralL3Percent",    labelKey: "referral.tier.gen3", color: "#10b981", glow: "rgba(16,185,129,0.3)",  iconKey: "users" },
 ];
 
 export function Referral() {
+  const t = useT();
+  const [lang] = useLang();
   const [copied, setCopied] = useState(false);
   const { settings } = usePlatformSettings();
   const { user } = useWallet();
@@ -33,7 +36,7 @@ export function Referral() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
     if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: "✓ Link copied!" });
+      window.Telegram.WebApp.showPopup({ message: t("referral.copied") });
     }
   };
 
@@ -78,18 +81,16 @@ export function Referral() {
           >
             <Users size={30} className="text-skz-light" />
           </div>
-          <h1 className="text-2xl font-black mb-2">Referral System</h1>
+          <h1 className="text-2xl font-black mb-2">{t("referral.title")}</h1>
           <p className="text-[12px] text-white/50 leading-relaxed max-w-[260px] mx-auto">
-            Invite friends and earn up to{" "}
-            <span className="text-skz-light font-bold">{settings.referralBonusPercent}%</span>
-            {" "}of their SKZ earnings — for life
+            {t("referral.headerLine", { pct: settings.referralBonusPercent })}
           </p>
         </div>
       </motion.div>
 
       {/* Commission tiers */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">Commission Tiers</p>
+        <p className="section-label mb-3">{t("referral.tiers")}</p>
         <div className="grid grid-cols-3 gap-2">
           {TIERS_CONFIG.map((tier) => (
             <div
@@ -109,7 +110,7 @@ export function Referral() {
               <p className="text-2xl font-black mb-0.5" style={{ color: tier.color }}>
                 {tierPcts[tier.settingKey]}%
               </p>
-              <p className="text-[9px] font-bold text-white/35 leading-tight">{tier.level}</p>
+              <p className="text-[9px] font-bold text-white/35 leading-tight">{t(tier.labelKey)}</p>
             </div>
           ))}
         </div>
@@ -117,7 +118,7 @@ export function Referral() {
 
       {/* Referral link card */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">Your Invite Link</p>
+        <p className="section-label mb-3">{t("referral.inviteLink")}</p>
         <div className="rounded-2xl overflow-hidden"
           style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}>
           <div className="px-4 py-4 flex items-center justify-between gap-3">
@@ -139,7 +140,7 @@ export function Referral() {
             className="w-full flex items-center justify-center gap-3 py-4 font-black text-sm"
             style={{ background: "linear-gradient(135deg, #9333ea, #7c3aed)", color: "white" }}>
             <Share2 size={18} />
-            Share Link
+            {t("referral.share")}
           </motion.button>
         </div>
       </motion.div>
@@ -150,13 +151,13 @@ export function Referral() {
           style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.15)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">Referred By</p>
+              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">{t("referral.referredBy")}</p>
               <p className="text-sm font-black text-white/60">
-                {user?.referrerId ? `User #${user.referrerId}` : "Direct signup"}
+                {user?.referrerId ? t("referral.user", { id: user.referrerId }) : t("referral.direct")}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">Your ID</p>
+              <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">{t("referral.yourId")}</p>
               <p className="text-sm font-black text-skz-light font-mono">
                 {telegramId ?? "—"}
               </p>
@@ -167,7 +168,7 @@ export function Referral() {
 
       {/* Friends — empty state */}
       <motion.div variants={fadeUp}>
-        <p className="section-label mb-3">Your Friends</p>
+        <p className="section-label mb-3">{t("referral.friends")}</p>
         <div className="glass-card rounded-2xl p-8 text-center">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
@@ -175,14 +176,14 @@ export function Referral() {
           >
             <Users size={24} className="text-skz-light opacity-60" />
           </div>
-          <p className="text-white/40 text-sm font-bold">No referrals yet</p>
+          <p className="text-white/40 text-sm font-bold">{t("referral.empty")}</p>
           <p className="text-white/25 text-[11px] mt-1 leading-relaxed max-w-[220px] mx-auto">
-            Share your link and start earning {settings.referralBonusPercent}% from every friend you invite
+            {t("referral.emptyHint", { pct: settings.referralBonusPercent })}
           </p>
           <div className="flex items-center justify-center gap-2 mt-4">
             <Zap size={12} className="text-skz-light" />
             <span className="text-[11px] font-bold text-skz-light">
-              {settings.referralBonusPercent}% · {settings.referralL2Percent}% · {settings.referralL3Percent}% per generation
+              {t("referral.perGen", { l1: settings.referralBonusPercent, l2: settings.referralL2Percent, l3: settings.referralL3Percent })}
             </span>
           </div>
         </div>
@@ -190,12 +191,12 @@ export function Referral() {
 
       {/* How it works */}
       <motion.div variants={fadeUp} className="pb-4">
-        <p className="section-label mb-4">How It Works</p>
+        <p className="section-label mb-4">{t("referral.how")}</p>
         <div className="space-y-3">
           {[
-            { step: "01", iconKey: "users",   color: "#a855f7", text: "Share your referral link with friends." },
-            { step: "02", iconKey: "gamepad", color: "#22d3ee", text: "They sign up and start using the bots." },
-            { step: "03", iconKey: "zap",     color: "#10b981", text: `Earn ${settings.referralBonusPercent}% from Gen 1, ${settings.referralL2Percent}% from Gen 2, ${settings.referralL3Percent}% from Gen 3 — automatically in SKZ.` },
+            { step: "01", iconKey: "users",   color: "#a855f7", text: t("referral.step1") },
+            { step: "02", iconKey: "gamepad", color: "#22d3ee", text: t("referral.step2") },
+            { step: "03", iconKey: "zap",     color: "#10b981", text: t("referral.step3", { l1: settings.referralBonusPercent, l2: settings.referralL2Percent, l3: settings.referralL3Percent }) },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 items-start">
               <div

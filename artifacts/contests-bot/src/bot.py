@@ -97,25 +97,25 @@ router = Router()
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
-def main_kb() -> InlineKeyboardMarkup:
+def main_kb(lang: str) -> InlineKeyboardMarkup:
     rows = [
-        [InlineKeyboardButton(text="🏆 لوحة المتسابقين", callback_data="board")],
-        [InlineKeyboardButton(text="🗳 صَوِّت الآن", callback_data="vote_menu")],
-        [InlineKeyboardButton(text="🎟 باقات التصويت", callback_data="packs")],
-        [InlineKeyboardButton(text="💼 رصيد أصواتي", callback_data="mybal")],
-        [InlineKeyboardButton(text="💰 محفظتي (SKZ)", callback_data="wallet")],
+        [InlineKeyboardButton(text=t(lang, "btn_main_leaderboard"), callback_data="board")],
+        [InlineKeyboardButton(text=t(lang, "btn_main_vote_now"),    callback_data="vote_menu")],
+        [InlineKeyboardButton(text=t(lang, "btn_main_packs"),       callback_data="packs")],
+        [InlineKeyboardButton(text=t(lang, "btn_main_mybal"),       callback_data="mybal")],
+        [InlineKeyboardButton(text=t(lang, "btn_main_wallet"),      callback_data="wallet")],
     ]
     if MOTHER_BOT_USERNAME:
         rows.append([InlineKeyboardButton(
-            text="🏛 SOUQRATES SYSTEM — المحفظة الموحّدة",
+            text=t(lang, "btn_main_system"),
             url=f"https://t.me/{MOTHER_BOT_USERNAME}",
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def back_kb() -> InlineKeyboardMarkup:
+def back_kb(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀ القائمة الرئيسية", callback_data="home")],
+        [InlineKeyboardButton(text=t(lang, "btn_home"), callback_data="home")],
     ])
 
 
@@ -134,10 +134,11 @@ async def safe_edit(msg: Message, text: str, reply_markup: Optional[InlineKeyboa
 
 
 async def render_home(tg_id: str) -> tuple[str, InlineKeyboardMarkup]:
-    title = await texts.get("welcome_title", "★ SOUQRATES STAGE")
+    lang = await get_user_lang(tg_id, API_URL, API_KEY)
+    title = await texts.get("welcome_title", t(lang, "home_welcome_title"))
     subtitle = await texts.get(
         "welcome_subtitle",
-        "مسرح المسابقات والتصويت — جزء من منظومة 🏛 SOUQRATES SYSTEM",
+        t(lang, "home_welcome_subtitle"),
     )
     try:
         active = await api.get_active_contest()
@@ -150,10 +151,9 @@ async def render_home(tg_id: str) -> tuple[str, InlineKeyboardMarkup]:
         body = (
             f"<b>{title}</b>\n"
             f"<i>{subtitle}</i>\n\n"
-            "🌙 لا توجد مسابقة نشطة حاليًّا.\n"
-            "ترقّب المسابقة القادمة قريبًا!"
+            f"{t(lang, 'home_no_active')}"
         )
-        return body, back_kb()
+        return body, back_kb(lang)
 
     cs = active.get("contestants", []) or []
     top = sorted(cs, key=lambda c: -int(c.get("voteCount") or 0))[:3]
@@ -161,20 +161,22 @@ async def render_home(tg_id: str) -> tuple[str, InlineKeyboardMarkup]:
     medals = ["🥇", "🥈", "🥉"]
     for i, c in enumerate(top):
         leaderboard_lines.append(
-            f"{medals[i]} <b>{c['name']}</b> — <code>{int(c['voteCount']):,}</code> صوت"
+            t(lang, "home_lb_line_ar",
+              medal=medals[i], name=c['name'], votes=f"{int(c['voteCount']):,}")
         )
-    lb = "\n".join(leaderboard_lines) if leaderboard_lines else "<i>لم يبدأ التصويت بعد</i>"
+    lb = "\n".join(leaderboard_lines) if leaderboard_lines else t(lang, "home_voting_not_started")
 
+    total_votes_str = f"{int(contest['totalVotes']):,}"
     body = (
         f"<b>{title}</b>\n"
         f"<i>{subtitle}</i>\n\n"
-        f"🎬 <b>المسابقة الحالية:</b> {contest['title']}\n"
+        f"{t(lang, 'home_current_contest', title=contest['title'])}\n"
         f"{contest.get('description') or ''}\n\n"
-        f"🗳 <b>إجمالي الأصوات:</b> <code>{int(contest['totalVotes']):,}</code>\n\n"
-        f"<b>المراكز الأولى:</b>\n{lb}\n\n"
-        "🎁 لديك <b>صوت مجاني واحد</b> كل يوم — استخدمه لمتسابقك المفضّل!"
+        f"{t(lang, 'home_total_votes', total=total_votes_str)}\n\n"
+        f"{t(lang, 'home_top_ranks_label')}\n{lb}\n\n"
+        f"{t(lang, 'home_free_vote_daily')}"
     )
-    return body, main_kb()
+    return body, main_kb(lang)
 
 
 # ── Handlers ───────────────────────────────────────────────────────────────
@@ -290,13 +292,14 @@ async def cb_home(cb: CallbackQuery):
 async def cb_board(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         active = await api.get_active_contest()
     except Exception:
         active = {"contest": None}
     contest = active.get("contest")
     if not contest:
-        await safe_edit(cb.message, "🌙 لا توجد مسابقة نشطة.", back_kb())
+        await safe_edit(cb.message, t(lang, "board_no_active"), back_kb(lang))
         await cb.answer()
         return
 
@@ -319,8 +322,8 @@ async def cb_board(cb: CallbackQuery):
         lines.append(f"{rank}<b>{c['name']}</b>{disq}")
         lines.append(f"<code>{bar}</code> <b>{votes:,}</b> ({pct:.1f}%)\n")
     if not contestants:
-        lines.append("<i>لا يوجد متسابقون بعد.</i>")
-    await safe_edit(cb.message, "\n".join(lines), back_kb())
+        lines.append(t(lang, "board_no_contestants"))
+    await safe_edit(cb.message, "\n".join(lines), back_kb(lang))
     await cb.answer()
 
 
@@ -328,41 +331,42 @@ async def _render_vote_menu(cb: CallbackQuery) -> None:
     """Render (or re-render) the vote menu. Does NOT call cb.answer()."""
     if cb.from_user is None or cb.message is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         active = await api.get_active_contest()
     except Exception:
         active = {"contest": None}
     contest = active.get("contest")
     if not contest:
-        await safe_edit(cb.message, "🌙 لا توجد مسابقة نشطة للتصويت.", back_kb())
+        await safe_edit(cb.message, t(lang, "vote_no_active"), back_kb(lang))
         return
 
     contestants = [c for c in (active.get("contestants") or []) if not c.get("isDisqualified")]
     if not contestants:
-        await safe_edit(cb.message, "لا يوجد متسابقون متاحون للتصويت.", back_kb())
+        await safe_edit(cb.message, t(lang, "vote_no_contestants"), back_kb(lang))
         return
 
     try:
         bal = await api.my_balance(str(cb.from_user.id))
-        free_left = "✅ متاح" if bal.get("freeAvailableToday") else "❌ مستخدم اليوم"
+        free_left = t(lang, "vote_free_available") if bal.get("freeAvailableToday") else t(lang, "vote_free_used_today")
         paid_left = int(bal.get("paidAvailable") or 0)
     except Exception:
-        free_left, paid_left = "—", 0
+        free_left, paid_left = t(lang, "vote_dash"), 0
 
-    header = (
-        f"🗳 <b>صوِّت في:</b> {contest['title']}\n\n"
-        f"🎁 صوتك المجاني: <b>{free_left}</b>\n"
-        f"⚡ أصوات مدفوعة متاحة: <b>{paid_left:,}</b>\n\n"
-        "اختر المتسابق:"
+    header = t(
+        lang, "vote_header",
+        title=contest['title'],
+        free=free_left,
+        paid=f"{paid_left:,}",
     )
 
     rows = []
     for c in sorted(contestants, key=lambda x: -int(x.get("voteCount") or 0)):
         rows.append([InlineKeyboardButton(
-            text=f"🗳 {c['name']} ({int(c['voteCount']):,} صوت)",
+            text=t(lang, "vote_btn_contestant", name=c['name'], votes=f"{int(c['voteCount']):,}"),
             callback_data=f"v:{contest['id']}:{c['id']}",
         )])
-    rows.append([InlineKeyboardButton(text="◀ رجوع", callback_data="home")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_back_short"), callback_data="home")])
     await safe_edit(cb.message, header, InlineKeyboardMarkup(inline_keyboard=rows))
 
 
@@ -376,23 +380,29 @@ async def cb_vote_menu(cb: CallbackQuery):
 async def cb_vote(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None or cb.data is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     parts = cb.data.split(":")
     if len(parts) != 3:
-        await cb.answer("بيانات غير صالحة", show_alert=True)
+        await cb.answer(t(lang, "err_bad_data"), show_alert=True)
         return
     try:
         contest_id = int(parts[1])
         contestant_id = int(parts[2])
     except ValueError:
-        await cb.answer("بيانات غير صالحة", show_alert=True)
+        await cb.answer(t(lang, "err_bad_data"), show_alert=True)
         return
 
     try:
         result = await api.cast_vote(str(cb.from_user.id), contest_id, contestant_id, vote_count=1)
         breakdown = result.get("breakdown", [])
         src = breakdown[0]["source"] if breakdown else "?"
-        src_label = "مجاني 🎁" if src == "free" else "مدفوع ⚡"
-        await cb.answer(f"✅ تم تسجيل صوتك ({src_label})", show_alert=True)
+        if src == "free":
+            src_label = t(lang, "vote_src_free")
+        elif src == "?":
+            src_label = t(lang, "vote_src_unknown")
+        else:
+            src_label = t(lang, "vote_src_paid")
+        await cb.answer(t(lang, "vote_success", src=src_label), show_alert=True)
         # Refresh the vote menu to reflect new counts. We've already answered the
         # callback above, so re-render in place instead of calling cb_vote_menu
         # (which would answer the same callback again and trigger a Telegram error).
@@ -404,45 +414,48 @@ async def cb_vote(cb: CallbackQuery):
         except Exception:
             err = ""
         if status == 402 or err == "NO_VOTES_AVAILABLE":
-            await cb.answer("❌ لا تملك أصواتًا متاحة. اشترِ باقة من 🎟", show_alert=True)
+            await cb.answer(t(lang, "vote_no_votes"), show_alert=True)
         elif status == 403:
-            await cb.answer("❌ تم حظر حسابك من العمليات المالية.", show_alert=True)
+            await cb.answer(t(lang, "err_banned_financial"), show_alert=True)
         elif status == 409:
-            await cb.answer("⚠ تغيّرت حالة المسابقة. أعد المحاولة.", show_alert=True)
+            await cb.answer(t(lang, "err_state_changed"), show_alert=True)
         else:
             logger.error(f"vote failed [{status}]: {err}")
-            await cb.answer("⚠ تعذّر التصويت. حاول لاحقًا.", show_alert=True)
+            await cb.answer(t(lang, "err_vote_generic"), show_alert=True)
 
 
 @router.callback_query(F.data == "packs")
 async def cb_packs(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         packs = await api.list_packs()
     except Exception:
         packs = []
     if not packs:
-        await safe_edit(cb.message, "📦 لا توجد باقات متاحة حاليًّا.", back_kb())
+        await safe_edit(cb.message, t(lang, "packs_none"), back_kb(lang))
         await cb.answer()
         return
 
-    lines = ["🎟 <b>باقات التصويت</b>\n"]
+    lines = [t(lang, "packs_header")]
     rows = []
     for p in packs:
-        bonus = f" +{p['bonusVotes']} مكافأة" if p.get("bonusVotes") else ""
+        bonus = t(lang, "packs_bonus_suffix", bonus=p['bonusVotes']) if p.get("bonusVotes") else ""
         file_tag = " 🎁" if p.get("bonusFileUrl") else ""
-        lines.append(
-            f"• <b>{p['name']}</b>{file_tag}\n"
-            f"  <code>{p['votes']}</code> صوت{bonus} — <b>{fmt_skz(p['priceSkz'])} SKZ</b>"
-        )
+        lines.append(t(
+            lang, "packs_line",
+            name=p['name'], file_tag=file_tag,
+            votes=p['votes'], bonus=bonus,
+            price=fmt_skz(p['priceSkz']),
+        ))
         if p.get("bonusDescription"):
             lines.append(f"  <i>{p['bonusDescription']}</i>")
         rows.append([InlineKeyboardButton(
-            text=f"شراء {p['name']} ({fmt_skz(p['priceSkz'])} SKZ)",
+            text=t(lang, "packs_btn_buy", name=p['name'], price=fmt_skz(p['priceSkz'])),
             callback_data=f"buy:{p['id']}",
         )])
-    rows.append([InlineKeyboardButton(text="◀ رجوع", callback_data="home")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_back_short"), callback_data="home")])
     await safe_edit(cb.message, "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows))
     await cb.answer()
 
@@ -451,25 +464,22 @@ async def cb_packs(cb: CallbackQuery):
 async def cb_buy(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None or cb.data is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         pack_id = int(cb.data.split(":")[1])
     except (ValueError, IndexError):
-        await cb.answer("بيانات غير صالحة", show_alert=True)
+        await cb.answer(t(lang, "err_bad_data"), show_alert=True)
         return
 
     try:
         result = await api.purchase_pack(str(cb.from_user.id), pack_id)
         votes = int(result.get("votesGranted") or 0)
         new_bal = fmt_skz(result.get("newSkzBalance"))
-        msg = (
-            f"✅ <b>تمّ الشراء بنجاح!</b>\n\n"
-            f"⚡ تمّ إضافة <b>{votes:,}</b> صوت إلى رصيدك.\n"
-            f"💰 رصيد SKZ المتبقي: <b>{new_bal}</b>"
-        )
+        msg = t(lang, "buy_success", votes=f"{votes:,}", bal=new_bal)
         if result.get("hasBonusFile"):
-            msg += "\n\n🎁 لديك ملف مكافأة! اضغط 💼 لاسترجاعه."
-        await safe_edit(cb.message, msg, back_kb())
-        await cb.answer("✅ تم", show_alert=False)
+            msg += t(lang, "buy_bonus_file_hint")
+        await safe_edit(cb.message, msg, back_kb(lang))
+        await cb.answer(t(lang, "buy_done_toast"), show_alert=False)
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         try:
@@ -480,57 +490,59 @@ async def cb_buy(cb: CallbackQuery):
             kb_rows = []
             if MOTHER_BOT_USERNAME:
                 kb_rows.append([InlineKeyboardButton(
-                    text="💰 شحن SKZ من البوت الأم",
+                    text=t(lang, "buy_btn_topup"),
                     url=f"https://t.me/{MOTHER_BOT_USERNAME}",
                 )])
-            kb_rows.append([InlineKeyboardButton(text="◀ رجوع", callback_data="home")])
+            kb_rows.append([InlineKeyboardButton(text=t(lang, "btn_back_short"), callback_data="home")])
             await safe_edit(
                 cb.message,
-                "❌ رصيد SKZ غير كافٍ لشراء هذه الباقة.\nاشحن محفظتك من البوت الأم ثم عُد.",
+                t(lang, "buy_insufficient_body"),
                 InlineKeyboardMarkup(inline_keyboard=kb_rows),
             )
         elif status == 403:
-            await cb.answer("❌ تم حظر حسابك.", show_alert=True)
+            await cb.answer(t(lang, "err_banned_short"), show_alert=True)
         else:
             logger.error(f"purchase failed [{status}]: {err}")
-            await cb.answer("⚠ تعذّر الشراء. حاول لاحقًا.", show_alert=True)
+            await cb.answer(t(lang, "err_purchase_generic"), show_alert=True)
 
 
 @router.callback_query(F.data == "mybal")
 async def cb_mybal(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         bal = await api.my_balance(str(cb.from_user.id))
     except Exception as e:
         logger.error(f"my_balance failed: {e}")
-        await safe_edit(cb.message, "⚠ تعذّر جلب رصيدك.", back_kb())
+        await safe_edit(cb.message, t(lang, "mybal_fetch_err"), back_kb(lang))
         await cb.answer()
         return
 
-    free_left = "✅ متاح" if bal.get("freeAvailableToday") else "❌ استُخدم اليوم"
+    free_left = t(lang, "vote_free_available") if bal.get("freeAvailableToday") else t(lang, "mybal_free_used")
     paid_left = int(bal.get("paidAvailable") or 0)
     grants = bal.get("grants") or []
 
     lines = [
-        "💼 <b>رصيد أصواتي</b>\n",
-        f"🎁 الصوت المجاني اليومي: <b>{free_left}</b>",
-        f"⚡ الأصوات المدفوعة المتبقّية: <b>{paid_left:,}</b>",
+        t(lang, "mybal_title"),
+        t(lang, "mybal_free_line", val=free_left),
+        t(lang, "mybal_paid_line", val=f"{paid_left:,}"),
     ]
 
     rows = []
     bonus_grants = [g for g in grants if g.get("hasBonusFile")]
     if bonus_grants:
-        lines.append("\n🎁 <b>مكافآتك (ملفات قابلة للتنزيل):</b>")
+        lines.append(t(lang, "mybal_bonus_section"))
         for g in bonus_grants:
-            lines.append(f"• {g.get('bonusFileName') or 'ملف مكافأة'}")
+            lines.append(f"• {g.get('bonusFileName') or t(lang, 'mybal_bonus_default')}")
             rows.append([InlineKeyboardButton(
-                text=f"📥 تنزيل: {g.get('bonusFileName') or 'ملف'}",
+                text=t(lang, "mybal_btn_download",
+                       name=g.get('bonusFileName') or t(lang, 'mybal_bonus_short')),
                 callback_data=f"dl:{g['id']}",
             )])
 
-    rows.append([InlineKeyboardButton(text="🎟 شراء المزيد", callback_data="packs")])
-    rows.append([InlineKeyboardButton(text="◀ القائمة الرئيسية", callback_data="home")])
+    rows.append([InlineKeyboardButton(text=t(lang, "mybal_btn_buy_more"), callback_data="packs")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_home"), callback_data="home")])
     await safe_edit(cb.message, "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows))
     await cb.answer()
 
@@ -539,31 +551,35 @@ async def cb_mybal(cb: CallbackQuery):
 async def cb_download(cb: CallbackQuery):
     if cb.from_user is None or cb.data is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         grant_id = int(cb.data.split(":")[1])
     except (ValueError, IndexError):
-        await cb.answer("بيانات غير صالحة", show_alert=True)
+        await cb.answer(t(lang, "err_bad_data"), show_alert=True)
         return
     try:
         res = await api.grant_download(str(cb.from_user.id), grant_id)
         url = res.get("downloadUrl")
         if url:
-            await cb.answer("🔗 جاهز للتنزيل", show_alert=False)
+            await cb.answer(t(lang, "dl_ready_toast"), show_alert=False)
             await cb.message.answer(
-                f"📥 <b>{res.get('fileName') or 'ملف المكافأة'}</b>\n\n<a href=\"{url}\">اضغط هنا للتنزيل</a>",
+                t(lang, "dl_message",
+                  name=res.get('fileName') or t(lang, 'dl_file_default'),
+                  url=url),
                 disable_web_page_preview=False,
             )
         else:
-            await cb.answer("⚠ تعذّر إصدار الرابط.", show_alert=True)
+            await cb.answer(t(lang, "dl_err_link"), show_alert=True)
     except httpx.HTTPStatusError as e:
         logger.error(f"grant_download failed: {e}")
-        await cb.answer("⚠ تعذّر التنزيل.", show_alert=True)
+        await cb.answer(t(lang, "dl_err_generic"), show_alert=True)
 
 
 @router.callback_query(F.data == "wallet")
 async def cb_wallet(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None:
         return
+    lang = await get_user_lang(str(cb.from_user.id), API_URL, API_KEY)
     try:
         data = await api.get_wallet(str(cb.from_user.id))
         w = (data or {}).get("wallet") or {}
@@ -573,20 +589,14 @@ async def cb_wallet(cb: CallbackQuery):
     rows = []
     if MOTHER_BOT_USERNAME:
         rows.append([InlineKeyboardButton(
-            text="💰 شحن من البوت الأم",
+            text=t(lang, "wallet_btn_topup"),
             url=f"https://t.me/{MOTHER_BOT_USERNAME}",
         )])
-    rows.append([InlineKeyboardButton(text="🎟 شراء باقة", callback_data="packs")])
-    rows.append([InlineKeyboardButton(text="◀ القائمة الرئيسية", callback_data="home")])
+    rows.append([InlineKeyboardButton(text=t(lang, "wallet_btn_buy_pack"), callback_data="packs")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_home"), callback_data="home")])
     await safe_edit(
         cb.message,
-        (
-            f"💰 <b>محفظتك الموحّدة</b>\n\n"
-            f"⚡ رصيد SKZ: <b>{skz}</b>\n\n"
-            "محفظتك مُدارة مركزيًّا عبر 🏛 <b>SOUQRATES SYSTEM</b>\n"
-            "(نفس الرصيد يعمل في كل بوتات سوقراط).\n\n"
-            "استخدم رصيد SKZ لشراء باقات التصويت."
-        ),
+        t(lang, "wallet_body", skz=skz),
         InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await cb.answer()
@@ -651,14 +661,12 @@ async def cmd_wallet(message: Message):
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
+    if message.from_user is None:
+        return
+    lang = await get_user_lang(str(message.from_user.id), API_URL, API_KEY)
     await message.answer(
-        "📖 <b>مساعدة SOUQRATES STAGE</b>\n\n"
-        "/start — القائمة الرئيسية\n\n"
-        "• <b>صوت مجاني واحد يوميًّا</b> (UTC) لكل مستخدم على المنصّة كلّها.\n"
-        "• اشترِ <b>باقات أصوات</b> برصيد SKZ من زر 🎟.\n"
-        "• بعض الباقات تتضمّن <b>ملف مكافأة</b> (مثلًا كتاب PDF).\n"
-        "• كل المعاملات مالية مُسجّلة وقابلة للتدقيق.",
-        reply_markup=back_kb(),
+        t(lang, "help_body"),
+        reply_markup=back_kb(lang),
     )
 
 

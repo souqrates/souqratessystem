@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { openTelegramApp } from "../lib/telegram";
+import { useT, useLang } from "../lib/i18n";
 
 // Telegram Stars deposit path is intentionally hidden from the UI per
 // product decision — keeping the underlying API/handlers in place so the
@@ -16,13 +17,15 @@ import { openTelegramApp } from "../lib/telegram";
 // deposit address on the USDT or TON tab below.
 type Method = "card" | "usdt" | "ton";
 
-const METHODS: { id: Method; label: string; sub: string; currencyKey: string }[] = [
-  { id: "card", label: "💳 شحن بالبطاقة", sub: "عبر @wallet · فيزا → USDT/TON",        currencyKey: "USDT" },
-  { id: "usdt", label: "USDT",            sub: "Tether · شبكة TRC20",                   currencyKey: "USDT" },
-  { id: "ton",  label: "TON",             sub: "The Open Network",                      currencyKey: "TON"  },
+const METHODS: { id: Method; label: string | null; labelKey: string | null; subKey: string; currencyKey: string }[] = [
+  { id: "card", label: null,   labelKey: "deposit.method.card.label", subKey: "deposit.method.card.sub", currencyKey: "USDT" },
+  { id: "usdt", label: "USDT", labelKey: null,                        subKey: "deposit.method.usdt.sub", currencyKey: "USDT" },
+  { id: "ton",  label: "TON",  labelKey: null,                        subKey: "deposit.method.ton.sub",  currencyKey: "TON"  },
 ];
 
 export function Deposit() {
+  const t = useT();
+  const [lang] = useLang();
   const [method, setMethod] = useState<Method>("card");
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
@@ -38,7 +41,7 @@ export function Deposit() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: "✓ تم النسخ" });
+      window.Telegram.WebApp.showPopup({ message: t("deposit.copied") });
     }
   };
 
@@ -61,12 +64,12 @@ export function Deposit() {
   const methodUnit = method === "ton" ? "TON" : "USDT";
 
   return (
-    <div className="px-4 pt-4 pb-6 space-y-5" dir="rtl">
+    <div className="px-4 pt-4 pb-6 space-y-5" dir={lang === "ar" ? "rtl" : "ltr"}>
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black">إيداع SKZ</h1>
-        <p className="text-[11px] text-white/40 font-medium mt-0.5">أودِع وتحوَّل تلقائيًا إلى SKZ</p>
+        <h1 className="text-2xl font-black">{t("deposit.title")}</h1>
+        <p className="text-[11px] text-white/40 font-medium mt-0.5">{t("deposit.subtitle")}</p>
       </div>
 
       {/* Conversion banner */}
@@ -77,8 +80,8 @@ export function Deposit() {
           <IconBox iconKey="download" size={18} color="white" bg="transparent" border="transparent" boxSize={40} radius={10} />
         </div>
         <div>
-          <p className="text-sm font-bold text-skz-light">تحويل تلقائي إلى SKZ</p>
-          <p className="text-[11px] text-white/40">بالسعر الحالي المعتمد من الإدارة</p>
+          <p className="text-sm font-bold text-skz-light">{t("deposit.banner.title")}</p>
+          <p className="text-[11px] text-white/40">{t("deposit.banner.sub")}</p>
         </div>
         <div className="mr-auto flex items-center gap-1.5 px-2.5 py-1 rounded-xl"
           style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.2)" }}>
@@ -89,7 +92,7 @@ export function Deposit() {
 
       {/* Method tabs */}
       <div>
-        <p className="section-label mb-3">اختر وسيلة الإيداع</p>
+        <p className="section-label mb-3">{t("deposit.chooseMethod")}</p>
         <div className="space-y-2.5">
           {METHODS.map((m) => {
             const isActive = method === m.id;
@@ -98,7 +101,7 @@ export function Deposit() {
               ? `1 TON = ${settings.skzPerTon} SKZ`
               : m.id === "usdt"
               ? `1 USDT = ${settings.skzPerUsdt} SKZ`
-              : `1 USDT = ${settings.skzPerUsdt} SKZ · بطاقة فيزا`;
+              : `1 USDT = ${settings.skzPerUsdt} SKZ${t("deposit.rate.cardSuffix")}`;
 
             return (
               <motion.div
@@ -127,9 +130,9 @@ export function Deposit() {
                     </div>
                     <div>
                       <p className="font-bold text-sm" style={{ color: isActive ? ci.color : "rgba(255,255,255,0.85)" }}>
-                        {m.label}
+                        {m.label ?? t(m.labelKey!)}
                       </p>
-                      <p className="text-[10px] text-white/35 font-medium mt-0.5">{m.sub} · {rateStr}</p>
+                      <p className="text-[10px] text-white/35 font-medium mt-0.5">{t(m.subKey)} · {rateStr}</p>
                     </div>
                   </div>
                   {isActive && (
@@ -159,31 +162,29 @@ export function Deposit() {
             <div className="rounded-2xl p-4 space-y-2"
               style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.25)" }}>
               <p className="text-skz-light font-bold text-sm flex items-center gap-2">
-                <CreditCard size={14} /> الشحن بالبطاقة عبر <span dir="ltr">@wallet</span>
+                <CreditCard size={14} /> {t("deposit.card.heading")} <span dir="ltr">@wallet</span>
               </p>
               <p className="text-[12px] text-white/70 leading-relaxed">
-                اشترِ <b>USDT</b> أو <b>TON</b> بالفيزا/ماستركارد من محفظة تيليغرام الرسمية
-                <span dir="ltr"> @wallet </span>، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت
-                ليُحوَّل تلقائياً إلى <b>SKZ</b>.
+                {t("deposit.card.intro")}
               </p>
             </div>
 
             {/* Steps */}
             <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p className="text-white/80 font-bold mb-2">الخطوات</p>
+              <p className="text-white/80 font-bold mb-2">{t("deposit.card.steps")}</p>
               <ol className="text-white/60 list-decimal pr-4 space-y-1.5">
-                <li>اضغط <b>«افتح @wallet»</b> بالأسفل واشترِ USDT (TRC20) أو TON بالبطاقة.</li>
-                <li>ارجع إلى هذا التطبيق واختر تبويب <b>USDT</b> أو <b>TON</b> من الأعلى.</li>
-                <li>انسخ <b>عنوان الإيداع</b> المعروض وأرسل المبلغ من <span dir="ltr">@wallet</span> إليه.</li>
-                <li>يُضاف رصيد <b>SKZ</b> تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة ⚡.</li>
+                <li>{t("deposit.card.step1")}</li>
+                <li>{t("deposit.card.step2")}</li>
+                <li>{t("deposit.card.step3")}</li>
+                <li>{t("deposit.card.step4")}</li>
               </ol>
             </div>
 
             {/* Quick rate hint */}
             <div className="rounded-2xl p-3 text-[11px] flex items-center justify-between"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="text-white/50">السعر الحالي</span>
+              <span className="text-white/50">{t("deposit.card.currentRate")}</span>
               <span className="font-mono font-bold text-skz-light">
                 1 USDT = {settings.skzPerUsdt} SKZ · 1 TON = {settings.skzPerTon} SKZ
               </span>
@@ -198,7 +199,7 @@ export function Deposit() {
                 boxShadow: "0 4px 24px rgba(147,51,234,0.4)",
               }}>
               <CreditCard size={18} />
-              افتح <span dir="ltr">@wallet</span> للشراء بالبطاقة
+              {t("deposit.card.openWallet")}
               <ExternalLink size={14} className="opacity-70" />
             </motion.button>
 
@@ -211,7 +212,7 @@ export function Deposit() {
                 border: "1.5px solid rgba(255,255,255,0.08)",
                 color: "rgba(255,255,255,0.85)",
               }}>
-              عرض عنوان إيداع USDT
+              {t("deposit.card.showUsdtAddr")}
             </motion.button>
           </motion.div>
         )}
@@ -225,7 +226,7 @@ export function Deposit() {
 
             {/* Amount input */}
             <div className="space-y-2">
-              <p className="section-label">المبلغ ({methodUnit})</p>
+              <p className="section-label">{t("deposit.amountLabel", { unit: methodUnit })}</p>
               <div className="relative">
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
@@ -246,14 +247,14 @@ export function Deposit() {
                 {isBelowMin && (
                   <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                     className="text-[11px] text-danger flex items-center gap-1.5 font-bold">
-                    <AlertCircle size={12} /> الحد الأدنى للإيداع {minForMethod} {methodUnit}
+                    <AlertCircle size={12} /> {t("deposit.minErr", { min: minForMethod, unit: methodUnit })}
                   </motion.p>
                 )}
                 {skzPreview !== null && !isBelowMin && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     className="glass-card-skz rounded-2xl p-3.5 flex items-center justify-between">
-                    <p className="text-sm text-white/50">ستستلم</p>
+                    <p className="text-sm text-white/50">{t("deposit.willReceive")}</p>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-white/40 font-bold">SKZ</span>
                       <p className="font-black text-xl gradient-text">{skzPreview.toLocaleString()}</p>
@@ -268,7 +269,7 @@ export function Deposit() {
             <div className="rounded-2xl p-4 relative"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <p className="section-label mb-2">
-                عنوان الإيداع ({method === "usdt" ? "TRC20" : "TON Network"})
+                {t("deposit.addressLabel", { network: method === "usdt" ? "TRC20" : "TON Network" })}
               </p>
               {addressConfigured ? (
                 <>
@@ -287,8 +288,7 @@ export function Deposit() {
                 </>
               ) : (
                 <p className="text-[12px] text-warn font-bold leading-relaxed">
-                  ⚠️ عنوان الإيداع غير مفعَّل حاليًا. يرجى التواصل مع الدعم
-                  (@{settings.supportUsername}) أو انتظار تفعيله من قِبَل الإدارة.
+                  {t("deposit.addressUnavailable", { support: settings.supportUsername })}
                 </p>
               )}
             </div>
@@ -299,14 +299,14 @@ export function Deposit() {
               <div className="text-danger font-bold flex items-center gap-2">
                 <IconBox iconKey="shield" size={12} color="#ef4444" bg="rgba(239,68,68,0.15)"
                   border="rgba(239,68,68,0.2)" boxSize={20} radius={5} />
-                أرسل {method.toUpperCase()} فقط عبر هذه الشبكة — أي عملة أخرى تُفقد نهائيًا
+                {t("deposit.warn.networkOnly", { sym: method.toUpperCase() })}
               </div>
               <p className="text-white/40">
-                الحد الأدنى: {minForMethod} {methodUnit}
+                {t("deposit.warn.min", { min: minForMethod, unit: methodUnit })}
               </p>
-              <p className="text-white/40">يُضاف الرصيد تلقائيًا بعد تأكيد الشبكة (٢-٥ دقائق)</p>
+              <p className="text-white/40">{t("deposit.warn.eta")}</p>
               <p style={{ color: CURRENCY_ICONS[currencyKey].color }}>
-                سعر اليوم: 1 {method.toUpperCase()} = {getRate()} SKZ
+                {t("deposit.warn.todayRate", { sym: method.toUpperCase(), rate: getRate() })}
               </p>
             </div>
 
@@ -314,7 +314,7 @@ export function Deposit() {
               onClick={() => {
                 if (!canSubmitCrypto) return;
                 const wa = window.Telegram?.WebApp;
-                const msg = `تم تسجيل نية الإيداع.\nالمبلغ: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nأرسل المبلغ إلى العنوان أعلاه. سيُضاف الرصيد تلقائيًا فور تأكيد المعاملة على الشبكة.`;
+                const msg = t("deposit.confirmAlert", { amount, sym: method.toUpperCase(), skz: skzPreview?.toLocaleString() ?? "" });
                 if (wa?.showAlert) wa.showAlert(msg); else alert(msg);
               }}
               className="w-full py-4 rounded-2xl font-black text-base text-white"
@@ -324,12 +324,12 @@ export function Deposit() {
                 opacity: canSubmitCrypto ? 1 : 0.45,
               }}>
               {!amount || num <= 0
-                ? "أدخل المبلغ"
+                ? t("deposit.cta.enterAmount")
                 : isBelowMin
-                ? `الحد الأدنى ${minForMethod} ${methodUnit}`
+                ? t("deposit.cta.minNeeded", { min: minForMethod, unit: methodUnit })
                 : !addressConfigured
-                ? "العنوان غير مفعَّل"
-                : "لقد أرسلت المبلغ"}
+                ? t("deposit.cta.addrInactive")
+                : t("deposit.cta.iSent")}
             </motion.button>
           </motion.div>
         )}

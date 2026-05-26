@@ -2,30 +2,30 @@ import { ArrowLeft, Feather, Upload, Coins, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { L, Ornament, CornerFlourish } from "@/components/Ornaments";
 import { TELEGRAM_PUBLISH_URL } from "@/lib/constants";
-
-const STEPS = [
-  { Icon: Upload,      title: "ارفع كتابك",        desc: <>أرسل الملف إلى البوت بصيغة {L("PDF")} أو {L("EPUB")} أو صوتي.</> },
-  { Icon: Coins,       title: "حدِّد سعرك",         desc: <>اختر سعرًا بـ {L("SKZ")} يناسب جمهورك، وعدِّله متى شئت.</> },
-  { Icon: ShieldCheck, title: "راجعةٌ ومُوثَّقة",   desc: <>فريق التحرير يراجع المحتوى، ثم يُنشر بتوقيعٍ مُؤمَّن.</> },
-  { Icon: Coins,       title: "استلم أرباحك",      desc: <>نصيبك يُودَع تلقائيًا في محفظتك بعد كل عملية بيع.</> },
-];
+import { useT } from "@/lib/i18n";
 
 export default function Publish() {
+  const t = useT();
+  const STEPS = [
+    { Icon: Upload,      title: t("publish.step1Title"), desc: t("publish.step1Desc", { pdf: "PDF", epub: "EPUB" }) },
+    { Icon: Coins,       title: t("publish.step2Title"), desc: t("publish.step2Desc", { skz: "SKZ" }) },
+    { Icon: ShieldCheck, title: t("publish.step3Title"), desc: t("publish.step3Desc") },
+    { Icon: Coins,       title: t("publish.step4Title"), desc: t("publish.step4Desc") },
+  ];
   return (
     <>
       <section className="relative py-20 md:py-28">
         <div className="max-w-4xl mx-auto px-6 md:px-10 text-center">
           <Feather size={42} strokeWidth={1.2} style={{ color: "var(--gold)", margin: "0 auto" }} />
           <div className="eyebrow mt-6 mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            For Authors &amp; Publishers
+            {t("publish.eyebrow")}
           </div>
           <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 5vw, 3.25rem)" }}>
-            أنشر إبداعك. واستلم أرباحك.
+            {t("publish.title")}
           </h1>
           <Ornament className="mb-8" />
           <p className="max-w-2xl mx-auto leading-loose" style={{ color: "var(--muted)" }}>
-            نمنحُكَ منصّةً بوتيكيةً موقَّرة لنشر أعمالك الرقمية، مع نظامِ دفعٍ موحَّدٍ بـ {L("SKZ")}،
-            وحقوقٍ محفوظةٍ بتوقيعٍ مشفَّر، وتسويةٍ آنيةٍ لكلِّ عملية بيع.
+            {t("publish.lead", { skz: "SKZ" })}
           </p>
         </div>
       </section>
@@ -33,9 +33,9 @@ export default function Publish() {
       <section className="relative py-16 md:py-20" style={{ background: "var(--ivory)", borderTop: "1px solid var(--hairline)", borderBottom: "1px solid var(--hairline)" }}>
         <div className="max-w-6xl mx-auto px-6 md:px-10">
           <div className="text-center mb-14">
-            <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>The Process</div>
+            <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("publish.processEy")}</div>
             <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.5rem)" }}>
-              أربعُ خطواتٍ، لا أكثر.
+              {t("publish.processTitle")}
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px" style={{ background: "var(--hairline)" }}>
@@ -59,10 +59,13 @@ export default function Publish() {
       <section className="py-20 md:py-24 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(1.5rem, 3.5vw, 2rem)" }}>
-            جاهز للبدء؟
+            {t("publish.ctaTitle")}
           </h2>
           <p className="mb-8 leading-loose" style={{ color: "var(--muted)" }}>
-            افتح البوت الآن وابدأ {L("/start publish")} لرفع أوّل عمل لك.
+            {(() => {
+              const parts = t("publish.ctaLead").split(/\{cmd\}/);
+              return (<>{parts[0]}{L("/start publish")}{parts[1]}</>);
+            })()}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
@@ -73,11 +76,11 @@ export default function Publish() {
               style={{ background: "var(--ink)", color: "var(--ivory)" }}
               data-testid="button-publish-now"
             >
-              ابدأ النشر الآن
+              {t("publish.ctaButton")}
               <ArrowLeft size={14} strokeWidth={1.8} />
             </a>
             <Link href="/library" className="refined text-sm" style={{ color: "var(--emerald)" }} data-testid="link-browse-library">
-              تصفَّح ما نُشر
+              {t("publish.browse")}
             </Link>
           </div>
         </div>

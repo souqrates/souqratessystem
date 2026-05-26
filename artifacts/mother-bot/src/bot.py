@@ -228,30 +228,30 @@ def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     ])
 
 
-def info_menu_keyboard() -> InlineKeyboardMarkup:
+def info_menu_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📜 السياسات",       callback_data="info_policies")],
-        [InlineKeyboardButton(text="⚖️ القوانين",       callback_data="info_rules")],
-        [InlineKeyboardButton(text="✉️ تواصل معنا",     callback_data="info_contact")],
-        [InlineKeyboardButton(text="🔙 رجوع",           callback_data="menu")],
+        [InlineKeyboardButton(text=t(lang, "btn_policies"), callback_data="info_policies")],
+        [InlineKeyboardButton(text=t(lang, "btn_rules"),    callback_data="info_rules")],
+        [InlineKeyboardButton(text=t(lang, "btn_contact"),  callback_data="info_contact")],
+        [InlineKeyboardButton(text=t(lang, "btn_back"),     callback_data="menu")],
     ])
 
 
-def info_back_keyboard() -> InlineKeyboardMarkup:
+def info_back_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀ القائمة",        callback_data="info_menu")],
-        [InlineKeyboardButton(text="🏠 الرئيسية",      callback_data="menu")],
+        [InlineKeyboardButton(text=t(lang, "btn_back_menu"), callback_data="info_menu")],
+        [InlineKeyboardButton(text=t(lang, "btn_back_main"), callback_data="menu")],
     ])
 
 
-def back_keyboard() -> InlineKeyboardMarkup:
+def back_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(
-                text="🚀 Open App",
+                text=t(lang, "btn_open_app"),
                 web_app=WebAppInfo(url=MINI_APP_URL),
             ),
-            InlineKeyboardButton(text="🔙 Back", callback_data="menu"),
+            InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu"),
         ]
     ])
 
@@ -381,14 +381,16 @@ async def cb_lang_set(callback: CallbackQuery):
 
 @router.callback_query(F.data == "wallet")
 async def cb_wallet(callback: CallbackQuery):
+    tg_id = str(callback.from_user.id)
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
     try:
-        data = await api_get_wallet(str(callback.from_user.id))
+        data = await api_get_wallet(tg_id)
     except Exception:
-        await callback.answer("❌ Error fetching data", show_alert=True)
+        await callback.answer(t(lang, "err_fetch_data"), show_alert=True)
         return
 
     if not data:
-        await callback.answer("❌ Wallet not found", show_alert=True)
+        await callback.answer(t(lang, "err_no_wallet"), show_alert=True)
         return
 
     wallet = data["wallet"]
@@ -406,29 +408,29 @@ async def cb_wallet(callback: CallbackQuery):
     won       = int(user_obj.get("totalGamesWon", 0))
 
     text = (
-        f"💰 <b>Your Wallet</b>\n\n"
-        f"<b>Balances:</b>\n"
-        f"├ ⚡ SKZ:        <code>{skz:,.2f}</code>\n"
-        f"├ 🤝 Referral:  <code>{ref_skz:,.2f}</code> SKZ\n"
-        f"├ 💵 USDT:      <code>{usdt:.4f}</code>\n"
-        f"├ ⭐ Stars:      <code>{stars:,}</code>\n"
-        f"└ 💎 TON:       <code>{ton:.4f}</code>\n\n"
-        f"<b>🎮 Profile:</b>  Level <b>{level}</b> · <code>{xp:,}</code> XP\n"
-        f"<b>🎯 Games:</b>   {won}/{played} won\n\n"
-        f"<b>Total Earned:</b>    <code>{earned:,.2f}</code> SKZ\n"
-        f"<b>Total Withdrawn:</b> <code>{withdrawn:,.2f}</code> SKZ"
+        f"{t(lang, 'wallet_title')}\n\n"
+        f"{t(lang, 'balances_label')}\n"
+        f"├ {t(lang, 'label_skz')}:        <code>{skz:,.2f}</code>\n"
+        f"├ {t(lang, 'label_referral')}:  <code>{ref_skz:,.2f}</code> SKZ\n"
+        f"├ {t(lang, 'label_usdt')}:      <code>{usdt:.4f}</code>\n"
+        f"├ {t(lang, 'label_stars')}:      <code>{stars:,}</code>\n"
+        f"└ {t(lang, 'label_ton')}:       <code>{ton:.4f}</code>\n\n"
+        f"{t(lang, 'profile_line', level=level, xp=f'{xp:,}')}\n"
+        f"{t(lang, 'games_line', won=won, played=played)}\n\n"
+        f"{t(lang, 'total_earned', n=f'{earned:,.2f}')}\n"
+        f"{t(lang, 'total_withdrawn', n=f'{withdrawn:,.2f}')}"
     )
 
     # Wallet view gets its own keyboard with the card top-up button so
     # users don't need to leave the wallet to add funds.
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="💳 شحن بالبطاقة", callback_data="topup_card"),
-            InlineKeyboardButton(text="⭐ شحن بـ Stars", callback_data="topup_stars"),
+            InlineKeyboardButton(text=t(lang, "btn_topup_card"),  callback_data="topup_card"),
+            InlineKeyboardButton(text=t(lang, "btn_topup_stars"), callback_data="topup_stars"),
         ],
         [
-            InlineKeyboardButton(text="🚀 Open App", web_app=WebAppInfo(url=MINI_APP_URL)),
-            InlineKeyboardButton(text="🔙 Back", callback_data="menu"),
+            InlineKeyboardButton(text=t(lang, "btn_open_app"), web_app=WebAppInfo(url=MINI_APP_URL)),
+            InlineKeyboardButton(text=t(lang, "btn_back"),     callback_data="menu"),
         ],
     ])
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
@@ -445,7 +447,7 @@ async def cb_wallet(callback: CallbackQuery):
 TOPUP_PRESETS_STARS = [50, 100, 250, 500, 1000, 2500]
 
 
-def topup_stars_keyboard() -> InlineKeyboardMarkup:
+def topup_stars_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Stars-only top-up keyboard. Telegram processes payment in-app via the
     invoice link — user never leaves the chat."""
     rows = []
@@ -454,7 +456,7 @@ def topup_stars_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text=f"⭐ {n}", callback_data=f"topup_stars_amt:{n}")
             for n in TOPUP_PRESETS_STARS[chunk_start:chunk_start + 3]
         ])
-    rows.append([InlineKeyboardButton(text="🔙 رجوع", callback_data="wallet")])
+    rows.append([InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="wallet")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -464,21 +466,12 @@ async def cb_topup_card(callback: CallbackQuery, state: FSMContext):
     inside Telegram's official Wallet bot, then sends the crypto to our
     deposit addresses (shown in the Mini App → Deposit page)."""
     await state.clear()
-    text = (
-        "💳 <b>الشحن بالبطاقة عبر @wallet</b>\n\n"
-        "اشترِ <b>USDT</b> أو <b>TON</b> بالفيزا/ماستركارد من محفظة تيليغرام "
-        "الرسمية <b>@wallet</b>، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت "
-        "ليُحوَّل تلقائياً إلى SKZ.\n\n"
-        "<b>الخطوات:</b>\n"
-        "1️⃣ افتح <b>@wallet</b> واشترِ USDT (TRC20) أو TON بالبطاقة.\n"
-        "2️⃣ ارجع إلى هنا واضغط <b>🚀 Open App → 💸 إيداع</b>.\n"
-        "3️⃣ انسخ عنوان الإيداع المطابق للعملة وأرسل المبلغ من @wallet.\n"
-        "4️⃣ يُضاف رصيد <b>SKZ</b> تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة. ⚡"
-    )
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    text = t(lang, "topup_card_body")
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 افتح @wallet للشراء بالبطاقة", url="https://t.me/wallet")],
-        [InlineKeyboardButton(text="💸 افتح صفحة الإيداع", web_app=WebAppInfo(url=MINI_APP_URL))],
-        [InlineKeyboardButton(text="🔙 المحفظة", callback_data="wallet")],
+        [InlineKeyboardButton(text=t(lang, "btn_open_wallet"),  url="https://t.me/wallet")],
+        [InlineKeyboardButton(text=t(lang, "btn_open_deposit"), web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton(text=t(lang, "btn_back_wallet"),  callback_data="wallet")],
     ])
     await _safe_edit(callback, text, kb)
     await callback.answer()
@@ -489,13 +482,8 @@ async def cb_topup_stars(callback: CallbackQuery, state: FSMContext):
     """Show the Stars preset grid. Stars are charged inside Telegram (no
     redirect, no card form) — fastest possible deposit UX."""
     await state.clear()
-    text = (
-        "⭐ <b>شحن الرصيد بـ Telegram Stars</b>\n\n"
-        "ادفع داخل تيليغرام مباشرة بدون خروج من المحادثة.\n"
-        "يُضاف رصيد <b>SKZ</b> فور تأكيد الدفع تلقائياً.\n\n"
-        "اختر عدد النجوم:"
-    )
-    await _safe_edit(callback, text, topup_stars_keyboard())
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    await _safe_edit(callback, t(lang, "topup_stars_body"), topup_stars_keyboard(lang))
     await callback.answer()
 
 
@@ -505,10 +493,11 @@ async def cb_topup_stars_amt(callback: CallbackQuery, state: FSMContext):
     pay button. Telegram will then POST a `successful_payment` update that
     `msg_successful_payment` below picks up and credits the wallet."""
     await state.clear()
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
     try:
         amount_stars = int(callback.data.split(":", 1)[1])
     except (ValueError, IndexError):
-        await callback.answer("❌ مبلغ غير صالح", show_alert=True)
+        await callback.answer(t(lang, "err_invalid_amt"), show_alert=True)
         return
 
     async with httpx.AsyncClient() as http:
@@ -521,31 +510,27 @@ async def cb_topup_stars_amt(callback: CallbackQuery, state: FSMContext):
             )
         except httpx.HTTPError as e:
             logger.warning(f"stars-invoice network error: {e}")
-            await callback.answer("❌ تعذّر إنشاء الفاتورة، حاول لاحقاً.", show_alert=True)
+            await callback.answer(t(lang, "err_invoice_fail"), show_alert=True)
             return
 
     if resp.status_code != 200:
         logger.warning(f"stars-invoice failed: {resp.status_code} {resp.text[:200]}")
-        await callback.answer("❌ تعذّر إنشاء الفاتورة، حاول لاحقاً.", show_alert=True)
+        await callback.answer(t(lang, "err_invoice_fail"), show_alert=True)
         return
 
     data = resp.json()
     invoice_link = data.get("invoiceLink")
     expected_skz = data.get("expectedSkz", "?")
     if not invoice_link:
-        await callback.answer("❌ لم يتم استلام رابط الفاتورة.", show_alert=True)
+        await callback.answer(t(lang, "err_invoice_link"), show_alert=True)
         return
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"⭐ ادفع {amount_stars} Stars الآن", url=invoice_link)],
-        [InlineKeyboardButton(text="🔙 رجوع", callback_data="wallet")],
+        [InlineKeyboardButton(text=t(lang, "pay_stars_btn", n=amount_stars), url=invoice_link)],
+        [InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="wallet")],
     ])
     await callback.message.answer(
-        f"⭐ <b>فاتورة شحن جاهزة</b>\n\n"
-        f"المبلغ: <b>{amount_stars}</b> نجمة\n"
-        f"ستحصل على: <b>{expected_skz}</b> SKZ\n\n"
-        f"اضغط الزر أدناه لإتمام الدفع داخل تيليغرام.\n"
-        f"<i>سيُضاف الرصيد فور تأكيد الدفع.</i>",
+        t(lang, "invoice_ready", n=amount_stars, skz=expected_skz),
         parse_mode="HTML",
         reply_markup=kb,
     )
@@ -572,6 +557,7 @@ async def msg_successful_payment(message: Message):
     sp = message.successful_payment
     if not sp:
         return
+    lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
     payload = sp.invoice_payload  # = `stars_dep_{userId}_{ts}` we set server-side
     amount_stars = int(sp.total_amount)  # Stars uses 1 unit = 1 Star
     tg_charge_id = sp.telegram_payment_charge_id
@@ -594,16 +580,13 @@ async def msg_successful_payment(message: Message):
         except httpx.HTTPError as e:
             logger.error(f"stars-confirm network error: {e}")
             # The pending tx stays in DB — admin can reconcile manually.
-            await message.answer(
-                "⚠️ تم استلام دفعتك لكن تأخّر تأكيد القيد، سيتم إضافة الرصيد خلال دقائق."
-            )
+            await message.answer(t(lang, "stars_pay_delayed"))
             return
 
     if resp.status_code != 200:
         logger.error(f"stars-confirm failed: {resp.status_code} {resp.text[:300]}")
         await message.answer(
-            "⚠️ تم استلام دفعتك لكن واجه القيد مشكلة — راسل الدعم برقم العملية:\n"
-            f"<code>{tg_charge_id}</code>",
+            t(lang, "stars_pay_issue", ref=tg_charge_id),
             parse_mode="HTML",
         )
         return
@@ -612,20 +595,19 @@ async def msg_successful_payment(message: Message):
     credited = data.get("creditedSkz", "?")
     new_bal = data.get("newSkzBalance", "?")
     await message.answer(
-        f"✅ <b>تم شحن الرصيد بنجاح</b>\n\n"
-        f"⭐ المدفوع: <b>{amount_stars}</b> Stars\n"
-        f"⚡ المضاف: <b>{credited}</b> SKZ\n"
-        f"💰 رصيدك الجديد: <b>{new_bal}</b> SKZ",
+        t(lang, "stars_pay_ok", stars=amount_stars, skz=credited, bal=new_bal),
         parse_mode="HTML",
     )
 
 
 @router.callback_query(F.data == "transactions")
 async def cb_transactions(callback: CallbackQuery):
+    tg_id = str(callback.from_user.id)
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
     try:
-        data = await api_get_wallet(str(callback.from_user.id))
+        data = await api_get_wallet(tg_id)
         if not data:
-            await callback.answer("❌ No data found", show_alert=True)
+            await callback.answer(t(lang, "err_no_data"), show_alert=True)
             return
 
         user_id = data["user"]["id"]
@@ -639,13 +621,13 @@ async def cb_transactions(callback: CallbackQuery):
             transactions = resp.json()["data"]
     except Exception as e:
         logger.error(f"Error fetching transactions: {e}")
-        await callback.answer("❌ Error fetching transactions", show_alert=True)
+        await callback.answer(t(lang, "err_no_tx"), show_alert=True)
         return
 
     if not transactions:
-        text = "📊 <b>Transaction History</b>\n\nNo transactions yet."
+        text = t(lang, "tx_empty")
     else:
-        lines = ["📊 <b>Last 10 Transactions:</b>\n"]
+        lines = [t(lang, "tx_last_10")]
         for tx in transactions:
             icon   = "📥" if tx["type"] == "credit" else "📤"
             amount = float(tx["amount"])
@@ -656,57 +638,50 @@ async def cb_transactions(callback: CallbackQuery):
             )
         text = "\n".join(lines)
 
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard(lang))
     await callback.answer()
 
 
 @router.callback_query(F.data == "withdraw")
 async def cb_withdraw(callback: CallbackQuery):
-    text = (
-        "💸 <b>Withdraw Earnings</b>\n\n"
-        "Use the <b>Open App</b> button to withdraw directly from the platform.\n\n"
-        "📌 <b>Minimums:</b>\n"
-        "├ 💵 USDT: 5\n"
-        "├ 💎 TON: 1\n\n"
-        "⚡ Converted from your SKZ balance automatically."
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    await callback.message.edit_text(
+        t(lang, "withdraw_body"), parse_mode="HTML",
+        reply_markup=back_keyboard(lang),
     )
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()
 
 
 @router.callback_query(F.data == "referral")
 async def cb_referral(callback: CallbackQuery):
+    tg_id = str(callback.from_user.id)
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
     bot_info = await callback.bot.get_me()
     ref_link = f"https://t.me/{bot_info.username}?start=ref{callback.from_user.id}"
 
     ref_balance = 0.0
     total_ref_earned = 0.0
     try:
-        data = await api_get_wallet(str(callback.from_user.id))
+        data = await api_get_wallet(tg_id)
         w = (data or {}).get("wallet") or {}
         ref_balance      = float(w.get("referralBalanceSkz", "0"))
         total_ref_earned = float(w.get("totalEarnedFromReferralsSkz", "0"))
     except Exception:
         pass
 
-    text = (
-        f"🤝 <b>Referral Program</b>\n\n"
-        f"Invite friends and earn <b>up to 15%</b> of their SKZ earnings — for life!\n\n"
-        f"💼 <b>Referral Wallet:</b>\n"
-        f"├ Available:    <code>{ref_balance:,.2f}</code> SKZ\n"
-        f"└ Lifetime:     <code>{total_ref_earned:,.2f}</code> SKZ\n\n"
-        f"🔗 <b>Your link:</b>\n"
-        f"<code>{ref_link}</code>\n\n"
-        f"Tiers: L1 → 10% · L2 → 3% · L3 → 2%\n\n"
-        f"💡 Transfer your referral earnings to your main wallet to withdraw them."
+    text = t(
+        lang, "referral_body",
+        avail=f"{ref_balance:,.2f}",
+        total=f"{total_ref_earned:,.2f}",
+        link=ref_link,
     )
     kb_rows = []
     if ref_balance > 0:
         kb_rows.append([InlineKeyboardButton(
-            text=f"💸 Transfer {ref_balance:,.2f} SKZ → Main Wallet",
+            text=t(lang, "btn_transfer_ref", n=f"{ref_balance:,.2f}"),
             callback_data="referral_transfer",
         )])
-    kb_rows.append([InlineKeyboardButton(text="⬅️ Back", callback_data="menu")])
+    kb_rows.append([InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu")])
     await callback.message.edit_text(
         text, parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=kb_rows),
@@ -716,6 +691,7 @@ async def cb_referral(callback: CallbackQuery):
 
 @router.callback_query(F.data == "referral_transfer")
 async def cb_referral_transfer(callback: CallbackQuery):
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
@@ -725,17 +701,17 @@ async def cb_referral_transfer(callback: CallbackQuery):
                 timeout=10.0,
             )
         if resp.status_code != 200:
-            err = (resp.json() or {}).get("error", "Transfer failed")
+            err = (resp.json() or {}).get("error") or t(lang, "transfer_failed")
             await callback.answer(f"❌ {err}", show_alert=True)
             return
         body = resp.json()
         await callback.answer(
-            f"✅ Transferred {body.get('transferred', '0')} SKZ to your main wallet",
+            t(lang, "ref_transfer_ok", n=body.get("transferred", "0")),
             show_alert=True,
         )
     except Exception as e:
         logger.error(f"Referral transfer failed: {e}")
-        await callback.answer("❌ Transfer error", show_alert=True)
+        await callback.answer(t(lang, "err_transfer"), show_alert=True)
         return
 
     # Re-render referral view so balance updates immediately
@@ -744,18 +720,11 @@ async def cb_referral_transfer(callback: CallbackQuery):
 
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery):
-    text = (
-        "ℹ️ <b>About SOUQRATES SYSTEM</b>\n\n"
-        "SKZ is your unified financial hub across the SOUQRATES ecosystem:\n\n"
-        "▲ <b>SOUQRATES SKILLZ</b> — skill games with prizes\n"
-        "❖ <b>SOUQRATES SOUQ</b>   — books &amp; digital products\n"
-        "▶ <b>SOUQRATES SCENE</b>  — short video, earn from watching\n"
-        "◉ <b>SOUQRATES STREAM</b> — paid voice rooms\n"
-        "✦ <b>SOUQRATES SIGNAL</b> — AI text/image/video generation\n"
-        "★ <b>SOUQRATES STAGE</b>  — contests &amp; voting prizes\n\n"
-        "All earnings across every chapter flow into one SKZ wallet here — in SOUQRATES SYSTEM."
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    await callback.message.edit_text(
+        t(lang, "help_body"), parse_mode="HTML",
+        reply_markup=back_keyboard(lang),
     )
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=back_keyboard())
     await callback.answer()
 
 
@@ -889,29 +858,29 @@ async def _safe_edit(callback: CallbackQuery, text: str, kb: InlineKeyboardMarku
 
 @router.callback_query(F.data == "info_menu")
 async def cb_info_menu(callback: CallbackQuery):
-    text = (
-        "☰ <b>المزيد</b>\n\n"
-        "اختر ما تريد الاطلاع عليه:"
-    )
-    await _safe_edit(callback, text, info_menu_keyboard())
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+    await _safe_edit(callback, t(lang, "info_menu_prompt"), info_menu_keyboard(lang))
     await callback.answer()
 
 
 @router.callback_query(F.data.in_({"info_policies", "info_rules", "info_contact"}))
 async def cb_info_page(callback: CallbackQuery):
+    lang = await get_user_lang(str(callback.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
     key = callback.data
     _, default_body = INFO_DEFAULTS.get(key, ("", "—"))
     body = await texts.get(key, default=default_body)
-    await _safe_edit(callback, body, info_back_keyboard())
+    await _safe_edit(callback, body, info_back_keyboard(lang))
     await callback.answer()
 
 
 @router.message(Command("balance"))
 async def cmd_balance(message: Message):
+    tg_id = str(message.from_user.id)
+    lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
     try:
-        data = await api_get_wallet(str(message.from_user.id))
+        data = await api_get_wallet(tg_id)
         if not data:
-            await message.answer("❌ No wallet found. Use /start first.")
+            await message.answer(t(lang, "err_no_wallet_start"))
             return
         w = data["wallet"]
         await message.answer(
@@ -920,17 +889,18 @@ async def cmd_balance(message: Message):
             f"⭐ Stars: {int(float(w['balanceStars'])):,}\n"
             f"💎 TON: {float(w['balanceTon']):.4f}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="🚀 Open Full App", web_app=WebAppInfo(url=MINI_APP_URL))
+                InlineKeyboardButton(text=t(lang, "btn_open_full_app"), web_app=WebAppInfo(url=MINI_APP_URL))
             ]])
         )
     except Exception:
-        await message.answer("❌ Error fetching balance.")
+        await message.answer(t(lang, "err_balance_fetch"))
 
 
 @router.message(Command("admin"))
 async def cmd_admin(message: Message):
     if message.from_user.id not in ADMIN_IDS:
-        await message.answer("❌ No permission.")
+        lang = await get_user_lang(str(message.from_user.id), MOTHER_API_URL, MOTHER_BOT_API_KEY)
+        await message.answer(t(lang, "err_no_permission"))
         return
 
     try:

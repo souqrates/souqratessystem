@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useT } from "../lib/i18n";
 
 interface Props {
   onDone: () => void;
 }
 
 export function SplashScreen({ onDone }: Props) {
+  const t = useT();
   const [count, setCount] = useState(0);
   const [phase, setPhase] = useState<"in" | "count" | "out">("in");
 
@@ -124,7 +126,7 @@ export function SplashScreen({ onDone }: Props) {
             </div>
 
             <p className="text-[11px] font-medium text-white/30 tracking-widest uppercase mt-1">
-              Loading
+              {t("splash.loading")}
             </p>
           </motion.div>
         </motion.div>

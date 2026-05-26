@@ -39,6 +39,182 @@ TR: dict[str, dict[str, str]] = {
                         "en": "✅ Language set to English."},
     "lang_set_fail":   {"ar": "❌ تعذّر حفظ اختيار اللغة. حاول لاحقاً.",
                         "en": "❌ Could not save language preference. Try again later."},
+
+    # ── Home / render_home ────────────────────────────────────────────────
+    "home_welcome_title":    {"ar": "★ SOUQRATES STAGE",
+                              "en": "★ SOUQRATES STAGE"},
+    "home_welcome_subtitle": {"ar": "مسرح المسابقات والتصويت — جزء من منظومة 🏛 SOUQRATES SYSTEM",
+                              "en": "Contests &amp; voting arena — part of the 🏛 SOUQRATES SYSTEM"},
+    "home_no_active": {
+        "ar": "🌙 لا توجد مسابقة نشطة حاليًّا.\nترقّب المسابقة القادمة قريبًا!",
+        "en": "🌙 No active contest right now.\nStay tuned for the next one!",
+    },
+    "home_voting_not_started": {"ar": "<i>لم يبدأ التصويت بعد</i>",
+                                "en": "<i>Voting hasn't started yet</i>"},
+    "home_lb_line_ar": {"ar": "{medal} <b>{name}</b> — <code>{votes}</code> صوت",
+                       "en": "{medal} <b>{name}</b> — <code>{votes}</code> votes"},
+    "home_current_contest": {"ar": "🎬 <b>المسابقة الحالية:</b> {title}",
+                             "en": "🎬 <b>Current contest:</b> {title}"},
+    "home_total_votes":     {"ar": "🗳 <b>إجمالي الأصوات:</b> <code>{total}</code>",
+                             "en": "🗳 <b>Total votes:</b> <code>{total}</code>"},
+    "home_top_ranks_label": {"ar": "<b>المراكز الأولى:</b>",
+                             "en": "<b>Top ranks:</b>"},
+    "home_free_vote_daily": {
+        "ar": "🎁 لديك <b>صوت مجاني واحد</b> كل يوم — استخدمه لمتسابقك المفضّل!",
+        "en": "🎁 You get <b>one free vote</b> every day — spend it on your favorite contestant!",
+    },
+
+    # ── Main keyboard ─────────────────────────────────────────────────────
+    "btn_main_leaderboard": {"ar": "🏆 لوحة المتسابقين", "en": "🏆 Leaderboard"},
+    "btn_main_vote_now":    {"ar": "🗳 صَوِّت الآن",      "en": "🗳 Vote now"},
+    "btn_main_packs":       {"ar": "🎟 باقات التصويت",  "en": "🎟 Vote packs"},
+    "btn_main_mybal":       {"ar": "💼 رصيد أصواتي",    "en": "💼 My votes"},
+    "btn_main_wallet":      {"ar": "💰 محفظتي (SKZ)",   "en": "💰 My wallet (SKZ)"},
+    "btn_main_system":      {"ar": "🏛 SOUQRATES SYSTEM — المحفظة الموحّدة",
+                             "en": "🏛 SOUQRATES SYSTEM — Unified wallet"},
+    "btn_home":             {"ar": "◀ القائمة الرئيسية", "en": "◀ Main menu"},
+    "btn_back_short":       {"ar": "◀ رجوع",             "en": "◀ Back"},
+
+    # ── Leaderboard / cb_board ────────────────────────────────────────────
+    "board_no_active":      {"ar": "🌙 لا توجد مسابقة نشطة.",
+                             "en": "🌙 No active contest."},
+    "board_no_contestants": {"ar": "<i>لا يوجد متسابقون بعد.</i>",
+                             "en": "<i>No contestants yet.</i>"},
+
+    # ── Vote menu ─────────────────────────────────────────────────────────
+    "vote_no_active":       {"ar": "🌙 لا توجد مسابقة نشطة للتصويت.",
+                             "en": "🌙 No active contest to vote in."},
+    "vote_no_contestants":  {"ar": "لا يوجد متسابقون متاحون للتصويت.",
+                             "en": "No contestants available to vote for."},
+    "vote_free_available":  {"ar": "✅ متاح",         "en": "✅ Available"},
+    "vote_free_used_today": {"ar": "❌ مستخدم اليوم", "en": "❌ Used today"},
+    "vote_dash":            {"ar": "—",               "en": "—"},
+    "vote_header": {
+        "ar": ("🗳 <b>صوِّت في:</b> {title}\n\n"
+               "🎁 صوتك المجاني: <b>{free}</b>\n"
+               "⚡ أصوات مدفوعة متاحة: <b>{paid}</b>\n\n"
+               "اختر المتسابق:"),
+        "en": ("🗳 <b>Vote in:</b> {title}\n\n"
+               "🎁 Free vote: <b>{free}</b>\n"
+               "⚡ Paid votes available: <b>{paid}</b>\n\n"
+               "Choose a contestant:"),
+    },
+    "vote_btn_contestant": {"ar": "🗳 {name} ({votes} صوت)",
+                            "en": "🗳 {name} ({votes} votes)"},
+
+    # ── cb_vote outcomes ─────────────────────────────────────────────────
+    "err_bad_data":        {"ar": "بيانات غير صالحة", "en": "Invalid data"},
+    "vote_src_free":       {"ar": "مجاني 🎁",         "en": "free 🎁"},
+    "vote_src_paid":       {"ar": "مدفوع ⚡",         "en": "paid ⚡"},
+    "vote_src_unknown":    {"ar": "?",                "en": "?"},
+    "vote_success":        {"ar": "✅ تم تسجيل صوتك ({src})",
+                            "en": "✅ Vote recorded ({src})"},
+    "vote_no_votes":       {"ar": "❌ لا تملك أصواتًا متاحة. اشترِ باقة من 🎟",
+                            "en": "❌ No votes available. Buy a pack from 🎟"},
+    "err_banned_financial":{"ar": "❌ تم حظر حسابك من العمليات المالية.",
+                            "en": "❌ Your account is blocked from financial operations."},
+    "err_state_changed":   {"ar": "⚠ تغيّرت حالة المسابقة. أعد المحاولة.",
+                            "en": "⚠ Contest state changed. Please retry."},
+    "err_vote_generic":    {"ar": "⚠ تعذّر التصويت. حاول لاحقًا.",
+                            "en": "⚠ Could not vote. Try again later."},
+
+    # ── Packs / purchase ─────────────────────────────────────────────────
+    "packs_none":          {"ar": "📦 لا توجد باقات متاحة حاليًّا.",
+                            "en": "📦 No vote packs available right now."},
+    "packs_header":        {"ar": "🎟 <b>باقات التصويت</b>\n",
+                            "en": "🎟 <b>Vote packs</b>\n"},
+    "packs_bonus_suffix":  {"ar": " +{bonus} مكافأة",
+                            "en": " +{bonus} bonus"},
+    "packs_line":          {"ar": "• <b>{name}</b>{file_tag}\n  <code>{votes}</code> صوت{bonus} — <b>{price} SKZ</b>",
+                            "en": "• <b>{name}</b>{file_tag}\n  <code>{votes}</code> votes{bonus} — <b>{price} SKZ</b>"},
+    "packs_btn_buy":       {"ar": "شراء {name} ({price} SKZ)",
+                            "en": "Buy {name} ({price} SKZ)"},
+    "buy_success": {
+        "ar": ("✅ <b>تمّ الشراء بنجاح!</b>\n\n"
+               "⚡ تمّ إضافة <b>{votes}</b> صوت إلى رصيدك.\n"
+               "💰 رصيد SKZ المتبقي: <b>{bal}</b>"),
+        "en": ("✅ <b>Purchase successful!</b>\n\n"
+               "⚡ <b>{votes}</b> votes added to your balance.\n"
+               "💰 Remaining SKZ balance: <b>{bal}</b>"),
+    },
+    "buy_bonus_file_hint": {"ar": "\n\n🎁 لديك ملف مكافأة! اضغط 💼 لاسترجاعه.",
+                            "en": "\n\n🎁 You have a bonus file! Tap 💼 to claim it."},
+    "buy_done_toast":      {"ar": "✅ تم", "en": "✅ Done"},
+    "buy_btn_topup":       {"ar": "💰 شحن SKZ من البوت الأم",
+                            "en": "💰 Top up SKZ via Mother Bot"},
+    "buy_insufficient_body": {
+        "ar": "❌ رصيد SKZ غير كافٍ لشراء هذه الباقة.\nاشحن محفظتك من البوت الأم ثم عُد.",
+        "en": "❌ Insufficient SKZ balance for this pack.\nTop up via the Mother Bot then come back.",
+    },
+    "err_banned_short":    {"ar": "❌ تم حظر حسابك.",
+                            "en": "❌ Your account is blocked."},
+    "err_purchase_generic":{"ar": "⚠ تعذّر الشراء. حاول لاحقًا.",
+                            "en": "⚠ Could not purchase. Try again later."},
+
+    # ── My balance ───────────────────────────────────────────────────────
+    "mybal_fetch_err":     {"ar": "⚠ تعذّر جلب رصيدك.",
+                            "en": "⚠ Could not fetch your balance."},
+    "mybal_free_used":     {"ar": "❌ استُخدم اليوم",
+                            "en": "❌ Used today"},
+    "mybal_title":         {"ar": "💼 <b>رصيد أصواتي</b>\n",
+                            "en": "💼 <b>My votes</b>\n"},
+    "mybal_free_line":     {"ar": "🎁 الصوت المجاني اليومي: <b>{val}</b>",
+                            "en": "🎁 Daily free vote: <b>{val}</b>"},
+    "mybal_paid_line":     {"ar": "⚡ الأصوات المدفوعة المتبقّية: <b>{val}</b>",
+                            "en": "⚡ Remaining paid votes: <b>{val}</b>"},
+    "mybal_bonus_section": {"ar": "\n🎁 <b>مكافآتك (ملفات قابلة للتنزيل):</b>",
+                            "en": "\n🎁 <b>Your rewards (downloadable files):</b>"},
+    "mybal_bonus_default": {"ar": "ملف مكافأة", "en": "Bonus file"},
+    "mybal_bonus_short":   {"ar": "ملف",         "en": "file"},
+    "mybal_btn_download":  {"ar": "📥 تنزيل: {name}",
+                            "en": "📥 Download: {name}"},
+    "mybal_btn_buy_more":  {"ar": "🎟 شراء المزيد",
+                            "en": "🎟 Buy more"},
+
+    # ── Downloads ────────────────────────────────────────────────────────
+    "dl_ready_toast":      {"ar": "🔗 جاهز للتنزيل",
+                            "en": "🔗 Ready to download"},
+    "dl_file_default":     {"ar": "ملف المكافأة", "en": "Bonus file"},
+    "dl_message":          {"ar": "📥 <b>{name}</b>\n\n<a href=\"{url}\">اضغط هنا للتنزيل</a>",
+                            "en": "📥 <b>{name}</b>\n\n<a href=\"{url}\">Tap here to download</a>"},
+    "dl_err_link":         {"ar": "⚠ تعذّر إصدار الرابط.",
+                            "en": "⚠ Could not issue download link."},
+    "dl_err_generic":      {"ar": "⚠ تعذّر التنزيل.",
+                            "en": "⚠ Could not download."},
+
+    # ── Wallet ───────────────────────────────────────────────────────────
+    "wallet_btn_topup":    {"ar": "💰 شحن من البوت الأم",
+                            "en": "💰 Top up via Mother Bot"},
+    "wallet_btn_buy_pack": {"ar": "🎟 شراء باقة",
+                            "en": "🎟 Buy a pack"},
+    "wallet_body": {
+        "ar": ("💰 <b>محفظتك الموحّدة</b>\n\n"
+               "⚡ رصيد SKZ: <b>{skz}</b>\n\n"
+               "محفظتك مُدارة مركزيًّا عبر 🏛 <b>SOUQRATES SYSTEM</b>\n"
+               "(نفس الرصيد يعمل في كل بوتات سوقراط).\n\n"
+               "استخدم رصيد SKZ لشراء باقات التصويت."),
+        "en": ("💰 <b>Your unified wallet</b>\n\n"
+               "⚡ SKZ balance: <b>{skz}</b>\n\n"
+               "Your wallet is managed centrally by 🏛 <b>SOUQRATES SYSTEM</b>\n"
+               "(the same balance works across every SOUQRATES bot).\n\n"
+               "Use your SKZ balance to buy vote packs."),
+    },
+
+    # ── Help ─────────────────────────────────────────────────────────────
+    "help_body": {
+        "ar": ("📖 <b>مساعدة SOUQRATES STAGE</b>\n\n"
+               "/start — القائمة الرئيسية\n\n"
+               "• <b>صوت مجاني واحد يوميًّا</b> (UTC) لكل مستخدم على المنصّة كلّها.\n"
+               "• اشترِ <b>باقات أصوات</b> برصيد SKZ من زر 🎟.\n"
+               "• بعض الباقات تتضمّن <b>ملف مكافأة</b> (مثلًا كتاب PDF).\n"
+               "• كل المعاملات مالية مُسجّلة وقابلة للتدقيق."),
+        "en": ("📖 <b>SOUQRATES STAGE — Help</b>\n\n"
+               "/start — main menu\n\n"
+               "• <b>One free vote per day</b> (UTC) per user across the entire platform.\n"
+               "• Buy <b>vote packs</b> with your SKZ balance via the 🎟 button.\n"
+               "• Some packs include a <b>bonus file</b> (e.g. a PDF book).\n"
+               "• Every financial transaction is logged and auditable."),
+    },
 }
 
 
@@ -127,7 +303,10 @@ async def set_user_lang(
             ok = r.status_code == 200
     except Exception:
         pass
-    _LANG_CACHE[telegram_id] = (lang, time.time())
+    if ok:
+        _LANG_CACHE[telegram_id] = (lang, time.time())
+    else:
+        _LANG_CACHE.pop(telegram_id, None)
     return ok
 
 

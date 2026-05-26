@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
+import { useT } from "../lib/i18n";
 
 export function XpBar() {
+  const t = useT();
   return (
     <div
       className="rounded-2xl px-4 py-3 relative overflow-hidden flex items-center gap-3"
@@ -15,8 +17,8 @@ export function XpBar() {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-black text-skz-light">XP System</span>
-          <span className="text-[10px] text-white/30 font-medium">Coming Soon</span>
+          <span className="text-[11px] font-black text-skz-light">{t("xp.title")}</span>
+          <span className="text-[10px] text-white/30 font-medium">{t("xp.soon")}</span>
         </div>
         <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
           <motion.div
@@ -27,7 +29,7 @@ export function XpBar() {
           />
         </div>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-[9px] text-white/25 font-medium">Earn XP by playing and using bots</span>
+          <span className="text-[9px] text-white/25 font-medium">{t("xp.hint")}</span>
         </div>
       </div>
     </div>
