@@ -51,7 +51,7 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
     return raw
       .filter(t => t && typeof t.entryFee === 'number' && typeof t.winAmount === 'number')
       .map((t, i) => ({
-        label: t.label || `خطة ${i + 1}`,
+        label: t.label || `Tier ${i + 1}`,
         entryFee: Number(t.entryFee),
         // Preserve the EXACT admin-configured winAmount alongside the
         // derived multiplier — so display/payout uses the exact number,
@@ -232,7 +232,7 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
               if (!mountedRef.current) return;
               setSettling(false);
               setSettleStatus('failed');
-              setEntryError('تعذّر تسوية الفوز — لم يُعثر على معرف شحن الدخول. تواصل مع الدعم.');
+              setEntryError('Could not settle the win — entry charge id was not found. Please contact support.');
               return;
             }
             const finalScore = Number(scoreRef.current) || 0;
@@ -319,7 +319,7 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
               // On idempotent paths (409) we don't have the exact net,
               // and snapshotPrize is GROSS — showing it would overstate
               // the credited amount. Pass 0 so the overlay hides the
-              // numeric chip and just shows "تم الإيداع" confirmation.
+              // numeric chip and just shows the "credited" confirmation.
               setCreditedAmount(netRewarded > 0 ? netRewarded : 0);
               setSettleStatus('credited');
               try { triggerHaptic('success'); } catch { /* ignore */ }
@@ -328,21 +328,21 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
               setSettleStatus('refunded');
               try { triggerHaptic('warning'); } catch { /* ignore */ }
               setEntryError(validateError?.message
-                ? `لم تتحقق شروط الفوز (${validateError.message}) — أُعيد مبلغ الدخول إلى محفظتك.`
-                : 'تعذّر إيداع الجائزة — أُعيد مبلغ الدخول إلى محفظتك تلقائياً.');
+                ? `Win conditions were not met (${validateError.message}) — your entry fee has been refunded to your wallet.`
+                : 'Could not credit the prize — your entry fee has been refunded automatically.');
             } else {
               // ❌ Worst case: couldn't credit AND couldn't refund.
               // This should be very rare (3 retries each). User must
               // contact support so we don't silently swallow the loss.
               setSettleStatus('failed');
               try { triggerHaptic('error'); } catch { /* ignore */ }
-              setEntryError('تعذّر إيداع الجائزة وتعذّر استرداد مبلغ الدخول — يرجى التواصل مع الدعم وذكر رقم العملية #' + chargeTxId);
+              setEntryError('Could not credit the prize or refund the entry fee — please contact support and quote transaction #' + chargeTxId);
             }
           } catch {
             if (!mountedRef.current) return;
             setSettling(false);
             setSettleStatus('failed');
-            setEntryError('حدث خطأ أثناء تسوية الفوز — تواصل مع الدعم مع ذكر رقم العملية #' + chargeTxId);
+            setEntryError('An error occurred while settling the win — please contact support and quote transaction #' + chargeTxId);
           }
         })();
       } else {

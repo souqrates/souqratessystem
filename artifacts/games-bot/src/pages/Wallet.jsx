@@ -78,7 +78,7 @@ export default function Wallet() {
         style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)' }}>
         <Info size={13} style={{ color: '#10b981', flexShrink: 0 }} />
         <p style={{ fontSize: 11, color: 'rgba(16,185,129,0.9)', lineHeight: 1.5 }}>
-          رصيدك موحّد عبر جميع بوتات المنصة — أي إيداع في البوت الأم يظهر فوراً هنا.
+          Your balance is unified across every bot on the platform — any top-up in the Mother Bot appears here instantly.
         </p>
       </motion.div>
 
@@ -118,10 +118,10 @@ export default function Wallet() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
           }}>🏦</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white mb-1">الإيداع والسحب من البوت الأم</p>
+            <p className="text-sm font-black text-white mb-1">Deposit & Withdraw via Mother Bot</p>
             <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(148,163,184,0.85)' }}>
-              البوت الأم هو المركز المالي لجميع البوتات. اشحن رصيدك (TON / Stars / USDT) أو اسحب أرباحك من هناك،
-              وستظهر التحديثات في هذا البوت فوراً.
+              The Mother Bot is the financial hub for every bot on the platform. Top up your balance (TON / Stars / USDT)
+              or withdraw your earnings there — updates appear in this bot instantly.
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function Wallet() {
             color: '#fff',
             boxShadow: '0 4px 20px rgba(14,165,233,0.30)',
           }}>
-          فتح البوت الأم
+          Open Mother Bot
           <ExternalLink size={14} />
         </button>
       </motion.div>

@@ -6,7 +6,7 @@ const anonKey = SUPABASE_CONFIG.anonKey;
 
 function makeStub() {
   if (typeof window !== 'undefined' && import.meta.env.DEV) {
-    console.warn('[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY غير مضبوطة — يعمل الـ client بنمط no-op');
+    console.warn('[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — client running in no-op mode');
   }
   const EMPTY = { data: null, error: null };
   const EMPTY_ARR = { data: [], error: null };

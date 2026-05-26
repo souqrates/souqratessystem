@@ -36,9 +36,9 @@ export default class AppErrorBoundary extends React.Component {
             border: '1px solid rgba(255,255,255,0.08)',
           }}>
             <div style={{ fontSize: 42, marginBottom: 14, color: '#fbbf24' }}>!</div>
-            <p style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>حدث خطأ غير متوقع</p>
+            <p style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>Something went wrong</p>
             <p style={{ fontSize: 13, color: 'rgba(148,163,184,0.75)', marginBottom: 20, lineHeight: 1.5 }}>
-              واجه التطبيق مشكلة غير متوقعة. يُرجى المحاولة مرة أخرى.
+              The app hit an unexpected problem. Please try again.
             </p>
             <button
               onClick={() => { this.reset(); window.location.reload(); }}
