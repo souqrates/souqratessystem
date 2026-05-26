@@ -16,7 +16,10 @@ import agreementsRouter from "./agreements";
 import booksRouter from "./books";
 import contestsRouter from "./contests";
 import objectsRouter from "./objects";
-import paymentsRouter from "./payments";
+// Cryptomus payments removed (content restrictions). Card top-ups now route
+// users to @wallet; the existing TON/USDT on-chain deposit watcher handles
+// the actual credit. `./payments` is kept unmounted for reference only.
+// import paymentsRouter from "./payments";
 import integrationsRouter from "./integrations";
 import runtimeConfigRouter from "./runtime-config";
 
@@ -39,7 +42,7 @@ router.use(agreementsRouter);
 router.use(booksRouter);
 router.use(contestsRouter);
 router.use(objectsRouter);
-router.use(paymentsRouter);
+// router.use(paymentsRouter); // disabled — see import comment above
 router.use(integrationsRouter);
 router.use(runtimeConfigRouter);
 

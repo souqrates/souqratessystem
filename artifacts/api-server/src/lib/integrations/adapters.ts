@@ -603,5 +603,6 @@ export const ALL_ADAPTERS: IntegrationAdapter[] = [
   onesignal,
   bunny,
   openrouter,
-  cryptomus,
+  // cryptomus: removed (content restrictions). Card top-ups now route to
+  // @wallet — see artifacts/mother-bot/src/bot.py:cb_topup_card.
 ];

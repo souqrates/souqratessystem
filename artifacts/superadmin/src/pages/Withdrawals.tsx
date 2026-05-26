@@ -100,11 +100,9 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
     onError: (e: ApiError) => setErr(e.message),
   });
 
-  // Only on-chain methods are payable via Cryptomus. Stars / manual rails
-  // still require the existing "قبول" path.
-  const isAutoPayable =
-    (w.currency === "usdt" || w.currency === "ton") &&
-    (w.method.includes("trc20") || w.method === "tron" || w.method === "ton" || w.method.startsWith("usdt") || w.method.startsWith("ton"));
+  // Cryptomus auto-payout removed (content restrictions). All withdrawals
+  // now go through the manual "قبول" path with admin-entered txHash.
+  const isAutoPayable = false;
 
   const statusCls: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",

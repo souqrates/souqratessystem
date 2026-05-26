@@ -368,23 +368,13 @@ async def cb_wallet(callback: CallbackQuery):
     await callback.answer()
 
 
-# ── Card top-up (Cryptomus) ─────────────────────────────────────────────────
-# Flow:
-#   1. User taps "💳 شحن بالبطاقة" inside the wallet view.
-#   2. We show preset amounts + a custom-amount option.
-#   3. Tapping an amount POSTs to /api/internal/payments/cryptomus/create.
-#   4. We DM the user the hosted-checkout URL as an inline URL button.
-#   5. Cryptomus webhook credits SKZ and the API notifies the user directly
-#      via notifyUser() — this bot does nothing further here.
-# State is per-user (FSM) so multiple users can be entering amounts in
-# parallel without colliding.
-class TopupStates(StatesGroup):
-    waiting_amount = State()
-
-
-TOPUP_PRESETS_USDT = [5, 10, 25, 50, 100]
-# Telegram Stars presets — round numbers that match common in-app prices.
-# Telegram itself enforces 1-2500 Stars per single transaction.
+# ── Card top-up via @wallet ─────────────────────────────────────────────────
+# Cryptomus was removed (content restrictions on the platform). The card
+# button now routes users to Telegram's official @wallet bot, where they
+# buy USDT/TON with Visa/Mastercard, then send the crypto to our deposit
+# addresses (shown in the Mini App → Deposit page). No invoices, no
+# webhooks — the existing USDT/TON on-chain deposit watcher credits SKZ
+# automatically.
 TOPUP_PRESETS_STARS = [50, 100, 250, 500, 1000, 2500]
 
 
@@ -401,94 +391,30 @@ def topup_stars_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def topup_menu_keyboard() -> InlineKeyboardMarkup:
-    """Preset amounts grid + custom-amount entry. Two rows of presets keep
-    the keyboard compact on mobile."""
-    rows = []
-    for chunk_start in range(0, len(TOPUP_PRESETS_USDT), 3):
-        rows.append([
-            InlineKeyboardButton(
-                text=f"{amt}$",
-                callback_data=f"topup_amt:{amt}",
-            )
-            for amt in TOPUP_PRESETS_USDT[chunk_start:chunk_start + 3]
-        ])
-    rows.append([InlineKeyboardButton(text="✏️ مبلغ مخصص", callback_data="topup_custom")])
-    rows.append([InlineKeyboardButton(text="🔙 رجوع", callback_data="wallet")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-async def _create_topup_invoice(telegram_id: str, amount_usdt: float) -> dict | None:
-    """Returns {paymentUrl, orderId, amountUsdt} or None on error."""
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{MOTHER_API_URL}/internal/payments/cryptomus/create",
-            json={
-                "telegramId": telegram_id,
-                "amountUsdt": str(amount_usdt),
-            },
-            headers={"X-Bot-Api-Key": MOTHER_BOT_API_KEY},
-            timeout=20.0,
-        )
-        if resp.status_code != 200:
-            logger.warning(f"topup create failed: {resp.status_code} {resp.text[:200]}")
-            return None
-        return resp.json()
-
-
-async def _send_topup_link(target: Message | CallbackQuery, amount: float) -> None:
-    """Shared sender used by both preset buttons and the custom-amount path."""
-    tg_user = target.from_user
-    invoice = await _create_topup_invoice(str(tg_user.id), amount)
-    if not invoice or not invoice.get("paymentUrl"):
-        msg = "❌ تعذّر إنشاء رابط الدفع، حاول لاحقاً."
-        if isinstance(target, CallbackQuery):
-            await target.answer(msg, show_alert=True)
-        else:
-            await target.answer(msg)
-        return
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 ادفع الآن بالبطاقة", url=invoice["paymentUrl"])],
-        [InlineKeyboardButton(text="🔙 المحفظة", callback_data="wallet")],
-    ])
-    text = (
-        f"💳 <b>شحن الرصيد بالبطاقة</b>\n\n"
-        f"المبلغ: <b>{amount:.2f} USDT</b>\n"
-        f"الطريقة: بطاقة بنكية → USDT تلقائياً\n"
-        f"رقم الطلب: <code>{invoice['orderId']}</code>\n\n"
-        f"اضغط الزر بالأسفل لإتمام الدفع.\n"
-        f"بعد نجاح الدفع، ستصلك رسالة تأكيد ويتحدّث رصيدك خلال ثوانٍ. ⚡"
-    )
-    if isinstance(target, CallbackQuery):
-        await target.message.answer(text, parse_mode="HTML", reply_markup=kb)
-        await target.answer()
-    else:
-        await target.answer(text, parse_mode="HTML", reply_markup=kb)
-
-
 @router.callback_query(F.data == "topup_card")
 async def cb_topup_card(callback: CallbackQuery, state: FSMContext):
+    """Card top-up via @wallet: user buys USDT/TON with their bank card
+    inside Telegram's official Wallet bot, then sends the crypto to our
+    deposit addresses (shown in the Mini App → Deposit page)."""
     await state.clear()
     text = (
-        "💳 <b>شحن الرصيد بالبطاقة</b>\n\n"
-        "ادفع بالفيزا/ماستركارد عبر بوابة <b>Cryptomus</b> الآمنة، "
-        "ويُضاف رصيدك تلقائياً بعد تأكيد الدفع.\n\n"
-        "اختر المبلغ بالـ USDT:"
+        "💳 <b>الشحن بالبطاقة عبر @wallet</b>\n\n"
+        "اشترِ <b>USDT</b> أو <b>TON</b> بالفيزا/ماستركارد من محفظة تيليغرام "
+        "الرسمية <b>@wallet</b>، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت "
+        "ليُحوَّل تلقائياً إلى SKZ.\n\n"
+        "<b>الخطوات:</b>\n"
+        "1️⃣ افتح <b>@wallet</b> واشترِ USDT (TRC20) أو TON بالبطاقة.\n"
+        "2️⃣ ارجع إلى هنا واضغط <b>🚀 Open App → 💸 إيداع</b>.\n"
+        "3️⃣ انسخ عنوان الإيداع المطابق للعملة وأرسل المبلغ من @wallet.\n"
+        "4️⃣ يُضاف رصيد <b>SKZ</b> تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة. ⚡"
     )
-    await _safe_edit(callback, text, topup_menu_keyboard())
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 افتح @wallet للشراء بالبطاقة", url="https://t.me/wallet")],
+        [InlineKeyboardButton(text="💸 افتح صفحة الإيداع", web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton(text="🔙 المحفظة", callback_data="wallet")],
+    ])
+    await _safe_edit(callback, text, kb)
     await callback.answer()
-
-
-@router.callback_query(F.data.startswith("topup_amt:"))
-async def cb_topup_amt(callback: CallbackQuery, state: FSMContext):
-    await state.clear()
-    try:
-        amount = float(callback.data.split(":", 1)[1])
-    except (ValueError, IndexError):
-        await callback.answer("❌ مبلغ غير صالح", show_alert=True)
-        return
-    await _send_topup_link(callback, amount)
 
 
 @router.callback_query(F.data == "topup_stars")
@@ -625,37 +551,6 @@ async def msg_successful_payment(message: Message):
         f"💰 رصيدك الجديد: <b>{new_bal}</b> SKZ",
         parse_mode="HTML",
     )
-
-
-@router.callback_query(F.data == "topup_custom")
-async def cb_topup_custom(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(TopupStates.waiting_amount)
-    await callback.message.answer(
-        "✏️ أرسل المبلغ بالـ USDT (مثال: <code>15</code>)\n"
-        "الحد الأدنى: 1 — الحد الأعلى: 10,000\n"
-        "أرسل <b>إلغاء</b> للخروج.",
-        parse_mode="HTML",
-    )
-    await callback.answer()
-
-
-@router.message(TopupStates.waiting_amount)
-async def msg_topup_amount(message: Message, state: FSMContext):
-    raw = (message.text or "").strip()
-    if raw.lower() in {"إلغاء", "cancel", "/cancel"}:
-        await state.clear()
-        await message.answer("تم الإلغاء.")
-        return
-    try:
-        amount = float(raw.replace(",", "."))
-    except ValueError:
-        await message.answer("❌ أرسل رقماً صحيحاً (مثال: 15).")
-        return
-    if amount < 1 or amount > 10_000:
-        await message.answer("❌ المبلغ خارج النطاق المسموح (1 - 10,000 USDT).")
-        return
-    await state.clear()
-    await _send_topup_link(message, amount)
 
 
 @router.callback_query(F.data == "transactions")

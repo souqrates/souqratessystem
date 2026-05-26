@@ -1,20 +1,23 @@
 import { useState } from "react";
-import { Zap, Copy, Check, AlertCircle, CreditCard } from "lucide-react";
+import { Zap, Copy, Check, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
-import { showTelegramAlert } from "../lib/telegram";
+import { openTelegramApp } from "../lib/telegram";
 
 // Telegram Stars deposit path is intentionally hidden from the UI per
 // product decision — keeping the underlying API/handlers in place so the
 // option can be re-enabled later without code surgery, just by adding
 // "stars" back to METHODS below.
+//
+// Card method: Cryptomus removed (content restrictions). The "card" slot
+// now redirects users to @wallet (Telegram's official wallet bot) where
+// they buy USDT/TON with Visa/Mastercard, then send the crypto to our
+// deposit address on the USDT or TON tab below.
 type Method = "card" | "usdt" | "ton";
 
-const CARD_AMOUNTS_USDT = [5, 10, 25, 50, 100, 250];
-
 const METHODS: { id: Method; label: string; sub: string; currencyKey: string }[] = [
-  { id: "card", label: "💳 شحن بالبطاقة", sub: "فيزا / ماستركارد · فوري عبر Cryptomus", currencyKey: "USDT" },
+  { id: "card", label: "💳 شحن بالبطاقة", sub: "عبر @wallet · فيزا → USDT/TON",        currencyKey: "USDT" },
   { id: "usdt", label: "USDT",            sub: "Tether · شبكة TRC20",                   currencyKey: "USDT" },
   { id: "ton",  label: "TON",             sub: "The Open Network",                      currencyKey: "TON"  },
 ];
@@ -152,93 +155,63 @@ export function Deposit() {
             className="space-y-4">
             <div className="divider" />
 
-            <p className="section-label">اختر مبلغ الشحن (USDT)</p>
-            <div className="grid grid-cols-3 gap-2">
-              {CARD_AMOUNTS_USDT.map((val) => {
-                const isSel = amount === val.toString();
-                return (
-                  <motion.button key={val} onClick={() => setAmount(val.toString())} whileTap={{ scale: 0.93 }}
-                    className="py-3.5 rounded-2xl font-bold text-sm transition-all"
-                    style={{
-                      background: isSel ? "rgba(168,85,247,0.20)" : "rgba(255,255,255,0.04)",
-                      border: isSel ? "1.5px solid rgba(168,85,247,0.50)" : "1.5px solid rgba(255,255,255,0.07)",
-                      color: isSel ? "#c084fc" : "rgba(255,255,255,0.7)",
-                      boxShadow: isSel ? "0 4px 16px rgba(168,85,247,0.25)" : "none",
-                    }}>
-                    ${val}
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Custom amount input */}
-            <div className="space-y-2">
-              <p className="section-label">أو أدخل مبلغاً مخصصاً</p>
-              <div className="relative">
-                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                  placeholder="مثال: 15"
-                  className="premium-input w-full px-4 py-4 text-xl font-black text-right pl-20"
-                  dir="ltr" min="1" max="10000" />
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                  <CreditCard size={14} className="text-skz-light" />
-                  <span className="text-xs font-bold text-skz-light">USDT</span>
-                </div>
-              </div>
-            </div>
-
-            {skzPreview !== null && num >= 1 && num <= 10000 && (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="glass-card-skz rounded-2xl p-4 flex items-center justify-between">
-                <p className="text-sm text-white/60">ستستلم</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-white/40 font-bold">SKZ</p>
-                  <p className="font-black text-2xl gradient-text">{skzPreview.toLocaleString()}</p>
-                  <Zap size={15} className="text-skz-light" />
-                </div>
-              </motion.div>
-            )}
-
-            {/* How-to / where the button actually lives */}
-            <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
-              style={{ background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.2)" }}>
-              <p className="text-skz-light font-bold mb-1.5 flex items-center gap-1.5">
-                <CreditCard size={12} /> كيف يعمل الشحن بالبطاقة
+            {/* Intro card */}
+            <div className="rounded-2xl p-4 space-y-2"
+              style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.25)" }}>
+              <p className="text-skz-light font-bold text-sm flex items-center gap-2">
+                <CreditCard size={14} /> الشحن بالبطاقة عبر <span dir="ltr">@wallet</span>
               </p>
-              <ol className="text-white/60 list-decimal pr-4 space-y-1">
-                <li>افتح <b>@souqrates_system_bot</b> في تيليغرام واضغط <b>/start</b>.</li>
-                <li>اضغط <b>💰 Balance</b> → <b>💳 شحن بالبطاقة</b>.</li>
-                <li>اختر المبلغ، يفتح لك رابط دفع Cryptomus.</li>
-                <li>ادفع بالفيزا/ماستركارد — يصلك تأكيد ويتحدّث رصيدك خلال ثوانٍ ⚡.</li>
+              <p className="text-[12px] text-white/70 leading-relaxed">
+                اشترِ <b>USDT</b> أو <b>TON</b> بالفيزا/ماستركارد من محفظة تيليغرام الرسمية
+                <span dir="ltr"> @wallet </span>، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت
+                ليُحوَّل تلقائياً إلى <b>SKZ</b>.
+              </p>
+            </div>
+
+            {/* Steps */}
+            <div className="rounded-2xl p-3.5 text-[11px] leading-relaxed"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <p className="text-white/80 font-bold mb-2">الخطوات</p>
+              <ol className="text-white/60 list-decimal pr-4 space-y-1.5">
+                <li>اضغط <b>«افتح @wallet»</b> بالأسفل واشترِ USDT (TRC20) أو TON بالبطاقة.</li>
+                <li>ارجع إلى هذا التطبيق واختر تبويب <b>USDT</b> أو <b>TON</b> من الأعلى.</li>
+                <li>انسخ <b>عنوان الإيداع</b> المعروض وأرسل المبلغ من <span dir="ltr">@wallet</span> إليه.</li>
+                <li>يُضاف رصيد <b>SKZ</b> تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة ⚡.</li>
               </ol>
             </div>
 
-            <motion.button disabled={!amount || num < 1 || num > 10000} whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                if (!amount || num < 1 || num > 10000) return;
-                showTelegramAlert(
-                  `لإتمام الدفع بالبطاقة:\n` +
-                  `افتح البوت @souqrates_system_bot واضغط /start ثم 💰 Balance → 💳 شحن بالبطاقة.\n\n` +
-                  `المبلغ: $${num} USDT → ${skzPreview?.toLocaleString()} SKZ`,
-                );
-              }}
+            {/* Quick rate hint */}
+            <div className="rounded-2xl p-3 text-[11px] flex items-center justify-between"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span className="text-white/50">السعر الحالي</span>
+              <span className="font-mono font-bold text-skz-light">
+                1 USDT = {settings.skzPerUsdt} SKZ · 1 TON = {settings.skzPerTon} SKZ
+              </span>
+            </div>
+
+            {/* Primary CTA: open @wallet inside Telegram */}
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => openTelegramApp("https://t.me/wallet")}
               className="w-full py-4 rounded-2xl font-black text-base text-white transition-all flex items-center justify-center gap-2"
               style={{
-                background: amount && num >= 1 && num <= 10000
-                  ? "linear-gradient(135deg, #9333ea, #7c3aed)"
-                  : "rgba(255,255,255,0.06)",
-                boxShadow: amount && num >= 1 && num <= 10000
-                  ? "0 4px 24px rgba(147,51,234,0.4)"
-                  : "none",
-                opacity: amount && num >= 1 && num <= 10000 ? 1 : 0.5,
+                background: "linear-gradient(135deg, #9333ea, #7c3aed)",
+                boxShadow: "0 4px 24px rgba(147,51,234,0.4)",
               }}>
               <CreditCard size={18} />
-              {!amount
-                ? "اختر مبلغ الشحن"
-                : num < 1
-                ? "الحد الأدنى $1 USDT"
-                : num > 10000
-                ? "الحد الأعلى $10,000 USDT"
-                : `ادفع $${num} USDT بالبطاقة`}
+              افتح <span dir="ltr">@wallet</span> للشراء بالبطاقة
+              <ExternalLink size={14} className="opacity-70" />
+            </motion.button>
+
+            {/* Secondary: jump to USDT tab */}
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => { setMethod("usdt"); setAmount(""); }}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1.5px solid rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.85)",
+              }}>
+              عرض عنوان إيداع USDT
             </motion.button>
           </motion.div>
         )}
@@ -340,9 +313,9 @@ export function Deposit() {
             <motion.button disabled={!canSubmitCrypto} whileTap={{ scale: canSubmitCrypto ? 0.97 : 1 }}
               onClick={() => {
                 if (!canSubmitCrypto) return;
-                showTelegramAlert(
-                  `تم تسجيل نية الإيداع.\nالمبلغ: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nأرسل المبلغ إلى العنوان أعلاه. سيُضاف الرصيد تلقائيًا فور تأكيد المعاملة على الشبكة.`
-                );
+                const wa = window.Telegram?.WebApp;
+                const msg = `تم تسجيل نية الإيداع.\nالمبلغ: ${amount} ${method.toUpperCase()} → ${skzPreview?.toLocaleString()} SKZ\n\nأرسل المبلغ إلى العنوان أعلاه. سيُضاف الرصيد تلقائيًا فور تأكيد المعاملة على الشبكة.`;
+                if (wa?.showAlert) wa.showAlert(msg); else alert(msg);
               }}
               className="w-full py-4 rounded-2xl font-black text-base text-white"
               style={{

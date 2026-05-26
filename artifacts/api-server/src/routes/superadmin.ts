@@ -21,7 +21,9 @@ import { logAdminAction } from "../lib/audit-log";
 import { notifyUser } from "../lib/notify-user";
 import { capture } from "../lib/analytics";
 import { withdrawalAddressesTable, adminAuditLogTable } from "@workspace/db";
-import { getCryptomusEnv, createCryptomusPayout } from "../lib/cryptomus";
+// Cryptomus removed (content restrictions). The /auto-payout route below
+// is kept as a 410 Gone stub so any cached admin UI / external call gets a
+// clear error instead of a server crash.
 import crypto from "crypto";
 
 const router: IRouter = Router();
@@ -1016,219 +1018,22 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
 });
 
 /**
- * POST /superadmin/withdrawals/:id/auto-payout
+ * POST /superadmin/withdrawals/:id/auto-payout — DISABLED
  *
- * One-click automatic payout via Cryptomus. Atomically:
- *   1. CAS withdrawal: pending → processing (loses race ⇒ 409, no funds moved).
- *   2. CAS wallet: deduct balance (insufficient ⇒ rollback + 400).
- *   3. Stamp txHash = `cm:<orderId>` so the payout webhook can resolve us.
- * THEN calls Cryptomus /v1/payout. On gateway rejection we fully refund
- * (status → pending, balance → restored). On gateway accept the row stays
- * in `processing` until the payout webhook flips it to `approved` (with
- * the real on-chain txid) or back to `pending` on failure.
- *
- * Why the wallet deduction happens *here* and not on /approve like the
- * manual path: an auto-payout is the moment we commit funds to leave the
- * platform. We deduct before calling Cryptomus, then refund on failure,
- * so a successful Cryptomus call never leaves the wallet over-credited.
+ * Cryptomus auto-payouts were removed due to platform content restrictions.
+ * All withdrawals now go through the manual approve/reject flow with an
+ * admin-entered on-chain txHash. This stub returns 410 Gone so any cached
+ * admin UI or external caller gets a clear, recoverable error.
  */
-router.post("/superadmin/withdrawals/:id/auto-payout", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(String(req.params.id), 10);
-  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  const env = await getCryptomusEnv();
-  if (!env) { res.status(503).json({ error: "Cryptomus not configured in /integrations" }); return; }
-  if (!env.publicWebhookBase) {
-    res.status(503).json({ error: "public_webhook_base not configured" });
-    return;
-  }
-
-  const orderId = crypto.randomUUID();
-  const txHashMarker = `cm:${orderId}`;
-
-  // ── Step 1+2: CAS withdrawal to processing AND deduct wallet, atomically.
-  let row: typeof withdrawalsTable.$inferSelect | null = null;
-  try {
-    const result = await db.transaction(async (tx) => {
-      const [w] = await tx.update(withdrawalsTable)
-        .set({ status: "processing", txHash: txHashMarker, processedAt: new Date() })
-        .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
-        .returning();
-      if (!w) return { error: "Only pending withdrawals can be auto-paid", row: null };
-
-      const amt = parseFloat(w.amount);
-      let walletUpdated: typeof walletsTable.$inferSelect | undefined;
-      if (w.currency === "usdt") {
-        [walletUpdated] = await tx.update(walletsTable).set({
-          balanceUsdt:    sql`${walletsTable.balanceUsdt}    - ${amt}`,
-          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
-        }).where(and(
-          eq(walletsTable.userId, w.userId),
-          sql`${walletsTable.balanceUsdt} >= ${amt}`,
-        )).returning();
-      } else if (w.currency === "ton") {
-        [walletUpdated] = await tx.update(walletsTable).set({
-          balanceTon:     sql`${walletsTable.balanceTon}     - ${amt}`,
-          totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
-        }).where(and(
-          eq(walletsTable.userId, w.userId),
-          sql`${walletsTable.balanceTon} >= ${amt}`,
-        )).returning();
-      } else {
-        // SKZ and Stars don't go on-chain — they need a different rail.
-        throw new Error(`Auto-payout not supported for currency: ${w.currency}`);
-      }
-      if (!walletUpdated) throw new Error("Insufficient wallet balance");
-      return { error: null, row: w };
-    });
-
-    if (result.error || !result.row) {
-      await logAdminAction(req, "superadmin", {
-        action: "withdrawal.auto_payout", targetType: "withdrawal", targetId: id,
-        payload: { orderId }, success: false, errorMessage: result.error ?? "Auto-payout failed",
-      });
-      res.status(409).json({ error: result.error ?? "Auto-payout failed" });
-      return;
-    }
-    row = result.row;
-  } catch (err) {
-    await logAdminAction(req, "superadmin", {
-      action: "withdrawal.auto_payout", targetType: "withdrawal", targetId: id,
-      payload: { orderId }, success: false,
-      errorMessage: err instanceof Error ? err.message : "wallet_deduction_failed",
-    });
-    req.log.error({ err, id }, "auto-payout pre-call deduction failed");
-    res.status(400).json({ error: err instanceof Error ? err.message : "Wallet deduction failed" });
-    return;
-  }
-
-  // ── Step 3: actually call Cryptomus. From here, any failure must REFUND.
-  const network = (() => {
-    if (typeof row.method === "string") {
-      if (row.method.includes("trc20") || row.method === "tron") return "tron";
-      if (row.method === "ton") return "ton";
-    }
-    return row.currency === "ton" ? "ton" : "tron";
-  })();
-
-  if (!row.address) {
-    // Refund + abort: cannot pay out without a destination address.
-    await refundAutoPayout(row, "missing_address");
-    res.status(400).json({ error: "Withdrawal has no destination address" });
-    return;
-  }
-
-  const urlCallback = `${env.publicWebhookBase.replace(/\/$/, "")}/api/payments/cryptomus/payout-webhook`;
-  const gw = await createCryptomusPayout(env, {
-    amount: row.netAmount,
-    currency: row.currency.toUpperCase(),
-    network,
-    address: row.address,
-    orderId,
-    urlCallback,
-    isSubtract: false, // we already netted the fee in row.netAmount
+router.post("/superadmin/withdrawals/:id/auto-payout", requireSuperAdmin, async (_req, res): Promise<void> => {
+  res.status(410).json({
+    error: "Auto-payout disabled. Use manual approve with an on-chain txHash.",
   });
-
-  if (!gw.ok) {
-    // ── Refund SAFETY ──────────────────────────────────────────────────
-    // A transport-level error (timeout, DNS, TLS, connection reset) is
-    // an *ambiguous* outcome: Cryptomus may still have accepted the
-    // payout despite our client never seeing the response. If we refund
-    // the wallet now, we risk double-paying the user (gateway settles,
-    // user already has the balance back, then we pay again).
-    //
-    // Policy:
-    //   - Deterministic gateway rejection (HTTP body with state≠0) →
-    //     safe to refund: Cryptomus told us "no".
-    //   - Transport error → DO NOT refund. Leave row in `processing`
-    //     with marker intact. Webhook will reconcile if Cryptomus
-    //     actually accepted; otherwise admin can investigate via
-    //     dashboard and manually revert.
-    const ambiguous = gw.error === "gateway_unreachable";
-    if (ambiguous) {
-      await logAdminAction(req, "superadmin", {
-        action: "withdrawal.auto_payout", targetType: "withdrawal", targetId: id,
-        payload: { orderId, gatewayError: gw.error }, success: false,
-        errorMessage: "ambiguous_no_refund:" + gw.error,
-      });
-      req.log.error(
-        { err: gw.error, id, orderId },
-        "auto-payout: AMBIGUOUS gateway error — left in processing for manual reconciliation",
-      );
-      res.status(502).json({
-        error: "Gateway unreachable — withdrawal is in processing state. " +
-               "Check Cryptomus dashboard for orderId before retrying.",
-        orderId,
-      });
-      return;
-    }
-    await refundAutoPayout(row, gw.error);
-    await logAdminAction(req, "superadmin", {
-      action: "withdrawal.auto_payout", targetType: "withdrawal", targetId: id,
-      payload: { orderId, gatewayError: gw.error }, success: false, errorMessage: gw.error,
-    });
-    req.log.warn({ err: gw.error, id, orderId }, "auto-payout: gateway rejected, refunded");
-    res.status(502).json({ error: `Gateway: ${gw.error}` });
-    return;
-  }
-
-  // Stash the gateway uuid alongside the orderId so support can correlate
-  // in the Cryptomus dashboard without grepping logs.
-  //
-  // CAS guard: a fast webhook may have already settled the row and
-  // replaced txHash with the real on-chain txid. We must NOT overwrite
-  // that — only stamp the gw uuid if the marker is still in place AND
-  // the row is still processing. Losing this race is fine: webhook
-  // already wrote the authoritative value.
-  await db.update(withdrawalsTable)
-    .set({ txHash: `cm:${orderId}:${gw.uuid}` })
-    .where(and(
-      eq(withdrawalsTable.id, id),
-      eq(withdrawalsTable.status, "processing"),
-      eq(withdrawalsTable.txHash, txHashMarker),
-    ));
-
-  await logAdminAction(req, "superadmin", {
-    action: "withdrawal.auto_payout", targetType: "withdrawal", targetId: id,
-    payload: { orderId, gatewayUuid: gw.uuid, amount: row.netAmount, currency: row.currency, network },
-  });
-
-  req.log.info({ id, orderId, gatewayUuid: gw.uuid }, "auto-payout: dispatched to Cryptomus");
-  res.json({ ok: true, status: "processing", orderId, gatewayUuid: gw.uuid });
 });
 
-/**
- * Refund helper for failed auto-payouts. Reverses both the wallet
- * deduction and the row status. Best-effort logging — the caller has
- * already decided to surface an error to the operator.
- */
-async function refundAutoPayout(
-  row: typeof withdrawalsTable.$inferSelect,
-  reason: string,
-): Promise<void> {
-  const amt = parseFloat(row.amount);
-  await db.transaction(async (tx) => {
-    // Only refund if the row is still in processing — defensive guard
-    // against the webhook racing in and already handling it.
-    const [reverted] = await tx.update(withdrawalsTable)
-      .set({ status: "pending", txHash: null, processedAt: null, rejectedReason: reason })
-      .where(and(eq(withdrawalsTable.id, row.id), eq(withdrawalsTable.status, "processing")))
-      .returning();
-    if (!reverted) return;
-
-    if (reverted.currency === "usdt") {
-      await tx.update(walletsTable).set({
-        balanceUsdt:    sql`${walletsTable.balanceUsdt}    + ${amt}`,
-        totalWithdrawn: sql`${walletsTable.totalWithdrawn} - ${amt}`,
-      }).where(eq(walletsTable.userId, reverted.userId));
-    } else if (reverted.currency === "ton") {
-      await tx.update(walletsTable).set({
-        balanceTon:     sql`${walletsTable.balanceTon}     + ${amt}`,
-        totalWithdrawn: sql`${walletsTable.totalWithdrawn} - ${amt}`,
-      }).where(eq(walletsTable.userId, reverted.userId));
-    }
-  });
-}
+// Original Cryptomus auto-payout implementation removed — see git history
+// if it ever needs to be revived. The block below was the route body +
+// refundAutoPayout() helper.
 
 router.post("/superadmin/withdrawals/:id/reject", requireSuperAdmin, async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
