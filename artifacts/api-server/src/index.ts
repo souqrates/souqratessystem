@@ -47,4 +47,13 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Start the on-chain deposit watcher AFTER the HTTP server is up so a
+  // tonapi outage at boot can't block readiness. The watcher is a no-op
+  // if TON_WALLET_ADDRESS is unset (dev/local).
+  import("./lib/deposit-watcher").then(({ startDepositWatcher }) => {
+    startDepositWatcher();
+  }).catch((e: unknown) => {
+    logger.error({ err: e }, "failed to start deposit watcher");
+  });
 });

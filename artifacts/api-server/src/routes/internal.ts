@@ -1794,6 +1794,82 @@ router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /internal/usdt-deposit-intent — USDT-Jetton (on TON) deposit intent
+//
+// Mirrors /internal/ton-deposit-intent but for Tether USDT on the TON network
+// (the asset @wallet sells when users pay by card). Returns the same TON
+// receiving address: USDT-Jetton wallets live on a per-Jetton sub-contract
+// derived from the owner address, so users send to the TON owner address and
+// the network routes the Jetton transfer automatically.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/internal/usdt-deposit-intent", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, amountUsdt } = req.body as {
+    telegramId: string;
+    amountUsdt: number;
+  };
+
+  if (!telegramId || !amountUsdt) {
+    res.status(400).json({ error: "telegramId and amountUsdt are required" });
+    return;
+  }
+
+  const usdtNum = parseFloat(String(amountUsdt));
+  if (isNaN(usdtNum) || usdtNum <= 0) {
+    res.status(400).json({ error: "Invalid amountUsdt" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  if (rejectIfBlocked(user, res)) return;
+
+  const rates = await getSkzRates();
+  const expectedSkz = usdtNum * rates.perUsdt;
+
+  const memo = `SKZ${user.id}U${Date.now().toString(36).toUpperCase()}`;
+  const depositAddress = process.env.TON_WALLET_ADDRESS ?? process.env.TON_HOT_WALLET ?? "";
+  if (!depositAddress) {
+    res.status(503).json({ error: "TON wallet not configured" });
+    return;
+  }
+
+  const [transaction] = await db.insert(transactionsTable).values({
+    userId: user.id,
+    type: "deposit",
+    currency: "usdt",
+    amount: String(usdtNum),
+    fee: "0",
+    status: "pending",
+    sourceBot: bot.slug,
+    referenceId: memo,
+    description: `USDT إيداع: ${usdtNum} USDT → ${expectedSkz.toFixed(0)} SKZ`,
+    metadata: JSON.stringify({ amountUsdt: usdtNum, expectedSkz, memo, depositAddress, network: "ton-jetton" }),
+  }).returning();
+
+  req.log.info({ telegramId, usdtNum, expectedSkz, memo }, "USDT deposit intent created");
+
+  res.json({
+    ok: true,
+    intentId: transaction.id,
+    memo,
+    depositAddress,
+    amountUsdt: usdtNum,
+    expectedSkz: String(expectedSkz.toFixed(2)),
+    network: "ton-jetton",
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/withdraw — create a pending withdrawal request for a user
 // Accepts: { telegramId, methodCode, amountSkz, destination? }
 // ─────────────────────────────────────────────────────────────────────────────

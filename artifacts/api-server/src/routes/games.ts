@@ -477,6 +477,27 @@ router.post("/games/ton-deposit-intent", requireTelegramAuth, async (req: Reques
 });
 
 /**
+ * POST /api/games/usdt-deposit-intent
+ * Create a USDT-Jetton (on TON) deposit intent with a unique memo.
+ * Forwards to /internal/usdt-deposit-intent.
+ * Body: { amountUsdt }
+ * Returns: { ok, intentId, memo, depositAddress, amountUsdt, expectedSkz, network, expiresAt }
+ */
+router.post("/games/usdt-deposit-intent", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  const { telegramId } = req as AuthedRequest;
+  const { amountUsdt } = req.body as { amountUsdt?: number | string };
+  const usdtNum = parseFloat(String(amountUsdt ?? 0));
+  if (isNaN(usdtNum) || usdtNum <= 0) {
+    res.status(400).json({ error: "amountUsdt must be a positive number" });
+    return;
+  }
+  await forwardPost(req, res, "/internal/usdt-deposit-intent", {
+    telegramId: String(telegramId),
+    amountUsdt: usdtNum,
+  });
+});
+
+/**
  * POST /api/games/withdraw
  * Create a pending SKZ withdrawal request. Forwards to /internal/withdraw.
  * Body: { methodCode, amountSkz, destination? }
