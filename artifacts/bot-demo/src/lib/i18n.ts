@@ -82,30 +82,53 @@ const TR: Record<string, Record<Lang, string>> = {
   "wallet.history.emptyHint":    { ar: "أودِع أو اربح SKZ لرؤية سجلك", en: "Deposit or earn SKZ to see your history" },
 
   // ── Deposit ──
+  // Mirrors the mother-bot Telegram chat flow exactly: a 2-section hub
+  // (have wallet / need wallet) — NO Visa / card option. Earnings flow
+  // back to the user's TON Keeper wallet, so installing one is framed
+  // as a one-time onboarding step rather than a payment method.
   "deposit.copied":           { ar: "✓ تم النسخ",  en: "✓ Copied" },
   "deposit.title":            { ar: "إيداع SKZ",   en: "Deposit SKZ" },
   "deposit.subtitle":         { ar: "أودِع وتحوَّل تلقائيًا إلى SKZ", en: "Deposit and auto-convert to SKZ" },
   "deposit.banner.title":     { ar: "تحويل تلقائي إلى SKZ", en: "Auto-converted to SKZ" },
   "deposit.banner.sub":       { ar: "بالسعر الحالي المعتمد من الإدارة", en: "At the current admin-approved rate" },
-  "deposit.chooseMethod":     { ar: "اختر وسيلة الإيداع", en: "Choose deposit method" },
-  "deposit.method.card.label": { ar: "💳 شحن بالبطاقة", en: "💳 Top up by card" },
-  "deposit.method.card.sub":   { ar: "عبر @wallet · فيزا → USDT/TON", en: "via @wallet · Visa → USDT/TON" },
+
+  // Hub (initial 2-card screen)
+  "deposit.hub.title":        { ar: "اختر طريقتك", en: "Pick your path" },
+  "deposit.hub.intro":        {
+    ar: "إذا كانت لديك محفظة TON Keeper أو أي محفظة تدعم TON/USDT-Jetton، اختر «لديّ محفظة». وإلا فاتّبع دليل التثبيت السريع.",
+    en: "If you already have TON Keeper (or any wallet supporting TON / USDT-Jetton), pick “I have a wallet”. Otherwise follow the quick install guide.",
+  },
+  "deposit.hub.have":         { ar: "👛 لديّ محفظة رقمية", en: "👛 I have a wallet" },
+  "deposit.hub.haveSub":      { ar: "إيداع مباشر بـ TON أو USDT", en: "Direct deposit in TON or USDT" },
+  "deposit.hub.nowallet":     { ar: "🆕 أحتاج إنشاء محفظة", en: "🆕 I need a wallet" },
+  "deposit.hub.nowalletSub":  { ar: "دليل تثبيت سريع — أقل من 5 دقائق", en: "Quick install guide — under 5 minutes" },
+
+  // "I have a wallet" inner screen
+  "deposit.have.pickCurrency": { ar: "اختر العملة", en: "Pick currency" },
   "deposit.method.usdt.sub":   { ar: "Tether · شبكة TRC20", en: "Tether · TRC20 network" },
   "deposit.method.ton.sub":    { ar: "The Open Network",    en: "The Open Network" },
-  "deposit.rate.cardSuffix":   { ar: " · بطاقة فيزا", en: " · Visa card" },
-  "deposit.card.heading":      { ar: "الشحن بالبطاقة عبر", en: "Top up by card via" },
-  "deposit.card.intro":        {
-    ar: "اشترِ USDT أو TON بالفيزا/ماستركارد من محفظة تيليغرام الرسمية @wallet، ثم أرسلها إلى عنوان الإيداع الخاص بالبوت ليُحوَّل تلقائياً إلى SKZ.",
-    en: "Buy USDT or TON with Visa/Mastercard from Telegram's official @wallet, then send it to the bot's deposit address to be auto-converted to SKZ.",
+  "deposit.back":              { ar: "← رجوع", en: "← Back" },
+
+  // "I need a wallet" guide screen (mirrors the bot caption text)
+  "deposit.nowallet.title":   { ar: "محفظتك جاهزة في أقل من 5 دقائق", en: "Your wallet — ready in under 5 minutes" },
+  "deposit.nowallet.lead":    {
+    ar: "TON Keeper هي محفظتك الخاصّة بالكامل — لا أحد يملك مفاتيحها غيرك. تعمل على iPhone و Android.",
+    en: "TON Keeper is fully your own wallet — only you hold the keys. Runs on iPhone and Android.",
   },
-  "deposit.card.steps":        { ar: "الخطوات", en: "Steps" },
-  "deposit.card.step1":        { ar: "اضغط «افتح @wallet» بالأسفل واشترِ USDT (TRC20) أو TON بالبطاقة.", en: "Tap “Open @wallet” below and buy USDT (TRC20) or TON by card." },
-  "deposit.card.step2":        { ar: "ارجع إلى هذا التطبيق واختر تبويب USDT أو TON من الأعلى.", en: "Return to this app and pick the USDT or TON tab above." },
-  "deposit.card.step3":        { ar: "انسخ عنوان الإيداع المعروض وأرسل المبلغ من @wallet إليه.", en: "Copy the deposit address shown and send the amount from @wallet to it." },
-  "deposit.card.step4":        { ar: "يُضاف رصيد SKZ تلقائياً خلال 2-5 دقائق بعد تأكيد الشبكة ⚡.", en: "SKZ is credited automatically within 2–5 minutes after network confirmation ⚡." },
-  "deposit.card.currentRate":  { ar: "السعر الحالي", en: "Current rate" },
-  "deposit.card.openWallet":   { ar: "افتح @wallet للشراء بالبطاقة", en: "Open @wallet to buy by card" },
-  "deposit.card.showUsdtAddr": { ar: "عرض عنوان إيداع USDT", en: "Show USDT deposit address" },
+  "deposit.nowallet.stepsHeader": { ar: "الخطوات", en: "Steps" },
+  "deposit.nowallet.step1":   { ar: "نزّل التطبيق من الزر المناسب أدناه.", en: "Install the app from the appropriate button below." },
+  "deposit.nowallet.step2":   { ar: "افتح التطبيق ← «إنشاء محفظة جديدة» ← احفظ الكلمات الـ24 في مكان آمن جداً.", en: "Open the app → “Create new wallet” → save the 24 words somewhere very safe." },
+  "deposit.nowallet.step3":   { ar: "مَوِّل محفظتك بـ TON أو USDT بأي طريقة تناسبك.", en: "Fund your wallet with TON or USDT in any way that suits you." },
+  "deposit.nowallet.step4":   { ar: "من شاشة محفظتك اضغط «Send» ← الصق عنوان البوت ← أدخل المبلغ ← الصق الـmemo ← أرسل.", en: "From your wallet screen tap “Send” → paste the bot's address → enter the amount → paste the memo → send." },
+  "deposit.nowallet.step5":   { ar: "ارجع هنا واضغط «لديّ محفظة» لاستلام العنوان والـmemo الخاصَّين بك.", en: "Come back here and tap “I have a wallet” to get your own address and memo." },
+  "deposit.nowallet.timeNote": { ar: "⏱️ كامل العملية لا تتجاوز 5 دقائق.", en: "⏱️ The whole flow takes under 5 minutes." },
+  "deposit.nowallet.earnings": {
+    ar: "💎 مهم: كل أرباحك المستقبلية من المنصّة ستُحوَّل مباشرة إلى محفظتك في TON Keeper — لذا وجودها شرط أساسي لاستلام مكافآتك.",
+    en: "💎 Important: all your future earnings from the platform will be sent directly to your TON Keeper wallet — having one is essential to receive your rewards.",
+  },
+  "deposit.nowallet.appstore": { ar: "🍏 App Store", en: "🍏 App Store" },
+  "deposit.nowallet.playstore": { ar: "🤖 Google Play", en: "🤖 Google Play" },
+  "deposit.nowallet.haveNow": { ar: "👛 تم — لديّ محفظة الآن", en: "👛 Done — I have a wallet now" },
   "deposit.amountLabel":       { ar: "المبلغ ({unit})", en: "Amount ({unit})" },
   "deposit.minErr":            { ar: "الحد الأدنى للإيداع {min} {unit}", en: "Minimum deposit is {min} {unit}" },
   "deposit.willReceive":       { ar: "ستستلم", en: "You receive" },
