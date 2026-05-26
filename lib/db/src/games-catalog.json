@@ -1208,5 +1208,60 @@
     "entryFee": 15,
     "prize": 45,
     "targetScore": 1000
+  },
+  {
+    "gameId": 196,
+    "name": "Vortex Lock",
+    "emoji": "🌀",
+    "difficulty": "Hard",
+    "color": "from-cyan-500 to-fuchsia-500",
+    "desc": "Two rings spin opposite — tap when BOTH gaps lock on target. Speed climbs each hit",
+    "entryFee": 15,
+    "prize": 45,
+    "targetScore": 1500
+  },
+  {
+    "gameId": 197,
+    "name": "Mirror Sync",
+    "emoji": "🪞",
+    "difficulty": "Hard",
+    "color": "from-emerald-500 to-amber-400",
+    "desc": "Two-finger sync — tap LEFT and RIGHT targets within 250ms. Window shrinks",
+    "entryFee": 15,
+    "prize": 45,
+    "targetScore": 1200
+  },
+  {
+    "gameId": 198,
+    "name": "Reverse Reflex",
+    "emoji": "🔃",
+    "difficulty": "Hard",
+    "color": "from-fuchsia-500 to-rose-500",
+    "desc": "Swipe the OPPOSITE direction of the arrow — your brain fights you. Window shrinks",
+    "entryFee": 15,
+    "prize": 45,
+    "targetScore": 1500
+  },
+  {
+    "gameId": 199,
+    "name": "Chrono Stack",
+    "emoji": "⏳",
+    "difficulty": "Hard",
+    "color": "from-emerald-500 to-cyan-400",
+    "desc": "Stack perfectly — every 8s TIME REWINDS and only PERFECT blocks survive",
+    "entryFee": 15,
+    "prize": 45,
+    "targetScore": 1500
+  },
+  {
+    "gameId": 200,
+    "name": "Pulse Sniper",
+    "emoji": "🎯",
+    "difficulty": "Hard",
+    "color": "from-cyan-500 to-blue-600",
+    "desc": "Predict where the dot will be in 0.5s — tap the FUTURE, not the present",
+    "entryFee": 15,
+    "prize": 45,
+    "targetScore": 1500
   }
 ]
