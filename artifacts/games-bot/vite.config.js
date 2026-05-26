@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       port,
-      allowedHosts: 'all',
+      allowedHosts: true,
     },
     build: {
       target: 'es2020',

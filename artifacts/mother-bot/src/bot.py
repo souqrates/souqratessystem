@@ -38,9 +38,21 @@ BOT_TOKEN        = os.getenv("MOTHER_BOT_TOKEN", "")
 MOTHER_API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_API_KEY = os.getenv("MOTHER_BOT_API_KEY", "")
 MASTER_ADMIN_CODE  = os.getenv("MASTER_ADMIN_CODE", "")
-_BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", "https://souqrates.com/")
-_BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", "https://souqrates.com/games-bot/")
-_BASE_CONTESTS_APP_URL = os.getenv("CONTESTS_APP_URL", "https://souqrates.com/contests-bot-web/")
+# Public base URL for Telegram WebApp buttons. Until the production domain
+# (souqrates.com) is wired up via Replit Deployments, fall back to the
+# current Replit dev domain so WebApps actually load. Order of precedence:
+#   1) Explicit MINI_APP_URL / GAMES_APP_URL / CONTESTS_APP_URL env vars
+#   2) PUBLIC_BASE_URL env var (single override for all three)
+#   3) https://$REPLIT_DEV_DOMAIN (auto-set in dev)
+#   4) https://souqrates.com (production default once DNS is live)
+_DEV_DOMAIN = os.getenv("REPLIT_DEV_DOMAIN", "").strip()
+_DEFAULT_BASE = os.getenv("PUBLIC_BASE_URL", "").strip() or (
+    f"https://{_DEV_DOMAIN}" if _DEV_DOMAIN else "https://souqrates.com"
+)
+_DEFAULT_BASE = _DEFAULT_BASE.rstrip("/")
+_BASE_MINI_APP_URL  = os.getenv("MINI_APP_URL", f"{_DEFAULT_BASE}/")
+_BASE_GAMES_APP_URL = os.getenv("GAMES_APP_URL", f"{_DEFAULT_BASE}/games-bot/")
+_BASE_CONTESTS_APP_URL = os.getenv("CONTESTS_APP_URL", f"{_DEFAULT_BASE}/contests-bot-web/")
 BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
 CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
