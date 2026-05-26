@@ -139,21 +139,12 @@ export async function getEconomySettings() {
   };
 }
 
-export async function convertTrialToPaid() { return { ok: true }; }
-export async function cancelWithdrawal()    { return { ok: false }; }
-export async function getPendingWithdrawals() { return { ok: true, requests: [] }; }
-export async function checkDepositIntent()  { return null; }
-
-export async function listPaymentMethods() {
-  return [
-    { code: 'ton',   label: 'TON',            kind: 'crypto' },
-    { code: 'stars', label: 'Telegram Stars', kind: 'stars'  },
-  ];
-}
-
-export async function testerIsEnrolled()  { return false; }
-export async function testerSelfEnroll()  { return null; }
-export async function testerSelfDisable() { return null; }
+// Deposit/withdraw flows live in the Mother Bot. The games-bot only reads
+// balance + transaction history — so we intentionally do NOT expose
+// convertTrialToPaid, cancelWithdrawal, getPendingWithdrawals,
+// checkDepositIntent, or tester-enrollment stubs here. If/when those
+// flows ship inside games-bot, wire them to real API endpoints — never
+// re-introduce hardcoded {ok:true} stubs that lie to the UI.
 
 /**
  * Create a TON deposit intent.

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Gamepad2, ArrowUpRight, ArrowDownLeft, ShieldCheck, Flame, Zap, Coins,
-  TrendingUp, User, Users, Trophy, Sparkles, ChevronRight, Award, Pencil, Smartphone, Share2, Lock,
+  TrendingUp, User, Sparkles, ChevronRight, Pencil, Smartphone, Share2, Lock,
 } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
@@ -12,9 +12,9 @@ import TrialTimer from '../components/TrialTimer';
 import ProfileEditModal from '../components/ProfileEditModal';
 import DailyStreakCard from '../components/DailyStreakCard';
 import ShareProfileCard from '../components/ShareProfileCard';
-import { convertTrialToPaid, listLedger } from '../lib/payments';
+import { listLedger } from '../lib/payments';
 import { supabase } from '../lib/supabase';
-import { getVerifiedSession, showTelegramConfirm, showTelegramAlert } from '../lib/telegram';
+import { getVerifiedSession } from '../lib/telegram';
 import { rankProgress } from '../lib/ranks';
 import { fetchStreak, fetchGamification } from '../lib/gamification';
 import { displayNameOf, avatarUrlOf, initialOf } from '../lib/profile';
@@ -24,16 +24,14 @@ const isSlowDevice = document.documentElement.classList.contains('device-low') |
 const container = { animate: {} };
 const item = { initial: {}, animate: {} };
 
+// Only Solo is shipped today. PvP / Quad / Tournament will be added later;
+// rather than ship dead "Coming Soon" cards, we hide them entirely.
 const QUICK_MODES = [
-  { id: 'solo',  labelKey: 'soloLabel',       icon: User,    hex: '#22d3ee', glow: 'rgba(34,211,238,0.35)',  descKey: 'beatYourBest',   comingSoon: false },
-  { id: 'pvp',   labelKey: 'pvpLabel',        icon: Users,   hex: '#10b981', glow: 'rgba(16,185,129,0.35)',  descKey: 'duelARival',     comingSoon: true  },
-  { id: 'quad',  labelKey: 'quadLabel',       icon: Trophy,  hex: '#f59e0b', glow: 'rgba(245,158,11,0.35)',  descKey: 'quadArena',      comingSoon: true  },
-  { id: 'group', labelKey: 'tournamentLabel', icon: Award,   hex: '#fb7185', glow: 'rgba(251,113,133,0.35)', descKey: 'bigPrizePool',   comingSoon: true  },
+  { id: 'solo', labelKey: 'soloLabel', icon: User, hex: '#22d3ee', glow: 'rgba(34,211,238,0.35)', descKey: 'beatYourBest', comingSoon: false },
 ];
 
 export default function Dashboard() {
   const { user, wallet, language, appConfig, setCurrentPage, navigateToGames, refreshBalance, pwaInstallPrompt, setPwaInstallPrompt, games } = useAppStore();
-  const [topPlayers, setTopPlayers] = useState([]);
   const [editOpen, setEditOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [totalXp, setTotalXp] = useState(0);
@@ -42,32 +40,8 @@ export default function Dashboard() {
   const [streak, setStreak] = useState(null);
   const [gami, setGami] = useState(null);
 
-  function handleEndTrial() {
-    showTelegramConfirm(
-      'End your free trial now and switch to paid play? Every match will deduct SKZ from your wallet.',
-      async (confirmed) => {
-        if (!confirmed) return;
-        try {
-          await convertTrialToPaid();
-          await refreshBalance?.();
-        } catch (e) {
-          const msg = String(e?.message || '');
-          showTelegramAlert(
-            msg.includes('session')
-              ? 'Session expired — reopen the app from Telegram.'
-              : 'Could not switch to paid play. Please try again.'
-          );
-        }
-      }
-    );
-  }
-
   useEffect(() => {
     let cancelled = false;
-    async function loadTop() {
-      const { data } = await supabase.rpc('gm_get_top_players', { p_limit: 5 });
-      if (!cancelled) setTopPlayers(Array.isArray(data) ? data : []);
-    }
     async function loadMine() {
       const sid = getVerifiedSession()?.session_id;
       if (!sid) return;
@@ -98,7 +72,6 @@ export default function Dashboard() {
         }
       } catch { /* ignore */ }
     }
-    loadTop();
     loadMine();
     loadActivity();
     return () => { cancelled = true; };
@@ -249,7 +222,7 @@ export default function Dashboard() {
 
       {/* TRIAL TIMER */}
       <motion.div variants={item}>
-        <TrialTimer onEndTrial={trialActive ? handleEndTrial : undefined} />
+        <TrialTimer />
       </motion.div>
 
       {/* PLAY NOW */}
@@ -385,48 +358,8 @@ export default function Dashboard() {
         <GamificationCard />
       </motion.div>
 
-      {/* TOP EARNERS LEADERBOARD */}
-      <motion.div variants={item}>
-        <SectionTitle icon={Trophy} label={t(language, 'topPlayersSection')} />
-        <div className="glass-card rounded-2xl overflow-hidden">
-          {topPlayers.length === 0 && (
-            <div className="px-4 py-6 text-center text-[11px] font-semibold" style={{ color: 'rgba(148,163,184,0.65)' }}>
-              No ranked players yet — be the first.
-            </div>
-          )}
-          {topPlayers.map((row, i) => {
-            const p = rankProgress(Number(row.xp || 0));
-            const r = p.rank;
-            return (
-              <div key={`${row.rank}-${i}`}
-                className={`flex items-center gap-3 px-4 py-3 ${i < topPlayers.length - 1 ? 'border-b' : ''}`}
-                style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-                <div className="w-6 text-center font-orbitron font-black text-sm" style={{ color: i === 0 ? '#fbbf24' : i === 1 ? '#e5e7eb' : i === 2 ? '#f97316' : 'rgba(148,163,184,0.7)' }}>
-                  #{i + 1}
-                </div>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: r.grad, boxShadow: `0 0 10px ${r.glow}` }}>
-                  <span className="font-orbitron text-[10px] font-black" style={{ color: '#0b1220' }}>{r.short}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">
-                    {row.anon_label || `Player #${i + 1}`}
-                  </p>
-                  <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'rgba(148,163,184,0.7)' }}>
-                    {r.name} · LV {p.level}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-orbitron text-sm font-black" style={{ color: r.hex }}>
-                    {Number(row.xp || 0).toLocaleString()}
-                  </p>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: 'rgba(148,163,184,0.5)' }}>XP</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
+      {/* Top-earners leaderboard moved to the Mother Bot (single central hub) —
+          removed from here to avoid duplicating the same list across bots. */}
 
       {/* REAL BALANCE CARD */}
       <motion.div variants={item} className="glass-card rounded-2xl p-4 relative overflow-hidden"
