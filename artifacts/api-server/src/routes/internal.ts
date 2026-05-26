@@ -1761,7 +1761,11 @@ router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
   const expectedSkz = tonNum * rates.perTon;
 
   const memo = `SKZ${user.id}T${Date.now().toString(36).toUpperCase()}`;
-  const depositAddress = process.env.TON_HOT_WALLET ?? "";
+  const depositAddress = process.env.TON_WALLET_ADDRESS ?? process.env.TON_HOT_WALLET ?? "";
+  if (!depositAddress) {
+    res.status(503).json({ error: "TON wallet not configured" });
+    return;
+  }
 
   const [transaction] = await db.insert(transactionsTable).values({
     userId: user.id,
