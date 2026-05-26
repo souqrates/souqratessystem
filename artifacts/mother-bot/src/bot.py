@@ -1113,6 +1113,31 @@ async def cmd_balance(message: Message):
         await message.answer(t(lang, "err_balance_fetch"))
 
 
+@router.message(Command("version"))
+async def cmd_version(message: Message):
+    """Diagnostic — prints which build of the bot the user is talking to.
+    If a user reports "your changes don't appear", asking them to run
+    /version is the fastest way to verify they actually reach this code
+    path (vs. an old keyboard cached on their side, a different bot
+    username, or another consumer of the same token)."""
+    try:
+        # mtime of bot.py = a stable per-deploy stamp; no shell/git needed.
+        mtime = os.path.getmtime(os.path.abspath(__file__))
+        import datetime as _dt
+        stamp = _dt.datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M UTC")
+    except Exception:
+        stamp = "unknown"
+    img_ok = "✅" if os.path.exists(_DEPOSIT_GUIDE_IMG) else "❌"
+    await message.answer(
+        f"🛠️ <b>Bot build</b>\n"
+        f"bot.py mtime: <code>{stamp}</code>\n"
+        f"deposit_guide.png: {img_ok}\n"
+        f"Mini App URL: <code>{MINI_APP_URL}</code>",
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+    )
+
+
 @router.message(Command("admin"))
 async def cmd_admin(message: Message):
     if message.from_user.id not in ADMIN_IDS:
