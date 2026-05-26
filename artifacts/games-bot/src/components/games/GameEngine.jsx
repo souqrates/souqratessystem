@@ -147,14 +147,16 @@ function GameLoading() {
 export default function GameEngine({ game, phase, setPhase, onScoreUpdate }) {
   const GameComponent = GAME_MAP[game?.id] || FallbackGame;
   return (
-    <Suspense fallback={<GameLoading />}>
-      <GameComponent
-        game={game}
-        phase={phase}
-        setPhase={setPhase}
-        onScoreUpdate={onScoreUpdate}
-      />
-    </Suspense>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Suspense fallback={<GameLoading />}>
+        <GameComponent
+          game={game}
+          phase={phase}
+          setPhase={setPhase}
+          onScoreUpdate={onScoreUpdate}
+        />
+      </Suspense>
+    </div>
   );
 }
 

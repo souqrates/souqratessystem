@@ -535,9 +535,23 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
         {/* Body — flex column: scrollable area + fixed footer */}
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-          {/* Scrollable content area */}
-          <div className="game-modal-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'none' }}>
-            <div style={{ padding: '8px 12px 12px' }}>
+          {/* Scrollable content area — switches to a non-scrolling flex column during
+              PLAYING so the game canvas can claim the full available height. Without
+              this, the inner padding wrapper collapses to its content size and games
+              render at their fallback 320×320 instead of filling the modal. */}
+          <div className="game-modal-body" style={{
+            flex: 1, minHeight: 0,
+            overflowY: phase === 'playing' ? 'hidden' : 'auto',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'none',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{
+              padding: phase === 'playing' ? '4px 6px 6px' : '8px 12px 12px',
+              flex: 1, minHeight: 0,
+              display: 'flex', flexDirection: 'column',
+            }}>
               <AnimatePresence mode="wait">
 
                 {/* INTRO — scrollable content only (no Play button here) */}
@@ -609,9 +623,10 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
                   </motion.div>
                 )}
 
-                {/* PLAYING */}
+                {/* PLAYING — must fill the body so GameShell's height:100% fallback resolves to real pixels */}
                 {phase === 'playing' && (
-                  <motion.div key="playing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'tween', duration: 0.1 }}>
+                  <motion.div key="playing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'tween', duration: 0.1 }}
+                    style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     <GameEngine game={game} phase={phase} setPhase={handleSetPhase} onScoreUpdate={handleScoreUpdate} />
                   </motion.div>
                 )}
