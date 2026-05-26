@@ -187,4 +187,135 @@ body {
     border-radius: 2px;
     transition: height .4s ease;
   }
+
+  /* ── Podium (top-3 visual) ──────────────────────────────────── */
+  .podium-wrap {
+    display: grid; grid-template-columns: 1fr 1.25fr 1fr;
+    gap: .75rem; align-items: end; min-height: 240px;
+  }
+  .podium-col {
+    position: relative;
+    border-radius: 18px;
+    padding: 1rem .75rem;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    border: 1px solid var(--color-stage-line);
+    transition: transform .6s cubic-bezier(.2,.7,.1,1);
+  }
+  .podium-1 {
+    min-height: 220px;
+    border-color: rgba(234,179,8,.55);
+    box-shadow: 0 0 0 1px rgba(234,179,8,.35), 0 20px 60px -10px rgba(234,179,8,.45);
+    background:
+      radial-gradient(140px 80px at 50% 0%, rgba(234,179,8,.30), transparent 70%),
+      linear-gradient(180deg, rgba(234,179,8,.10), rgba(234,179,8,.02));
+    animation: podium-shine 4s ease-in-out infinite;
+  }
+  .podium-2 {
+    min-height: 180px;
+    border-color: rgba(203,213,225,.40);
+    background:
+      radial-gradient(120px 70px at 50% 0%, rgba(203,213,225,.20), transparent 70%),
+      linear-gradient(180deg, rgba(203,213,225,.08), rgba(203,213,225,.01));
+  }
+  .podium-3 {
+    min-height: 150px;
+    border-color: rgba(217,119,87,.40);
+    background:
+      radial-gradient(120px 70px at 50% 0%, rgba(217,119,87,.20), transparent 70%),
+      linear-gradient(180deg, rgba(217,119,87,.08), rgba(217,119,87,.01));
+  }
+  @keyframes podium-shine {
+    0%,100% { box-shadow: 0 0 0 1px rgba(234,179,8,.35), 0 20px 60px -10px rgba(234,179,8,.45); }
+    50%     { box-shadow: 0 0 0 1px rgba(234,179,8,.55), 0 24px 70px -8px rgba(234,179,8,.65); }
+  }
+  .podium-avatar {
+    width: 64px; height: 64px; border-radius: 999px;
+    margin: 0 auto .5rem; border: 2px solid currentColor;
+    overflow: hidden; background: var(--color-stage-panel);
+    display: grid; place-items: center; font-size: 2rem;
+  }
+  .podium-crown {
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(234,179,8,.8));
+    animation: crown-float 2.4s ease-in-out infinite;
+  }
+  @keyframes crown-float {
+    0%,100% { transform: translateX(-50%) translateY(0) rotate(-3deg); }
+    50%     { transform: translateX(-50%) translateY(-4px) rotate(3deg); }
+  }
+
+  /* ── Marquee event ticker ───────────────────────────────────── */
+  .marquee {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--color-stage-line); border-radius: 12px;
+    background: linear-gradient(90deg, rgba(0,0,0,.4), rgba(0,0,0,.15));
+    height: 40px;
+  }
+  .marquee-track {
+    display: inline-flex; gap: 2rem; white-space: nowrap;
+    padding: 0 1rem; line-height: 40px;
+    animation: marquee 38s linear infinite;
+    /* RTL: items entered on left should scroll to right; we reverse via direction */
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .marquee:hover .marquee-track { animation-play-state: paused; }
+  .ev-rise   { color: #6ee7b7; }
+  .ev-fall   { color: #fca5a5; }
+  .ev-vote   { color: #fde68a; }
+  .ev-new    { color: #67e8f9; }
+  .ev-take1  { color: #fbbf24; font-weight: 800; }
+
+  /* ── Sparkline ──────────────────────────────────────────────── */
+  .sparkline { display: block; }
+  .sparkline path { transition: d .4s ease; }
+
+  /* ── Confetti burst ─────────────────────────────────────────── */
+  .confetti-wrap {
+    position: fixed; inset: 0; pointer-events: none;
+    overflow: hidden; z-index: 100;
+  }
+  .confetti-piece {
+    position: absolute; top: -10vh;
+    width: 10px; height: 14px; border-radius: 2px;
+    animation: confetti-fall 2.4s cubic-bezier(.25,.1,.25,1) forwards;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── Trending strip ─────────────────────────────────────────── */
+  .trending-strip {
+    background:
+      linear-gradient(90deg, rgba(236,72,153,.15), rgba(234,179,8,.15), rgba(52,211,153,.15));
+    border: 1px solid rgba(236,72,153,.30);
+    border-radius: 12px;
+    padding: .75rem 1rem;
+    display: flex; align-items: center; gap: .75rem;
+    overflow: hidden;
+  }
+  .trending-pulse {
+    width: 10px; height: 10px; border-radius: 999px;
+    background: var(--color-stage-pink);
+    box-shadow: 0 0 0 0 rgba(236,72,153,.6);
+    animation: pulse-pink 1.4s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse-pink {
+    0%   { box-shadow: 0 0 0 0 rgba(236,72,153,.6); }
+    70%  { box-shadow: 0 0 0 12px rgba(236,72,153,0); }
+    100% { box-shadow: 0 0 0 0 rgba(236,72,153,0); }
+  }
+
+  /* Heartbeat for hero card */
+  .heartbeat { animation: heartbeat 3s ease-in-out infinite; }
+  @keyframes heartbeat {
+    0%,100% { box-shadow: 0 0 0 1px rgba(234,179,8,.30), 0 8px 40px -10px rgba(234,179,8,.45); }
+    50%     { box-shadow: 0 0 0 1px rgba(234,179,8,.50), 0 16px 60px -10px rgba(234,179,8,.75); }
+  }
 }

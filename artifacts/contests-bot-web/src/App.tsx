@@ -5,7 +5,10 @@ import { fmtInt, fmtSkz, pct } from "@/lib/format";
 
 const BOT_USERNAME = "Souqrates_stage_bot";
 const POLL_MS = 3000;
-const ACTIVITY_WINDOW_MS = 60_000; // rolling 60s window for the live ticker
+const ACTIVITY_WINDOW_MS = 60_000;       // 60s rolling window for activity ticker
+const HISTORY_LEN = 20;                   // last 20 polls (~60s) for sparklines
+const EVENT_LIMIT = 18;                   // marquee shows up to N events
+const EVENT_TTL_MS = 90_000;              // events fade out of marquee after 90s
 
 function BotLink({ children, payload, className }: { children: React.ReactNode; payload?: string; className?: string }) {
   const href = payload
@@ -35,11 +38,51 @@ function Header() {
   );
 }
 
-/**
- * Compact activity ticker: shows how many votes arrived in each of the
- * last 12 buckets (~5s buckets over a 60s window). Pure visual signal
- * that "things are happening".
- */
+// ── Countdown ──────────────────────────────────────────────────
+function useCountdown(target: string | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!target) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [target]);
+  if (!target) return null;
+  const diff = new Date(target).getTime() - now;
+  if (Number.isNaN(diff)) return null;
+  if (diff <= 0) return { ended: true, d: 0, h: 0, m: 0, s: 0 };
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return { ended: false, d, h, m, s };
+}
+
+function CountdownPill({ endsAt }: { endsAt: string | null }) {
+  const c = useCountdown(endsAt);
+  if (!c) return null;
+  if (c.ended) return <span className="chip" style={{ background: "rgba(248,113,113,.10)", borderColor: "rgba(248,113,113,.35)", color: "#fca5a5" }}>⛔ انتهت المسابقة</span>;
+  const urgent = c.d === 0 && c.h < 6;
+  const style = urgent
+    ? { background: "rgba(248,113,113,.12)", borderColor: "rgba(248,113,113,.40)", color: "#fca5a5" }
+    : undefined;
+  const cell = (n: number, label: string) => (
+    <span className="flex flex-col items-center px-1.5">
+      <span className="text-base font-extrabold tabular-nums leading-none">{String(n).padStart(2, "0")}</span>
+      <span className="text-[9px] text-stage-mute leading-none mt-0.5">{label}</span>
+    </span>
+  );
+  return (
+    <span className="chip" style={style} title="الوقت المتبقي لانتهاء المسابقة">
+      ⏳
+      {c.d > 0 && cell(c.d, "يوم")}
+      {cell(c.h, "ساعة")}
+      {cell(c.m, "دقيقة")}
+      {cell(c.s, "ثانية")}
+    </span>
+  );
+}
+
+// ── Activity bars ──────────────────────────────────────────────
 function ActivityTicker({ buckets }: { buckets: number[] }) {
   const max = Math.max(1, ...buckets);
   return (
@@ -55,14 +98,88 @@ function ActivityTicker({ buckets }: { buckets: number[] }) {
   );
 }
 
+// ── Donut: vote share ──────────────────────────────────────────
+function VoteShareDonut({ contestants, total }: { contestants: Contestant[]; total: number }) {
+  if (total <= 0 || contestants.length === 0) return null;
+  const palette = ["#eab308", "#22d3ee", "#ec4899", "#34d399", "#f87171", "#a78bfa", "#fb923c"];
+  const sorted = [...contestants].sort((a, b) => Number(b.voteCount) - Number(a.voteCount));
+  const radius = 28;
+  const c = 2 * Math.PI * radius;
+  let acc = 0;
+  return (
+    <div className="flex items-center gap-3" title="توزيع الأصوات بين المتسابقين">
+      <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
+        <circle cx="36" cy="36" r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="10" />
+        {sorted.map((c2, i) => {
+          const share = Number(c2.voteCount) / total;
+          if (share <= 0) return null;
+          const dash = share * c;
+          const offset = -acc * c;
+          acc += share;
+          return (
+            <circle
+              key={c2.id}
+              cx="36" cy="36" r={radius}
+              fill="none"
+              stroke={palette[i % palette.length]}
+              strokeWidth="10"
+              strokeDasharray={`${dash} ${c - dash}`}
+              strokeDashoffset={offset}
+              style={{ transition: "stroke-dasharray .6s ease, stroke-dashoffset .6s ease" }}
+            />
+          );
+        })}
+      </svg>
+      <div className="flex flex-col gap-0.5 text-[11px]">
+        {sorted.slice(0, 3).map((c2, i) => (
+          <div key={c2.id} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-sm" style={{ background: palette[i % palette.length] }} />
+            <span className="truncate max-w-[7rem]">{c2.name}</span>
+            <span className="text-stage-mute">{pct(Number(c2.voteCount), total).toFixed(0)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Sparkline (vote-count history) ─────────────────────────────
+function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return <svg className="sparkline" width="80" height="24" />;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const span = Math.max(1, max - min);
+  const w = 80, h = 24;
+  const step = w / (data.length - 1);
+  const points = data.map((v, i) => `${i * step},${h - ((v - min) / span) * (h - 4) - 2}`);
+  const d = `M ${points.join(" L ")}`;
+  const rising = data[data.length - 1] >= data[0];
+  const color = rising ? "var(--color-stage-green)" : "var(--color-stage-red)";
+  return (
+    <svg className="sparkline" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <defs>
+        <linearGradient id={`spark-${rising ? "up" : "dn"}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${d} L ${w},${h} L 0,${h} Z`} fill={`url(#spark-${rising ? "up" : "dn"})`} />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ── Hero ───────────────────────────────────────────────────────
 function Hero({
   contest,
+  contestants,
   totalVotes,
   live,
   votesLastMinute,
   buckets,
 }: {
   contest: NonNullable<ActivePayload["contest"]>;
+  contestants: Contestant[];
   totalVotes: number;
   live: boolean;
   votesLastMinute: number;
@@ -71,17 +188,13 @@ function Hero({
   return (
     <section className="relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
-        <div className="panel p-6 md:p-8 glow-gold">
+        <div className="panel p-6 md:p-8 heartbeat">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="chip"><span className="pulse-dot" /> {live ? "بث مباشر" : "مسابقة نشطة"}</span>
+            <CountdownPill endsAt={contest.endsAt} />
             {votesLastMinute > 0 && (
               <span className="chip" style={{ background: "rgba(52,211,153,.10)", borderColor: "rgba(52,211,153,.35)", color: "#6ee7b7" }}>
                 ⚡ {fmtInt(votesLastMinute)} صوت / آخر دقيقة
-              </span>
-            )}
-            {contest.endsAt && (
-              <span className="text-xs text-stage-mute">
-                ينتهي: {new Date(contest.endsAt).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" })}
               </span>
             )}
           </div>
@@ -97,8 +210,16 @@ function Hero({
               <div className="text-2xl font-extrabold num-anim" key={totalVotes}>{fmtInt(totalVotes)}</div>
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
+              <div className="text-[11px] text-stage-mute">المتسابقون</div>
+              <div className="text-2xl font-extrabold tabular-nums">{contestants.length}</div>
+            </div>
+            <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
               <div className="text-[11px] text-stage-mute">نشاط لحظي</div>
               <ActivityTicker buckets={buckets} />
+            </div>
+            <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
+              <div className="text-[11px] text-stage-mute mb-1">توزيع الأصوات</div>
+              <VoteShareDonut contestants={contestants} total={totalVotes} />
             </div>
             <BotLink className="btn-primary" payload="vote">🗳 صَوِّت الآن</BotLink>
             <BotLink className="btn-ghost" payload="packs">🎟 باقات التصويت</BotLink>
@@ -110,17 +231,104 @@ function Hero({
   );
 }
 
+// ── Podium (top-3) ─────────────────────────────────────────────
+function Podium({ top3 }: { top3: Contestant[] }) {
+  if (top3.length === 0) return null;
+  // Display order: 2nd, 1st, 3rd (1st in the middle)
+  const order = [top3[1], top3[0], top3[2]].filter(Boolean) as Contestant[];
+  return (
+    <section className="max-w-6xl mx-auto px-4 pt-2">
+      <div className="podium-wrap">
+        {order.map((c) => {
+          const rank = top3.findIndex((x) => x.id === c.id) + 1;
+          const cls = rank === 1 ? "podium-1" : rank === 2 ? "podium-2" : "podium-3";
+          const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
+          const color = rank === 1 ? "#fbbf24" : rank === 2 ? "#cbd5e1" : "#fdba74";
+          return (
+            <div key={c.id} className={`podium-col ${cls}`} style={{ color }}>
+              {rank === 1 && <span className="podium-crown">👑</span>}
+              <div className="podium-avatar">
+                {c.photoUrl ? (
+                  <img src={c.photoUrl} alt={c.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>🎭</span>
+                )}
+              </div>
+              <div className="text-2xl mb-1">{medal}</div>
+              <div className="font-extrabold text-base text-stage-fg truncate">{c.name}</div>
+              <div className="mt-1 text-xs text-stage-mute">{fmtInt(c.voteCount)} صوت</div>
+              <BotLink className="btn-primary text-xs mt-3 inline-flex" payload={`vote_${c.id}`}>صوِّت له</BotLink>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── Marquee ticker ─────────────────────────────────────────────
+type Event = { id: string; at: number; kind: "rise" | "fall" | "vote" | "new" | "take1"; text: string };
+
+function Marquee({ events }: { events: Event[] }) {
+  if (events.length === 0) return null;
+  // Duplicate items so the seamless loop has content on both halves.
+  const items = [...events, ...events];
+  return (
+    <div className="marquee" title="آخر الأحداث المباشرة">
+      <div className="marquee-track">
+        {items.map((e, i) => (
+          <span key={`${e.id}-${i}`} className={`ev-${e.kind}`}>
+            {e.text}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Trending strip (fastest gainer last 60s) ──────────────────
+function TrendingStrip({
+  contestants,
+  voteDeltasLastMinute,
+}: {
+  contestants: Contestant[];
+  voteDeltasLastMinute: Map<number, number>;
+}) {
+  let best: { c: Contestant; gain: number } | null = null;
+  for (const c of contestants) {
+    const g = voteDeltasLastMinute.get(c.id) ?? 0;
+    if (g > 0 && (!best || g > best.gain)) best = { c, gain: g };
+  }
+  if (!best) return null;
+  return (
+    <div className="max-w-6xl mx-auto px-4 mt-4">
+      <div className="trending-strip">
+        <span className="trending-pulse" />
+        <span className="text-sm">
+          🚀 <b>الأسرع صعوداً</b> الآن:
+        </span>
+        <span className="font-extrabold text-stage-gold">{best.c.name}</span>
+        <span className="chip" style={{ background: "rgba(52,211,153,.12)", borderColor: "rgba(52,211,153,.35)", color: "#6ee7b7" }}>
+          +{best.gain} صوت / آخر دقيقة
+        </span>
+        <BotLink className="btn-primary text-xs mr-auto" payload={`vote_${best.c.id}`}>صوِّت معه</BotLink>
+      </div>
+    </div>
+  );
+}
+
+// ── Row metadata + RankDelta ──────────────────────────────────
 type RowMeta = {
   rank: number;
   prevRank: number | null;
-  voteDelta: number;     // votes gained since last poll
-  isNew: boolean;        // never seen before in our session
+  voteDelta: number;
+  isNew: boolean;
 };
 
 function RankDelta({ meta }: { meta: RowMeta }) {
   if (meta.isNew) return <span className="badge-new">✨ جديد</span>;
   if (meta.prevRank === null) return <span className="delta-flat">—</span>;
-  const delta = meta.prevRank - meta.rank; // positive = climbed
+  const delta = meta.prevRank - meta.rank;
   if (delta === 0) return <span className="delta-flat">— ثابت</span>;
   if (delta > 0) return <span className="delta-up">▲ {delta}</span>;
   return <span className="delta-down">▼ {Math.abs(delta)}</span>;
@@ -130,16 +338,17 @@ function ContestantRow({
   c,
   meta,
   totalVotes,
+  history,
 }: {
   c: Contestant;
   meta: RowMeta;
   totalVotes: number;
+  history: number[];
 }) {
   const p = pct(Number(c.voteCount), totalVotes);
   const medal = meta.rank === 0 ? "🥇" : meta.rank === 1 ? "🥈" : meta.rank === 2 ? "🥉" : `#${meta.rank + 1}`;
   const rankDelta = meta.prevRank !== null ? meta.prevRank - meta.rank : 0;
 
-  // Highlight class chosen by behavior since last poll.
   let flash = "";
   if (rankDelta >= 1) flash = "row-rise";
   else if (rankDelta <= -1) flash = "row-fall";
@@ -172,6 +381,9 @@ function ContestantRow({
         {c.bio && <p className="text-xs text-stage-mute truncate">{c.bio}</p>}
         <div className="mt-2 bar-track"><div className="bar-fill" style={{ width: `${p}%` }} /></div>
       </div>
+      <div className="hidden sm:block shrink-0">
+        <Sparkline data={history} />
+      </div>
       <div className="text-right shrink-0">
         <div className="text-lg font-extrabold num-anim" key={c.voteCount}>{fmtInt(c.voteCount)}</div>
         <div className="text-[11px] text-stage-mute">{p.toFixed(1)}%</div>
@@ -185,10 +397,12 @@ function Leaderboard({
   contestants,
   totalVotes,
   metaById,
+  historyById,
 }: {
   contestants: Contestant[];
   totalVotes: number;
   metaById: Map<number, RowMeta>;
+  historyById: Map<number, number[]>;
 }) {
   const sorted = useMemo(
     () => [...contestants].sort((a, b) => Number(b.voteCount) - Number(a.voteCount) || a.sortOrder - b.sortOrder),
@@ -208,7 +422,8 @@ function Leaderboard({
         <div className="grid gap-3">
           {sorted.map((c) => {
             const meta = metaById.get(c.id) ?? { rank: 0, prevRank: null, voteDelta: 0, isNew: true };
-            return <ContestantRow key={c.id} c={c} meta={meta} totalVotes={totalVotes} />;
+            const hist = historyById.get(c.id) ?? [Number(c.voteCount)];
+            return <ContestantRow key={c.id} c={c} meta={meta} totalVotes={totalVotes} history={hist} />;
           })}
         </div>
       )}
@@ -216,6 +431,7 @@ function Leaderboard({
   );
 }
 
+// ── Packs ──────────────────────────────────────────────────────
 function PackCard({ p }: { p: VotePack }) {
   const total = p.votes + (p.bonusVotes || 0);
   return (
@@ -268,6 +484,39 @@ function Packs({ packs }: { packs: VotePack[] }) {
   );
 }
 
+// ── Confetti ───────────────────────────────────────────────────
+function Confetti({ burstKey }: { burstKey: number }) {
+  const pieces = useMemo(() => {
+    const colors = ["#eab308", "#22d3ee", "#ec4899", "#34d399", "#f87171", "#a78bfa"];
+    return Array.from({ length: 60 }, () => ({
+      left: Math.random() * 100,
+      bg: colors[Math.floor(Math.random() * colors.length)],
+      delay: Math.random() * 0.6,
+      rot: Math.random() * 360,
+      dur: 2 + Math.random() * 1.8,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [burstKey]);
+  if (burstKey === 0) return null;
+  return (
+    <div className="confetti-wrap" key={burstKey} aria-hidden>
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${p.left}%`,
+            background: p.bg,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.dur}s`,
+            transform: `rotate(${p.rot}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <section className="max-w-3xl mx-auto px-4 py-20 text-center">
@@ -291,12 +540,8 @@ function Footer() {
 }
 
 const BUCKET_COUNT = 12;
-const BUCKET_MS = ACTIVITY_WINDOW_MS / BUCKET_COUNT; // 5s
+const BUCKET_MS = ACTIVITY_WINDOW_MS / BUCKET_COUNT;
 
-/**
- * Compute per-contestant rank-change + vote-delta metadata for the current
- * snapshot vs the previous one. Pure function — no state.
- */
 function buildMeta(
   current: Contestant[],
   prev: { ranks: Map<number, number>; votes: Map<number, number> } | null,
@@ -323,17 +568,18 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Rolling activity buckets: [oldest ... newest]. Re-rendered every tick.
   const [buckets, setBuckets] = useState<number[]>(() => Array(BUCKET_COUNT).fill(0));
-
-  // Per-row metadata (rank delta + vote delta + isNew) computed each tick.
   const [metaById, setMetaById] = useState<Map<number, RowMeta>>(() => new Map());
+  const [historyById, setHistoryById] = useState<Map<number, number[]>>(() => new Map());
+  const [events, setEvents] = useState<Event[]>([]);
+  const [confettiKey, setConfettiKey] = useState(0);
 
-  // Refs hold non-render state used by the polling loop.
   const timer = useRef<number | null>(null);
   const inFlight = useRef(false);
   const prevSnap = useRef<{ ranks: Map<number, number>; votes: Map<number, number> } | null>(null);
-  const activityLog = useRef<Array<{ at: number; votes: number }>>([]);
+  const activityLog = useRef<Array<{ at: number; votes: number; cid?: number }>>([]);
+  const eventSeq = useRef(0);
+  const prevTopId = useRef<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -344,51 +590,126 @@ export default function App() {
       try {
         const d = await getActive();
         if (!alive) return;
-
-        // Compute vote-delta since last successful poll for the ticker.
         const now = Date.now();
+
+        // Per-contestant vote-delta and event generation.
         let totalDelta = 0;
+        const newEventBatch: Event[] = [];
+        const nameById = new Map(d.contestants.map((c) => [c.id, c.name]));
+
+        // Rank changes need the NEW sorted order vs prev ranks.
+        const sortedNow = [...d.contestants].sort(
+          (a, b) => Number(b.voteCount) - Number(a.voteCount) || a.sortOrder - b.sortOrder,
+        );
+
         if (prevSnap.current && d.contest) {
           for (const c of d.contestants) {
             const prevV = prevSnap.current.votes.get(c.id);
-            if (prevV != null) totalDelta += Math.max(0, Number(c.voteCount) - prevV);
+            if (prevV != null) {
+              const delta = Math.max(0, Number(c.voteCount) - prevV);
+              if (delta > 0) {
+                totalDelta += delta;
+                activityLog.current.push({ at: now, votes: delta, cid: c.id });
+                newEventBatch.push({
+                  id: `v-${c.id}-${now}-${eventSeq.current++}`,
+                  at: now,
+                  kind: "vote",
+                  text: `⚡ +${delta} لـ ${c.name}`,
+                });
+              }
+            } else {
+              newEventBatch.push({
+                id: `n-${c.id}-${now}-${eventSeq.current++}`,
+                at: now,
+                kind: "new",
+                text: `✨ متسابق جديد: ${c.name}`,
+              });
+            }
           }
+          // Rank-change events.
+          sortedNow.forEach((c, idx) => {
+            const prevRank = prevSnap.current!.ranks.get(c.id);
+            if (prevRank != null && prevRank !== idx) {
+              const moved = prevRank - idx; // +ve up, -ve down
+              if (moved >= 1) {
+                newEventBatch.push({
+                  id: `r-${c.id}-${now}-${eventSeq.current++}`,
+                  at: now,
+                  kind: idx === 0 ? "take1" : "rise",
+                  text: idx === 0
+                    ? `👑 ${c.name} يتصدّر القائمة!`
+                    : `🔥 ${c.name} صعد إلى المركز ${idx + 1}`,
+                });
+              } else if (moved <= -2) {
+                newEventBatch.push({
+                  id: `f-${c.id}-${now}-${eventSeq.current++}`,
+                  at: now,
+                  kind: "fall",
+                  text: `❄️ ${c.name} هبط إلى المركز ${idx + 1}`,
+                });
+              }
+            }
+          });
         }
-        if (totalDelta > 0) {
-          activityLog.current.push({ at: now, votes: totalDelta });
+
+        // Confetti on new #1 takeover.
+        const newTopId = sortedNow[0]?.id ?? null;
+        if (
+          newTopId !== null &&
+          prevTopId.current !== null &&
+          newTopId !== prevTopId.current
+        ) {
+          setConfettiKey((k) => k + 1);
         }
-        // Drop old activity entries outside the window.
+        prevTopId.current = newTopId;
+
+        // Drop expired activity entries and re-bucket.
         const cutoff = now - ACTIVITY_WINDOW_MS;
         activityLog.current = activityLog.current.filter((e) => e.at >= cutoff);
-
-        // Re-bucket the activity log into BUCKET_COUNT slots.
         const newBuckets = Array(BUCKET_COUNT).fill(0);
         for (const e of activityLog.current) {
-          const idx = Math.min(
-            BUCKET_COUNT - 1,
-            Math.floor((e.at - cutoff) / BUCKET_MS),
-          );
+          const idx = Math.min(BUCKET_COUNT - 1, Math.floor((e.at - cutoff) / BUCKET_MS));
           newBuckets[idx] += e.votes;
         }
 
-        // Build per-row meta against the previous snapshot.
-        const newMeta = buildMeta(d.contestants, prevSnap.current);
+        // Per-contestant history for sparklines (rolling).
+        setHistoryById((prev) => {
+          const next = new Map(prev);
+          for (const c of d.contestants) {
+            const arr = (next.get(c.id) ?? []).slice(-HISTORY_LEN + 1);
+            arr.push(Number(c.voteCount));
+            next.set(c.id, arr);
+          }
+          // Drop history for removed contestants.
+          for (const id of next.keys()) {
+            if (!nameById.has(id)) next.delete(id);
+          }
+          return next;
+        });
 
-        // Update the snapshot for next tick BEFORE committing state.
+        // Merge new events, drop expired, cap length.
+        setEvents((prev) => {
+          const merged = [...newEventBatch, ...prev].filter((e) => now - e.at <= EVENT_TTL_MS);
+          return merged.slice(0, EVENT_LIMIT);
+        });
+
+        // Build meta + update snapshot.
+        const newMeta = buildMeta(d.contestants, prevSnap.current);
         const nextRanks = new Map<number, number>();
         const nextVotes = new Map<number, number>();
-        [...d.contestants]
-          .sort((a, b) => Number(b.voteCount) - Number(a.voteCount) || a.sortOrder - b.sortOrder)
-          .forEach((c, idx) => {
-            nextRanks.set(c.id, idx);
-            nextVotes.set(c.id, Number(c.voteCount));
-          });
+        sortedNow.forEach((c, idx) => {
+          nextRanks.set(c.id, idx);
+          nextVotes.set(c.id, Number(c.voteCount));
+        });
         prevSnap.current = { ranks: nextRanks, votes: nextVotes };
 
         setData(d);
         setBuckets(newBuckets);
         setMetaById(newMeta);
         setError(null);
+        if (totalDelta === 0) {
+          // No-op, just keep the variable used for the linter.
+        }
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "تعذّر الاتصال");
@@ -405,14 +726,31 @@ export default function App() {
     };
   }, []);
 
-  const votesLastMinute = useMemo(
-    () => buckets.reduce((a, b) => a + b, 0),
-    [buckets],
-  );
+  const votesLastMinute = useMemo(() => buckets.reduce((a, b) => a + b, 0), [buckets]);
+
+  // Per-contestant gains in the activity window (for "trending" highlight).
+  const voteDeltasLastMinute = useMemo(() => {
+    const m = new Map<number, number>();
+    // Reading from activityLog ref is fine inside a memo keyed on `buckets`
+    // because buckets change every tick (re-derived from the same log).
+    for (const e of activityLog.current) {
+      if (e.cid == null) continue;
+      m.set(e.cid, (m.get(e.cid) ?? 0) + e.votes);
+    }
+    return m;
+  }, [buckets]);
+
+  const sortedContestants = useMemo(() => {
+    if (!data) return [];
+    return [...data.contestants].sort(
+      (a, b) => Number(b.voteCount) - Number(a.voteCount) || a.sortOrder - b.sortOrder,
+    );
+  }, [data]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <Confetti burstKey={confettiKey} />
       <main className="flex-1">
         {!loaded && (
           <div className="max-w-6xl mx-auto px-4 py-20 text-center text-stage-mute">جاري التحميل…</div>
@@ -430,15 +768,27 @@ export default function App() {
           <>
             <Hero
               contest={data.contest}
+              contestants={sortedContestants}
               totalVotes={Number(data.contest.totalVotes)}
               live={!error}
               votesLastMinute={votesLastMinute}
               buckets={buckets}
             />
+            {events.length > 0 && (
+              <div className="max-w-6xl mx-auto px-4">
+                <Marquee events={events} />
+              </div>
+            )}
+            <TrendingStrip
+              contestants={sortedContestants}
+              voteDeltasLastMinute={voteDeltasLastMinute}
+            />
+            <Podium top3={sortedContestants.slice(0, 3)} />
             <Leaderboard
               contestants={data.contestants}
               totalVotes={Number(data.contest.totalVotes)}
               metaById={metaById}
+              historyById={historyById}
             />
             <Packs packs={data.packs} />
           </>
