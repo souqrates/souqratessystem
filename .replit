@@ -9,57 +9,6 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Mother Bot (Telegram)"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Books Bot (Telegram)"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Contests Bot (Telegram)"
-
-[[workflows.workflow]]
-name = "Mother Bot (Telegram)"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 artifacts/mother-bot/src/bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Books Bot (Telegram)"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 artifacts/books-bot/src/bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Contests Bot (Telegram)"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 artifacts/contests-bot/src/bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"

@@ -1224,5 +1224,36 @@ async def main():
     await dp.start_polling(bot)
 
 
+def _spawn_subagents_bot():
+    """Spawn the SOUQRATES SUB-AGENTS bot as a sibling process.
+
+    Workflow slot cap (10) prevents adding a dedicated Replit workflow, so the
+    mother-bot process supervises it. Child inherits env (including
+    SUBAGENTS_BOT_TOKEN and SUBAGENTS_BOT_API_KEY). Only starts if the token
+    is present; logs and continues otherwise so mother-bot still boots.
+    """
+    import subprocess, sys, atexit
+    if not os.getenv("SUBAGENTS_BOT_TOKEN"):
+        logger.warning("SUBAGENTS_BOT_TOKEN not set — subagents-bot not spawned")
+        return
+    bot_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "subagents-bot", "src", "bot.py",
+    )
+    if not os.path.exists(bot_path):
+        logger.warning(f"subagents-bot entrypoint missing at {bot_path}")
+        return
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, "-u", bot_path],
+            stdout=sys.stdout, stderr=sys.stderr,
+        )
+        logger.info(f"spawned subagents-bot pid={proc.pid}")
+        atexit.register(lambda: proc.terminate() if proc.poll() is None else None)
+    except Exception as e:
+        logger.warning(f"failed to spawn subagents-bot: {e}")
+
+
 if __name__ == "__main__":
+    _spawn_subagents_bot()
     asyncio.run(main())

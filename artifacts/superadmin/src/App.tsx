@@ -11,6 +11,8 @@ import BroadcastPage from "@/pages/Broadcast";
 import LinksPage from "@/pages/Links";
 import ErrorLogsPage from "@/pages/ErrorLogs";
 import WithdrawalsPage from "@/pages/Withdrawals";
+import SubagentsPage from "@/pages/Subagents";
+import SubagentTiersPage from "@/pages/SubagentTiers";
 import AgreementsPage from "@/pages/Agreements";
 import GamesPage from "@/pages/Games";
 import GameDetailPage from "@/pages/GameDetail";
@@ -45,6 +47,8 @@ function AuthedRoutes() {
         <Route path="/links" component={LinksPage} />
         <Route path="/error-logs" component={ErrorLogsPage} />
         <Route path="/integrations" component={IntegrationsPage} />
+        <Route path="/subagents" component={SubagentsPage} />
+        <Route path="/subagents/tiers" component={SubagentTiersPage} />
         <Route>
           <div className="p-8" dir="rtl">الصفحة غير موجودة</div>
         </Route>

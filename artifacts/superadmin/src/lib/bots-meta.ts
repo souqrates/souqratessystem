@@ -4,13 +4,13 @@
 // indicate they aren't registered yet.
 //
 // Canonical brand taxonomy (single source of truth):
-//   mother-bot   → SOUQRATES SYSTEM   (البوت الأم — المحفظة الموحدة)
-//   games-bot    → SOUQRATES SKILLZ   (الألعاب)
-//   books-bot    → SOUQRATES SOUQ     (الكتب والمنتجات الرقمية)
-//   video-bot    → SOUQRATES SCENE    (الفيديوهات)
-//   voice-bot    → SOUQRATES STREAM   (الغرف الصوتية)
-//   ai-bot       → SOUQRATES SIGNAL   (الذكاء الاصطناعي)
-//   contests-bot → SOUQRATES STAGE    (المسابقات والتصويت)
+//   mother-bot     → SOUQRATES SYSTEM     (البوت الأم — المحفظة الموحدة)
+//   games-bot      → SOUQRATES SKILLZ     (الألعاب)
+//   books-bot      → SOUQRATES SOUQ       (الكتب والمنتجات الرقمية)
+//   video-bot      → SOUQRATES SCENE      (الفيديوهات)
+//   voice-bot      → SOUQRATES STREAM     (الغرف الصوتية)
+//   subagents-bot  → SOUQRATES SUB-AGENTS (برنامج الشركاء / الموزّعين)
+//   contests-bot   → SOUQRATES STAGE      (المسابقات والتصويت)
 export interface BotMeta {
   slug: string;
   brand: string;
@@ -20,13 +20,13 @@ export interface BotMeta {
 }
 
 export const BOTS: BotMeta[] = [
-  { slug: "mother-bot",   brand: "SOUQRATES SYSTEM", arName: "البوت الأم",        color: "#6366f1", icon: "◆" },
-  { slug: "games-bot",    brand: "SOUQRATES SKILLZ", arName: "الألعاب",            color: "#f97316", icon: "▲" },
-  { slug: "books-bot",    brand: "SOUQRATES SOUQ",   arName: "الكتب والمنتجات",    color: "#0F766E", icon: "❖" },
-  { slug: "video-bot",    brand: "SOUQRATES SCENE",  arName: "الفيديوهات",         color: "#ec4899", icon: "▶" },
-  { slug: "voice-bot",    brand: "SOUQRATES STREAM", arName: "الغرف الصوتية",      color: "#8b5cf6", icon: "◉" },
-  { slug: "ai-bot",       brand: "SOUQRATES SIGNAL", arName: "الذكاء الاصطناعي",   color: "#06b6d4", icon: "✦" },
-  { slug: "contests-bot", brand: "SOUQRATES STAGE",  arName: "المسابقات والتصويت", color: "#eab308", icon: "★" },
+  { slug: "mother-bot",    brand: "SOUQRATES SYSTEM",     arName: "البوت الأم",          color: "#6366f1", icon: "◆" },
+  { slug: "games-bot",     brand: "SOUQRATES SKILLZ",     arName: "الألعاب",              color: "#f97316", icon: "▲" },
+  { slug: "books-bot",     brand: "SOUQRATES SOUQ",       arName: "الكتب والمنتجات",      color: "#0F766E", icon: "❖" },
+  { slug: "video-bot",     brand: "SOUQRATES SCENE",      arName: "الفيديوهات",           color: "#ec4899", icon: "▶" },
+  { slug: "voice-bot",     brand: "SOUQRATES STREAM",     arName: "الغرف الصوتية",        color: "#8b5cf6", icon: "◉" },
+  { slug: "subagents-bot", brand: "SOUQRATES SUB-AGENTS", arName: "برنامج الشركاء",       color: "#D4AF37", icon: "♛" },
+  { slug: "contests-bot",  brand: "SOUQRATES STAGE",      arName: "المسابقات والتصويت",   color: "#eab308", icon: "★" },
 ];
 
 export function botMeta(slug: string): BotMeta | undefined {

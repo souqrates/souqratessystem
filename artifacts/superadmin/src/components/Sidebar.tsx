@@ -108,6 +108,28 @@ export default function Sidebar() {
           sub="عمولة، إعدادات عامة"
         />
 
+        {/* SOUQRATES SUB-AGENTS — برنامج الشركاء */}
+        <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#D4AF37" }}>
+          ♛ SOUQRATES SUB-AGENTS
+          <div className="text-[10px] font-normal text-slate-500 normal-case">برنامج الشركاء والموزّعين</div>
+        </div>
+        <SidebarLink
+          href="/subagents"
+          active={location.startsWith("/subagents") && location !== "/subagents/tiers"}
+          icon="♛"
+          label="طلبات وشركاء"
+          sub="موافقة، رفض، تعليق، KYC"
+          color="#D4AF37"
+        />
+        <SidebarLink
+          href="/subagents/tiers"
+          active={location === "/subagents/tiers"}
+          icon="🏆"
+          label="مراتب الشركاء"
+          sub="7 مراتب + نسب الخصومات"
+          color="#D4AF37"
+        />
+
         {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
@@ -117,7 +139,7 @@ export default function Sidebar() {
 
         {/* البوتات الفرعية الأخرى (قادمة) */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">بوتات أخرى</div>
-        {BOTS.filter((b) => !["mother-bot", "games-bot", "books-bot", "contests-bot"].includes(b.slug)).map((b) => {
+        {BOTS.filter((b) => !["mother-bot", "games-bot", "books-bot", "contests-bot", "subagents-bot"].includes(b.slug)).map((b) => {
           const href = `/bots/${b.slug}`;
           return (
             <SidebarLink

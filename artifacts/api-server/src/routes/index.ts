@@ -22,6 +22,8 @@ import objectsRouter from "./objects";
 // import paymentsRouter from "./payments";
 import integrationsRouter from "./integrations";
 import runtimeConfigRouter from "./runtime-config";
+import subagentsRouter from "./subagents";
+import superadminSubagentsRouter from "./superadmin-subagents";
 
 const router: IRouter = Router();
 
@@ -45,5 +47,7 @@ router.use(objectsRouter);
 // router.use(paymentsRouter); // disabled — see import comment above
 router.use(integrationsRouter);
 router.use(runtimeConfigRouter);
+router.use(subagentsRouter);
+router.use(superadminSubagentsRouter);
 
 export default router;

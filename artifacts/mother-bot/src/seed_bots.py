@@ -33,10 +33,10 @@ BOTS = [
         "commissionRate": "0.1000",
     },
     {
-        "slug": "ai-bot",
-        "name": "SOUQRATES SIGNAL",
-        "description": "توليد نصوص وصور وفيديوهات بالذكاء الاصطناعي",
-        "commissionRate": "0.1200",
+        "slug": "subagents-bot",
+        "name": "SOUQRATES SUB-AGENTS",
+        "description": "برنامج الشركاء والموزّعين — بيع SKZ بالجملة بأسعار خصومات حسب المرتبة",
+        "commissionRate": "0.0000",
     },
     {
         "slug": "contests-bot",

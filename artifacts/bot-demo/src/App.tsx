@@ -9,6 +9,10 @@ import { Deposit } from "./pages/deposit";
 import { Withdraw } from "./pages/withdraw";
 import { Referral } from "./pages/referral";
 import { Agreement } from "./pages/agreement";
+import { SubAgentsLanding } from "./pages/subagents-landing";
+import { SubAgentsApply } from "./pages/subagents-apply";
+import { SubAgentsPending } from "./pages/subagents-pending";
+import { SubAgentsDashboard } from "./pages/subagents-dashboard";
 import { SplashScreen } from "./components/splash-screen";
 
 const queryClient = new QueryClient({
@@ -83,6 +87,10 @@ export default function App() {
                 <Route path="/deposit" component={Deposit} />
                 <Route path="/withdraw" component={Withdraw} />
                 <Route path="/referral" component={Referral} />
+                <Route path="/subagents" component={SubAgentsLanding} />
+                <Route path="/subagents/apply" component={SubAgentsApply} />
+                <Route path="/subagents/pending" component={SubAgentsPending} />
+                <Route path="/subagents/dashboard" component={SubAgentsDashboard} />
                 <Route>
                   <NotFoundFallback />
                 </Route>
