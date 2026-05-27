@@ -135,6 +135,8 @@ export default function Sidebar() {
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon="📢" label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon="🔗" label="الروابط/CDN" />
         <SidebarLink href="/integrations" active={location.startsWith("/integrations")} icon="🔌" label="التكاملات الخارجية" sub="Redis, Sentry, Resend…" />
+        <SidebarLink href="/system-health" active={location.startsWith("/system-health")} icon="🩺" label="صحة النظام" sub="DB، الخادم، الخدمات الخارجية" />
+        <SidebarLink href="/audit-log" active={location.startsWith("/audit-log")} icon="📜" label="سجل تدقيق المدير" sub="من فعل ماذا ومتى" />
         <SidebarLink href="/error-logs" active={location.startsWith("/error-logs")} icon="⚠️" label="سجل الأخطاء" />
 
         {/* البوتات الفرعية الأخرى (قادمة) */}
