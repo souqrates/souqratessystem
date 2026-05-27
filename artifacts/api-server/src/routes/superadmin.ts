@@ -20,6 +20,7 @@ import {
 import { logAdminAction } from "../lib/audit-log";
 import { notifyUser } from "../lib/notify-user";
 import { capture } from "../lib/analytics";
+import { invalidateCommissionOverride } from "../lib/finance";
 import { withdrawalAddressesTable, adminAuditLogTable } from "@workspace/db";
 // Cryptomus removed (content restrictions). The /auto-payout route below
 // is kept as a 410 Gone stub so any cached admin UI / external call gets a
@@ -178,6 +179,10 @@ router.post("/superadmin/commission-overrides", requireSuperAdmin, async (req, r
     })
     .returning();
 
+  // Drop the cached override lookup for this (user, bot) so the next
+  // money-move sees the new rate immediately, not after the 30s TTL.
+  await invalidateCommissionOverride(tid, botSlug);
+
   await logAdminAction(req, "superadmin", {
     action: "commission_override.upsert", targetType: "user", targetId: tid.toString(),
     payload: { botSlug, commissionRate: rate, note: note ?? null },
@@ -198,9 +203,13 @@ router.delete("/superadmin/commission-overrides/:id", requireSuperAdmin, async (
     res.status(404).json({ error: "Not found" });
     return;
   }
+  const deletedRow = result[0];
+  if (deletedRow?.telegramId && deletedRow?.botSlug) {
+    await invalidateCommissionOverride(deletedRow.telegramId, deletedRow.botSlug);
+  }
   await logAdminAction(req, "superadmin", {
     action: "commission_override.delete", targetType: "commission_override", targetId: id,
-    payload: { telegramId: result[0]?.telegramId?.toString?.(), botSlug: result[0]?.botSlug },
+    payload: { telegramId: deletedRow?.telegramId?.toString?.(), botSlug: deletedRow?.botSlug },
   });
   res.json({ ok: true });
 });

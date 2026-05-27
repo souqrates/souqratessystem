@@ -48,7 +48,7 @@ import {
 } from "@workspace/db";
 import { requireSuperAdmin } from "../lib/super-admin-auth";
 import { ObjectStorageService } from "../lib/objectStorage";
-import { getSkzRates } from "../lib/finance";
+import { getSkzRates, getEffectiveCommissionRate } from "../lib/finance";
 
 const router: IRouter = Router();
 const BOT_SLUG = "books-bot";
@@ -132,21 +132,7 @@ function rejectIfBlocked(user: { isBlocked: boolean | null }, res: any): boolean
   return false;
 }
 
-async function getEffectiveCommissionRate(
-  telegramId: bigint,
-  botSlug: string,
-  defaultRate: string | number,
-): Promise<number> {
-  const [override] = await db
-    .select({ rate: commissionOverridesTable.commissionRate })
-    .from(commissionOverridesTable)
-    .where(and(
-      eq(commissionOverridesTable.telegramId, telegramId),
-      eq(commissionOverridesTable.botSlug, botSlug),
-    ))
-    .limit(1);
-  return parseFloat(String(override?.rate ?? defaultRate));
-}
+// getEffectiveCommissionRate is imported from ../lib/finance (cached + DRY).
 
 function getSecret(): string {
   const s = process.env.SESSION_SECRET;

@@ -2,13 +2,14 @@
  * Shared financial helpers used by both /api/internal/* and /api/games/* routes.
  * Keep this file pure DB logic — no Express types.
  */
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   usersTable,
   walletsTable,
   transactionsTable,
   platformSettingsTable,
+  commissionOverridesTable,
 } from "@workspace/db";
 import { cached, cacheDel } from "./cache";
 
@@ -59,6 +60,46 @@ export async function getReferralRates(): Promise<number[]> {
  */
 export async function invalidateFinanceCache(): Promise<void> {
   await cacheDel(CK_SKZ_RATES, CK_REFERRAL_RATES);
+}
+
+// ── Commission override cache ─────────────────────────────────────────
+// We cache ONLY the override-lookup result (per user+bot). The default
+// rate comes from the `bots` row the caller already loaded via
+// requireBot, so editing `bots.commissionRate` takes effect on the next
+// request without any cache flush. Override edits are admin-only and we
+// invalidate explicitly below. TTL is short on purpose: even if an
+// invalidation is missed, the stale window is bounded.
+const CK_COMM_OVERRIDE = (tg: bigint | string | number, slug: string): string =>
+  `fin:comm:${String(tg)}:${slug}`;
+
+export async function getEffectiveCommissionRate(
+  telegramId: bigint,
+  botSlug: string,
+  defaultRate: string | number,
+): Promise<number> {
+  const hit = await cached<{ rate: string | null }>(
+    CK_COMM_OVERRIDE(telegramId, botSlug),
+    30,
+    async () => {
+      const [override] = await db
+        .select({ rate: commissionOverridesTable.commissionRate })
+        .from(commissionOverridesTable)
+        .where(and(
+          eq(commissionOverridesTable.telegramId, telegramId),
+          eq(commissionOverridesTable.botSlug, botSlug),
+        ))
+        .limit(1);
+      return { rate: override?.rate ?? null };
+    },
+  );
+  return parseFloat(String(hit.rate ?? defaultRate));
+}
+
+export async function invalidateCommissionOverride(
+  telegramId: bigint | string | number,
+  botSlug: string,
+): Promise<void> {
+  await cacheDel(CK_COMM_OVERRIDE(telegramId, botSlug));
 }
 
 /**

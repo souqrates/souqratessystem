@@ -16,7 +16,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { perUserCreateLimiter } from "../lib/rate-limit";
-import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
+import { getSkzRates, getReferralRates, distributeReferralBonuses, getEffectiveCommissionRate } from "../lib/finance";
 import { normalizeTiers } from "../lib/game-tiers";
 import {
   readIdempotencyKey,
@@ -201,26 +201,6 @@ router.post("/internal/wallets/transfer-referral", async (req, res): Promise<voi
 // ── Effective settings helpers (panel → live) ──────────────────────────────
 // Every financial route uses these so any change made in the super-admin
 // panel takes effect on the very next request — no restart, no cache.
-
-/**
- * Returns the effective commission rate for a (user, bot) pair.
- * Per-user override in `commission_overrides` wins over the bot's default.
- */
-async function getEffectiveCommissionRate(
-  telegramId: bigint,
-  botSlug: string,
-  defaultRate: string | number,
-): Promise<number> {
-  const [override] = await db
-    .select({ rate: commissionOverridesTable.commissionRate })
-    .from(commissionOverridesTable)
-    .where(and(
-      eq(commissionOverridesTable.telegramId, telegramId),
-      eq(commissionOverridesTable.botSlug, botSlug),
-    ))
-    .limit(1);
-  return parseFloat(String(override?.rate ?? defaultRate));
-}
 
 /**
  * Rejects the request with 403 if the user is blocked.

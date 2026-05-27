@@ -66,6 +66,7 @@ import {
   dailyFreeVoteUsageTable,
 } from "@workspace/db";
 import { requireSuperAdmin } from "../lib/super-admin-auth";
+import { getEffectiveCommissionRate } from "../lib/finance";
 
 const router: IRouter = Router();
 const BOT_SLUG = "contests-bot";
@@ -102,21 +103,7 @@ async function getContestsBotRecord() {
   return b ?? null;
 }
 
-async function getEffectiveCommissionRate(
-  telegramId: bigint,
-  botSlug: string,
-  defaultRate: string | number,
-): Promise<number> {
-  const [override] = await db
-    .select({ rate: commissionOverridesTable.commissionRate })
-    .from(commissionOverridesTable)
-    .where(and(
-      eq(commissionOverridesTable.telegramId, telegramId),
-      eq(commissionOverridesTable.botSlug, botSlug),
-    ))
-    .limit(1);
-  return parseFloat(String(override?.rate ?? defaultRate));
-}
+// getEffectiveCommissionRate is imported from ../lib/finance (cached + DRY).
 
 function todayUtcStr(): string {
   return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
