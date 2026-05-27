@@ -1,0 +1,159 @@
+# Single-host production stack for SOUQRATES SYSTEM.
+# Run on the Contabo VPS with:  docker compose up -d --build
+# All services share the `souqnet` bridge; only the edge Caddy is publicly
+# exposed on 80/443. Everything else stays internal.
+
+name: souqrates
+
+x-restart: &restart
+  restart: unless-stopped
+
+x-common-env: &common-env
+  TZ: ${TZ:-Asia/Beirut}
+  NODE_ENV: production
+
+networks:
+  souqnet:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+services:
+
+  # ── Edge: TLS + reverse proxy ─────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    <<: *restart
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [souqnet]
+    depends_on:
+      - api
+      - superadmin
+      - books-web
+      - contests-web
+      - games-web
+      - subagents-web
+
+  # ── API server (Express) ──────────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    <<: *restart
+    env_file: .env
+    environment:
+      <<: *common-env
+      PORT: "5000"
+    networks: [souqnet]
+    expose: ["5000"]
+
+  # ── Web artifacts (built static, served by Caddy in-container) ────────
+  superadmin:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+      args: { WEB: superadmin }
+    <<: *restart
+    networks: [souqnet]
+    expose: ["80"]
+
+  books-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+      args: { WEB: books-bot-web }
+    <<: *restart
+    networks: [souqnet]
+    expose: ["80"]
+
+  contests-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+      args: { WEB: contests-bot-web }
+    <<: *restart
+    networks: [souqnet]
+    expose: ["80"]
+
+  games-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+      args: { WEB: games-bot }
+    <<: *restart
+    networks: [souqnet]
+    expose: ["80"]
+
+  subagents-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+      args: { WEB: subagents-bot-web }
+    <<: *restart
+    networks: [souqnet]
+    expose: ["80"]
+    # NOTE: this artifact must exist; see post_migrate TODO if not yet built.
+
+  # ── Telegram bots (Python aiogram, one container each) ────────────────
+  # All bots talk to `api` over the internal docker network.
+  mother-bot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.bot
+      args: { BOT: mother-bot }
+    <<: *restart
+    env_file: .env
+    environment:
+      <<: *common-env
+      API_BASE: http://api:5000
+    networks: [souqnet]
+    depends_on: [api]
+
+  books-bot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.bot
+      args: { BOT: books-bot }
+    <<: *restart
+    env_file: .env
+    environment:
+      <<: *common-env
+      API_BASE: http://api:5000
+    networks: [souqnet]
+    depends_on: [api]
+
+  contests-bot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.bot
+      args: { BOT: contests-bot }
+    <<: *restart
+    env_file: .env
+    environment:
+      <<: *common-env
+      API_BASE: http://api:5000
+    networks: [souqnet]
+    depends_on: [api]
+
+  subagents-bot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.bot
+      args: { BOT: subagents-bot }
+    <<: *restart
+    env_file: .env
+    environment:
+      <<: *common-env
+      API_BASE: http://api:5000
+    networks: [souqnet]
+    depends_on: [api]

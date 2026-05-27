@@ -1,0 +1,29 @@
+# Generic Dockerfile for any of the Python aiogram bots.
+# Pass the bot's directory name via build-arg BOT, e.g. --build-arg BOT=mother-bot.
+
+FROM python:3.11-slim AS base
+ARG BOT
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# install deps first for layer caching
+COPY artifacts/${BOT}/requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+
+# copy bot source
+COPY artifacts/${BOT}/ ./
+# assets (mother-bot ships images, etc.)
+RUN mkdir -p ./assets
+
+# tini = proper PID 1 so Ctrl+C / docker stop work
+RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
+ENTRYPOINT ["tini","--"]
+CMD ["python","src/bot.py"]

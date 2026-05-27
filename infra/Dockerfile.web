@@ -1,0 +1,27 @@
+# Generic Dockerfile for any Vite-built web artifact.
+# Pass the artifact dir via --build-arg WEB=superadmin (or games-bot, etc.).
+# Output is a Caddy image serving the built /dist on port 80.
+
+FROM node:24-alpine AS builder
+ARG WEB
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY artifacts/${WEB}/package.json artifacts/${WEB}/
+COPY lib/ lib/
+COPY scripts/package.json scripts/
+RUN pnpm install --frozen-lockfile --prod=false
+
+COPY tsconfig.base.json tsconfig.json ./
+COPY artifacts/${WEB}/ artifacts/${WEB}/
+RUN pnpm --filter @workspace/api-spec run codegen || true \
+ && pnpm --filter @workspace/api-zod run build || true \
+ && pnpm --filter @workspace/${WEB} run build
+
+# ── runtime: caddy serving static dist ───────────────────────────────────
+FROM caddy:2-alpine AS runtime
+ARG WEB
+COPY --from=builder /app/artifacts/${WEB}/dist /srv
+COPY infra/Caddyfile.web /etc/caddy/Caddyfile
+EXPOSE 80

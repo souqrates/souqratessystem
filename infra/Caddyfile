@@ -1,0 +1,55 @@
+# Edge Caddy on the host — terminates TLS and routes by hostname.
+# Domains come from .env (DOMAIN_*) and resolve via Cloudflare DNS.
+# Caddy auto-issues + renews Let's Encrypt certs.
+
+{
+    email {$ACME_EMAIL}
+    # Use Cloudflare DNS-01 challenge so we don't need port 80 open from the world
+    # (Cloudflare proxy can hide origin). Comment out if you prefer HTTP-01.
+    # acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
+}
+
+# ── API ─────────────────────────────────────────────────────────────────
+{$DOMAIN_API} {
+    encode zstd gzip
+    reverse_proxy api:5000 {
+        health_uri /api/healthz
+        health_interval 30s
+    }
+}
+
+# ── Super-admin panel ──────────────────────────────────────────────────
+{$DOMAIN_ADMIN} {
+    encode zstd gzip
+    reverse_proxy superadmin:80
+}
+
+# ── Mini Apps (subdomains per bot) ─────────────────────────────────────
+{$DOMAIN_BOOKS} {
+    encode zstd gzip
+    reverse_proxy books-web:80
+}
+
+{$DOMAIN_CONTESTS} {
+    encode zstd gzip
+    reverse_proxy contests-web:80
+}
+
+{$DOMAIN_GAMES} {
+    encode zstd gzip
+    reverse_proxy games-web:80
+}
+
+{$DOMAIN_SUBAGENTS} {
+    encode zstd gzip
+    reverse_proxy subagents-web:80
+}
+
+# ── Telegram webhooks (single path on the API, fronted by edge) ────────
+# Telegram requires HTTPS, edge handles TLS, forwards to api container.
+{$DOMAIN_WEBHOOK} {
+    encode zstd gzip
+    @tg path /tg/*
+    reverse_proxy @tg api:5000
+    respond 404
+}

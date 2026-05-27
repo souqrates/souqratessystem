@@ -1,0 +1,39 @@
+# Multi-stage build for @workspace/api-server
+# Builds the whole monorepo so workspace deps resolve, then ships only the API.
+
+FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+# ── deps stage: install with full lockfile for reproducibility ──────────────
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY artifacts/api-server/package.json artifacts/api-server/
+COPY lib/ lib/
+COPY scripts/package.json scripts/
+RUN pnpm install --frozen-lockfile --prod=false
+
+# ── build stage: compile libs + bundle api-server with esbuild ──────────────
+FROM deps AS build
+COPY tsconfig.base.json tsconfig.json ./
+COPY artifacts/api-server/ artifacts/api-server/
+RUN pnpm --filter @workspace/api-spec run codegen || true \
+ && pnpm --filter @workspace/db run build \
+ && pnpm --filter @workspace/api-zod run build || true \
+ && pnpm --filter @workspace/api-server run build
+
+# ── runtime stage: small image, only the built bundle ──────────────────────
+FROM node:24-alpine AS runtime
+RUN apk add --no-cache curl tini
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/artifacts/api-server/dist ./dist
+COPY --from=build /app/artifacts/api-server/package.json ./package.json
+# node_modules used at runtime (pino workers, drizzle, etc.)
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/artifacts/api-server/node_modules ./artifacts-node_modules
+EXPOSE 5000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:5000/api/healthz || exit 1
+ENTRYPOINT ["/sbin/tini","--"]
+CMD ["node","--enable-source-maps","./dist/index.mjs"]
