@@ -49,7 +49,7 @@ router.get("/superadmin/subagents", requireSuperAdmin, async (req, res): Promise
 
 // ── GET /api/superadmin/subagents/:id — full detail (incl. ID photo) ──────
 router.get("/superadmin/subagents/:id", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const [agent] = await db.select().from(subAgentsTable).where(eq(subAgentsTable.id, id));
   if (!agent) { res.status(404).json({ error: "not_found" }); return; }
@@ -76,7 +76,7 @@ router.get("/superadmin/subagents/:id", requireSuperAdmin, async (req, res): Pro
 
 // ── GET /api/superadmin/subagents/:id/id-photo — streams private ID photo ─
 router.get("/superadmin/subagents/:id/id-photo", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const [agent] = await db.select({ idPhotoPath: subAgentsTable.idPhotoPath })
     .from(subAgentsTable).where(eq(subAgentsTable.id, id));
@@ -107,7 +107,7 @@ router.get("/superadmin/subagents/:id/id-photo", requireSuperAdmin, async (req, 
 
 // ── POST /api/superadmin/subagents/:id/approve ────────────────────────────
 router.post("/superadmin/subagents/:id/approve", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const [agent] = await db.select().from(subAgentsTable).where(eq(subAgentsTable.id, id));
   if (!agent) { res.status(404).json({ error: "not_found" }); return; }
@@ -132,10 +132,10 @@ router.post("/superadmin/subagents/:id/approve", requireSuperAdmin, async (req, 
     action: "subagent.approve", targetType: "subagent", targetId: String(id),
   });
   try {
-    await notifyUser({
-      telegramId: String(agent.telegramId),
-      text: `🎉 تهانينا! تمّت الموافقة على طلبك في برنامج SOUQRATES SUB-AGENTS. افتح البوت لاستلام لوحة الشريك.`,
-    });
+    await notifyUser(
+      String(agent.telegramId),
+      `🎉 تهانينا! تمّت الموافقة على طلبك في برنامج SOUQRATES SUB-AGENTS. افتح البوت لاستلام لوحة الشريك.`,
+    );
   } catch (e) { req.log.warn({ err: e }, "subagent approve notify failed"); }
   res.json({ ok: true, agent: { ...updated, telegramId: String(updated.telegramId) } });
 });
@@ -143,7 +143,7 @@ router.post("/superadmin/subagents/:id/approve", requireSuperAdmin, async (req, 
 // ── POST /api/superadmin/subagents/:id/reject ─────────────────────────────
 const rejectSchema = z.object({ reason: z.string().min(1).max(500) });
 router.post("/superadmin/subagents/:id/reject", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const parsed = rejectSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "reason required" }); return; }
@@ -160,17 +160,17 @@ router.post("/superadmin/subagents/:id/reject", requireSuperAdmin, async (req, r
     payload: { reason: parsed.data.reason },
   });
   try {
-    await notifyUser({
-      telegramId: String(agent.telegramId),
-      text: `للأسف، لم يتم قبول طلبك حالياً. السبب: ${parsed.data.reason}\nيمكنك تحديث بياناتك وإعادة التقديم.`,
-    });
+    await notifyUser(
+      String(agent.telegramId),
+      `للأسف، لم يتم قبول طلبك حالياً. السبب: ${parsed.data.reason}\nيمكنك تحديث بياناتك وإعادة التقديم.`,
+    );
   } catch (e) { req.log.warn({ err: e }, "subagent reject notify failed"); }
   res.json({ ok: true, agent: { ...updated, telegramId: String(updated.telegramId) } });
 });
 
 // ── POST /api/superadmin/subagents/:id/suspend ────────────────────────────
 router.post("/superadmin/subagents/:id/suspend", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const [updated] = await db.update(subAgentsTable).set({
     status: "suspended",
@@ -182,7 +182,7 @@ router.post("/superadmin/subagents/:id/suspend", requireSuperAdmin, async (req, 
 
 // ── POST /api/superadmin/subagents/:id/recompute-tier ─────────────────────
 router.post("/superadmin/subagents/:id/recompute-tier", requireSuperAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
   const newTier = await recomputeTier(id);
   res.json({ ok: true, tierLevel: newTier });
@@ -204,7 +204,7 @@ const tierUpdateSchema = z.object({
 });
 
 router.put("/superadmin/subagent-tiers/:level", requireSuperAdmin, async (req, res): Promise<void> => {
-  const level = parseInt(req.params.level, 10);
+  const level = parseInt(String(req.params.level), 10);
   if (!Number.isFinite(level) || level < 1 || level > 7) {
     res.status(400).json({ error: "level must be 1..7" }); return;
   }

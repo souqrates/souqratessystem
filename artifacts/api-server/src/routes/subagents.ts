@@ -79,6 +79,10 @@ function requireTelegramAuth(req: Request, res: Response, next: NextFunction): v
 }
 
 // ── Schemas ────────────────────────────────────────────────────────────────
+// idPhotoPath must point inside the private namespace issued by
+// /subagents/id-photo-upload-url — refuses arbitrary paths so a malicious
+// applicant can't reference some other private object as their "ID".
+const ID_PHOTO_PATH_PREFIX = "/objects/subagents/id-photos/";
 const applyBodySchema = z.object({
   fullName: z.string().min(2).max(120),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "dob must be YYYY-MM-DD"),
@@ -86,7 +90,12 @@ const applyBodySchema = z.object({
   phone: z.string().min(5).max(40),
   email: z.string().email().nullish(),
   address: z.string().min(5).max(500),
-  idPhotoPath: z.string().min(1).max(400),
+  idPhotoPath: z.string()
+    .min(ID_PHOTO_PATH_PREFIX.length + 1)
+    .max(400)
+    .refine((p) => p.startsWith(ID_PHOTO_PATH_PREFIX), {
+      message: `idPhotoPath must start with ${ID_PHOTO_PATH_PREFIX}`,
+    }),
 });
 
 const sellBodySchema = z.object({
@@ -102,13 +111,19 @@ function maskTelegramId(tg: bigint): string {
 }
 
 // ── GET /api/internal/subagent-status — bot-key auth, used by Python bot ─
-// (Mounted under /api directly since internal.ts middleware is per-route here.)
+// Restricted to subagents-bot and mother-bot slugs (cross-bot reads denied).
+// Returns a MINIMAL status DTO only — never raw KYC PII (DOB/phone/email/
+// address/idPhotoPath). KYC is admin-only via /api/superadmin/subagents/:id.
+const ALLOWED_STATUS_BOTS = new Set(["subagents-bot", "mother-bot"]);
 router.get("/internal/subagent-status", async (req, res): Promise<void> => {
   const apiKey = req.headers["x-bot-api-key"] as string | undefined;
   if (!apiKey) { res.status(401).json({ error: "missing X-Bot-Api-Key" }); return; }
   const { botsTable } = await import("@workspace/db");
   const [bot] = await db.select().from(botsTable).where(eq(botsTable.apiKey, apiKey));
   if (!bot) { res.status(403).json({ error: "invalid bot key" }); return; }
+  if (!ALLOWED_STATUS_BOTS.has(bot.slug)) {
+    res.status(403).json({ error: "bot_not_authorised_for_subagent_status" }); return;
+  }
   const telegramIdStr = String(req.query.telegramId ?? "");
   if (!/^\d+$/.test(telegramIdStr)) { res.status(400).json({ error: "bad telegramId" }); return; }
   const tg = BigInt(telegramIdStr);
@@ -117,10 +132,19 @@ router.get("/internal/subagent-status", async (req, res): Promise<void> => {
   const [tier] = agent.tierLevel
     ? await db.select().from(subAgentTiersTable).where(eq(subAgentTiersTable.level, agent.tierLevel))
     : [null];
+  // Minimal DTO — only non-PII operational fields the bot needs.
   res.json({
     status: agent.status,
-    agent: { ...agent, telegramId: String(agent.telegramId), idPhotoPath: undefined },
-    tier,
+    agent: {
+      id: agent.id,
+      telegramId: String(agent.telegramId),
+      status: agent.status,
+      tierLevel: agent.tierLevel,
+      totalSalesSkz: agent.totalSalesSkz,
+      totalCustomers: agent.totalCustomers,
+      rejectedReason: agent.status === "rejected" ? agent.rejectedReason : null,
+    },
+    tier: tier ? { level: tier.level, name: tier.name, color: tier.color, discountRate: tier.discountRate } : null,
   });
 });
 
@@ -251,15 +275,54 @@ router.post("/subagents/sell", requireTelegramAuth, async (req, res): Promise<vo
   const [customer] = await db.select().from(usersTable).where(eq(usersTable.telegramId, customerTg));
   if (!agentUser) { res.status(404).json({ error: "agent_user_not_found" }); return; }
   if (!customer) { res.status(404).json({ error: "customer_not_found_in_platform" }); return; }
+  // Block check on BOTH parties — a blocked agent must not move money either.
+  if (agentUser.isBlocked) { res.status(403).json({ error: "agent_blocked" }); return; }
   if (customer.isBlocked) { res.status(403).json({ error: "customer_blocked" }); return; }
 
   const amt = parseFloat(skzAmount.toFixed(2));
 
-  // Atomic transfer: debit agent (guarded), credit customer, write 2 tx rows,
-  // log sale, update agent aggregates — all in one DB transaction.
+  // Optional idempotency key (header). When provided, a replay returns the
+  // original sale instead of double-charging the agent.
+  const rawIdem = (req.headers["x-idempotency-key"] as string | undefined)?.trim();
+  const idemKey = rawIdem && /^[\w.\-:]{8,128}$/.test(rawIdem) ? rawIdem : null;
+  if (idemKey) {
+    const [existing] = await db.select().from(subAgentSalesTable).where(and(
+      eq(subAgentSalesTable.subAgentId, agent.id),
+      eq(subAgentSalesTable.idempotencyKey, idemKey),
+    ));
+    if (existing) {
+      const [aw] = await db.select().from(walletsTable).where(eq(walletsTable.userId, agentUser.id));
+      const [a2] = await db.select().from(subAgentsTable).where(eq(subAgentsTable.id, agent.id));
+      res.json({
+        ok: true, replayed: true, soldSkz: parseFloat(existing.skzAmount),
+        agentBalanceSkz: aw?.balanceSkz, totalSalesSkz: a2?.totalSalesSkz,
+        totalCustomers: a2?.totalCustomers,
+      });
+      return;
+    }
+  }
+
+  // Atomic transfer: lock agent row → check new-customer BEFORE insert →
+  // debit agent (guarded), credit customer, write 2 tx rows, log sale,
+  // update agent aggregates — all in one DB transaction.
   let result;
   try {
     result = await db.transaction(async (tx) => {
+      // Serialise concurrent sells for the SAME agent by taking a row lock.
+      // Eliminates the new-customer-count race (post-insert count was wrong
+      // when two sells to the same new customer landed concurrently).
+      await tx.execute(sql`SELECT id FROM sub_agents WHERE id = ${agent.id} FOR UPDATE`);
+
+      // New-customer detection — safe to do BEFORE insert thanks to row lock.
+      const [prior] = await tx
+        .select({ c: sql<number>`count(*)::int` })
+        .from(subAgentSalesTable)
+        .where(and(
+          eq(subAgentSalesTable.subAgentId, agent.id),
+          eq(subAgentSalesTable.customerTelegramId, customerTg),
+        ));
+      const isNewCustomer = (prior?.c ?? 0) === 0;
+
       // Debit agent SKZ (guarded — refuses if insufficient)
       const [agentWallet] = await tx
         .update(walletsTable)
@@ -309,24 +372,15 @@ router.post("/subagents/sell", requireTelegramAuth, async (req, res): Promise<vo
         metadata: JSON.stringify({ action: "subagent_receive", agentId: agent.id }),
       });
 
-      // Sale log + agent aggregates
+      // Sale log (carries idempotency key — unique per agent when set).
       await tx.insert(subAgentSalesTable).values({
         subAgentId: agent.id,
         customerTelegramId: customerTg,
         skzAmount: String(amt),
         transactionId: debit.id,
         note: note ?? null,
+        idempotencyKey: idemKey,
       });
-
-      // Was this customer new for this agent?
-      const [prior] = await tx
-        .select({ c: sql<number>`count(*)::int` })
-        .from(subAgentSalesTable)
-        .where(and(
-          eq(subAgentSalesTable.subAgentId, agent.id),
-          eq(subAgentSalesTable.customerTelegramId, customerTg),
-        ));
-      const isNewCustomer = (prior?.c ?? 0) <= 1; // we just inserted one
 
       const [updatedAgent] = await tx.update(subAgentsTable).set({
         totalSalesSkz: sql`${subAgentsTable.totalSalesSkz} + ${amt}`,
@@ -338,12 +392,29 @@ router.post("/subagents/sell", requireTelegramAuth, async (req, res): Promise<vo
       return { agentWallet, customerWallet, updatedAgent };
     });
   } catch (err) {
-    const e = err as Error;
+    const e = err as Error & { code?: string };
     if (e.message === "INSUFFICIENT") {
       res.status(400).json({ error: "insufficient_skz" }); return;
     }
     if (e.message === "CUSTOMER_NO_WALLET") {
       res.status(404).json({ error: "customer_wallet_not_initialised" }); return;
+    }
+    // Idempotency-key race: another request with the same key won the insert.
+    if (e.code === "23505" && idemKey) {
+      const [existing] = await db.select().from(subAgentSalesTable).where(and(
+        eq(subAgentSalesTable.subAgentId, agent.id),
+        eq(subAgentSalesTable.idempotencyKey, idemKey),
+      ));
+      if (existing) {
+        const [aw] = await db.select().from(walletsTable).where(eq(walletsTable.userId, agentUser.id));
+        const [a2] = await db.select().from(subAgentsTable).where(eq(subAgentsTable.id, agent.id));
+        res.json({
+          ok: true, replayed: true, soldSkz: parseFloat(existing.skzAmount),
+          agentBalanceSkz: aw?.balanceSkz, totalSalesSkz: a2?.totalSalesSkz,
+          totalCustomers: a2?.totalCustomers,
+        });
+        return;
+      }
     }
     req.log.error({ err }, "subagent sell failed");
     res.status(500).json({ error: "internal" }); return;
@@ -392,15 +463,19 @@ export async function recomputeTier(agentId: number): Promise<number | null> {
   const tiers = await db.select().from(subAgentTiersTable).orderBy(desc(subAgentTiersTable.level));
   const sales = parseFloat(agent.totalSalesSkz);
   const customers = agent.totalCustomers;
+  let qualifies: number | null = null;
   for (const t of tiers) {
     if (sales >= parseFloat(t.minSalesSkz) && customers >= t.minCustomers) {
-      if (agent.tierLevel !== t.level) {
-        await db.update(subAgentsTable).set({ tierLevel: t.level }).where(eq(subAgentsTable.id, agentId));
-      }
-      return t.level;
+      qualifies = t.level;
+      break;
     }
   }
-  return null;
+  // Persist EVERY change, including downgrades to null (e.g. when admin
+  // raises tier thresholds and the agent no longer qualifies).
+  if (agent.tierLevel !== qualifies) {
+    await db.update(subAgentsTable).set({ tierLevel: qualifies }).where(eq(subAgentsTable.id, agentId));
+  }
+  return qualifies;
 }
 
 export default router;

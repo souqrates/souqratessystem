@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -135,6 +136,7 @@ export const subAgentSalesTable = pgTable(
     // Link to the canonical transactions ledger row (debit on agent)
     transactionId: integer("transaction_id"),
     note: text("note"),
+    idempotencyKey: text("idempotency_key"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -142,6 +144,9 @@ export const subAgentSalesTable = pgTable(
   (t) => ({
     idxAgent: index("sub_agent_sales_agent_idx").on(t.subAgentId),
     idxCustomer: index("sub_agent_sales_customer_idx").on(t.customerTelegramId),
+    uniqIdem: uniqueIndex("sub_agent_sales_agent_idem_uniq")
+      .on(t.subAgentId, t.idempotencyKey)
+      .where(sql`${t.idempotencyKey} IS NOT NULL`),
   }),
 );
 export type SubAgentSale = typeof subAgentSalesTable.$inferSelect;
