@@ -5,6 +5,7 @@ import { Users, Copy, Share2, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox } from "../components/icons";
 import { useT, useLang } from "../lib/i18n";
+import { showTelegramAlert } from "../lib/telegram";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
 const fadeUp = {
@@ -35,9 +36,7 @@ export function Referral() {
     navigator.clipboard.writeText(refLink).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
-    if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: t("referral.copied") });
-    }
+    showTelegramAlert(t("referral.copied"));
   };
 
   const handleShare = () => {

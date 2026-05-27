@@ -3,13 +3,18 @@ import { MOCK_USER } from "./mock-data";
 export function showTelegramAlert(message: string) {
   if (typeof window === "undefined") return;
   const wa = window.Telegram?.WebApp;
+  // showAlert/showPopup exist as functions even on Telegram WebApp 6.0
+  // (the preview iframe), where they throw a non-Error rejection
+  // "Method ... is not supported in version 6.0". Truthy-checking the
+  // function is not enough — wrap each attempt in try/catch and fall
+  // through to the next option, ending with browser alert().
   if (wa?.showAlert) {
-    wa.showAlert(message);
-  } else if (wa?.showPopup) {
-    wa.showPopup({ message });
-  } else {
-    alert(message);
+    try { wa.showAlert(message); return; } catch { /* fall through */ }
   }
+  if (wa?.showPopup) {
+    try { wa.showPopup({ message }); return; } catch { /* fall through */ }
+  }
+  try { alert(message); } catch { /* ignore */ }
   try { wa?.HapticFeedback?.impactOccurred?.("light"); } catch { /* ignore */ }
 }
 

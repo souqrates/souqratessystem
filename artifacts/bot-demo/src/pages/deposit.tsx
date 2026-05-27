@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePlatformSettings } from "../lib/use-platform-settings";
 import { IconBox, CURRENCY_ICONS } from "../components/icons";
 import { useT, useLang } from "../lib/i18n";
+import { showTelegramAlert } from "../lib/telegram";
 
 // Brand glyphs — inline SVGs (monochrome, currentColor). Kept here so
 // we don't pull in an icon-pack dependency just for two logos.
@@ -64,9 +65,7 @@ export function Deposit() {
     navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    if (window.Telegram?.WebApp?.showPopup) {
-      window.Telegram.WebApp.showPopup({ message: t("deposit.copied") });
-    }
+    showTelegramAlert(t("deposit.copied"));
   };
 
   const rate = currency === "ton" ? settings.skzPerTon : settings.skzPerUsdt;
@@ -313,9 +312,8 @@ export function Deposit() {
             <motion.button disabled={!canSubmitCrypto} whileTap={{ scale: canSubmitCrypto ? 0.97 : 1 }}
               onClick={() => {
                 if (!canSubmitCrypto) return;
-                const wa = window.Telegram?.WebApp;
                 const msg = t("deposit.confirmAlert", { amount, sym: currency.toUpperCase(), skz: skzPreview?.toLocaleString() ?? "" });
-                if (wa?.showAlert) wa.showAlert(msg); else alert(msg);
+                showTelegramAlert(msg);
               }}
               className="w-full py-4 rounded-2xl font-black text-base text-white"
               style={{
