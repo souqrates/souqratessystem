@@ -84,7 +84,7 @@ export const BOT_ICONS: Record<string, { iconKey: string; color: string; glow: s
   Souq:   { iconKey: "book",    color: "#c9a24b", glow: "rgba(201,162,75,0.3)", bg: "linear-gradient(135deg,rgba(201,162,75,0.2),rgba(184,137,58,0.08))"  },
   Scene:  { iconKey: "film",    color: "#60a5fa", glow: "rgba(96,165,250,0.3)", bg: "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.08))"  },
   Stream: { iconKey: "mic",     color: "#22d3ee", glow: "rgba(34,211,238,0.3)", bg: "linear-gradient(135deg,rgba(6,182,212,0.2),rgba(6,182,212,0.08))"   },
-  Signal: { iconKey: "bot",     color: "#8b5cf6", glow: "rgba(139,92,246,0.3)", bg: "linear-gradient(135deg,rgba(109,40,217,0.2),rgba(109,40,217,0.08))" },
+  SubAgents: { iconKey: "crown", color: "#D4AF37", glow: "rgba(212,175,55,0.35)", bg: "linear-gradient(135deg,rgba(212,175,55,0.22),rgba(184,148,31,0.08))" },
   Stage:  { iconKey: "trophy",  color: "#f59e0b", glow: "rgba(245,158,11,0.3)", bg: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08))" },
 };
 
@@ -134,7 +134,7 @@ export const TX_ICONS: Record<string, { iconKey: string; color: string }> = {
   Souq:     { iconKey: "book",     color: "#c9a24b" },
   Scene:    { iconKey: "film",     color: "#60a5fa" },
   Stream:   { iconKey: "mic",      color: "#22d3ee" },
-  Signal:   { iconKey: "bot",      color: "#8b5cf6" },
+  SubAgents: { iconKey: "crown",   color: "#D4AF37" },
   Stage:    { iconKey: "trophy",   color: "#f59e0b" },
   Withdraw: { iconKey: "upload",   color: "#f87171" },
   Deposit:  { iconKey: "download", color: "#a855f7" },

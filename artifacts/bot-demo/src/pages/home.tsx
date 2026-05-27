@@ -22,7 +22,7 @@ const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: 
   { name: "Souq",   brand: "SOUQRATES SOUQ",   short: "SOUQ",   live: true, url: "https://souqrates.com/books-bot-web/" },
   { name: "Scene",  brand: "SOUQRATES SCENE",  short: "SCENE"  },
   { name: "Stream", brand: "SOUQRATES STREAM", short: "STREAM" },
-  { name: "Signal", brand: "SOUQRATES SIGNAL", short: "SIGNAL" },
+  { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS", short: "SUB-AGENTS", live: true, url: "/subagents" },
   { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE",  live: true, url: "https://souqrates.com/contests-bot-web/" },
 ];
 
@@ -208,6 +208,11 @@ export function Home() {
                 whileTap={{ scale: 0.93 }}
                 onClick={() => {
                   if (bot.live && bot.url) {
+                    // Relative path → in-app navigation (e.g. "/subagents").
+                    if (bot.url.startsWith("/")) {
+                      window.location.href = bot.url;
+                      return;
+                    }
                     try {
                       const target = new URL(bot.url);
                       if (target.origin === window.location.origin) {
