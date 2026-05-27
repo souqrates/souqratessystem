@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/YOUR_GH_ORG/souqrates.git}"
+REPO_URL="${REPO_URL:-https://github.com/souqrates/souqratessystem.git}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 APP_USER="souqrates"
 APP_HOME="/opt/souqrates"

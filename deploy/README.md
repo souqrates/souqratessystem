@@ -73,7 +73,7 @@ api-server                                 ┌─ 8101 mother-bot
 ssh root@194.163.155.52
 
 # سحب الكود مؤقتاً فقط لتشغيل install.sh
-git clone --depth=1 https://github.com/YOUR_ORG/souqrates.git /tmp/repo
+git clone --depth=1 https://github.com/souqrates/souqratessystem.git /tmp/repo
 bash /tmp/repo/deploy/scripts/install.sh
 # (السكربت سيكرّر الـ clone لمكانه النهائي /opt/souqrates/repo)
 ```
