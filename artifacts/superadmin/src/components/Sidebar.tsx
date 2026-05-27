@@ -129,6 +129,14 @@ export default function Sidebar() {
           sub="7 مراتب + نسب الخصومات"
           color="#D4AF37"
         />
+        <SidebarLink
+          href="/bots/subagents-bot"
+          active={location === "/bots/subagents-bot"}
+          icon="💰"
+          label="اقتصاد بوت الشركاء"
+          sub="عمولة، إعدادات عامة"
+          color="#D4AF37"
+        />
 
         {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>

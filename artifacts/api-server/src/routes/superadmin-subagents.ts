@@ -180,6 +180,53 @@ router.post("/superadmin/subagents/:id/suspend", requireSuperAdmin, async (req, 
   res.json({ ok: true });
 });
 
+// ── POST /api/superadmin/subagents/:id/reactivate ─────────────────────────
+// Reverse a suspension (or re-approve a rejected agent). Sets status back
+// to "approved" and re-derives the tier so cached aggregates stay honest.
+router.post("/superadmin/subagents/:id/reactivate", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
+  const [agent] = await db.select().from(subAgentsTable).where(eq(subAgentsTable.id, id));
+  if (!agent) { res.status(404).json({ error: "not_found" }); return; }
+  if (agent.status === "approved") { res.json({ ok: true, alreadyApproved: true }); return; }
+  await db.update(subAgentsTable).set({
+    status: "approved",
+    rejectedAt: null,
+    rejectedReason: null,
+  }).where(eq(subAgentsTable.id, id));
+  const newTier = await recomputeTier(id);
+  await logAdminAction(req, "superadmin", {
+    action: "subagent.reactivate", targetType: "subagent", targetId: String(id),
+    payload: { previousStatus: agent.status, tierLevel: newTier },
+  });
+  try {
+    await notifyUser(
+      String(agent.telegramId),
+      `✅ تم إعادة تفعيل حسابك في برنامج SOUQRATES SUB-AGENTS. لوحتك متاحة الآن.`,
+    );
+  } catch (e) { req.log.warn({ err: e }, "subagent reactivate notify failed"); }
+  res.json({ ok: true, tierLevel: newTier });
+});
+
+// ── PATCH /api/superadmin/subagents/:id/notes ─────────────────────────────
+// Admin-only freeform notes about the agent (not visible to the agent).
+const notesSchema = z.object({ notes: z.string().max(2000) });
+router.patch("/superadmin/subagents/:id/notes", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "bad id" }); return; }
+  const parsed = notesSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "notes must be a string" }); return; }
+  const [updated] = await db.update(subAgentsTable)
+    .set({ notes: parsed.data.notes })
+    .where(eq(subAgentsTable.id, id))
+    .returning();
+  if (!updated) { res.status(404).json({ error: "not_found" }); return; }
+  await logAdminAction(req, "superadmin", {
+    action: "subagent.notes.update", targetType: "subagent", targetId: String(id),
+  });
+  res.json({ ok: true });
+});
+
 // ── POST /api/superadmin/subagents/:id/recompute-tier ─────────────────────
 router.post("/superadmin/subagents/:id/recompute-tier", requireSuperAdmin, async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);

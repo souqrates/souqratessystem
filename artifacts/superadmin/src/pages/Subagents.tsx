@@ -114,7 +114,7 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
   const [reason, setReason] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["superadmin", "subagent", id],
-    queryFn: () => api.get<{ agent: SubAgent & { dob: string; address: string }; tier: { name: string } | null; sales: Array<{ id: number; customerTelegramId: string; skzAmount: string; createdAt: string }>; wallet: { balanceSkz: string } | null }>(`/superadmin/subagents/${id}`),
+    queryFn: () => api.get<{ agent: SubAgent & { dob: string; address: string; notes: string | null }; tier: { name: string } | null; sales: Array<{ id: number; customerTelegramId: string; skzAmount: string; createdAt: string }>; wallet: { balanceSkz: string } | null }>(`/superadmin/subagents/${id}`),
   });
 
   const approve = useMutation({
@@ -131,6 +131,14 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
   });
   const recompute = useMutation({
     mutationFn: () => api.post(`/superadmin/subagents/${id}/recompute-tier`, {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "subagent", id] }); },
+  });
+  const reactivate = useMutation({
+    mutationFn: () => api.post(`/superadmin/subagents/${id}/reactivate`, {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "subagents"] }); qc.invalidateQueries({ queryKey: ["superadmin", "subagent", id] }); },
+  });
+  const saveNotes = useMutation({
+    mutationFn: (notes: string) => api.patch(`/superadmin/subagents/${id}/notes`, { notes }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "subagent", id] }); },
   });
 
@@ -197,7 +205,19 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
             </button>
           </>
         )}
+        {(a.status === "suspended" || a.status === "rejected") && (
+          <button onClick={() => reactivate.mutate()} disabled={reactivate.isPending}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm disabled:opacity-50">
+            ♻️ إعادة تفعيل الحساب
+          </button>
+        )}
       </div>
+
+      <NotesEditor
+        initial={a.notes ?? ""}
+        onSave={(v) => saveNotes.mutate(v)}
+        isSaving={saveNotes.isPending}
+      />
 
       <div className="text-xs">
         <div className="font-bold text-slate-700 mb-2">آخر {data.sales.length} عمليات بيع</div>
@@ -209,6 +229,27 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function NotesEditor({ initial, onSave, isSaving }: { initial: string; onSave: (v: string) => void; isSaving: boolean }) {
+  const [val, setVal] = useState(initial);
+  const dirty = val !== initial;
+  return (
+    <div className="text-xs mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-bold text-amber-800">📝 ملاحظات داخلية (لا تظهر للشريك)</div>
+        {dirty && (
+          <button onClick={() => onSave(val)} disabled={isSaving}
+                  className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md disabled:opacity-50">
+            حفظ
+          </button>
+        )}
+      </div>
+      <textarea value={val} onChange={(e) => setVal(e.target.value)} rows={3}
+                placeholder="ملاحظات للفريق فقط…"
+                className="w-full px-2 py-1.5 text-sm border border-amber-200 rounded bg-white" />
     </div>
   );
 }
