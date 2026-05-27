@@ -427,6 +427,142 @@ export interface StatsOverview {
   skzRates: SkzRates;
 }
 
+export interface SubAgentTier {
+  level: number;
+  name: string;
+  color: string;
+  minSalesSkz: string;
+  minCustomers: number;
+  discountRate: string;
+  perks: string[];
+  updatedAt?: string;
+}
+
+export interface SubAgentTiersResponse {
+  data: SubAgentTier[];
+}
+
+export interface SubAgentRecord {
+  id: number;
+  telegramId: string;
+  fullName: string;
+  country: string;
+  phone: string;
+  /** @nullable */
+  email?: string | null;
+  /** pending | approved | rejected | suspended */
+  status: string;
+  /** @nullable */
+  tierLevel?: number | null;
+  totalSalesSkz: string;
+  totalCustomers: number;
+  /** @nullable */
+  approvedAt?: string | null;
+  /** @nullable */
+  rejectedAt?: string | null;
+  /** @nullable */
+  rejectedReason?: string | null;
+  createdAt: string;
+}
+
+export interface SubAgentWallet {
+  balanceSkz: string;
+  balanceUsdt?: string;
+  balanceStars?: string;
+  balanceTon?: string;
+  totalEarnedSkz?: string;
+}
+
+export interface SubAgentMeResponse {
+  /** not_applied | pending | approved | rejected | suspended */
+  status: string;
+  agent?: SubAgentRecord | null;
+  tier?: SubAgentTier | null;
+  wallet?: SubAgentWallet | null;
+}
+
+export interface SubAgentApplyInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  fullName: string;
+  /** YYYY-MM-DD */
+  dob: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  country: string;
+  /**
+     * @minLength 5
+     * @maxLength 40
+     */
+  phone: string;
+  /** @nullable */
+  email?: string | null;
+  /**
+     * @minLength 5
+     * @maxLength 500
+     */
+  address: string;
+  /** Must start with /objects/subagents/id-photos/ */
+  idPhotoPath: string;
+}
+
+export interface SubAgentApplyResponse {
+  ok: boolean;
+  status: string;
+  id: number;
+}
+
+export interface SubAgentSellInput {
+  /** Numeric Telegram ID of the customer */
+  customerTelegramId: string;
+  skzAmount: number;
+  /** @maxLength 200 */
+  note?: string;
+}
+
+export interface SubAgentSellResponse {
+  ok: boolean;
+  replayed?: boolean;
+  soldSkz: number;
+  agentBalanceSkz?: string;
+  totalSalesSkz?: string;
+  totalCustomers?: number;
+}
+
+export interface SubAgentSale {
+  id: number;
+  subAgentId: number;
+  customerTelegramId: string;
+  customerMasked: string;
+  skzAmount: string;
+  /** @nullable */
+  transactionId?: number | null;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface SubAgentSalesResponse {
+  data: SubAgentSale[];
+}
+
+export interface IdPhotoUploadInput {
+  /** image/jpeg | image/png | image/webp */
+  contentType: string;
+  /** Max 8 MB */
+  sizeBytes: number;
+}
+
+export interface IdPhotoUploadResponse {
+  uploadUrl: string;
+  /** Pass back as idPhotoPath when applying */
+  objectPath: string;
+}
+
 export type ListUsersParams = {
 page?: number;
 limit?: number;

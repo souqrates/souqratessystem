@@ -40,6 +40,8 @@ import type {
   GameValidateResultBody,
   GameValidateResultResponse,
   HealthStatus,
+  IdPhotoUploadInput,
+  IdPhotoUploadResponse,
   InternalBalanceResponse,
   InternalGetLedgerParams,
   InternalLedgerResponse,
@@ -57,6 +59,13 @@ import type {
   StarsInvoiceBody,
   StarsInvoiceResponse,
   StatsOverview,
+  SubAgentApplyInput,
+  SubAgentApplyResponse,
+  SubAgentMeResponse,
+  SubAgentSalesResponse,
+  SubAgentSellInput,
+  SubAgentSellResponse,
+  SubAgentTiersResponse,
   TonDepositIntentBody,
   TonDepositIntentResponse,
   TransactionListResponse,
@@ -2407,4 +2416,448 @@ export function useGetStatsOverview<TData = Awaited<ReturnType<typeof getStatsOv
 
 
 
+
+export const getGetSubAgentTiersUrl = () => {
+
+
+
+
+  return `/api/subagents/tiers`
+}
+
+/**
+ * @summary List the 7-tier ladder (public)
+ */
+export const getSubAgentTiers = async ( options?: RequestInit): Promise<SubAgentTiersResponse> => {
+
+  return customFetch<SubAgentTiersResponse>(getGetSubAgentTiersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubAgentTiersQueryKey = () => {
+    return [
+    `/api/subagents/tiers`
+    ] as const;
+    }
+
+
+export const getGetSubAgentTiersQueryOptions = <TData = Awaited<ReturnType<typeof getSubAgentTiers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentTiers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubAgentTiersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubAgentTiers>>> = ({ signal }) => getSubAgentTiers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubAgentTiers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubAgentTiersQueryResult = NonNullable<Awaited<ReturnType<typeof getSubAgentTiers>>>
+export type GetSubAgentTiersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the 7-tier ladder (public)
+ */
+
+export function useGetSubAgentTiers<TData = Awaited<ReturnType<typeof getSubAgentTiers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentTiers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubAgentTiersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSubAgentMeUrl = () => {
+
+
+
+
+  return `/api/subagents/me`
+}
+
+/**
+ * @summary Current applicant/agent state (requires Telegram initData)
+ */
+export const getSubAgentMe = async ( options?: RequestInit): Promise<SubAgentMeResponse> => {
+
+  return customFetch<SubAgentMeResponse>(getGetSubAgentMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubAgentMeQueryKey = () => {
+    return [
+    `/api/subagents/me`
+    ] as const;
+    }
+
+
+export const getGetSubAgentMeQueryOptions = <TData = Awaited<ReturnType<typeof getSubAgentMe>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubAgentMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubAgentMe>>> = ({ signal }) => getSubAgentMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubAgentMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubAgentMeQueryResult = NonNullable<Awaited<ReturnType<typeof getSubAgentMe>>>
+export type GetSubAgentMeQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current applicant/agent state (requires Telegram initData)
+ */
+
+export function useGetSubAgentMe<TData = Awaited<ReturnType<typeof getSubAgentMe>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubAgentMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getApplySubAgentUrl = () => {
+
+
+
+
+  return `/api/subagents/apply`
+}
+
+/**
+ * @summary Submit KYC application
+ */
+export const applySubAgent = async (subAgentApplyInput: SubAgentApplyInput, options?: RequestInit): Promise<SubAgentApplyResponse> => {
+
+  return customFetch<SubAgentApplyResponse>(getApplySubAgentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      subAgentApplyInput,)
+  }
+);}
+
+
+
+
+export const getApplySubAgentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applySubAgent>>, TError,{data: BodyType<SubAgentApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applySubAgent>>, TError,{data: BodyType<SubAgentApplyInput>}, TContext> => {
+
+const mutationKey = ['applySubAgent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applySubAgent>>, {data: BodyType<SubAgentApplyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  applySubAgent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplySubAgentMutationResult = NonNullable<Awaited<ReturnType<typeof applySubAgent>>>
+    export type ApplySubAgentMutationBody = BodyType<SubAgentApplyInput>
+    export type ApplySubAgentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit KYC application
+ */
+export const useApplySubAgent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applySubAgent>>, TError,{data: BodyType<SubAgentApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applySubAgent>>,
+        TError,
+        {data: BodyType<SubAgentApplyInput>},
+        TContext
+      > => {
+      return useMutation(getApplySubAgentMutationOptions(options));
+    }
+
+export const getSellSubAgentUrl = () => {
+
+
+
+
+  return `/api/subagents/sell`
+}
+
+/**
+ * @summary Approved agent transfers SKZ to a customer
+ */
+export const sellSubAgent = async (subAgentSellInput: SubAgentSellInput, options?: RequestInit): Promise<SubAgentSellResponse> => {
+
+  return customFetch<SubAgentSellResponse>(getSellSubAgentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      subAgentSellInput,)
+  }
+);}
+
+
+
+
+export const getSellSubAgentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sellSubAgent>>, TError,{data: BodyType<SubAgentSellInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sellSubAgent>>, TError,{data: BodyType<SubAgentSellInput>}, TContext> => {
+
+const mutationKey = ['sellSubAgent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sellSubAgent>>, {data: BodyType<SubAgentSellInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sellSubAgent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SellSubAgentMutationResult = NonNullable<Awaited<ReturnType<typeof sellSubAgent>>>
+    export type SellSubAgentMutationBody = BodyType<SubAgentSellInput>
+    export type SellSubAgentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approved agent transfers SKZ to a customer
+ */
+export const useSellSubAgent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sellSubAgent>>, TError,{data: BodyType<SubAgentSellInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sellSubAgent>>,
+        TError,
+        {data: BodyType<SubAgentSellInput>},
+        TContext
+      > => {
+      return useMutation(getSellSubAgentMutationOptions(options));
+    }
+
+export const getGetSubAgentSalesUrl = () => {
+
+
+
+
+  return `/api/subagents/sales`
+}
+
+/**
+ * @summary Agent's own sales history (last 100)
+ */
+export const getSubAgentSales = async ( options?: RequestInit): Promise<SubAgentSalesResponse> => {
+
+  return customFetch<SubAgentSalesResponse>(getGetSubAgentSalesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubAgentSalesQueryKey = () => {
+    return [
+    `/api/subagents/sales`
+    ] as const;
+    }
+
+
+export const getGetSubAgentSalesQueryOptions = <TData = Awaited<ReturnType<typeof getSubAgentSales>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubAgentSalesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubAgentSales>>> = ({ signal }) => getSubAgentSales({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubAgentSales>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubAgentSalesQueryResult = NonNullable<Awaited<ReturnType<typeof getSubAgentSales>>>
+export type GetSubAgentSalesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Agent's own sales history (last 100)
+ */
+
+export function useGetSubAgentSales<TData = Awaited<ReturnType<typeof getSubAgentSales>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubAgentSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubAgentSalesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSubAgentIdPhotoUploadUrlUrl = () => {
+
+
+
+
+  return `/api/subagents/id-photo-upload-url`
+}
+
+/**
+ * @summary Issue a one-shot presigned PUT URL for the ID photo
+ */
+export const getSubAgentIdPhotoUploadUrl = async (idPhotoUploadInput: IdPhotoUploadInput, options?: RequestInit): Promise<IdPhotoUploadResponse> => {
+
+  return customFetch<IdPhotoUploadResponse>(getGetSubAgentIdPhotoUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      idPhotoUploadInput,)
+  }
+);}
+
+
+
+
+export const getGetSubAgentIdPhotoUploadUrlMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>, TError,{data: BodyType<IdPhotoUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>, TError,{data: BodyType<IdPhotoUploadInput>}, TContext> => {
+
+const mutationKey = ['getSubAgentIdPhotoUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>, {data: BodyType<IdPhotoUploadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  getSubAgentIdPhotoUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetSubAgentIdPhotoUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>>
+    export type GetSubAgentIdPhotoUploadUrlMutationBody = BodyType<IdPhotoUploadInput>
+    export type GetSubAgentIdPhotoUploadUrlMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Issue a one-shot presigned PUT URL for the ID photo
+ */
+export const useGetSubAgentIdPhotoUploadUrl = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>, TError,{data: BodyType<IdPhotoUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getSubAgentIdPhotoUploadUrl>>,
+        TError,
+        {data: BodyType<IdPhotoUploadInput>},
+        TContext
+      > => {
+      return useMutation(getGetSubAgentIdPhotoUploadUrlMutationOptions(options));
+    }
 

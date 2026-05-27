@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/subagents-bot-web/"
+title = "SOUQRATES SUB-AGENTS — برنامج الشركاء"
+version = "1.0.0"
+id = "artifacts/subagents-bot-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/subagents-bot-web/" ]
+localPort = 23482
+
+[services.development]
+run = "pnpm --filter @workspace/subagents-bot-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/subagents-bot-web", "run", "build" ]
+publicDir = "artifacts/subagents-bot-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23482"
+BASE_PATH = "/subagents-bot-web/"

@@ -729,3 +729,149 @@ export const GetStatsOverviewResponse = zod.object({
 })
 
 
+/**
+ * @summary List the 7-tier ladder (public)
+ */
+export const GetSubAgentTiersResponse = zod.object({
+  "data": zod.array(zod.object({
+  "level": zod.number(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "minSalesSkz": zod.string(),
+  "minCustomers": zod.number(),
+  "discountRate": zod.string(),
+  "perks": zod.array(zod.string()),
+  "updatedAt": zod.coerce.date().optional()
+}))
+})
+
+
+/**
+ * @summary Current applicant/agent state (requires Telegram initData)
+ */
+export const GetSubAgentMeResponse = zod.object({
+  "status": zod.string().describe('not_applied | pending | approved | rejected | suspended'),
+  "agent": zod.union([zod.object({
+  "id": zod.number(),
+  "telegramId": zod.string(),
+  "fullName": zod.string(),
+  "country": zod.string(),
+  "phone": zod.string(),
+  "email": zod.string().nullish(),
+  "status": zod.string().describe('pending | approved | rejected | suspended'),
+  "tierLevel": zod.number().nullish(),
+  "totalSalesSkz": zod.string(),
+  "totalCustomers": zod.number(),
+  "approvedAt": zod.coerce.date().nullish(),
+  "rejectedAt": zod.coerce.date().nullish(),
+  "rejectedReason": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]).optional(),
+  "tier": zod.union([zod.object({
+  "level": zod.number(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "minSalesSkz": zod.string(),
+  "minCustomers": zod.number(),
+  "discountRate": zod.string(),
+  "perks": zod.array(zod.string()),
+  "updatedAt": zod.coerce.date().optional()
+}),zod.null()]).optional(),
+  "wallet": zod.union([zod.object({
+  "balanceSkz": zod.string(),
+  "balanceUsdt": zod.string().optional(),
+  "balanceStars": zod.string().optional(),
+  "balanceTon": zod.string().optional(),
+  "totalEarnedSkz": zod.string().optional()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Submit KYC application
+ */
+export const applySubAgentBodyFullNameMin = 2;
+export const applySubAgentBodyFullNameMax = 120;
+
+export const applySubAgentBodyCountryMin = 2;
+export const applySubAgentBodyCountryMax = 80;
+
+export const applySubAgentBodyPhoneMin = 5;
+export const applySubAgentBodyPhoneMax = 40;
+
+export const applySubAgentBodyAddressMin = 5;
+export const applySubAgentBodyAddressMax = 500;
+
+
+
+export const ApplySubAgentBody = zod.object({
+  "fullName": zod.string().min(applySubAgentBodyFullNameMin).max(applySubAgentBodyFullNameMax),
+  "dob": zod.string().describe('YYYY-MM-DD'),
+  "country": zod.string().min(applySubAgentBodyCountryMin).max(applySubAgentBodyCountryMax),
+  "phone": zod.string().min(applySubAgentBodyPhoneMin).max(applySubAgentBodyPhoneMax),
+  "email": zod.string().nullish(),
+  "address": zod.string().min(applySubAgentBodyAddressMin).max(applySubAgentBodyAddressMax),
+  "idPhotoPath": zod.string().describe('Must start with \/objects\/subagents\/id-photos\/')
+})
+
+export const ApplySubAgentResponse = zod.object({
+  "ok": zod.boolean(),
+  "status": zod.string(),
+  "id": zod.number()
+})
+
+
+/**
+ * @summary Approved agent transfers SKZ to a customer
+ */
+export const sellSubAgentBodyNoteMax = 200;
+
+
+
+export const SellSubAgentBody = zod.object({
+  "customerTelegramId": zod.string().describe('Numeric Telegram ID of the customer'),
+  "skzAmount": zod.number(),
+  "note": zod.string().max(sellSubAgentBodyNoteMax).optional()
+})
+
+export const SellSubAgentResponse = zod.object({
+  "ok": zod.boolean(),
+  "replayed": zod.boolean().optional(),
+  "soldSkz": zod.number(),
+  "agentBalanceSkz": zod.string().optional(),
+  "totalSalesSkz": zod.string().optional(),
+  "totalCustomers": zod.number().optional()
+})
+
+
+/**
+ * @summary Agent's own sales history (last 100)
+ */
+export const GetSubAgentSalesResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "subAgentId": zod.number(),
+  "customerTelegramId": zod.string(),
+  "customerMasked": zod.string(),
+  "skzAmount": zod.string(),
+  "transactionId": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Issue a one-shot presigned PUT URL for the ID photo
+ */
+export const GetSubAgentIdPhotoUploadUrlBody = zod.object({
+  "contentType": zod.string().describe('image\/jpeg | image\/png | image\/webp'),
+  "sizeBytes": zod.number().describe('Max 8 MB')
+})
+
+export const GetSubAgentIdPhotoUploadUrlResponse = zod.object({
+  "uploadUrl": zod.string(),
+  "objectPath": zod.string().describe('Pass back as idPhotoPath when applying')
+})
+
+

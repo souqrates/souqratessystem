@@ -358,6 +358,10 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  if (typeof window !== "undefined" && (window as any).Telegram?.WebApp?.initData) {
+    headers.set("X-Telegram-Init-Data", (window as any).Telegram.WebApp.initData);
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { ...init, method, headers });

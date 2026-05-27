@@ -797,6 +797,102 @@ paths:
               schema:
                 $ref: "#/components/schemas/StatsOverview"
 
+  /subagents/tiers:
+    get:
+      operationId: getSubAgentTiers
+      tags: [subagents]
+      summary: List the 7-tier ladder (public)
+      responses:
+        "200":
+          description: Tier list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubAgentTiersResponse"
+
+  /subagents/me:
+    get:
+      operationId: getSubAgentMe
+      tags: [subagents]
+      summary: Current applicant/agent state (requires Telegram initData)
+      responses:
+        "200":
+          description: Self state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubAgentMeResponse"
+
+  /subagents/apply:
+    post:
+      operationId: applySubAgent
+      tags: [subagents]
+      summary: Submit KYC application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubAgentApplyInput"
+      responses:
+        "200":
+          description: Application accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubAgentApplyResponse"
+
+  /subagents/sell:
+    post:
+      operationId: sellSubAgent
+      tags: [subagents]
+      summary: Approved agent transfers SKZ to a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubAgentSellInput"
+      responses:
+        "200":
+          description: Sale completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubAgentSellResponse"
+
+  /subagents/sales:
+    get:
+      operationId: getSubAgentSales
+      tags: [subagents]
+      summary: Agent's own sales history (last 100)
+      responses:
+        "200":
+          description: Sales list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubAgentSalesResponse"
+
+  /subagents/id-photo-upload-url:
+    post:
+      operationId: getSubAgentIdPhotoUploadUrl
+      tags: [subagents]
+      summary: Issue a one-shot presigned PUT URL for the ID photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdPhotoUploadInput"
+      responses:
+        "200":
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdPhotoUploadResponse"
+
 components:
   securitySchemes:
     BotApiKey:
@@ -1730,3 +1826,151 @@ components:
         - activeBots
         - todayTransactions
         - skzRates
+
+    SubAgentTier:
+      type: object
+      properties:
+        level: { type: integer }
+        name: { type: string }
+        color: { type: string }
+        minSalesSkz: { type: string }
+        minCustomers: { type: integer }
+        discountRate: { type: string }
+        perks:
+          type: array
+          items: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [level, name, color, minSalesSkz, minCustomers, discountRate, perks]
+
+    SubAgentTiersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/SubAgentTier" }
+      required: [data]
+
+    SubAgentRecord:
+      type: object
+      properties:
+        id: { type: integer }
+        telegramId: { type: string }
+        fullName: { type: string }
+        country: { type: string }
+        phone: { type: string }
+        email: { type: ["string", "null"] }
+        status: { type: string, description: "pending | approved | rejected | suspended" }
+        tierLevel: { type: ["integer", "null"] }
+        totalSalesSkz: { type: string }
+        totalCustomers: { type: integer }
+        approvedAt: { type: ["string", "null"], format: date-time }
+        rejectedAt: { type: ["string", "null"], format: date-time }
+        rejectedReason: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, telegramId, fullName, country, phone, status, totalSalesSkz, totalCustomers, createdAt]
+
+    SubAgentWallet:
+      type: object
+      properties:
+        balanceSkz: { type: string }
+        balanceUsdt: { type: string }
+        balanceStars: { type: string }
+        balanceTon: { type: string }
+        totalEarnedSkz: { type: string }
+      required: [balanceSkz]
+
+    SubAgentMeResponse:
+      type: object
+      properties:
+        status: { type: string, description: "not_applied | pending | approved | rejected | suspended" }
+        agent:
+          oneOf:
+            - { $ref: "#/components/schemas/SubAgentRecord" }
+            - { type: "null" }
+        tier:
+          oneOf:
+            - { $ref: "#/components/schemas/SubAgentTier" }
+            - { type: "null" }
+        wallet:
+          oneOf:
+            - { $ref: "#/components/schemas/SubAgentWallet" }
+            - { type: "null" }
+      required: [status]
+
+    SubAgentApplyInput:
+      type: object
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        dob: { type: string, description: "YYYY-MM-DD" }
+        country: { type: string, minLength: 2, maxLength: 80 }
+        phone: { type: string, minLength: 5, maxLength: 40 }
+        email: { type: ["string", "null"] }
+        address: { type: string, minLength: 5, maxLength: 500 }
+        idPhotoPath:
+          type: string
+          description: "Must start with /objects/subagents/id-photos/"
+      required: [fullName, dob, country, phone, address, idPhotoPath]
+
+    SubAgentApplyResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string }
+        id: { type: integer }
+      required: [ok, status, id]
+
+    SubAgentSellInput:
+      type: object
+      properties:
+        customerTelegramId:
+          type: string
+          description: "Numeric Telegram ID of the customer"
+        skzAmount: { type: number }
+        note: { type: string, maxLength: 200 }
+      required: [customerTelegramId, skzAmount]
+
+    SubAgentSellResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        replayed: { type: boolean }
+        soldSkz: { type: number }
+        agentBalanceSkz: { type: string }
+        totalSalesSkz: { type: string }
+        totalCustomers: { type: integer }
+      required: [ok, soldSkz]
+
+    SubAgentSale:
+      type: object
+      properties:
+        id: { type: integer }
+        subAgentId: { type: integer }
+        customerTelegramId: { type: string }
+        customerMasked: { type: string }
+        skzAmount: { type: string }
+        transactionId: { type: ["integer", "null"] }
+        note: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, subAgentId, customerTelegramId, customerMasked, skzAmount, createdAt]
+
+    SubAgentSalesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/SubAgentSale" }
+      required: [data]
+
+    IdPhotoUploadInput:
+      type: object
+      properties:
+        contentType: { type: string, description: "image/jpeg | image/png | image/webp" }
+        sizeBytes: { type: integer, description: "Max 8 MB" }
+      required: [contentType, sizeBytes]
+
+    IdPhotoUploadResponse:
+      type: object
+      properties:
+        uploadUrl: { type: string }
+        objectPath: { type: string, description: "Pass back as idPhotoPath when applying" }
+      required: [uploadUrl, objectPath]

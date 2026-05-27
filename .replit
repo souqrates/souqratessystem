@@ -21,6 +21,7 @@ timeoutMs = 20000
 [[ports]]
 localPort = 5173
 externalPort = 5173
+exposeLocalhost = true
 
 [[ports]]
 localPort = 8080
@@ -57,6 +58,10 @@ externalPort = 5000
 [[ports]]
 localPort = 22133
 externalPort = 3000
+
+[[ports]]
+localPort = 23482
+externalPort = 6800
 
 [[ports]]
 localPort = 23758
