@@ -3,3 +3,4 @@
 - [Two-tier cache layer](cache-layer.md) — `cached()` wraps slow-changing config reads (rates/tiers/bot rows); writers MUST call the matching `invalidateXxxCache()` in the same handler.
 - [Per-user rate limit](per-user-rate-limit.md) — row-creating money routes need `perUserCreateLimiter` keyed by telegramId; bot-API-key bucketing alone lets one user starve the bot.
 - [Bot webhook runtime](bot-webhook-runtime.md) — all 4 Python bots toggle polling↔webhook via `webhook_runtime.run_bot(...)`; edit the file in every bot dir (kept byte-identical).
+- [Mini App cross-app nav](miniapp-cross-miniapp-nav.md) — `wa.openLink()` always leaves Telegram; use same-origin `window.location.href` (relative URLs only) to stay inside the Mini App webview.

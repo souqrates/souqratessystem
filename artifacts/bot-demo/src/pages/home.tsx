@@ -18,12 +18,17 @@ const fadeUp = {
 // `name` is the short key used for icon lookups; `brand` is the full canonical
 // user-facing wordmark; `short` is a compact display label for tight chips.
 const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: string }[] = [
-  { name: "Skillz", brand: "SOUQRATES SKILLZ", short: "SKILLZ", live: true, url: "https://souqrates.com/games-bot/" },
-  { name: "Souq",   brand: "SOUQRATES SOUQ",   short: "SOUQ",   live: true, url: "https://souqrates.com/books-bot-web/" },
+  // URLs MUST be same-origin (relative) so openTelegramApp() navigates within
+  // the SAME Mini App webview and the user stays inside Telegram. Hard-coding
+  // https://souqrates.com/... breaks on the replit.dev preview origin (and
+  // any other host) because the same-origin check falls through to
+  // wa.openLink(), which forces an external browser.
+  { name: "Skillz", brand: "SOUQRATES SKILLZ", short: "SKILLZ", live: true, url: "/games-bot/" },
+  { name: "Souq",   brand: "SOUQRATES SOUQ",   short: "SOUQ",   live: true, url: "/books-bot-web/" },
   { name: "Scene",  brand: "SOUQRATES SCENE",  short: "SCENE"  },
   { name: "Stream", brand: "SOUQRATES STREAM", short: "STREAM" },
-  { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS", short: "SUB-AGENTS", live: true, url: "/subagents" },
-  { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE",  live: true, url: "https://souqrates.com/contests-bot-web/" },
+  { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS", short: "SUB-AGENTS", live: true, url: "/subagents-bot-web/" },
+  { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE",  live: true, url: "/contests-bot-web/" },
 ];
 
 export function Home() {
