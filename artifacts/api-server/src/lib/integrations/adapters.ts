@@ -555,7 +555,7 @@ const cryptomus: IntegrationAdapter = {
       label: "Public Webhook Base URL",
       type: "url",
       required: true,
-      placeholder: "https://your-app.replit.app",
+      placeholder: "https://api.souqrates.com",
       help: "Cryptomus يرفض الـ callbacks على localhost. ضع الـ HTTPS الرئيسي.",
     },
   ],

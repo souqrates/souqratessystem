@@ -55,12 +55,26 @@ API_KEY = os.getenv("CONTESTS_BOT_API_KEY", "")
 API_URL = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "")  # for top-up link
 # Public URL of the contests-bot-web mini-app (used for the chat menu button).
-# Falls back to the Replit dev domain when REPLIT_DOMAINS is present.
-_REPLIT_DOMAIN = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
-WEB_APP_URL = os.getenv(
-    "CONTESTS_WEB_APP_URL",
-    f"https://{_REPLIT_DOMAIN}/contests-bot-web/" if _REPLIT_DOMAIN else "",
-)
+# Resolution order (so the same image runs unchanged on Replit dev AND Contabo):
+#   1) CONTESTS_WEB_APP_URL — explicit override
+#   2) PUBLIC_BASE_URL      — production base for Contabo / souqrates.com
+#   3) REPLIT_DOMAINS       — Replit published deploy
+#   4) REPLIT_DEV_DOMAIN    — Replit dev preview
+def _resolve_contests_web_app_url() -> str:
+    explicit = (os.getenv("CONTESTS_WEB_APP_URL") or "").strip()
+    if explicit:
+        return explicit
+    public = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public:
+        return f"{public}/contests-bot-web/"
+    rds = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
+    if rds:
+        return f"https://{rds}/contests-bot-web/"
+    dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
+    if dev:
+        return f"https://{dev}/contests-bot-web/"
+    return ""
+WEB_APP_URL = _resolve_contests_web_app_url()
 
 # ── Slash-command menu (single source of truth for /setcommands) ───────────
 COMMANDS: list[BotCommand] = [

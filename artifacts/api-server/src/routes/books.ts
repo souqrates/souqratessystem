@@ -118,9 +118,17 @@ async function requireBot(req: any, res: any) {
 }
 
 function publicDownloadUrl(token: string): string {
-  const domains = (process.env.REPLIT_DOMAINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const host = domains[0] ?? process.env.REPLIT_DEV_DOMAIN ?? "";
-  const base = host ? `https://${host}` : "";
+  // Resolution order (same image runs unchanged on Replit dev AND Contabo):
+  //   1) PUBLIC_BASE_URL   — production base (e.g. https://api.souqrates.com)
+  //   2) REPLIT_DOMAINS    — Replit published deploy
+  //   3) REPLIT_DEV_DOMAIN — Replit dev preview
+  const explicit = (process.env.PUBLIC_BASE_URL ?? "").trim().replace(/\/$/, "");
+  let base = explicit;
+  if (!base) {
+    const domains = (process.env.REPLIT_DOMAINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const host = domains[0] ?? process.env.REPLIT_DEV_DOMAIN ?? "";
+    base = host ? `https://${host}` : "";
+  }
   return `${base}/api/internal/books/products/download/${encodeURIComponent(token)}`;
 }
 
