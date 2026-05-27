@@ -1,0 +1,26 @@
+[Unit]
+Description=SOUQRATES contests-bot (Telegram, webhook on :8103)
+After=network-online.target souqrates-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=souqrates
+Group=souqrates
+WorkingDirectory=/opt/souqrates/repo/artifacts/contests-bot/src
+EnvironmentFile=/etc/souqrates/contests-bot.env
+ExecStart=/opt/souqrates/venvs/contests-bot/bin/python -u bot.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=souqrates-contests-bot
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

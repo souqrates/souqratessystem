@@ -1,0 +1,28 @@
+[Unit]
+Description=SOUQRATES API server (Express + Drizzle, Neon Postgres + R2)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=souqrates
+Group=souqrates
+WorkingDirectory=/opt/souqrates/repo/artifacts/api-server
+EnvironmentFile=/etc/souqrates/api-server.env
+ExecStart=/usr/bin/node --enable-source-maps /opt/souqrates/repo/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=souqrates-api
+
+# Hardening — api-server logs to stdout (journald) and stores files in R2,
+# so it never needs to write to its own source tree. No ReadWritePaths.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

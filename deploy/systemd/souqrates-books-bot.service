@@ -1,0 +1,26 @@
+[Unit]
+Description=SOUQRATES books-bot (Telegram, webhook on :8102)
+After=network-online.target souqrates-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=souqrates
+Group=souqrates
+WorkingDirectory=/opt/souqrates/repo/artifacts/books-bot/src
+EnvironmentFile=/etc/souqrates/books-bot.env
+ExecStart=/opt/souqrates/venvs/books-bot/bin/python -u bot.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=souqrates-books-bot
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
