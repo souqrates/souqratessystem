@@ -20,6 +20,7 @@ import {
   transactionsTable,
 } from "@workspace/db";
 import { z } from "zod";
+import { perUserCreateLimiter } from "../lib/rate-limit";
 
 const router: IRouter = Router();
 
@@ -256,7 +257,7 @@ router.post("/subagents/apply", requireTelegramAuth, async (req, res): Promise<v
 });
 
 // ── POST /api/subagents/sell — agent sells SKZ to customer ────────────────
-router.post("/subagents/sell", requireTelegramAuth, async (req, res): Promise<void> => {
+router.post("/subagents/sell", requireTelegramAuth, perUserCreateLimiter, async (req, res): Promise<void> => {
   const tg = (req as AuthedReq).telegramId;
   const parsed = sellBodySchema.safeParse(req.body);
   if (!parsed.success) {

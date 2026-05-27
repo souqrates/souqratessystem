@@ -15,6 +15,7 @@ import {
   gameConfigsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { perUserCreateLimiter } from "../lib/rate-limit";
 import { getSkzRates, getReferralRates, distributeReferralBonuses } from "../lib/finance";
 import { normalizeTiers } from "../lib/game-tiers";
 import {
@@ -428,7 +429,7 @@ router.get("/internal/ledger/:telegramId", async (req, res): Promise<void> => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/deposit — deposit real currency → SKZ
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/deposit", async (req, res): Promise<void> => {
+router.post("/internal/deposit", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -889,7 +890,7 @@ router.post("/internal/debit", async (req, res): Promise<void> => {
  * The expected prize (entryFee × multiplier) is stored in metadata so the
  * credit-reward endpoint can look it up — the client never supplies the prize.
  */
-router.post("/internal/game/charge-entry", async (req, res): Promise<void> => {
+router.post("/internal/game/charge-entry", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1254,7 +1255,7 @@ router.post("/internal/game/validate-result", async (req, res): Promise<void> =>
  * Prize is read from stored charge metadata — never from the client.
  * Commission and referral bonuses applied automatically.
  */
-router.post("/internal/game/credit-reward", async (req, res): Promise<void> => {
+router.post("/internal/game/credit-reward", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1485,7 +1486,7 @@ router.get("/internal/game/tiers", async (_req, res): Promise<void> => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/stars-invoice — create Telegram Stars deposit invoice
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/stars-invoice", async (req, res): Promise<void> => {
+router.post("/internal/stars-invoice", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1732,7 +1733,7 @@ router.post("/internal/stars-confirm", async (req, res): Promise<void> => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/ton-deposit-intent — create TON deposit intent with unique memo
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
+router.post("/internal/ton-deposit-intent", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1807,7 +1808,7 @@ router.post("/internal/ton-deposit-intent", async (req, res): Promise<void> => {
 // derived from the owner address, so users send to the TON owner address and
 // the network routes the Jetton transfer automatically.
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/usdt-deposit-intent", async (req, res): Promise<void> => {
+router.post("/internal/usdt-deposit-intent", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1887,7 +1888,7 @@ const ALLOWED_WITHDRAW_METHODS = new Set<string>([
   "ton",
 ]);
 
-router.post("/internal/withdraw", async (req, res): Promise<void> => {
+router.post("/internal/withdraw", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 

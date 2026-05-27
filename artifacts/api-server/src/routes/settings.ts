@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { platformSettingsTable } from "@workspace/db";
 import { requireAdmin } from "../lib/admin-auth";
 import { logAdminAction } from "../lib/audit-log";
+import { invalidateFinanceCache } from "../lib/finance";
 
 const router: IRouter = Router();
 
@@ -136,6 +137,9 @@ router.put("/settings", requireAdmin, async (req, res): Promise<void> => {
   }
 
   await Promise.all(updates.map(([key, value]) => upsertSetting(key, value)));
+  // Any platform_settings write may have touched cached values
+  // (skz_*, referral_*). Drop them so the next read re-hydrates.
+  await invalidateFinanceCache();
 
   await logAdminAction(req, "admin", {
     action: "settings.update",
@@ -178,6 +182,7 @@ router.put("/settings/skz-rates", requireAdmin, async (req, res): Promise<void> 
   if (skzPerTon) updates.push(["skz_per_ton", skzPerTon]);
 
   await Promise.all(updates.map(([key, value]) => upsertSetting(key, value)));
+  await invalidateFinanceCache();
 
   if (updates.length > 0) {
     await logAdminAction(req, "admin", {

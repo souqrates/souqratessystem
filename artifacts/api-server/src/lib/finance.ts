@@ -10,33 +10,55 @@ import {
   transactionsTable,
   platformSettingsTable,
 } from "@workspace/db";
+import { cached, cacheDel } from "./cache";
+
+// Cache TTLs are short on purpose: admins edit rates in /superadmin and
+// must see the change reflected in money flows quickly. 60s is the cap;
+// the explicit invalidate hook below cuts that to ~0 after a settings
+// write. Cache keys are module-scoped so the invalidation contract is
+// kept in one place.
+const CK_SKZ_RATES = "fin:skz_rates";
+const CK_REFERRAL_RATES = "fin:referral_rates";
 
 export async function getSkzRates(): Promise<{ perUsdt: number; perStar: number; perTon: number }> {
-  const settings = await db
-    .select()
-    .from(platformSettingsTable)
-    .where(inArray(platformSettingsTable.key, ["skz_per_usdt", "skz_per_star", "skz_per_ton"]));
-  const map: Record<string, number> = {};
-  for (const s of settings) map[s.key] = parseFloat(s.value);
-  return {
-    perUsdt: map["skz_per_usdt"] ?? 100,
-    perStar: map["skz_per_star"] ?? 1,
-    perTon:  map["skz_per_ton"]  ?? 500,
-  };
+  return cached(CK_SKZ_RATES, 60, async () => {
+    const settings = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(inArray(platformSettingsTable.key, ["skz_per_usdt", "skz_per_star", "skz_per_ton"]));
+    const map: Record<string, number> = {};
+    for (const s of settings) map[s.key] = parseFloat(s.value);
+    return {
+      perUsdt: map["skz_per_usdt"] ?? 100,
+      perStar: map["skz_per_star"] ?? 1,
+      perTon:  map["skz_per_ton"]  ?? 500,
+    };
+  });
 }
 
 export async function getReferralRates(): Promise<number[]> {
-  const rows = await db
-    .select()
-    .from(platformSettingsTable)
-    .where(inArray(platformSettingsTable.key, ["referral_l1_percent", "referral_l2_percent", "referral_l3_percent"]));
-  const map: Record<string, number> = {};
-  for (const r of rows) map[r.key] = parseFloat(r.value);
-  return [
-    (map["referral_l1_percent"] ?? 5)  / 100,
-    (map["referral_l2_percent"] ?? 2)  / 100,
-    (map["referral_l3_percent"] ?? 1)  / 100,
-  ];
+  return cached(CK_REFERRAL_RATES, 60, async () => {
+    const rows = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(inArray(platformSettingsTable.key, ["referral_l1_percent", "referral_l2_percent", "referral_l3_percent"]));
+    const map: Record<string, number> = {};
+    for (const r of rows) map[r.key] = parseFloat(r.value);
+    return [
+      (map["referral_l1_percent"] ?? 5)  / 100,
+      (map["referral_l2_percent"] ?? 2)  / 100,
+      (map["referral_l3_percent"] ?? 1)  / 100,
+    ];
+  });
+}
+
+/**
+ * Call after ANY write to platform_settings keys that feed the cached
+ * getters above. Safe to call when the write touched unrelated keys —
+ * worst case is a single uncached refresh.
+ */
+export async function invalidateFinanceCache(): Promise<void> {
+  await cacheDel(CK_SKZ_RATES, CK_REFERRAL_RATES);
 }
 
 /**
