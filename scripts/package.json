@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "dns:setup": "tsx ./src/cloudflare-dns-setup.ts",
+    "dns:check": "tsx ./src/cloudflare-dns-setup.ts -- --dry-run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
