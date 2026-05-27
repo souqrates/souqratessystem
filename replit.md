@@ -107,6 +107,17 @@ Currently registered (Tier 1 = critical for millions):
 9. Bunny.net (storage + CDN)
 10. OpenRouter (LLM aggregator)
 
+## Production migration (Contabo + Neon + R2)
+
+كل تفاصيل ترحيل الإنتاج في `MIGRATION_RUNBOOK.md`. الكود جاهز للترحيل:
+- البوتات تتحول من polling إلى webhook تلقائياً بضبط `USE_WEBHOOK=1`
+  (+ `WEBHOOK_BASE_URL`/`WEBHOOK_SECRET`/`WEBHOOK_PORT`). ضمن أي بوت في
+  `src/webhook_runtime.py` (4 نسخ متطابقة).
+- التخزين يتبدّل بين Replit Object Storage و R2 تلقائياً بحضور
+  `S3_ENDPOINT` (راجع `artifacts/api-server/src/lib/objectStorage.ts`).
+- مراجعة DB في 2026-05-27 أكّدت أنه لا توجد ملفات `/objects/…` ولا روابط
+  GCS قديمة في أي عمود — لا حاجة لنقل ملفات حقيقي، فقط مرآة احتياطية.
+
 ## Gotchas
 
 - أضف `SESSION_SECRET` كـ secret في Replit

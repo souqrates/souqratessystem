@@ -1220,8 +1220,8 @@ async def main():
     except Exception as e:
         logger.warning(f"info-texts seed step failed (non-fatal): {e}")
 
-    logger.info("Starting mother bot polling...")
-    await dp.start_polling(bot)
+    from webhook_runtime import run_bot
+    await run_bot(bot, dp, "mother-bot")
 
 
 def _spawn_subagents_bot():
@@ -1233,6 +1233,13 @@ def _spawn_subagents_bot():
     is present; logs and continues otherwise so mother-bot still boots.
     """
     import subprocess, sys, atexit
+    # On Contabo/VPS each bot runs as its own systemd unit, so the mother-bot
+    # must NOT also spawn subagents-bot (would create two competing processes,
+    # both calling set_webhook for the same Telegram bot if misconfigured).
+    # Set DISABLE_SUBAGENTS_SPAWN=1 in production to skip.
+    if os.getenv("DISABLE_SUBAGENTS_SPAWN", "").strip().lower() in ("1", "true", "yes"):
+        logger.info("DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally")
+        return
     if not os.getenv("SUBAGENTS_BOT_TOKEN"):
         logger.warning("SUBAGENTS_BOT_TOKEN not set — subagents-bot not spawned")
         return

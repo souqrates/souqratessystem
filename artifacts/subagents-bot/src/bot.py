@@ -257,8 +257,8 @@ async def main() -> None:
     except Exception as e:
         logger.warning(f"set_chat_menu_button failed: {e}")
 
-    logger.info("subagents-bot started, polling …")
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    from webhook_runtime import run_bot
+    await run_bot(bot, dp, "subagents-bot")
 
 
 if __name__ == "__main__":

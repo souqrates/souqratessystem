@@ -723,8 +723,8 @@ async def main():
     else:
         logger.info("WEB_APP_URL not HTTPS; skipping chat menu button setup")
 
-    logger.info("SOUQRATES STAGE bot starting…")
-    await dp.start_polling(bot)
+    from webhook_runtime import run_bot
+    await run_bot(bot, dp, "contests-bot")
 
 
 if __name__ == "__main__":
