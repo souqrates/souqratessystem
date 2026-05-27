@@ -444,7 +444,7 @@ router.get(
       res.setHeader("Content-Type", (metadata.contentType as string) || "application/octet-stream");
       if (metadata.size) res.setHeader("Content-Length", String(metadata.size));
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      file.createReadStream().on("error", (err) => {
+      file.createReadStream().on("error", (err: unknown) => {
         req.log.error({ err }, "game image stream error");
         if (!res.headersSent) res.status(500).end();
       }).pipe(res);
