@@ -1,0 +1,74 @@
+
+CREATE TABLE IF NOT EXISTS sub_agent_tiers ( 
+  id SERIAL PRIMARY KEY,
+  level INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  min_sales_skz NUMERIC(18,4) NOT NULL DEFAULT 0,
+  min_customers INTEGER NOT NULL DEFAULT 0,
+  discount_rate NUMERIC(5,4) NOT NULL DEFAULT 0,
+  CONSTRAINT sub_agent_tiers_level_uniq UNIQUE (level)
+);
+
+CREATE TABLE IF NOT EXISTS sub_agent_sales ( 
+  id SERIAL PRIMARY KEY,
+  agent_user_id INTEGER NOT NULL REFERENCES users(id),
+);)reated_at TIMESTAMPTZ NOT NULL DEFAULT NO
+-bash: syntax error near unexpected token `('
+id: ‘SERIAL’: no such user
+id: ‘PRIMARY’: no such user
+id: ‘KEY,’: no such user
+-bash: syntax error near unexpected token `('
+Command 'status' not found, did you mean:
+  command 'statup' from snap statup (0.79.91)
+  command 'qstatus' from deb gridengine-client (8.1.9+dfsg-11)
+  command 'statfs' from deb gocryptfs (2.4.0-1ubuntu0.24.04.3)
+  command 'states' from deb enscript (1.6.5.90-3.1)
+See 'snap info <snapname>' for additional versions.
+full_name: command not found
+phone: command not found
+country: command not found
+id_photo_key: command not found
+tier_level: command not found
+-bash: syntax error near unexpected token `('
+total_customers: command not found
+internal_notes: command not found
+-bash: syntax error near unexpected token `('
+reviewed_at: command not found
+reviewed_by: command not found
+-bash: syntax error near unexpected token `)'
+-bash: syntax error near unexpected token `('
+id: ‘SERIAL’: no such user
+id: ‘PRIMARY’: no such user
+id: ‘KEY,’: no such user
+Command 'level' not found, did you mean:
+  command 'levee' from deb levee (4.0-1)
+  command 'vlevel' from deb vlevel (0.5.1-4)
+Try: apt install <deb name>
+Command 'name' not found, did you mean:
+  command 'mame' from snap mame (mame0287)
+  command 'uname' from deb coreutils (9.4-3ubuntu6.2)
+  command 'namei' from deb util-linux (2.39.3-9ubuntu6.5)
+  command 'named' from deb bind9 (1:9.18.39-0ubuntu0.24.04.3)
+  command 'nama' from deb nama (1.216-2)
+  command 'nvme' from deb nvme-cli (2.8-1ubuntu0.1)
+  command 'mame' from deb mame (0.261+dfsg.1-1)
+  command 'lame' from deb lame (3.100-6)
+  command 'nam' from deb nam (1.15-6)
+See 'snap info <snapname>' for additional versions.
+-bash: syntax error near unexpected token `('
+min_customers: command not found
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `)'
+-bash: syntax error near unexpected token `('
+id: ‘SERIAL’: no such user
+id: ‘PRIMARY’: no such user
+id: ‘KEY,’: no such user
+-bash: syntax error near unexpected token `('
+customer_telegram_id: command not found
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `('
+-bash: syntax error near unexpected token `)'
+root@vmi3329645:/opt/souqrates/repo# 
