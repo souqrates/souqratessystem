@@ -43,7 +43,7 @@ if ! command -v node >/dev/null || [[ "$(node -v)" != v24.* ]]; then
   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
 fi
-if ! command -v pnpm >/dev/null || [[ "$(pnpm -v 2>/dev/null)" != 10.* ]]; then
+if ! command -v pnpm >/dev/null; then
   npm install -g pnpm@10
 fi
 node -v && pnpm -v

@@ -56,12 +56,13 @@ def _resolve_base() -> str:
     return "https://souqrates.com"
 
 BASE = _resolve_base()
-# The Sub-Agents Mini App is a standalone Vite artifact served at /subagents-bot-web/.
-# All bot WebApp buttons open URLs inside that artifact.
-APPLY_URL     = f"{BASE}/subagents-bot-web/apply"
-DASHBOARD_URL = f"{BASE}/subagents-bot-web/dashboard"
-STATUS_URL    = f"{BASE}/subagents-bot-web/pending"
-LANDING_URL   = f"{BASE}/subagents-bot-web/"
+# Note: bot-demo is the mother-bot Mini App, mounted at "/". Sub-agents pages
+# are added inside it under /subagents/* so we benefit from the shared wallet,
+# i18n, and agreement gate.
+APPLY_URL     = f"{BASE}/subagents/apply"
+DASHBOARD_URL = f"{BASE}/subagents/dashboard"
+STATUS_URL    = f"{BASE}/subagents/pending"
+LANDING_URL   = f"{BASE}/subagents"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("subagents-bot")

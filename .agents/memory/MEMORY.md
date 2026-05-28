@@ -3,5 +3,3 @@
 - [Two-tier cache layer](cache-layer.md) — `cached()` wraps slow-changing config reads (rates/tiers/bot rows); writers MUST call the matching `invalidateXxxCache()` in the same handler.
 - [Per-user rate limit](per-user-rate-limit.md) — row-creating money routes need `perUserCreateLimiter` keyed by telegramId; bot-API-key bucketing alone lets one user starve the bot.
 - [Bot webhook runtime](bot-webhook-runtime.md) — all 4 Python bots toggle polling↔webhook via `webhook_runtime.run_bot(...)`; edit the file in every bot dir (kept byte-identical).
-- [Supabase migration column gaps](supabase-migration-columns.md) — when migrating Neon→Supabase, Drizzle schema columns added after initial create (display_name, avatar_url, created_at on wallets) are missing in Supabase; must ALTER TABLE before running pg_dump INSERTs.
-- [Supabase migration order](supabase-migration-columns.md) — wallets INSERT fails if referrer_id FK users row doesn't exist yet; always insert users before wallets; use grep to extract per-table INSERTs instead of running full dump with TRUNCATE.

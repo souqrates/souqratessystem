@@ -21,26 +21,9 @@ export function showTelegramAlert(message: string) {
 export function openTelegramApp(url: string) {
   if (typeof window === "undefined") return;
   const wa = window.Telegram?.WebApp;
-  // t.me deep links — use Telegram's own router
   if (wa?.openTelegramLink && url.startsWith("https://t.me/")) {
     wa.openTelegramLink(url);
-    return;
-  }
-  // Same-origin (relative path or matching host) — stay inside the Mini App
-  // webview. wa.openLink() always opens an external browser and loses context.
-  if (url.startsWith("/")) {
-    window.location.href = url;
-    return;
-  }
-  try {
-    const target = new URL(url);
-    if (target.origin === window.location.origin) {
-      window.location.href = target.pathname + target.search + target.hash;
-      return;
-    }
-  } catch { /* invalid URL — fall through */ }
-  // External URL
-  if (wa?.openLink) {
+  } else if (wa?.openLink) {
     wa.openLink(url);
   } else {
     window.open(url, "_blank");
