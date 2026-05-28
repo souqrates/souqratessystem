@@ -1,0 +1,100 @@
+~/workspace$ cat lib/db/migrations/*.sql 2>/dev/null | head -100
+CREATE TABLE "users" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "telegram_id" bigint NOT NULL,
+    "username" text,
+    "first_name" text NOT NULL,
+    "last_name" text,
+    "language_code" text DEFAULT 'ar',
+    "is_premium" boolean DEFAULT false,
+    "is_blocked" boolean DEFAULT false,
+    "referrer_id" integer,
+    "xp" integer DEFAULT 0 NOT NULL,
+    "level" integer DEFAULT 1 NOT NULL,
+    "total_games_played" integer DEFAULT 0 NOT NULL,
+    "total_games_won" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT "users_telegram_id_unique" UNIQUE("telegram_id")
+);
+--> statement-breakpoint
+CREATE TABLE "wallets" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "user_id" integer NOT NULL,
+    "balance_skz" numeric(18, 2) DEFAULT '0' NOT NULL,
+    "referral_balance_skz" numeric(18, 2) DEFAULT '0' NOT NULL,
+    "total_earned_from_referrals_skz" numeric(18, 2) DEFAULT '0' NOT NULL,
+    "balance_stars" numeric(18, 0) DEFAULT '0' NOT NULL,
+    "balance_usdt" numeric(18, 6) DEFAULT '0' NOT NULL,
+    "balance_ton" numeric(18, 9) DEFAULT '0' NOT NULL,
+    "total_earned_skz" numeric(18, 2) DEFAULT '0' NOT NULL,
+    "total_withdrawn_skz" numeric(18, 2) DEFAULT '0' NOT NULL,
+    "total_earned" numeric(18, 6) DEFAULT '0' NOT NULL,
+    "total_withdrawn" numeric(18, 6) DEFAULT '0' NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT "wallets_user_id_unique" UNIQUE("user_id")
+);
+--> statement-breakpoint
+CREATE TABLE "transactions" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "user_id" integer NOT NULL,
+    "type" text NOT NULL,
+    "currency" text NOT NULL,
+    "amount" numeric(18, 9) NOT NULL,
+    "fee" numeric(18, 9) DEFAULT '0' NOT NULL,
+    "status" text DEFAULT 'pending' NOT NULL,
+    "source_bot" text,
+    "reference_id" text,
+    "idempotency_key" text,
+    "description" text,
+    "metadata" text,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "bots" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "slug" text NOT NULL,
+    "name" text NOT NULL,
+    "description" text,
+    "commission_rate" numeric(5, 4) DEFAULT '0.1000' NOT NULL,
+    "is_active" boolean DEFAULT true,
+    "api_key" text NOT NULL,
+    "webhook_secret" text NOT NULL,
+    "total_volume_usdt" numeric(18, 6) DEFAULT '0' NOT NULL,
+    "total_commission_usdt" numeric(18, 6) DEFAULT '0' NOT NULL,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT "bots_slug_unique" UNIQUE("slug"),
+    CONSTRAINT "bots_api_key_unique" UNIQUE("api_key")
+);
+--> statement-breakpoint
+CREATE TABLE "commissions" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "transaction_id" integer NOT NULL,
+    "bot_slug" text NOT NULL,
+    "user_id" integer NOT NULL,
+    "game_id" integer,
+    "gross_amount" numeric(18, 9) NOT NULL,
+    "commission_rate" numeric(5, 4) NOT NULL,
+    "commission_amount" numeric(18, 9) NOT NULL,
+    "net_amount" numeric(18, 9) NOT NULL,
+    "currency" text NOT NULL,
+    "status" text DEFAULT 'settled' NOT NULL,
+    "created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "withdrawals" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "user_id" integer NOT NULL,
+    "currency" text NOT NULL,
+    "amount" numeric(18, 9) NOT NULL,
+    "fee" numeric(18, 9) DEFAULT '0' NOT NULL,
+    "net_amount" numeric(18, 9) NOT NULL,
+    "method" text NOT NULL,
+    "address" text,
+    "tx_hash" text,
+    "status" text DEFAULT 'pending' NOT NULL,
+    "processed_at" timestamp with time zone,
+    "rejected_reason" text,
+    "created_at" timestamp with time zone DEFAULT
