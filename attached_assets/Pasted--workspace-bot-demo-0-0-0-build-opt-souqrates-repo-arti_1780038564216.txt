@@ -1,0 +1,86 @@
+> @workspace/bot-demo@0.0.0 build /opt/souqrates/repo/artifacts/bot-demo
+> vite build --config vite.config.ts
+
+vite v7.3.3 building client environment for production...
+src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 2162 modules transformed.
+dist/public/index.html                   1.00 kB │ gzip:   0.51 kB
+dist/public/assets/index-CJJsZolW.css  101.58 kB │ gzip:  17.20 kB
+dist/public/assets/index-ClpR339r.js   511.67 kB │ gzip: 157.69 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.41s
+root@vmi3329645:/opt/souqrates/repo# nginx -t && systemctl reload nginx
+pm2 restart souqrates-mother-bot
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Command 'pm2' not found, did you mean:
+  command 'pm' from deb powerman (2.3.27-4)
+  command 'gm2' from deb gm2 (4:13.2.0-2ubuntu1)
+  command 'pms' from deb pms (0.42-1.1)
+  command 'pmc' from deb linuxptp (4.0-1ubuntu1.1)
+  command 'pmg' from deb python3-pymatgen (2023.06.23+dfsg1-2build1)
+  command 'pmw' from deb pmw (1:5.22-1)
+  command 'wm2' from deb wm2 (4+svn20090216-4build1)
+  command 'tpm2' from deb tpm2-tools (5.4-1)
+  command 'pom2' from deb libpod-pom-perl (2.01-4)
+Try: apt install <deb name>
+root@vmi3329645:/opt/souqrates/repo# # اعرف العمليات الجارية حالياً
+ps aux | grep -E "python|bot.py|node" | grep -v grep
+
+# أو تحقق من systemd
+systemctl list-units --type=service | grep -i souqrates
+root         737  0.4  0.4 515716 57760 ?        Ssl  01:45   5:47 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root         813  0.0  0.1 109996 23052 ?        Ssl  01:45   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+souqrat+  163454  1.2  1.5 10205652 192780 ?     Ssl  22:39   0:15 /usr/bin/node --enable-source-maps /opt/souqrates/repo/artifacts/api-server/dist/index.mjs
+souqrat+  163468  1.0  1.3 248284 161428 ?       Ssl  22:39   0:13 /opt/souqrates/venvs/mother-bot/bin/python -u bot.py
+souqrat+  163483  0.8  1.2 238836 152840 ?       Ssl  22:39   0:11 /opt/souqrates/venvs/books-bot/bin/python -u bot.py
+souqrat+  163485  0.9  1.2 238448 152440 ?       Ssl  22:39   0:12 /opt/souqrates/venvs/contests-bot/bin/python -u bot.py
+souqrat+  163486  0.8  1.2 237336 151104 ?       Ssl  22:39   0:10 /opt/souqrates/venvs/subagents-bot/bin/python -u bot.py
+  souqrates-api.service                          loaded active running SOUQRATES API server (Express + Drizzle, Neon Postgres + R2)
+  souqrates-books-bot.service                    loaded active running SOUQRATES books-bot (Telegram, webhook on :8102)
+  souqrates-contests-bot.service                 loaded active running SOUQRATES contests-bot (Telegram, webhook on :8103)
+  souqrates-mother-bot.service                   loaded active running SOUQRATES mother-bot (Telegram, webhook on :8101)
+  souqrates-subagents-bot.service                loaded active running SOUQRATES subagents-bot (Telegram, webhook on :8104)
+root@vmi3329645:/opt/souqrates/repo# systemctl restart souqrates-mother-bot
+systemctl restart souqrates-subagents-bot
+root@vmi3329645:/opt/souqrates/repo# systemctl status souqrates-mother-bot --no-pager | tail -5
+systemctl status souqrates-subagents-bot --no-pager | tail -5
+May 28 23:03:19 vmi3329645 souqrates-mother-bot[164509]: INFO:__main__:published 2 commands for language=tr
+May 28 23:03:19 vmi3329645 souqrates-mother-bot[164509]: INFO:__main__:published 2 commands for language=fa
+May 28 23:03:20 vmi3329645 souqrates-mother-bot[164509]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 28 23:03:20 vmi3329645 souqrates-mother-bot[164509]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 28 23:03:20 vmi3329645 souqrates-mother-bot[164509]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+             └─164516 /opt/souqrates/venvs/subagents-bot/bin/python -u bot.py
+
+May 28 23:03:10 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 28 23:03:17 vmi3329645 souqrates-subagents-bot[164516]: 2026-05-28 23:03:17,193 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 28 23:03:17 vmi3329645 souqrates-subagents-bot[164516]: 2026-05-28 23:03:17,194 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+root@vmi3329645:/opt/souqrates/repo# grep -n "SUB-AGENTS\|SUBAGENTS_APP_URL" /opt/souqrates/repo/artifacts/mother-bot/src/bot.py
+1228:    """Spawn the SOUQRATES SUB-AGENTS bot as a sibling process.
+root@vmi3329645:/opt/souqrates/repo# cd /opt/souqrates/repo
+git log --oneline -5
+2725783 (grafted, HEAD -> main, origin/main, origin/HEAD) Update dependencies to resolve version conflicts in multiple bots
+root@vmi3329645:/opt/souqrates/repo# # 1. أضف SUBAGENTS_APP_URL بعد سطر CONTESTS_APP_URL
+sed -i "s|CONTESTS_APP_URL  = _BASE_CONTESTS_APP_URL|CONTESTS_APP_URL  = _BASE_CONTESTS_APP_URL\nSUBAGENTS_APP_URL = f\"{_DEFAULT_BASE}/subagents-bot-web/\"|" \
+  /opt/souqrates/repo/artifacts/mother-bot/src/bot.py
+root@vmi3329645:/opt/souqrates/repo# # 2. أضف زر SUB-AGENTS في main_keyboard بعد زر SOUQRATES STAGE
+sed -i "s|InlineKeyboardButton(text=\"★ SOUQRATES STAGE\",|InlineKeyboardButton(text=\"★ SOUQRATES STAGE\",|; /★ SOUQRATES STAGE/{n; s|web_app=WebAppInfo(url=CONTESTS_APP_URL))],|web_app=WebAppInfo(url=CONTESTS_APP_URL))],\n        \[InlineKeyboardButton(text=\"♛ SOUQRATES SUB-AGENTS\",\n                              web_app=WebAppInfo(url=SUBAGENTS_APP_URL))],|}" \
+  /opt/souqrates/repo/artifacts/mother-bot/src/bot.py
+root@vmi3329645:/opt/souqrates/repo# # 3. تحقق أن الزر أُضيف
+grep -n "SUBAGENTS\|SUB-AGENTS" /opt/souqrates/repo/artifacts/mother-bot/src/bot.py
+233:        [InlineKeyboardButton(text="♛ SOUQRATES SUB-AGENTS",
+234:                              web_app=WebAppInfo(url=SUBAGENTS_APP_URL))],
+1230:    """Spawn the SOUQRATES SUB-AGENTS bot as a sibling process.
+1234:    SUBAGENTS_BOT_TOKEN and SUBAGENTS_BOT_API_KEY). Only starts if the token
+1241:    # Set DISABLE_SUBAGENTS_SPAWN=1 in production to skip.
+1242:    if os.getenv("DISABLE_SUBAGENTS_SPAWN", "").strip().lower() in ("1", "true", "yes"):
+1243:        logger.info("DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally")
+1245:    if not os.getenv("SUBAGENTS_BOT_TOKEN"):
+1246:        logger.warning("SUBAGENTS_BOT_TOKEN not set — subagents-bot not spawned")
+root@vmi3329645:/opt/souqrates/repo# # 4. أعد تشغيل البوت
+systemctl restart souqrates-mother-bot
+root@vmi3329645:/opt/souqrates/repo# 
