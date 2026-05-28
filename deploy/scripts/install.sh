@@ -43,7 +43,9 @@ if ! command -v node >/dev/null || [[ "$(node -v)" != v24.* ]]; then
   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
 fi
-if ! command -v pnpm >/dev/null; then
+# Force pnpm 10 (pnpm 11 has a strict-dep-builds default that breaks our build)
+PNPM_MAJOR="$(pnpm -v 2>/dev/null | cut -d. -f1 || echo 0)"
+if [[ "${PNPM_MAJOR}" != "10" ]]; then
   npm install -g pnpm@10
 fi
 node -v && pnpm -v
