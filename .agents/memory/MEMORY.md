@@ -4,3 +4,6 @@
 - [Per-user rate limit](per-user-rate-limit.md) — row-creating money routes need `perUserCreateLimiter` keyed by telegramId; bot-API-key bucketing alone lets one user starve the bot.
 - [Bot webhook runtime](bot-webhook-runtime.md) — all 4 Python bots toggle polling↔webhook via `webhook_runtime.run_bot(...)`; edit the file in every bot dir (kept byte-identical).
 - [Mini App cross-app nav](miniapp-cross-miniapp-nav.md) — `wa.openLink()` always leaves Telegram; use same-origin `window.location.href` (relative URLs only) to stay inside the Mini App webview.
+- [Contabo deploy progress](contabo-deploy-progress.md) — partial production deploy; API+mother-bot running, DNS/SSL/seed_bots remain for next session.
+- [pnpm on Contabo](pnpm-contabo.md) — must use pnpm@10 on server; v11 strict-dep-builds blocks esbuild. Fix: `npm install -g pnpm@10` then reinstall.
+- [Supabase from Contabo](supabase-contabo.md) — direct port 5432 on db.*.supabase.co is IPv6-only, unreachable. Use pooler session mode port 5432 on aws-1-ap-southeast-1.pooler.supabase.com. Apply schema via SQL Editor (drizzle push times out from both Replit and Contabo).
