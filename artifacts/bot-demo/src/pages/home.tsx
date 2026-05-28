@@ -3,7 +3,7 @@ import { usePlatformSettings } from "../lib/use-platform-settings";
 import { useWallet } from "../lib/use-wallet";
 import { useTransactions, formatTxDate, txBotIcon } from "../lib/use-transactions";
 import { motion } from "framer-motion";
-import { Star, TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload, Loader2 } from "lucide-react";
+import { Star, TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload, Loader2, Crown } from "lucide-react";
 import { Link } from "wouter";
 import { IconBox, BOT_ICONS, CURRENCY_ICONS } from "../components/icons";
 import { useT } from "../lib/i18n";
@@ -263,6 +263,31 @@ export function Home() {
                 </div>
               </div>
               <ChevronRight size={18} className="text-skz-light flex-shrink-0" />
+            </div>
+          </motion.div>
+        </Link>
+      </motion.div>
+
+      {/* ── Sub-Agents promo ── */}
+      <motion.div variants={fadeUp}>
+        <Link href="/subagents">
+          <motion.div whileTap={{ scale: 0.98 }}
+            className="relative rounded-2xl p-4 overflow-hidden pressable"
+            style={{ background: "linear-gradient(135deg, rgba(212,175,55,0.12), rgba(184,148,31,0.06))", border: "1px solid rgba(212,175,55,0.3)" }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, rgba(212,175,55,0.3), rgba(184,148,31,0.2))", border: "1px solid rgba(212,175,55,0.4)" }}
+                >
+                  <Crown size={20} color="#D4AF37" />
+                </div>
+                <div>
+                  <p className="text-sm font-black mb-1" style={{ color: "#D4AF37" }}>♛ SOUQRATES SUB-AGENTS</p>
+                  <p className="text-[11px] text-white/50 leading-snug">برنامج الشركاء — بيع SKZ واربح عمولات تصاعدية</p>
+                </div>
+              </div>
+              <ChevronRight size={18} style={{ color: "#D4AF37" }} className="flex-shrink-0" />
             </div>
           </motion.div>
         </Link>
