@@ -46,6 +46,19 @@ async def run_bot(bot: Any, dp: Any, slug: str) -> None:
     allowed = dp.resolve_used_update_types()
 
     if not _truthy(os.getenv("USE_WEBHOOK")):
+        # When SKIP_BOT_POLLING=1 is set (Replit dev while Contabo webhooks are
+        # active) we don't try to poll — Telegram would reject getUpdates because
+        # the production webhook is still registered. Just sleep so the workflow
+        # stays "running" without flooding logs with conflict errors.
+        if _truthy(os.getenv("SKIP_BOT_POLLING")):
+            logger.info(
+                f"{slug}: SKIP_BOT_POLLING is set — bot is paused in dev mode "
+                f"(production webhooks are active on Contabo). "
+                f"Unset SKIP_BOT_POLLING to resume polling."
+            )
+            await asyncio.Event().wait()   # sleep until SIGTERM
+            return
+
         logger.info(f"{slug}: starting polling (USE_WEBHOOK not set)")
         # Wipe any prior webhook so Telegram delivers via getUpdates again.
         try:

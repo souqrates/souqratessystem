@@ -127,3 +127,6 @@ channel = "stable-25_05"
 MOTHER_API_URL = "http://localhost:80/api"
 MINI_APP_URL = "https://souqrates.com/"
 MOTHER_BOT_USERNAME = "souqrates_system_bot"
+
+[userenv.development]
+SKIP_BOT_POLLING = "1"
