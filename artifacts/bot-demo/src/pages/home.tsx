@@ -22,7 +22,7 @@ const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: 
   { name: "Souq",   brand: "SOUQRATES SOUQ",   short: "SOUQ",   live: true, url: "https://souqrates.com/books-bot-web/" },
   { name: "Scene",  brand: "SOUQRATES SCENE",  short: "SCENE"  },
   { name: "Stream", brand: "SOUQRATES STREAM", short: "STREAM" },
-  { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS", short: "SUB-AGENTS", live: true, url: "/subagents" },
+  { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS", short: "SUB-AGENTS", live: true, url: "/subagents-bot-web/" },
   { name: "Stage",  brand: "SOUQRATES STAGE",  short: "STAGE",  live: true, url: "https://souqrates.com/contests-bot-web/" },
 ];
 
