@@ -1,0 +1,28 @@
+echo "---"
+journalctl -u souqrates-mother-bot -n 20 --no-pager
+active
+activating
+activating
+activating
+activating
+---
+May 28 12:37:21 vmi3329645 systemd[1]: souqrates-mother-bot.service: Scheduled restart job, restart counter is at 8071.
+May 28 12:37:21 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]: Traceback (most recent call last):
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]:   File "/opt/souqrates/repo/artifacts/mother-bot/src/bot.py", line 8, in <module>
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]:     from sentry_init import init_sentry
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]:   File "/opt/souqrates/repo/artifacts/mother-bot/src/sentry_init.py", line 16, in <module>
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]:     import sentry_sdk
+May 28 12:37:22 vmi3329645 souqrates-mother-bot[146020]: ModuleNotFoundError: No module named 'sentry_sdk'
+May 28 12:37:22 vmi3329645 systemd[1]: souqrates-mother-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 28 12:37:22 vmi3329645 systemd[1]: souqrates-mother-bot.service: Failed with result 'exit-code'.
+May 28 12:37:25 vmi3329645 systemd[1]: souqrates-mother-bot.service: Scheduled restart job, restart counter is at 8072.
+May 28 12:37:25 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]: Traceback (most recent call last):
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]:   File "/opt/souqrates/repo/artifacts/mother-bot/src/bot.py", line 8, in <module>
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]:     from sentry_init import init_sentry
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]:   File "/opt/souqrates/repo/artifacts/mother-bot/src/sentry_init.py", line 16, in <module>
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]:     import sentry_sdk
+May 28 12:37:26 vmi3329645 souqrates-mother-bot[146035]: ModuleNotFoundError: No module named 'sentry_sdk'
+May 28 12:37:26 vmi3329645 systemd[1]: souqrates-mother-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 28 12:37:26 vmi3329645 systemd[1]: souqrates-mother-bot.service: Failed with result 'exit-code'.
