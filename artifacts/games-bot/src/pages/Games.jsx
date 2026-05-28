@@ -29,20 +29,9 @@ const FILTERS = [
 ];
 
 export default function Games({ onOpenGame }) {
-  const { games, gamesLoaded, language, gamesFilter, wallet } = useAppStore();
+  const { games, language, gamesFilter, wallet } = useAppStore();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState(gamesFilter || 'all');
-
-  if (!gamesLoaded) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Zap size={28} style={{ color: '#f59e0b', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.8))' }} className="animate-pulse" />
-        <p className="text-sm font-bold tracking-widest uppercase" style={{ color: 'rgba(148,163,184,0.6)' }}>
-          {t(language, 'loading') || 'Loading…'}
-        </p>
-      </div>
-    );
-  }
 
   const filtered = useMemo(() => {
     let list = games || [];

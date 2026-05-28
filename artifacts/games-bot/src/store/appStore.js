@@ -104,8 +104,7 @@ const useAppStore = create((set, get) => ({
   selectedGame:  null,
   appConfig:        {},
   defaultSoloTier:  null,
-  games:            [],
-  gamesLoaded:      false,
+  games:            GAMES,
   gamificationVersion: 0,
   bumpGamification: () => set((s) => ({ gamificationVersion: s.gamificationVersion + 1 })),
 
@@ -134,7 +133,6 @@ const useAppStore = create((set, get) => ({
       try {
         const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
         const r = await fetch('/api/games/configs', { headers: { Accept: 'application/json' } });
-        visibleIds = new Set();
         if (r.ok) {
           const j = await r.json();
           const arr = Array.isArray(j?.data) ? j.data : [];
@@ -175,10 +173,8 @@ const useAppStore = create((set, get) => ({
       let merged = applyOverrides(GAMES, adminOverrides, defaultSoloTier);
       if (visibleIds) merged = merged.filter((g) => visibleIds.has(g.id));
 
-      set({ defaultSoloTier, games: merged, gamesLoaded: true });
-    } catch {
-      set({ games: [], gamesLoaded: true });
-    }
+      set({ defaultSoloTier, games: merged });
+    } catch { /* keep defaults */ }
   },
 
   refreshBalance: async () => {

@@ -23,10 +23,8 @@ deploy/
 │   ├── contests-bot.env.example
 │   └── subagents-bot.env.example
 └── scripts/
-    ├── install.sh                    ← التثبيت الأولي (يُشغّل مرة واحدة)
-    ├── setup-ssl.sh                  ← تفعيل HTTPS + UFW + خدمات + seed DB (بعد install.sh)
-    ├── activate-subagents-bot.sh     ← تفعيل subagents-bot على خادم شغّال
-    └── deploy.sh                     ← تحديثات لاحقة (git pull + rebuild + restart)
+    ├── install.sh            ← التثبيت الأولي (يُشغّل مرة واحدة)
+    └── deploy.sh             ← تحديثات لاحقة (git pull + rebuild + restart)
 ```
 
 ---
@@ -75,7 +73,7 @@ api-server                                 ┌─ 8101 mother-bot
 ssh root@194.163.155.52
 
 # سحب الكود مؤقتاً فقط لتشغيل install.sh
-git clone --depth=1 https://github.com/souqrates/souqratessystem.git /tmp/repo
+git clone --depth=1 https://github.com/YOUR_ORG/souqrates.git /tmp/repo
 bash /tmp/repo/deploy/scripts/install.sh
 # (السكربت سيكرّر الـ clone لمكانه النهائي /opt/souqrates/repo)
 ```
@@ -110,92 +108,35 @@ sudo -u souqrates bash -lc \
    pnpm --filter @workspace/db run push'
 ```
 
-### 4. شهادة TLS + خدمات + seed (setup-ssl.sh)
-
-⚠ **قبل التشغيل:** حوّل `souqrates.com` و `www.souqrates.com` A records في
-Cloudflare إلى `194.163.155.52` مع **orange cloud OFF** (DNS only) مؤقتاً —
-certbot يحتاج http-01 مباشراً. يمكنك تفعيل orange cloud بعد نجاح الشهادة.
-
+### 4. شهادة TLS
+على Cloudflare: حوّل `souqrates.com` و `www.souqrates.com` A records إلى
+`194.163.155.52` (DNS only — orange cloud OFF مؤقتاً لشهادة certbot).
 ```bash
-# يُنفّذ كـ root — استبدل your@email.com ببريدك الحقيقي
-CERTBOT_EMAIL=your@email.com bash /opt/souqrates/repo/deploy/scripts/setup-ssl.sh
+certbot --nginx -d souqrates.com -d www.souqrates.com --redirect --agree-tos -m you@example.com
 ```
+بعد نجاح الشهادة يمكنك تفعيل orange cloud في Cloudflare.
+**واجب:** أضف Page Rule لاستثناء `souqrates.com/telegram-webhook/*` من الكاش.
 
-السكربت يقوم بالخطوات التالية تلقائياً:
-1. يتحقق من DNS + nginx
-2. يُصدر شهادة Let's Encrypt (certbot) ويُعيد تحميل nginx
-3. يُفعّل جدار الحماية UFW (منافذ 22, 80, 443)
-4. يُشغّل ويُمكّن جميع الـ 5 خدمات systemd
-5. يُسجّل البوتات في DB (`seed_bots.py`)
-6. يُجري فحوصات صحية شاملة (HTTPS + webhook per-bot)
-
-خيارات اختيارية:
+### 5. شغّل الخدمات
 ```bash
-CERTBOT_STAGING=1  # استخدم بيئة اختبار Let's Encrypt أولاً (لا تثق بها المتصفحات)
-SKIP_SEED=1        # تجاهل seed إذا سبق تسجيل البوتات
-SKIP_UFW=1         # تجاهل UFW إذا يديره firewall آخر
-```
+systemctl enable --now souqrates-api.service
+systemctl enable --now souqrates-mother-bot.service \
+                       souqrates-books-bot.service \
+                       souqrates-contests-bot.service \
+                       souqrates-subagents-bot.service
+systemctl reload nginx
 
-**واجب بعد نجاح الشهادة:**
-- فعّل orange cloud في Cloudflare للحماية CDN/WAF
-- أضف Cache Rule: `souqrates.com/telegram-webhook/*` → Cache Level: Bypass
-
-### 5. فحص يدوي (اختياري بعد setup-ssl.sh)
-```bash
-curl -sfS https://souqrates.com/api/healthz
-curl -sfS http://127.0.0.1:8101/telegram-webhook/mother-bot/healthz
+# تابع اللوجز
 journalctl -u souqrates-mother-bot -f
 ```
 
+### 6. فحص نهائي
+```bash
+curl -sfS https://souqrates.com/api/healthz
+curl -sfS http://127.0.0.1:8101/telegram-webhook/mother-bot/healthz
+```
+
 ثم على Telegram من حسابك الشخصي: `/start` لكل بوت — يجب أن يردّ فوراً.
-
----
-
-## تفعيل subagents-bot على خادم شغّال (الحالة الحالية)
-
-إذا كانت البوتات الأخرى (mother-bot, books-bot, contests-bot) تعمل بالفعل
-وتريد إضافة subagents-bot فقط، استخدم السكربت المخصص:
-
-```bash
-ssh root@194.163.155.52
-
-# 1. git pull لتحديث الكود
-sudo -u souqrates git -C /opt/souqrates/repo pull
-
-# 2. عبّئ ملف البيئة إذا لم يكن موجوداً
-cp /opt/souqrates/repo/deploy/env/subagents-bot.env.example /etc/souqrates/subagents-bot.env
-chmod 640 /etc/souqrates/subagents-bot.env
-nano /etc/souqrates/subagents-bot.env
-# ↑ أدخل: SUBAGENTS_BOT_TOKEN, SUBAGENTS_BOT_API_KEY, MOTHER_BOT_USERNAME,
-#         WEBHOOK_SECRET (openssl rand -hex 24), باقي الحقول كما هي
-
-# 3. شغّل سكربت التفعيل
-bash /opt/souqrates/repo/deploy/scripts/activate-subagents-bot.sh
-```
-
-السكربت يقوم تلقائياً بـ:
-1. التحقق من ملف البيئة (يرفض إذا كان به placeholders)
-2. إنشاء Python venv وتثبيت المتطلبات (بما فيها `sentry-sdk`)
-3. تثبيت وتمكين وتشغيل `souqrates-subagents-bot.service`
-4. تسجيل البوت في قاعدة البيانات عبر `seed_bots.py`
-5. الانتظار حتى يكون healthz endpoint جاهزاً (`:8104`)
-6. التحقق من إمكانية الوصول لـ `https://souqrates.com/telegram-webhook/subagents-bot`
-7. التحقق من تسجيل الـ webhook مع Telegram عبر `getWebhookInfo`
-
-للتحقق اليدوي بعد التفعيل:
-```bash
-# حالة الخدمة
-systemctl status souqrates-subagents-bot
-
-# سجل الأحداث
-journalctl -u souqrates-subagents-bot -f
-
-# فحص صحي داخلي
-curl http://127.0.0.1:8104/telegram-webhook/subagents-bot/healthz
-
-# التحقق من webhook مع Telegram
-curl -s "https://api.telegram.org/bot$(grep ^SUBAGENTS_BOT_TOKEN /etc/souqrates/subagents-bot.env | cut -d= -f2-)/getWebhookInfo" | python3 -m json.tool
-```
 
 ---
 

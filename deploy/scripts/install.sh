@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/souqrates/souqratessystem.git}"
+REPO_URL="${REPO_URL:-https://github.com/YOUR_GH_ORG/souqrates.git}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 APP_USER="souqrates"
 APP_HOME="/opt/souqrates"
@@ -43,9 +43,7 @@ if ! command -v node >/dev/null || [[ "$(node -v)" != v24.* ]]; then
   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
 fi
-# Force pnpm 10 (pnpm 11 has a strict-dep-builds default that breaks our build)
-PNPM_MAJOR="$(pnpm -v 2>/dev/null | cut -d. -f1 || echo 0)"
-if [[ "${PNPM_MAJOR}" != "10" ]]; then
+if ! command -v pnpm >/dev/null; then
   npm install -g pnpm@10
 fi
 node -v && pnpm -v
@@ -69,9 +67,7 @@ log "5/9  pnpm install + build everything"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
   cd '${REPO_DIR}'
-  # .npmrc sets strict-dep-builds=false so pnpm 11 doesn't error on ignored builds.
-  pnpm install
-  pnpm rebuild esbuild 2>/dev/null || true
+  pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do

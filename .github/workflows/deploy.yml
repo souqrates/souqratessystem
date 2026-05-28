@@ -1,0 +1,179 @@
+name: Deploy to Contabo
+
+# نشر تلقائي إلى خادم Contabo (souqrates.com).
+# يعمل بطريقتين:
+#   1) Push إلى main         → نشر تلقائي
+#   2) Click "Run workflow"  → نشر يدوي بضغطة زر (من Actions tab)
+#
+# المتطلبات (GitHub → Settings → Secrets and variables → Actions):
+#   CONTABO_HOST      = 194.163.155.52        (IP أو دومين)
+#   CONTABO_USER      = souq                  (اسم المستخدم على الخادم)
+#   CONTABO_SSH_KEY   = -----BEGIN OPENSSH PRIVATE KEY----- … (المفتاح الخاص)
+#   CONTABO_HOSTKEY   = ssh-ed25519 AAAA…     (المفتاح العام للخادم — anti-MITM)
+#                       (نفّذ مرّة من جهازك: ssh-keyscan -t ed25519 -p 22 194.163.155.52)
+#   CONTABO_PORT      = 22                    (اختياري، الافتراضي 22)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.local/**'
+      - '.agents/**'
+      - 'attached_assets/**'
+  workflow_dispatch:
+    inputs:
+      skip_build_cache:
+        description: 'إعادة البناء من الصفر (تجاهل كاش Docker)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-contabo
+  cancel-in-progress: false   # لا تلغي نشراً جارياً — انتظر دوره
+
+jobs:
+  quality-gate:
+    name: Quality gate (typecheck + python syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install TS deps
+        run: pnpm install --frozen-lockfile
+      - name: TS typecheck (monorepo)
+        run: pnpm run typecheck
+      - name: Python syntax check (all bots)
+        run: |
+          set -e
+          fail=0
+          for bot in artifacts/*/src/bot.py; do
+            [ -f "$bot" ] || continue
+            echo "▶ $bot"
+            python -m py_compile "$bot" || fail=1
+          done
+          # also compile shared client.py modules
+          for f in artifacts/*/src/client.py artifacts/*/src/*.py; do
+            [ -f "$f" ] || continue
+            python -m py_compile "$f" || fail=1
+          done
+          exit $fail
+
+  deploy:
+    name: Build & deploy on Contabo
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.CONTABO_SSH_KEY }}
+
+      - name: Pin host key (anti-MITM)
+        env:
+          HOST: ${{ secrets.CONTABO_HOST }}
+          PORT: ${{ secrets.CONTABO_PORT || '22' }}
+          HOSTKEY: ${{ secrets.CONTABO_HOSTKEY }}
+        run: |
+          if [ -z "$HOSTKEY" ]; then
+            echo "❌ CONTABO_HOSTKEY غير محدّد. هذا ضروري لمنع MITM."
+            echo "نفّذ من جهازك: ssh-keyscan -t ed25519 -p $PORT $HOST"
+            echo "ثم احفظ الناتج كله كـ Secret اسمه CONTABO_HOSTKEY."
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          # نتأكّد أن السطر يبدأ بالـ host (وإلا نضيفه)
+          if echo "$HOSTKEY" | grep -qE "^(\[?[^ ]+\]?[, ]|$HOST )"; then
+            echo "$HOSTKEY" > ~/.ssh/known_hosts
+          else
+            echo "$HOST $HOSTKEY" > ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+          # نضبط ssh بحيث يرفض أي host غير مثبّت
+          cat > ~/.ssh/config <<CONF
+          Host *
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            PasswordAuthentication no
+            ServerAliveInterval 30
+          CONF
+          chmod 600 ~/.ssh/config
+
+      - name: Sync source to server
+        env:
+          HOST: ${{ secrets.CONTABO_HOST }}
+          USER: ${{ secrets.CONTABO_USER }}
+          PORT: ${{ secrets.CONTABO_PORT || '22' }}
+          SHA: ${{ github.sha }}
+        run: |
+          # نُبقي .git/ على الخادم ليعمل الـ rollback (git checkout <sha>).
+          # الاستثناءات أدناه محلية فقط — لا تخص الإنتاج.
+          rsync -avz --delete \
+            -e "ssh -p $PORT" \
+            --exclude 'node_modules/' \
+            --exclude 'dist/' \
+            --exclude '.next/' \
+            --exclude '__pycache__/' \
+            --exclude '.local/' \
+            --exclude '.agents/' \
+            --exclude '.replit*' \
+            --exclude 'attached_assets/' \
+            --exclude 'infra/.env' \
+            --exclude 'infra/.deploy.env' \
+            ./ "${USER}@${HOST}:/opt/souqrates/"
+          # نسجّل آخر sha منشور (لمرجع الـ rollback السريع)
+          ssh "${USER}@${HOST}" "echo '$SHA' > /opt/souqrates/.deployed-sha && date -Iseconds > /opt/souqrates/.deployed-at"
+
+      - name: Build & restart on server
+        env:
+          HOST: ${{ secrets.CONTABO_HOST }}
+          USER: ${{ secrets.CONTABO_USER }}
+          PORT: ${{ secrets.CONTABO_PORT || '22' }}
+          NO_CACHE: ${{ inputs.skip_build_cache && '--no-cache' || '' }}
+        run: |
+          ssh -p "$PORT" "${USER}@${HOST}" bash -s <<EOF
+          set -euo pipefail
+          cd /opt/souqrates/infra
+          docker compose build ${NO_CACHE}
+          docker compose up -d --remove-orphans
+          docker image prune -f
+          echo "── حالة الخدمات ──"
+          docker compose ps
+          EOF
+
+      - name: Health check
+        env:
+          HOST: ${{ secrets.CONTABO_HOST }}
+          USER: ${{ secrets.CONTABO_USER }}
+          PORT: ${{ secrets.CONTABO_PORT || '22' }}
+        run: |
+          ssh -p "$PORT" "${USER}@${HOST}" \
+            'for i in 1 2 3 4 5 6; do
+               if curl -fsS http://127.0.0.1:5000/api/healthz >/dev/null 2>&1; then
+                 echo "✅ API يستجيب (محاولة $i)"; exit 0
+               fi
+               echo "⏳ بانتظار API… ($i/6)"; sleep 5
+             done
+             echo "❌ API لم يستجب خلال 30 ثانية"; exit 1'
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## ✅ النشر اكتمل" >> $GITHUB_STEP_SUMMARY
+            echo "الموقع: https://api.souqrates.com" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ فشل النشر" >> $GITHUB_STEP_SUMMARY
+            echo "راجع السجل أعلاه وراسلني الخطأ." >> $GITHUB_STEP_SUMMARY
+          fi
