@@ -27,6 +27,19 @@ echo "  ${PREV:0:8} → ${HEAD:0:8}"
 
 CHANGED=$(sudo -u "${APP_USER}" git -C "${REPO_DIR}" diff --name-only "${PREV}" "${HEAD}" || true)
 
+# ── Read VITE_ build-time vars (baked into games-bot bundle at compile time) ──
+# games-bot Mini App calls Supabase directly for XP / ranks / gamification.
+# Without these the bundle falls back to a no-op stub → ranks always show 0.
+GAMES_BOT_ENV="/etc/souqrates/games-bot-build.env"
+VITE_SB_URL=""
+VITE_SB_ANON=""
+if [[ -f "$GAMES_BOT_ENV" ]]; then
+  VITE_SB_URL=$(grep  '^VITE_SUPABASE_URL='      "$GAMES_BOT_ENV" | cut -d= -f2- || true)
+  VITE_SB_ANON=$(grep '^VITE_SUPABASE_ANON_KEY=' "$GAMES_BOT_ENV" | cut -d= -f2- || true)
+else
+  echo "  ⚠  $GAMES_BOT_ENV not found — games-bot ranks/XP will be disabled"
+fi
+
 log "pnpm install + typecheck + build"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
@@ -36,7 +49,11 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm --filter @workspace/api-server run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
     if [ \"\$slug\" = \"bot-demo\" ]; then BP=/; else BP=/\${slug}/; fi
-    PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+    if [ \"\$slug\" = \"games-bot\" ]; then
+      VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+    else
+      PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+    fi
   done
 "
 
