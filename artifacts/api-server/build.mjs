@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm, copyFile, access } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -120,24 +120,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
   });
 }
 
-// Copy any extra static assets that routes need at runtime
-async function copyStaticAssets(distDir) {
-  const assets = ["migrate_data.sql"];
-  for (const asset of assets) {
-    const src = path.resolve(artifactDir, "src", asset);
-    const dest = path.resolve(distDir, asset);
-    try {
-      await access(src);
-      await copyFile(src, dest);
-    } catch {
-      // file doesn't exist — skip silently
-    }
-  }
-}
-
-buildAll()
-  .then(() => copyStaticAssets(path.resolve(artifactDir, "dist")))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+buildAll().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
