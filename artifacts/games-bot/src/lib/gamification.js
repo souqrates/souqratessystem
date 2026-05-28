@@ -1,114 +1,129 @@
-import { supabase } from './supabase';
-import { getVerifiedSession } from './telegram';
+/**
+ * Central gamification adapter — XP / ranks / streak data comes from the
+ * SOUQRATES SYSTEM API (/api/games/gamification) instead of Supabase.
+ * Exported API surface is identical to the old version so components need
+ * zero changes.
+ */
 import { rankProgress, levelFromXp as rankLevelFromXp, RANK_THRESHOLDS } from './ranks';
 
-let _userStateCache = null;
-let _userStateCacheAt = 0;
-const USER_STATE_TTL = 5000;
+// ── Internal fetch helper ────────────────────────────────────────────────────
+
+function getInitData() {
+  try { return window.Telegram?.WebApp?.initData ?? ''; }
+  catch { return ''; }
+}
+
+async function apiCall(method, path, body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': getInitData(),
+    },
+  };
+  if (body !== null) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Cache (5 s TTL) ───────────────────────────────────────────────────────────
+
+let _cache = null;
+let _cacheAt = 0;
+const CACHE_TTL = 5_000;
 
 export function invalidateUserState() {
-  _userStateCache = null;
-  _userStateCacheAt = 0;
+  _cache = null;
+  _cacheAt = 0;
+  try {
+    import('../store/appStore').then(m => m.default.getState().bumpGamification?.()).catch(() => {});
+  } catch { /* non-fatal */ }
 }
 
-async function fetchUserState({ force = false } = {}) {
+async function fetchFromApi({ force = false } = {}) {
   const now = Date.now();
-  if (!force && _userStateCache && now - _userStateCacheAt < USER_STATE_TTL) return _userStateCache;
-  const sid = getVerifiedSession()?.session_id;
-  if (!sid) return null;
-  const { data, error } = await supabase.rpc('gm_get_user_state', { p_session_id: sid });
-  if (error) return null;
-  _userStateCache = data || null;
-  _userStateCacheAt = now;
-  return _userStateCache;
+  if (!force && _cache && now - _cacheAt < CACHE_TTL) return _cache;
+  try {
+    const data = await apiCall('GET', '/api/games/gamification');
+    _cache = data;
+    _cacheAt = now;
+    return data;
+  } catch {
+    return null;
+  }
 }
+
+// ── Public API (same signatures as old Supabase version) ─────────────────────
+
+/** Returns { xp, total_games, total_wins } — shape expected by GamificationCard / PlayerRankCard. */
+export async function fetchGamification() {
+  const d = await fetchFromApi();
+  if (!d) return null;
+  return {
+    xp:          d.xp         ?? 0,
+    total_games: d.totalGames ?? 0,
+    total_wins:  d.totalWins  ?? 0,
+  };
+}
+
+/** Returns { current_streak, longest_streak, last_claim_date, can_claim }. */
+export async function fetchStreak() {
+  const d = await fetchFromApi();
+  if (!d) return null;
+  return {
+    current_streak:  d.streakDays    ?? 0,
+    longest_streak:  d.longestStreak ?? 0,
+    last_claim_date: d.streakLastClaimAt ? String(d.streakLastClaimAt).slice(0, 10) : null,
+    can_claim:       !!d.canClaimStreak,
+  };
+}
+
+/** Claim daily streak. Returns updated streak object. */
+export async function claimDailyStreak(_telegramId) {
+  const res = await apiCall('POST', '/api/games/claim-streak');
+  invalidateUserState();
+  return {
+    current_streak:  res.streakDays    ?? 0,
+    longest_streak:  res.longestStreak ?? 0,
+    last_claim_date: new Date().toISOString().slice(0, 10),
+    can_claim:       false,
+  };
+}
+
+/** Award XP for a game result — replaces Supabase recordGameEnd. */
+export async function recordGameEnd(_telegramId, won, difficulty = 'Medium') {
+  try {
+    await apiCall('POST', '/api/games/award-xp', {
+      won:        !!won,
+      difficulty: String(difficulty || 'Medium'),
+    });
+    invalidateUserState();
+  } catch { /* non-fatal */ }
+}
+
+/** True if user already claimed today. */
+export function streakClaimedToday(streak) {
+  if (!streak?.last_claim_date) return false;
+  return streak.last_claim_date === new Date().toISOString().slice(0, 10);
+}
+
+// ── XP math helpers (pure, no API calls) ─────────────────────────────────────
 
 export function xpForLevel(level) {
   const idx = Math.min(RANK_THRESHOLDS.length, Math.max(1, level)) - 1;
   return RANK_THRESHOLDS[idx];
 }
 
-export function levelFromXp(xp) {
-  return rankLevelFromXp(xp);
-}
+export function levelFromXp(xp) { return rankLevelFromXp(xp); }
 
 export function xpProgressToNext(xp) {
   const p = rankProgress(xp);
   return { level: p.level, inLevel: p.inLevel, span: p.span, pct: p.pct, nextAt: p.nextAt };
 }
 
-export async function fetchGamification() {
-  const state = await fetchUserState();
-  const gam = state?.gamification;
-  return gam && Object.keys(gam).length ? gam : null;
-}
-
-export async function fetchStreak() {
-  const state = await fetchUserState();
-  const streak = state?.streak;
-  return streak && Object.keys(streak).length ? streak : null;
-}
-
-async function notifyGamificationChange() {
-  invalidateUserState();
-  try {
-    const mod = await import('../store/appStore');
-    mod.default.getState().bumpGamification?.();
-  } catch { /* non-fatal */ }
-}
-
-export async function claimDailyStreak(telegramId) {
-  if (!telegramId) return null;
-  const { data, error } = await supabase.rpc('claim_daily_streak', { p_telegram_id: telegramId });
-  if (error) return null;
-  await notifyGamificationChange();
-  return Array.isArray(data) ? data[0] : data;
-}
-
-export async function awardXp(telegramId, amount) {
-  if (!telegramId || !amount || amount <= 0) return null;
-  const { data, error } = await supabase.rpc('award_xp', { p_telegram_id: telegramId, p_amount: amount });
-  if (error) return null;
-  await notifyGamificationChange();
-  return Array.isArray(data) ? data[0] : data;
-}
-
-export async function unlockAchievement(telegramId, code) {
-  if (!telegramId || !code) return null;
-  const { data, error } = await supabase.rpc('unlock_achievement', { p_telegram_id: telegramId, p_code: code });
-  if (error) return null;
-  await notifyGamificationChange();
-  return Array.isArray(data) ? data[0] : data;
-}
-
-export async function recordGameEnd(telegramId, won, difficulty = 'Medium') {
-  if (!telegramId) return null;
-  const { data, error } = await supabase.rpc('record_game_end', {
-    p_telegram_id: telegramId,
-    p_won: !!won,
-    p_difficulty: String(difficulty || 'Medium'),
-  });
-  if (error) return null;
-  // Invalidate cache + signal subscribers (rank card, dashboard) to re-fetch.
-  await notifyGamificationChange();
-  return Array.isArray(data) ? data[0] : data;
-}
-
-export async function fetchAchievementsCatalog() {
-  const { data } = await supabase
-    .from('achievements_catalog')
-    .select('*')
-    .order('sort_order', { ascending: true });
-  return data || [];
-}
-
-export async function fetchUserAchievements() {
-  const state = await fetchUserState();
-  return Array.isArray(state?.achievements) ? state.achievements : [];
-}
-
-export function streakClaimedToday(streak) {
-  if (!streak?.last_claim_date) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  return streak.last_claim_date === today;
-}
+// Stubs kept for backward-compat
+export async function awardXp() { return null; }
+export async function unlockAchievement() { return null; }
+export async function fetchAchievementsCatalog() { return []; }
+export async function fetchUserAchievements() { return []; }

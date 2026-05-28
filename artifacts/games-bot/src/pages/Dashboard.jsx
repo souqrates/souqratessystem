@@ -13,8 +13,6 @@ import ProfileEditModal from '../components/ProfileEditModal';
 import DailyStreakCard from '../components/DailyStreakCard';
 import ShareProfileCard from '../components/ShareProfileCard';
 import { listLedger } from '../lib/payments';
-import { supabase } from '../lib/supabase';
-import { getVerifiedSession } from '../lib/telegram';
 import { rankProgress } from '../lib/ranks';
 import { fetchStreak, fetchGamification } from '../lib/gamification';
 import { displayNameOf, avatarUrlOf, initialOf } from '../lib/profile';
@@ -43,16 +41,13 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadMine() {
-      const sid = getVerifiedSession()?.session_id;
-      if (!sid) return;
-      const { data } = await supabase.rpc('gm_get_user_state', { p_session_id: sid });
-      const gam = data?.gamification || {};
+      const [gamiData, streakData] = await Promise.all([fetchGamification(), fetchStreak()]);
       if (!cancelled) {
-        setTotalXp(Number(gam.xp || 0));
-        setTotalGames(Number(gam.total_games || 0));
+        setTotalXp(Number(gamiData?.xp || 0));
+        setTotalGames(Number(gamiData?.total_games || 0));
+        setStreak(streakData);
+        setGami(gamiData);
       }
-      const [streakData, gamiData] = await Promise.all([fetchStreak(), fetchGamification()]);
-      if (!cancelled) { setStreak(streakData); setGami(gamiData); }
     }
     async function loadActivity() {
       try {

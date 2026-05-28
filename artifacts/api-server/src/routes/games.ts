@@ -18,7 +18,7 @@
  */
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import crypto from "crypto";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   usersTable,
@@ -253,6 +253,73 @@ async function forwardPost(
   }
 }
 
+/** Like forwardPost but returns {status, data} instead of writing the response. */
+async function forwardPostCapture(
+  req: Request,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; data: Record<string, unknown> } | null> {
+  const apiKey = await getGamesBotApiKey();
+  if (!apiKey) return null;
+  try {
+    const r = await fetch(internalUrl(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Bot-Api-Key": apiKey },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json() as Record<string, unknown>;
+    return { status: r.status, data };
+  } catch (err) {
+    req.log.error({ err, path }, "games: forwardPostCapture failed");
+    return null;
+  }
+}
+
+// ─── Gamification helpers ─────────────────────────────────────────────────────
+
+/** XP thresholds per level — mirrors frontend ranks.js RANK_THRESHOLDS. */
+const RANK_THRESHOLDS = [
+  0, 450, 981, 1608, 2348, 3221, 4251, 5466, 6900, 8592,
+  10589, 12945, 15725, 19006, 22877, 27445, 32835, 39196, 46703, 55562,
+];
+
+function computeLevel(xp: number): number {
+  const v = Math.max(0, xp);
+  for (let i = RANK_THRESHOLDS.length; i >= 1; i--) {
+    if (v >= RANK_THRESHOLDS[i - 1]) return i;
+  }
+  return 1;
+}
+
+const XP_BY_DIFF: Record<string, { win: number; loss: number }> = {
+  easy:   { win: 150, loss: 60  },
+  medium: { win: 250, loss: 100 },
+  hard:   { win: 500, loss: 200 },
+};
+
+function xpRewardFor(difficulty: string, won: boolean): number {
+  const d = (difficulty || "medium").toLowerCase();
+  const entry = XP_BY_DIFF[d] ?? XP_BY_DIFF.medium!;
+  return won ? entry.win : entry.loss;
+}
+
+function streakXpReward(currentStreak: number): number {
+  return Math.min(20 + Math.max(0, currentStreak - 1) * 5, 150);
+}
+
+/** Atomically add XP and recompute level. Returns new values. */
+async function addXpToUser(userId: number, amount: number): Promise<{ newXp: number; newLevel: number }> {
+  const [row] = await db
+    .update(usersTable)
+    .set({ xp: sql`${usersTable.xp} + ${amount}` })
+    .where(eq(usersTable.id, userId))
+    .returning({ newXp: usersTable.xp });
+  const newXp   = Number(row?.newXp ?? 0);
+  const newLevel = computeLevel(newXp);
+  await db.update(usersTable).set({ level: newLevel }).where(eq(usersTable.id, userId));
+  return { newXp, newLevel };
+}
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 /**
@@ -329,6 +396,114 @@ router.get("/games/tiers", async (_req: Request, res: Response): Promise<void> =
     res.json({ tiers });
   } catch (err) {
     logger.error({ err }, "games: tiers failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Gamification routes ──────────────────────────────────────────────────────
+
+/**
+ * GET /api/games/gamification
+ * Returns the calling user's XP, level, rank, streak, and game stats.
+ * This is the single source of truth for the central gamification system.
+ */
+router.get("/games/gamification", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  const { telegramId, tgUser } = req as AuthedRequest;
+  try {
+    const { user } = await getOrUpsertUser(telegramId, tgUser);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const lastClaim = user.streakLastClaimAt;
+    const lastClaimDate = lastClaim ? lastClaim.toISOString().slice(0, 10) : null;
+    const canClaimStreak = lastClaimDate !== today;
+    const winRate = user.totalGamesPlayed > 0
+      ? Math.round((user.totalGamesWon / user.totalGamesPlayed) * 100)
+      : 0;
+    res.json({
+      xp:                user.xp,
+      level:             user.level,
+      totalGames:        user.totalGamesPlayed,
+      totalWins:         user.totalGamesWon,
+      winRate,
+      streakDays:        user.streakDays,
+      longestStreak:     user.longestStreak,
+      streakLastClaimAt: lastClaimDate,
+      canClaimStreak,
+    });
+  } catch (err) {
+    req.log.error({ err }, "games: gamification fetch failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /api/games/award-xp
+ * Award XP for a completed game (win or loss). Updates totalGamesPlayed/Won.
+ * Body: { won: boolean, difficulty: "Easy" | "Medium" | "Hard" }
+ * Returns: { ok, xpAwarded, newXp, newLevel }
+ */
+router.post("/games/award-xp", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  const { telegramId, tgUser } = req as AuthedRequest;
+  const { won, difficulty } = req.body as { won?: boolean; difficulty?: string };
+  try {
+    const { user } = await getOrUpsertUser(telegramId, tgUser);
+    const xpAmount = xpRewardFor(difficulty ?? "medium", !!won);
+    const { newXp, newLevel } = await addXpToUser(user.id, xpAmount);
+    // Update game counters
+    await db.update(usersTable)
+      .set({
+        totalGamesPlayed: sql`${usersTable.totalGamesPlayed} + 1`,
+        ...(won ? { totalGamesWon: sql`${usersTable.totalGamesWon} + 1` } : {}),
+      })
+      .where(eq(usersTable.id, user.id));
+    res.json({ ok: true, xpAwarded: xpAmount, newXp, newLevel });
+  } catch (err) {
+    req.log.error({ err }, "games: award-xp failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /api/games/claim-streak
+ * Claim the daily streak (once per day). Awards XP based on streak length.
+ * Returns: { ok, streakDays, longestStreak, xpAwarded, newXp, newLevel }
+ */
+router.post("/games/claim-streak", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  const { telegramId, tgUser } = req as AuthedRequest;
+  try {
+    const { user } = await getOrUpsertUser(telegramId, tgUser);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const lastClaim = user.streakLastClaimAt;
+    const lastClaimDate = lastClaim ? lastClaim.toISOString().slice(0, 10) : null;
+
+    if (lastClaimDate === today) {
+      res.status(409).json({ error: "Already claimed today", alreadyClaimed: true });
+      return;
+    }
+
+    // Compute new streak
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const wasConsecutive = lastClaimDate === yesterdayStr;
+    const newStreakDays  = wasConsecutive ? user.streakDays + 1 : 1;
+    const newLongest     = Math.max(user.longestStreak, newStreakDays);
+    const xpAmount       = streakXpReward(newStreakDays);
+
+    await db.update(usersTable)
+      .set({
+        streakDays:        newStreakDays,
+        longestStreak:     newLongest,
+        streakLastClaimAt: now,
+      })
+      .where(eq(usersTable.id, user.id));
+
+    const { newXp, newLevel } = await addXpToUser(user.id, xpAmount);
+
+    res.json({ ok: true, streakDays: newStreakDays, longestStreak: newLongest, xpAwarded: xpAmount, newXp, newLevel });
+  } catch (err) {
+    req.log.error({ err }, "games: claim-streak failed");
     res.status(500).json({ error: "Internal server error" });
   }
 });

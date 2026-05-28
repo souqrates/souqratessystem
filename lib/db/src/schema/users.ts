@@ -26,6 +26,9 @@ export const usersTable = pgTable("users", {
   level: integer("level").notNull().default(1),
   totalGamesPlayed: integer("total_games_played").notNull().default(0),
   totalGamesWon: integer("total_games_won").notNull().default(0),
+  streakDays: integer("streak_days").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  streakLastClaimAt: timestamp("streak_last_claim_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
