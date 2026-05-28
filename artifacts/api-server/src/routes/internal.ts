@@ -1496,6 +1496,27 @@ router.post("/internal/stars-invoice", perUserCreateLimiter, async (req, res): P
   }
   if (rejectIfBlocked(user, res)) return;
 
+  // Guard: cap pending Stars invoices per user to prevent DB bloat.
+  // A user with 10+ unconfirmed invoices has either abandoned them or is
+  // hammering the endpoint — either way, new ones are pointless.
+  const pendingStarsInvoices = await db
+    .select({ id: transactionsTable.id })
+    .from(transactionsTable)
+    .where(and(
+      eq(transactionsTable.userId, user.id),
+      eq(transactionsTable.type, "deposit"),
+      eq(transactionsTable.currency, "stars"),
+      eq(transactionsTable.status, "pending"),
+    ))
+    .limit(11);
+  if (pendingStarsInvoices.length >= 10) {
+    res.status(429).json({
+      error: "too_many_pending_invoices",
+      message: "لديك 10 فواتير Stars معلّقة — أكمل إحداها أو انتظر قليلاً",
+    });
+    return;
+  }
+
   const botToken = process.env.MOTHER_BOT_TOKEN;
   if (!botToken) {
     res.status(503).json({ error: "Bot token not configured" });
@@ -1732,6 +1753,10 @@ router.post("/internal/ton-deposit-intent", perUserCreateLimiter, async (req, re
     res.status(400).json({ error: "Invalid amountTon" });
     return;
   }
+  if (tonNum > 10_000) {
+    res.status(400).json({ error: "max_deposit_exceeded", message: "الحد الأقصى لإيداع TON هو 10,000 TON لكل معاملة" });
+    return;
+  }
 
   const [user] = await db
     .select()
@@ -1805,6 +1830,10 @@ router.post("/internal/usdt-deposit-intent", perUserCreateLimiter, async (req, r
   const usdtNum = parseFloat(String(amountUsdt));
   if (isNaN(usdtNum) || usdtNum <= 0) {
     res.status(400).json({ error: "Invalid amountUsdt" });
+    return;
+  }
+  if (usdtNum > 10_000) {
+    res.status(400).json({ error: "max_deposit_exceeded", message: "الحد الأقصى لإيداع USDT هو 10,000 USDT لكل معاملة" });
     return;
   }
 
