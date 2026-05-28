@@ -67,7 +67,9 @@ log "5/9  pnpm install + build everything"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
   cd '${REPO_DIR}'
-  pnpm install --frozen-lockfile
+  # Allow native build scripts (esbuild etc.) — needed for pnpm 10/11 on Linux
+  pnpm config set onlyBuiltDependencies '@swc/core,esbuild,msw,unrs-resolver' --location project
+  pnpm install --no-frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
