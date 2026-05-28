@@ -10,7 +10,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!--
+      Load Telegram SDK first so we can call expand() + setColors
+      BEFORE React mounts. This eliminates the white-flash / viewport-jump
+      that happens when the Mini App opens in a smaller viewport.
+    -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      (function(){
+        try{
+          var wa = window.Telegram && window.Telegram.WebApp;
+          if(wa){
+            try{ wa.setHeaderColor    && wa.setHeaderColor('#ffffff');    }catch(_){}
+            try{ wa.setBackgroundColor && wa.setBackgroundColor('#ffffff'); }catch(_){}
+            try{ wa.setBottomBarColor  && wa.setBottomBarColor('#ffffff');  }catch(_){}
+            try{ wa.ready  && wa.ready();  }catch(_){}
+            try{ wa.expand && wa.expand(); }catch(_){}
+          }
+        }catch(_){}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
