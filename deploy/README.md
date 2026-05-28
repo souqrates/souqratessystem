@@ -23,9 +23,10 @@ deploy/
 │   ├── contests-bot.env.example
 │   └── subagents-bot.env.example
 └── scripts/
-    ├── install.sh            ← التثبيت الأولي (يُشغّل مرة واحدة)
-    ├── setup-ssl.sh          ← تفعيل HTTPS + UFW + خدمات + seed DB (بعد install.sh)
-    └── deploy.sh             ← تحديثات لاحقة (git pull + rebuild + restart)
+    ├── install.sh                    ← التثبيت الأولي (يُشغّل مرة واحدة)
+    ├── setup-ssl.sh                  ← تفعيل HTTPS + UFW + خدمات + seed DB (بعد install.sh)
+    ├── activate-subagents-bot.sh     ← تفعيل subagents-bot على خادم شغّال
+    └── deploy.sh                     ← تحديثات لاحقة (git pull + rebuild + restart)
 ```
 
 ---
@@ -147,6 +148,54 @@ journalctl -u souqrates-mother-bot -f
 ```
 
 ثم على Telegram من حسابك الشخصي: `/start` لكل بوت — يجب أن يردّ فوراً.
+
+---
+
+## تفعيل subagents-bot على خادم شغّال (الحالة الحالية)
+
+إذا كانت البوتات الأخرى (mother-bot, books-bot, contests-bot) تعمل بالفعل
+وتريد إضافة subagents-bot فقط، استخدم السكربت المخصص:
+
+```bash
+ssh root@194.163.155.52
+
+# 1. git pull لتحديث الكود
+sudo -u souqrates git -C /opt/souqrates/repo pull
+
+# 2. عبّئ ملف البيئة إذا لم يكن موجوداً
+cp /opt/souqrates/repo/deploy/env/subagents-bot.env.example /etc/souqrates/subagents-bot.env
+chmod 640 /etc/souqrates/subagents-bot.env
+nano /etc/souqrates/subagents-bot.env
+# ↑ أدخل: SUBAGENTS_BOT_TOKEN, SUBAGENTS_BOT_API_KEY, MOTHER_BOT_USERNAME,
+#         WEBHOOK_SECRET (openssl rand -hex 24), باقي الحقول كما هي
+
+# 3. شغّل سكربت التفعيل
+bash /opt/souqrates/repo/deploy/scripts/activate-subagents-bot.sh
+```
+
+السكربت يقوم تلقائياً بـ:
+1. التحقق من ملف البيئة (يرفض إذا كان به placeholders)
+2. إنشاء Python venv وتثبيت المتطلبات (بما فيها `sentry-sdk`)
+3. تثبيت وتمكين وتشغيل `souqrates-subagents-bot.service`
+4. تسجيل البوت في قاعدة البيانات عبر `seed_bots.py`
+5. الانتظار حتى يكون healthz endpoint جاهزاً (`:8104`)
+6. التحقق من إمكانية الوصول لـ `https://souqrates.com/telegram-webhook/subagents-bot`
+7. التحقق من تسجيل الـ webhook مع Telegram عبر `getWebhookInfo`
+
+للتحقق اليدوي بعد التفعيل:
+```bash
+# حالة الخدمة
+systemctl status souqrates-subagents-bot
+
+# سجل الأحداث
+journalctl -u souqrates-subagents-bot -f
+
+# فحص صحي داخلي
+curl http://127.0.0.1:8104/telegram-webhook/subagents-bot/healthz
+
+# التحقق من webhook مع Telegram
+curl -s "https://api.telegram.org/bot$(grep ^SUBAGENTS_BOT_TOKEN /etc/souqrates/subagents-bot.env | cut -d= -f2-)/getWebhookInfo" | python3 -m json.tool
+```
 
 ---
 
