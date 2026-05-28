@@ -78,9 +78,10 @@ _DEFAULT_BASE = _resolve_default_base()
 # brand domain, whose DNS currently points at a stale build (missing newer
 # games, wrong tier labels). Always derive from the resolved base; the
 # single supported override is PUBLIC_BASE_URL (set as a Replit secret).
-_BASE_MINI_APP_URL     = f"{_DEFAULT_BASE}/"
-_BASE_GAMES_APP_URL    = f"{_DEFAULT_BASE}/games-bot/"
-_BASE_CONTESTS_APP_URL = f"{_DEFAULT_BASE}/contests-bot-web/"
+_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/"
+_BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
+_BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
+_BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
 BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
 CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
@@ -98,9 +99,10 @@ CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot"
 #   2) Stale-chunk auto-reload in artifacts/games-bot/src/main.jsx (catches
 #      `vite:preloadError` + script load errors → one-shot hard reload)
 # So URLs MUST stay byte-identical across bot restarts.
-MINI_APP_URL  = _BASE_MINI_APP_URL
-GAMES_APP_URL = _BASE_GAMES_APP_URL
-CONTESTS_APP_URL = _BASE_CONTESTS_APP_URL
+MINI_APP_URL      = _BASE_MINI_APP_URL
+GAMES_APP_URL     = _BASE_GAMES_APP_URL
+CONTESTS_APP_URL  = _BASE_CONTESTS_APP_URL
+SUBAGENTS_APP_URL = _BASE_SUBAGENTS_APP_URL
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
@@ -230,6 +232,9 @@ def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         # ②.6 Launch Contests / Voting Mini App inline
         [InlineKeyboardButton(text="★ SOUQRATES STAGE",
                               web_app=WebAppInfo(url=CONTESTS_APP_URL))],
+        # ②.7 Sub-Agents partner programme
+        [InlineKeyboardButton(text="♛ SOUQRATES SUB-AGENTS",
+                              web_app=WebAppInfo(url=SUBAGENTS_APP_URL))],
         # ③ Quick text shortcuts (localised)
         [
             InlineKeyboardButton(text=t(lang, "btn_balance"),      callback_data="wallet"),
