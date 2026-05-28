@@ -3,6 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import * as Sentry from "@sentry/node";
+import { createReadStream, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { verifyAdminToken } from "./lib/admin-auth";
@@ -81,6 +84,19 @@ app.post("/api/admin/login", adminLoginLimiter, (req, res): void => {
     return;
   }
   res.json({ ok: true });
+});
+
+// Temporary migration download endpoint — remove after migration
+app.get("/api/_migrate/download", (req, res): void => {
+  const token = (req.headers.authorization ?? "").replace("Bearer ", "");
+  if (!verifyAdminToken(token)) { res.status(403).json({ error: "forbidden" }); return; }
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const filePath = join(__dirname, "migrate_data.sql");
+  if (!existsSync(filePath)) { res.status(404).json({ error: "not found" }); return; }
+  res.setHeader("Content-Type", "text/plain");
+  res.setHeader("Content-Disposition", "attachment; filename=migrate_data.sql");
+  createReadStream(filePath).pipe(res);
 });
 
 app.use("/api", router);
