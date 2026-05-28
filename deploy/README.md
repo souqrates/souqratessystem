@@ -24,6 +24,7 @@ deploy/
 │   └── subagents-bot.env.example
 └── scripts/
     ├── install.sh            ← التثبيت الأولي (يُشغّل مرة واحدة)
+    ├── setup-ssl.sh          ← تفعيل HTTPS + UFW + خدمات + seed DB (بعد install.sh)
     └── deploy.sh             ← تحديثات لاحقة (git pull + rebuild + restart)
 ```
 
@@ -108,32 +109,41 @@ sudo -u souqrates bash -lc \
    pnpm --filter @workspace/db run push'
 ```
 
-### 4. شهادة TLS
-على Cloudflare: حوّل `souqrates.com` و `www.souqrates.com` A records إلى
-`194.163.155.52` (DNS only — orange cloud OFF مؤقتاً لشهادة certbot).
-```bash
-certbot --nginx -d souqrates.com -d www.souqrates.com --redirect --agree-tos -m you@example.com
-```
-بعد نجاح الشهادة يمكنك تفعيل orange cloud في Cloudflare.
-**واجب:** أضف Page Rule لاستثناء `souqrates.com/telegram-webhook/*` من الكاش.
+### 4. شهادة TLS + خدمات + seed (setup-ssl.sh)
 
-### 5. شغّل الخدمات
-```bash
-systemctl enable --now souqrates-api.service
-systemctl enable --now souqrates-mother-bot.service \
-                       souqrates-books-bot.service \
-                       souqrates-contests-bot.service \
-                       souqrates-subagents-bot.service
-systemctl reload nginx
+⚠ **قبل التشغيل:** حوّل `souqrates.com` و `www.souqrates.com` A records في
+Cloudflare إلى `194.163.155.52` مع **orange cloud OFF** (DNS only) مؤقتاً —
+certbot يحتاج http-01 مباشراً. يمكنك تفعيل orange cloud بعد نجاح الشهادة.
 
-# تابع اللوجز
-journalctl -u souqrates-mother-bot -f
+```bash
+# يُنفّذ كـ root — استبدل your@email.com ببريدك الحقيقي
+CERTBOT_EMAIL=your@email.com bash /opt/souqrates/repo/deploy/scripts/setup-ssl.sh
 ```
 
-### 6. فحص نهائي
+السكربت يقوم بالخطوات التالية تلقائياً:
+1. يتحقق من DNS + nginx
+2. يُصدر شهادة Let's Encrypt (certbot) ويُعيد تحميل nginx
+3. يُفعّل جدار الحماية UFW (منافذ 22, 80, 443)
+4. يُشغّل ويُمكّن جميع الـ 5 خدمات systemd
+5. يُسجّل البوتات في DB (`seed_bots.py`)
+6. يُجري فحوصات صحية شاملة (HTTPS + webhook per-bot)
+
+خيارات اختيارية:
+```bash
+CERTBOT_STAGING=1  # استخدم بيئة اختبار Let's Encrypt أولاً (لا تثق بها المتصفحات)
+SKIP_SEED=1        # تجاهل seed إذا سبق تسجيل البوتات
+SKIP_UFW=1         # تجاهل UFW إذا يديره firewall آخر
+```
+
+**واجب بعد نجاح الشهادة:**
+- فعّل orange cloud في Cloudflare للحماية CDN/WAF
+- أضف Cache Rule: `souqrates.com/telegram-webhook/*` → Cache Level: Bypass
+
+### 5. فحص يدوي (اختياري بعد setup-ssl.sh)
 ```bash
 curl -sfS https://souqrates.com/api/healthz
 curl -sfS http://127.0.0.1:8101/telegram-webhook/mother-bot/healthz
+journalctl -u souqrates-mother-bot -f
 ```
 
 ثم على Telegram من حسابك الشخصي: `/start` لكل بوت — يجب أن يردّ فوراً.
