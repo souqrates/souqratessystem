@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Generates /etc/souqrates/*.env content from current environment variables.
-# Run in Replit Shell, copy each block, paste into matching file on Contabo.
+# Generates /etc/souqrates/*.env files locally then SCPs them to Contabo.
+# Usage: bash deploy/scripts/gen-env.sh <supabase-password> [contabo-root-password]
 set -euo pipefail
 
 SUPABASE_PASS="${1:-}"
@@ -9,18 +9,19 @@ if [[ -z "$SUPABASE_PASS" ]]; then
   exit 1
 fi
 
+CONTABO_IP="194.163.155.52"
+OUTDIR="/tmp/souqrates-env"
+mkdir -p "$OUTDIR"
+
 SESSION_SECRET="$(openssl rand -hex 32)"
 WEBHOOK_SECRET_MOTHER="$(openssl rand -hex 24)"
 WEBHOOK_SECRET_BOOKS="$(openssl rand -hex 24)"
 WEBHOOK_SECRET_CONTESTS="$(openssl rand -hex 24)"
 WEBHOOK_SECRET_SUBAGENTS="$(openssl rand -hex 24)"
-
 DB_URL="postgresql://postgres.nvywsoatlrtnjgkizqnh:${SUPABASE_PASS}@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
-echo "================================================================"
-echo ">>> /etc/souqrates/api-server.env  (copy everything below to the next >>>)"
-echo "================================================================"
-cat <<EOF
+# --- api-server.env ---
+cat > "$OUTDIR/api-server.env" <<EOF
 NODE_ENV=production
 PORT=8080
 LOG_LEVEL=info
@@ -57,11 +58,8 @@ PRIVATE_OBJECT_DIR=
 PUBLIC_OBJECT_SEARCH_PATHS=
 EOF
 
-echo ""
-echo "================================================================"
-echo ">>> /etc/souqrates/mother-bot.env"
-echo "================================================================"
-cat <<EOF
+# --- mother-bot.env ---
+cat > "$OUTDIR/mother-bot.env" <<EOF
 MOTHER_BOT_TOKEN=${MOTHER_BOT_TOKEN:-MISSING}
 MOTHER_BOT_API_KEY=${MOTHER_BOT_API_KEY:-MISSING}
 MOTHER_API_URL=http://127.0.0.1:8080/api
@@ -76,11 +74,8 @@ DISABLE_SUBAGENTS_SPAWN=1
 SENTRY_DSN=${SENTRY_DSN:-}
 EOF
 
-echo ""
-echo "================================================================"
-echo ">>> /etc/souqrates/books-bot.env"
-echo "================================================================"
-cat <<EOF
+# --- books-bot.env ---
+cat > "$OUTDIR/books-bot.env" <<EOF
 BOOKS_BOT_TOKEN=${BOOKS_BOT_TOKEN:-MISSING}
 BOOKS_BOT_API_KEY=${BOOKS_BOT_API_KEY:-MISSING}
 MOTHER_API_URL=http://127.0.0.1:8080/api
@@ -93,11 +88,8 @@ WEBHOOK_PORT=8102
 SENTRY_DSN=${SENTRY_DSN:-}
 EOF
 
-echo ""
-echo "================================================================"
-echo ">>> /etc/souqrates/contests-bot.env"
-echo "================================================================"
-cat <<EOF
+# --- contests-bot.env ---
+cat > "$OUTDIR/contests-bot.env" <<EOF
 CONTESTS_BOT_TOKEN=${CONTESTS_BOT_TOKEN:-MISSING}
 CONTESTS_BOT_API_KEY=${CONTESTS_BOT_API_KEY:-MISSING}
 MOTHER_API_URL=http://127.0.0.1:8080/api
@@ -110,11 +102,8 @@ WEBHOOK_PORT=8103
 SENTRY_DSN=${SENTRY_DSN:-}
 EOF
 
-echo ""
-echo "================================================================"
-echo ">>> /etc/souqrates/subagents-bot.env"
-echo "================================================================"
-cat <<EOF
+# --- subagents-bot.env ---
+cat > "$OUTDIR/subagents-bot.env" <<EOF
 SUBAGENTS_BOT_TOKEN=${SUBAGENTS_BOT_TOKEN:-MISSING}
 SUBAGENTS_BOT_API_KEY=${SUBAGENTS_BOT_API_KEY:-MISSING}
 MOTHER_API_URL=http://127.0.0.1:8080/api
@@ -128,7 +117,9 @@ SENTRY_DSN=${SENTRY_DSN:-}
 EOF
 
 echo ""
-echo "================================================================"
-echo "DONE. Copy each block into the matching file on Contabo."
-echo "Command: nano /etc/souqrates/<filename>.env"
-echo "================================================================"
+echo "✓ Generated 5 env files in $OUTDIR"
+echo ""
+echo "Now run this to send them to Contabo (enter Contabo root password when asked):"
+echo ""
+echo "  scp $OUTDIR/*.env root@${CONTABO_IP}:/etc/souqrates/"
+echo ""
