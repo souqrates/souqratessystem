@@ -67,10 +67,9 @@ log "5/9  pnpm install + build everything"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
   cd '${REPO_DIR}'
-  # pnpm 11 blocks build scripts unless explicitly approved in lockfile.
-  # Workaround: install without scripts, then rebuild the native binaries we need.
-  pnpm install --ignore-scripts
-  pnpm rebuild esbuild @swc/core 2>/dev/null || pnpm rebuild esbuild
+  # .npmrc sets strict-dep-builds=false so pnpm 11 doesn't error on ignored builds.
+  pnpm install
+  pnpm rebuild esbuild 2>/dev/null || true
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
