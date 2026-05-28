@@ -78,29 +78,19 @@ export function SplashScreen({ onDone }: Props) {
           animation: "pls 2.8s ease-in-out infinite",
           pointerEvents: "none",
         }} />
-        <div style={{
-          position: "absolute", inset: -4, borderRadius: "50%",
-          background: "conic-gradient(from 0deg, #b8893a, #f3d68a, #c9a227, #8a651f, #f3d68a, #b8893a)",
-          padding: 4, animation: "spn 8s linear infinite",
-        }}>
-          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#04030a" }} />
-        </div>
         <img
           src={`${import.meta.env.BASE_URL}souqrates-logo.webp`}
           alt="SOUQRATES SUB-AGENTS"
           draggable={false}
           style={{
             display: "block",
-            width: "min(72vw, 280px)", height: "min(72vw, 280px)",
-            borderRadius: "50%", objectFit: "cover",
+            width: "min(80vw, 300px)",
+            height: "auto",
+            objectFit: "contain",
             position: "relative", zIndex: 1, userSelect: "none",
+            filter: "drop-shadow(0 8px 28px rgba(212,175,55,0.4))",
           }}
         />
-        <div style={{
-          position: "absolute", inset: 0, borderRadius: "50%",
-          boxShadow: "inset 0 0 28px rgba(4,3,10,0.4)",
-          pointerEvents: "none", zIndex: 2,
-        }} />
       </motion.div>
 
       {/* Brand */}

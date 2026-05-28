@@ -50,27 +50,21 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
       <div className="absolute pointer-events-none" style={{ inset: 26, border: "1px solid var(--gold-line)" }} />
 
       <div className="relative flex flex-col items-center px-8 max-w-md w-full">
-        {/* Logo with antique gold ring */}
+        {/* Logo — full size, no crop */}
         <div
           className="relative mb-10"
           style={{
-            width: 240,
-            height: 240,
-            borderRadius: "50%",
-            padding: 6,
-            background:
-              "conic-gradient(from 0deg, #b8893a, #f3d68a, #b8893a, #8a651f, #b8893a)",
-            boxShadow:
-              "0 0 0 1px rgba(184,137,58,0.55), 0 30px 80px -20px rgba(184,137,58,0.45)",
+            width: 280,
+            boxShadow: "0 30px 80px -20px rgba(184,137,58,0.35)",
           }}
         >
           <img
             src={logoUrl}
             alt="SOUQRATES SOUQ"
-            className="block w-full h-full object-cover"
+            className="block w-full h-auto"
             style={{
-              borderRadius: "50%",
-              border: "2px solid rgba(0,0,0,0.9)",
+              objectFit: "contain",
+              filter: "drop-shadow(0 8px 28px rgba(184,137,58,0.45))",
             }}
             draggable={false}
           />

@@ -82,51 +82,31 @@ export function SplashScreen({ onDone }: Props) {
             transition={{ delay: 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             style={{ marginBottom: 32, position: "relative" }}
           >
-            {/* Pulsing ring */}
+            {/* Soft ambient glow behind logo */}
             <div style={{
               position: "absolute",
-              inset: -16,
-              borderRadius: "50%",
-              boxShadow: "0 0 60px 16px rgba(212,175,55,0.28), 0 0 120px 32px rgba(168,85,247,0.12)",
+              inset: -24,
+              borderRadius: "40%",
+              boxShadow: "0 0 80px 24px rgba(212,175,55,0.2), 0 0 140px 40px rgba(168,85,247,0.1)",
               animation: "pulseRing-s 2.8s ease-in-out infinite",
               pointerEvents: "none",
             }} />
-            {/* Gold conic border */}
-            <div style={{
-              position: "absolute",
-              inset: -4,
-              borderRadius: "50%",
-              background: "conic-gradient(from 0deg, #b8893a, #f3d68a, #c9a227, #8a651f, #f3d68a, #b8893a)",
-              padding: 4,
-              animation: "spinSlow-s 8s linear infinite",
-            }}>
-              <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#04030a" }} />
-            </div>
-            {/* Logo image */}
+            {/* Logo image — full, no crop */}
             <img
               src={`${import.meta.env.BASE_URL}souqrates-logo.webp`}
               alt="SOUQRATES SYSTEM"
               draggable={false}
               style={{
                 display: "block",
-                width: "min(72vw, 300px)",
-                height: "min(72vw, 300px)",
-                borderRadius: "50%",
-                objectFit: "cover",
+                width: "min(80vw, 340px)",
+                height: "auto",
+                objectFit: "contain",
                 position: "relative",
                 zIndex: 1,
                 userSelect: "none",
+                filter: "drop-shadow(0 8px 32px rgba(212,175,55,0.35))",
               }}
             />
-            {/* Inner vignette */}
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              boxShadow: "inset 0 0 32px rgba(4,3,10,0.4)",
-              pointerEvents: "none",
-              zIndex: 2,
-            }} />
           </motion.div>
 
           {/* Brand name */}

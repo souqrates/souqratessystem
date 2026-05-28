@@ -111,64 +111,32 @@ export default function SplashScreen({ onDone }) {
         justifyContent: 'center',
         paddingBottom: 160,
       }}>
-        {/* Gold ring glow behind image */}
-        <div style={{
-          position: 'relative',
-          width: 'min(72vw, 300px)',
-          height: 'min(72vw, 300px)',
-        }}>
-          {/* Outer glow ring */}
+        {/* Logo — full, no crop */}
+        <div style={{ position: 'relative' }}>
+          {/* Soft ambient glow */}
           <div style={{
             position: 'absolute',
-            inset: -10,
-            borderRadius: '50%',
-            background: 'transparent',
-            boxShadow: '0 0 40px 12px rgba(201,162,39,0.35), 0 0 80px 20px rgba(59,99,255,0.18)',
+            inset: -20,
+            borderRadius: '40%',
+            boxShadow: '0 0 60px 20px rgba(201,162,39,0.25), 0 0 100px 30px rgba(59,99,255,0.12)',
             animation: tier === 'high' ? 'pulseRing 2.6s ease-in-out infinite' : 'none',
-          }} />
-
-          {/* Gold border ring */}
-          <div style={{
-            position: 'absolute',
-            inset: -3,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #c9a227 0%, #ffd86b 30%, #8b6914 55%, #ffd86b 75%, #c9a227 100%)',
-            padding: 3,
-          }}>
-            <div style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              background: '#04030a',
-            }} />
-          </div>
-
-          {/* The logo image */}
-          <img
-            src={LOGO_SRC}
-            alt="Skill Games"
-            draggable={false}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              userSelect: 'none',
-              display: 'block',
-            }}
-          />
-
-          {/* Inner vignette on logo */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            boxShadow: 'inset 0 0 28px rgba(4,3,10,0.5)',
             pointerEvents: 'none',
           }} />
+          <img
+            src={LOGO_SRC}
+            alt="SOUQRATES SKILLZ"
+            draggable={false}
+            style={{
+              display: 'block',
+              width: 'min(82vw, 320px)',
+              height: 'auto',
+              objectFit: 'contain',
+              userSelect: 'none',
+              filter: 'drop-shadow(0 8px 32px rgba(201,162,39,0.4))',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          />
         </div>
 
         {/* App name below logo */}
