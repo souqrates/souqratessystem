@@ -1,0 +1,32 @@
+root@vmi3329645:/opt/souqrates/repo# nginx -t && systemctl reload nginx
+pm2 restart souqrates-mother-bot
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Command 'pm2' not found, did you mean:
+  command 'pm' from deb powerman (2.3.27-4)
+  command 'gm2' from deb gm2 (4:13.2.0-2ubuntu1)
+  command 'pms' from deb pms (0.42-1.1)
+  command 'pmc' from deb linuxptp (4.0-1ubuntu1.1)
+  command 'pmg' from deb python3-pymatgen (2023.06.23+dfsg1-2build1)
+  command 'pmw' from deb pmw (1:5.22-1)
+  command 'wm2' from deb wm2 (4+svn20090216-4build1)
+  command 'tpm2' from deb tpm2-tools (5.4-1)
+  command 'pom2' from deb libpod-pom-perl (2.01-4)
+Try: apt install <deb name>
+root@vmi3329645:/opt/souqrates/repo# # اعرف العمليات الجارية حالياً
+ps aux | grep -E "python|bot.py|node" | grep -v grep
+
+# أو تحقق من systemd
+systemctl list-units --type=service | grep -i souqrates
+root         737  0.4  0.4 515716 57760 ?        Ssl  01:45   5:47 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root         813  0.0  0.1 109996 23052 ?        Ssl  01:45   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+souqrat+  163454  1.2  1.5 10205652 192780 ?     Ssl  22:39   0:15 /usr/bin/node --enable-source-maps /opt/souqrates/repo/artifacts/api-server/dist/index.mjs
+souqrat+  163468  1.0  1.3 248284 161428 ?       Ssl  22:39   0:13 /opt/souqrates/venvs/mother-bot/bin/python -u bot.py
+souqrat+  163483  0.8  1.2 238836 152840 ?       Ssl  22:39   0:11 /opt/souqrates/venvs/books-bot/bin/python -u bot.py
+souqrat+  163485  0.9  1.2 238448 152440 ?       Ssl  22:39   0:12 /opt/souqrates/venvs/contests-bot/bin/python -u bot.py
+souqrat+  163486  0.8  1.2 237336 151104 ?       Ssl  22:39   0:10 /opt/souqrates/venvs/subagents-bot/bin/python -u bot.py
+  souqrates-api.service                          loaded active running SOUQRATES API server (Express + Drizzle, Neon Postgres + R2)
+  souqrates-books-bot.service                    loaded active running SOUQRATES books-bot (Telegram, webhook on :8102)
+  souqrates-contests-bot.service                 loaded active running SOUQRATES contests-bot (Telegram, webhook on :8103)
+  souqrates-mother-bot.service                   loaded active running SOUQRATES mother-bot (Telegram, webhook on :8101)
+  souqrates-subagents-bot.service                loaded active running SOUQRATES subagents-bot (Telegram, webhook on :8104)
