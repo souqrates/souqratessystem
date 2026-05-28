@@ -64,14 +64,13 @@ else
 fi
 
 log "5/9  pnpm install + build everything"
-# Delete committed lockfile so pnpm 11 regenerates it with correct build approvals
-# (pnpm 11 encodes onlyBuiltDependencies approvals in the lockfile at resolution time;
-#  a lockfile generated on another machine won't have those entries yet)
-rm -f "${REPO_DIR}/pnpm-lock.yaml"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
   cd '${REPO_DIR}'
-  pnpm install
+  # pnpm 11 blocks build scripts unless explicitly approved in lockfile.
+  # Workaround: install without scripts, then rebuild the native binaries we need.
+  pnpm install --ignore-scripts
+  pnpm rebuild esbuild @swc/core 2>/dev/null || pnpm rebuild esbuild
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
