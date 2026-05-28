@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { getDeviceTier } from '../lib/deviceProfile';
 
-const LOGO_SRC = import.meta.env.BASE_URL + 'WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg';
+const LOGO_SRC = import.meta.env.BASE_URL + 'souqrates-logo.webp';
 const tier = getDeviceTier();
 
 export default function SplashScreen({ onDone }) {

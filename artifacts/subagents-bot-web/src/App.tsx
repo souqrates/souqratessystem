@@ -2,8 +2,10 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
+import { SplashScreen } from "@/components/SplashScreen";
 
 import LandingRouter from "@/pages/LandingRouter";
 import ApplyPage from "@/pages/Apply";
@@ -52,12 +54,12 @@ function DevBanner() {
 
 function App() {
   const [colorScheme, setColorScheme] = useState<"light" | "dark">("light");
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready?.();
       window.Telegram.WebApp.expand?.();
-      
       const theme = window.Telegram.WebApp.colorScheme;
       if (theme) {
         setColorScheme(theme);
@@ -73,10 +75,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <DevBanner />
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <AnimatePresence>
+          {!splashDone && (
+            <SplashScreen key="splash" onDone={() => setSplashDone(true)} />
+          )}
+        </AnimatePresence>
+        {splashDone && (
+          <>
+            <DevBanner />
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </>
+        )}
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

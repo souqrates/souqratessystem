@@ -45,7 +45,12 @@ function Header() {
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-stage-bg/70 border-b border-stage-line">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-stage-gold to-amber-700 grid place-items-center text-black font-black text-lg shadow-lg">★</div>
+          <img
+            src={`${import.meta.env.BASE_URL}souqrates-logo.webp`}
+            alt="SOUQRATES STAGE"
+            className="w-10 h-10 rounded-xl object-cover shadow-lg"
+            style={{ border: "1px solid rgba(201,162,39,0.4)" }}
+          />
           <div className="leading-tight">
             <div className="text-lg font-extrabold tracking-wide text-glow-gold">{t("app_name")}</div>
             <div className="text-[11px] text-stage-mute">{t("app_tagline")}</div>

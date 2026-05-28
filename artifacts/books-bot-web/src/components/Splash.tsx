@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoUrl from "@/assets/souq-logo.jpg";
+import logoUrl from "@/assets/souqrates-logo.webp";
 import { useT } from "@/lib/i18n";
 
 interface SplashProps {
