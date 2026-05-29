@@ -137,9 +137,11 @@ router.get("/sweep/jackpot", async (_req, res): Promise<void> => {
 // ── GET /sweep/draws/history ──────────────────────────────────────────────────
 // Public endpoint — returns completed draws for transparency / Provably Fair
 // display. Includes winning numbers, jackpot, entry count, and winner count.
+// Optional ?detail=true adds a per-draw prize tier breakdown grouped by matchCount.
 router.get("/sweep/draws/history", async (req, res): Promise<void> => {
   const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
   const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10), 0);
+  const detail = String(req.query.detail ?? "") === "true";
 
   const draws = await db
     .select({
@@ -159,11 +161,19 @@ router.get("/sweep/draws/history", async (req, res): Promise<void> => {
     .limit(limit)
     .offset(offset);
 
-  // Count winners (entries with matchCount === 6) per draw in one query
   const drawIds = draws.map((d) => d.id);
+
+  // Count jackpot winners per draw
   let winnerCounts: Record<number, number> = {};
+  // Prize tier breakdown per draw (only when ?detail=true)
+  type TierRow = { matchCount: number; winners: number; prizePerWinner: number };
+  let tiersByDraw: Record<number, TierRow[]> = {};
+
   if (drawIds.length > 0) {
-    const rows = await db
+    const inClause = sql.raw(`ARRAY[${drawIds.join(",")}]::int[]`);
+
+    // Jackpot winners count (matchCount = 6 / isJackpot = true)
+    const winnerRows = await db
       .select({
         drawId: sweepLottoEntriesTable.drawId,
         winnerCount: sql<number>`cast(count(*) as int)`,
@@ -171,12 +181,48 @@ router.get("/sweep/draws/history", async (req, res): Promise<void> => {
       .from(sweepLottoEntriesTable)
       .where(
         and(
-          sql`${sweepLottoEntriesTable.drawId} = ANY(${sql.raw(`ARRAY[${drawIds.join(",")}]::int[]`)})`,
+          sql`${sweepLottoEntriesTable.drawId} = ANY(${inClause})`,
           eq(sweepLottoEntriesTable.isJackpot, true),
         ),
       )
       .groupBy(sweepLottoEntriesTable.drawId);
-    winnerCounts = Object.fromEntries(rows.map((r) => [r.drawId, r.winnerCount]));
+    winnerCounts = Object.fromEntries(winnerRows.map((r) => [r.drawId, r.winnerCount]));
+
+    // Full tier breakdown — only fetch when client requests it
+    if (detail) {
+      const tierRows = await db
+        .select({
+          drawId: sweepLottoEntriesTable.drawId,
+          matchCount: sweepLottoEntriesTable.matchCount,
+          winners: sql<number>`cast(count(*) as int)`,
+          totalPrize: sql<string>`cast(coalesce(sum(${sweepLottoEntriesTable.prizeSkz}), 0) as text)`,
+        })
+        .from(sweepLottoEntriesTable)
+        .where(
+          and(
+            sql`${sweepLottoEntriesTable.drawId} = ANY(${inClause})`,
+            sql`${sweepLottoEntriesTable.matchCount} IS NOT NULL`,
+            sql`${sweepLottoEntriesTable.matchCount} >= 3`,
+          ),
+        )
+        .groupBy(sweepLottoEntriesTable.drawId, sweepLottoEntriesTable.matchCount);
+
+      for (const row of tierRows) {
+        if (!tiersByDraw[row.drawId]) tiersByDraw[row.drawId] = [];
+        const totalPrize = parseFloat(row.totalPrize ?? "0");
+        const winners = row.winners ?? 0;
+        tiersByDraw[row.drawId].push({
+          matchCount: row.matchCount!,
+          winners,
+          prizePerWinner: winners > 0 ? parseFloat((totalPrize / winners).toFixed(2)) : 0,
+        });
+      }
+
+      // Sort tiers descending by matchCount within each draw
+      for (const id of Object.keys(tiersByDraw)) {
+        tiersByDraw[Number(id)].sort((a, b) => b.matchCount - a.matchCount);
+      }
+    }
   }
 
   const data = draws.map((d) => ({
@@ -184,6 +230,7 @@ router.get("/sweep/draws/history", async (req, res): Promise<void> => {
     jackpotAmountSkz: parseFloat(d.jackpotAmountSkz),
     totalPaidOutSkz: parseFloat(d.totalPaidOutSkz),
     winnerCount: winnerCounts[d.id] ?? 0,
+    ...(detail ? { prizeTiers: tiersByDraw[d.id] ?? [] } : {}),
   }));
 
   res.json({ data, limit, offset, total: data.length });

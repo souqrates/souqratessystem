@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMyLottoEntries, ApiError } from "../lib/api";
 
+interface PrizeTier {
+  matchCount: number;
+  winners: number;
+  prizePerWinner: number;
+}
+
 interface PastDraw {
   id: number;
   drawNumber: number;
@@ -12,6 +18,7 @@ interface PastDraw {
   serverSeedHash: string;
   serverSeed: string | null;
   winnerCount: number;
+  prizeTiers: PrizeTier[];
 }
 
 interface MyEntry {
@@ -164,6 +171,9 @@ function DrawCard({ draw, myEntries }: { draw: PastDraw; myEntries: MyEntry[] })
             <MiniStat label="الفائزون" value={String(draw.winnerCount)} color="#8b5cf6" />
           </div>
 
+          {/* Prize tier breakdown */}
+          <PrizeTierTable tiers={draw.prizeTiers ?? []} />
+
           {/* My tickets comparison */}
           {hasMyEntries && (
             <div className="mt-3">
@@ -209,6 +219,64 @@ function DrawCard({ draw, myEntries }: { draw: PastDraw; myEntries: MyEntry[] })
   );
 }
 
+const TIER_LABEL: Record<number, string> = {
+  3: "3 أرقام",
+  4: "4 أرقام",
+  5: "5 أرقام",
+  6: "جاكبوت 🏆",
+};
+
+const TIER_COLOR: Record<number, string> = {
+  3: "#818cf8",
+  4: "#10b981",
+  5: "#f97316",
+  6: "#f59e0b",
+};
+
+function PrizeTierTable({ tiers }: { tiers: PrizeTier[] }) {
+  if (tiers.length === 0) return null;
+
+  return (
+    <div className="mt-3 mb-1">
+      <div className="text-xs font-bold mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
+        توزيع الجوائز
+      </div>
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+        {/* Header */}
+        <div className="grid grid-cols-3 text-center"
+          style={{ background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="py-1.5 text-xs font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>التطابق</div>
+          <div className="py-1.5 text-xs font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>الفائزون</div>
+          <div className="py-1.5 text-xs font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>جائزة / فائز</div>
+        </div>
+        {/* Rows */}
+        {tiers.map((tier, i) => {
+          const color = TIER_COLOR[tier.matchCount] ?? "#a78bfa";
+          const label = TIER_LABEL[tier.matchCount] ?? `${tier.matchCount} أرقام`;
+          return (
+            <div key={tier.matchCount}
+              className="grid grid-cols-3 text-center"
+              style={{
+                background: i % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
+                borderBottom: i < tiers.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+              }}>
+              <div className="py-2 text-xs font-bold" style={{ color }}>
+                {label}
+              </div>
+              <div className="py-2 text-xs font-orbitron font-black" style={{ color: "#fff" }}>
+                {tier.winners.toLocaleString()}
+              </div>
+              <div className="py-2 text-xs font-orbitron font-black" style={{ color }}>
+                {tier.prizePerWinner > 0 ? `${tier.prizePerWinner.toLocaleString()} SKZ` : "—"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function MiniStat({ label, value, unit, color }: { label: string; value: string; unit?: string; color: string }) {
   return (
     <div className="rounded-xl p-2.5 text-center"
@@ -234,6 +302,7 @@ export default function DrawHistory({ initData }: Props) {
     try {
       setLoading(true);
       setError(null);
+<<<<<<< HEAD
       const [drawsRes, entriesRes] = await Promise.allSettled([
         fetch("/api/sweep/draws/history?limit=30").then(async (r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -257,6 +326,12 @@ export default function DrawHistory({ initData }: Props) {
           }));
         setMyEntries(mapped);
       }
+=======
+      const res = await fetch("/api/sweep/draws/history?limit=30&detail=true");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json() as { data: PastDraw[] };
+      setDraws(json.data ?? []);
+>>>>>>> 1f9c860 (feat: show prize tier breakdown table for each completed draw (Task #48))
     } catch (e) {
       setError("تعذّر تحميل سجل السحبات");
     } finally {
