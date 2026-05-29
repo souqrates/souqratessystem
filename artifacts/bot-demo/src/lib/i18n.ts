@@ -64,6 +64,16 @@ const TR: Record<string, Record<Lang, string>> = {
   "home.tx.empty":           { ar: "لا توجد عمليات بعد", en: "No transactions yet" },
   "home.tx.emptyHint":       { ar: "ستظهر حركاتك هنا", en: "Your activity will appear here" },
 
+  // ── Profile edit ──
+  "profile.editTitle":    { ar: "تعديل الملف الشخصي",    en: "Edit Profile" },
+  "profile.displayName":  { ar: "الاسم المعروض",          en: "Display Name" },
+  "profile.avatarUrl":    { ar: "رابط الصورة (اختياري)",  en: "Avatar URL (optional)" },
+  "profile.save":         { ar: "حفظ",                    en: "Save" },
+  "profile.saving":       { ar: "جاري الحفظ…",            en: "Saving…" },
+  "profile.saved":        { ar: "تم الحفظ بنجاح!",       en: "Saved successfully!" },
+  "profile.cancel":       { ar: "إلغاء",                  en: "Cancel" },
+  "profile.note":         { ar: "سيظهر الاسم في جميع البوتات",  en: "Name shows across all bots" },
+
   // ── Wallet ──
   "wallet.title":         { ar: "المحفظة",                    en: "Wallet" },
   "wallet.subtitle":      { ar: "كل أرصدتك في مكان واحد",  en: "All your balances in one place" },

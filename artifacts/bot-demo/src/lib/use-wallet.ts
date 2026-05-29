@@ -10,6 +10,8 @@ export interface WalletData {
     isPremium: boolean;
     isBlocked: boolean;
     referrerId: number | null;
+    displayName: string | null;
+    avatarUrl: string | null;
     createdAt: string;
   };
   wallet: {

@@ -61,6 +61,49 @@ router.get("/users/:telegramId", async (req, res): Promise<void> => {
 });
 
 /**
+ * PATCH /api/users/:telegramId/profile
+ * Update display name and/or avatar URL for a user (non-financial, no auth required).
+ */
+router.patch("/users/:telegramId/profile", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.telegramId)
+    ? req.params.telegramId[0]
+    : req.params.telegramId;
+
+  let tid: bigint;
+  try {
+    tid = BigInt(raw);
+  } catch {
+    res.status(400).json({ error: "Invalid telegramId" });
+    return;
+  }
+
+  const { displayName, avatarUrl } = req.body as Record<string, unknown>;
+
+  const updates: Partial<typeof usersTable.$inferInsert> & { updatedAt: Date } = {
+    updatedAt: new Date(),
+  };
+  if (typeof displayName === "string") {
+    updates.displayName = displayName.trim().slice(0, 50) || null;
+  }
+  if (typeof avatarUrl === "string") {
+    updates.avatarUrl = avatarUrl.trim().slice(0, 500) || null;
+  }
+
+  const [updated] = await db
+    .update(usersTable)
+    .set(updates)
+    .where(eq(usersTable.telegramId, tid))
+    .returning({ id: usersTable.id, displayName: usersTable.displayName, avatarUrl: usersTable.avatarUrl });
+
+  if (!updated) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({ ok: true, displayName: updated.displayName, avatarUrl: updated.avatarUrl });
+});
+
+/**
  * GET /api/users/:telegramId/earnings-breakdown
  *
  * Returns this user's lifetime earnings split:

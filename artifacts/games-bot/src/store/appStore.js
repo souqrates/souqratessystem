@@ -99,7 +99,7 @@ const useAppStore = create((set, get) => ({
   })(),
   currentPage:   'dashboard',
   gamesFilter:   null,
-  language:      localStorage.getItem('lang') || 'en',
+  language:      localStorage.getItem('souqrates:lang') || localStorage.getItem('lang') || 'en',
   notifications: [],
   selectedGame:  null,
   appConfig:        {},
@@ -116,7 +116,7 @@ const useAppStore = create((set, get) => ({
   setWallet:        (wallet) => set({ wallet }),
   setCurrentPage:   (page)   => set({ currentPage: page, gamesFilter: null }),
   navigateToGames:  (filter) => set({ currentPage: 'games', gamesFilter: filter }),
-  setLanguage: (lang) => { localStorage.setItem('lang', lang); set({ language: lang }); },
+  setLanguage: (lang) => { localStorage.setItem('souqrates:lang', lang); localStorage.setItem('lang', lang); set({ language: lang }); },
   addNotification:    (n)  => set((s) => ({ notifications: [...s.notifications, { ...n, id: Date.now() }] })),
   removeNotification: (id) => set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) })),
 

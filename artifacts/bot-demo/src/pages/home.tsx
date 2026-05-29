@@ -4,10 +4,10 @@ import { usePlatformSettings } from "../lib/use-platform-settings";
 import { useWallet } from "../lib/use-wallet";
 import { useTransactions, formatTxDate, txBotIcon } from "../lib/use-transactions";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload, Crown, Flame, Trophy, Star, ChevronDown } from "lucide-react";
+import { TrendingUp, ArrowUpRight, Zap, Bell, ChevronRight, Download, Upload, Crown, Flame, Trophy, Star, ChevronDown, Globe, Pencil, X } from "lucide-react";
 import { Link } from "wouter";
 import { IconBox, BOT_ICONS, CURRENCY_ICONS } from "../components/icons";
-import { useT } from "../lib/i18n";
+import { useT, useLang } from "../lib/i18n";
 import { toast } from "sonner";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -49,15 +49,58 @@ const RANK_COLORS = ["#9ca3af","#34d399","#60a5fa","#22d3ee","#a78bfa","#f472b6"
 
 export function Home() {
   const t = useT();
+  const [lang, setLang] = useLang();
   const user = getTelegramUser();
   const { settings } = usePlatformSettings();
-  const { balanceSkz, balanceUsdt, balanceTon, totalEarnedSkz, totalWithdrawnSkz, isLoading: walletLoading, internalUserId } = useWallet();
+  const { balanceSkz, balanceUsdt, balanceTon, totalEarnedSkz, totalWithdrawnSkz, isLoading: walletLoading, internalUserId, user: platformUser, refetch: refetchWallet } = useWallet();
   const { transactions, isLoading: txLoading } = useTransactions(internalUserId, 4);
   const streak = useDailyStreak();
   const [rankExpanded, setRankExpanded] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState("");
+  const [avatarUrlDraft, setAvatarUrlDraft] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const initials = `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ""}`;
+  const displayName = platformUser?.displayName || user.firstName;
+  const avatarSrc   = platformUser?.avatarUrl   || user.avatarUrl || "";
   const usdtEquiv = (balanceSkz / settings.skzPerUsdt).toFixed(2);
+
+  const openProfileEdit = () => {
+    setDisplayNameDraft(platformUser?.displayName || user.firstName || "");
+    setAvatarUrlDraft(platformUser?.avatarUrl || user.avatarUrl || "");
+    setProfileEditOpen(true);
+  };
+
+  const saveProfile = async () => {
+    const tid = typeof window !== "undefined"
+      ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+      : null;
+    if (!tid) return;
+    setProfileSaving(true);
+    try {
+      const res = await fetch(`/api/users/${tid}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: displayNameDraft.trim() || null,
+          avatarUrl:   avatarUrlDraft.trim()   || null,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        toast.success(t("profile.saved"));
+        setProfileEditOpen(false);
+        void refetchWallet();
+      } else {
+        toast.error(t("error_generic"));
+      }
+    } catch {
+      toast.error(t("error_generic"));
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const demoXp = Math.floor(totalEarnedSkz / 6);
   const level = levelFromXp(demoXp);
@@ -85,14 +128,23 @@ export function Home() {
                   boxShadow: "0 0 0 2px rgba(168,85,247,0.4), 0 4px 16px rgba(0,0,0,0.4)",
                 }}
               >
-                {user.avatarUrl
-                  ? <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {avatarSrc
+                  ? <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
                   : initials}
               </div>
+              {/* Edit profile pencil */}
+              <button
+                onClick={openProfileEdit}
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg,#7c3aed,#0891b2)", border: "1.5px solid #060a14", boxShadow: "0 2px 8px rgba(147,51,234,0.5)" }}
+                aria-label={t("profile.editTitle")}
+              >
+                <Pencil size={8} color="#fff" />
+              </button>
             </div>
             <div>
               <h1 className="text-base font-black leading-tight flex items-center gap-1.5">
-                {user.firstName}
+                {displayName}
                 {user.isPremium && <Star size={11} className="text-stars fill-stars" />}
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -102,13 +154,25 @@ export function Home() {
               </div>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { showTelegramAlert(t("home.noNotifications")); toast.info(t("home.noNotifications"), { duration: 2500 }); }}
-            className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center"
-          >
-            <Bell size={17} className="text-white/60" />
-          </motion.button>
+          <div className="flex items-center gap-2">
+            {/* Lang toggle — inline next to Bell */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+              className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center"
+              aria-label={t("langToggle.aria")}
+            >
+              <Globe size={15} className="text-white/50" />
+            </motion.button>
+            {/* Bell */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => { showTelegramAlert(t("home.noNotifications")); toast.info(t("home.noNotifications"), { duration: 2500 }); }}
+              className="w-9 h-9 rounded-2xl glass-card flex items-center justify-center"
+            >
+              <Bell size={17} className="text-white/60" />
+            </motion.button>
+          </div>
         </motion.header>
 
         {/* ── Hero Balance Card ── */}
@@ -495,6 +559,100 @@ export function Home() {
           )}
         </motion.div>
       </motion.div>
+
+      {/* ── Profile Edit Modal ── */}
+      <AnimatePresence>
+        {profileEditOpen && (
+          <motion.div
+            key="profile-edit-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setProfileEditOpen(false); }}
+          >
+            <motion.div
+              key="profile-edit-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="w-full rounded-t-3xl p-6 space-y-4 safe-bottom"
+              style={{ background: "rgba(10,14,28,0.98)", border: "1px solid rgba(168,85,247,0.2)", borderBottom: "none" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <p className="font-black text-base text-white">{t("profile.editTitle")}</p>
+                <button
+                  onClick={() => setProfileEditOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                >
+                  <X size={15} className="text-white/60" />
+                </button>
+              </div>
+
+              {/* Display Name */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-white/50">
+                  {t("profile.displayName")}
+                </label>
+                <input
+                  type="text"
+                  value={displayNameDraft}
+                  onChange={(e) => setDisplayNameDraft(e.target.value.slice(0, 50))}
+                  placeholder={user.firstName}
+                  className="w-full px-4 py-3 rounded-2xl text-sm font-semibold text-white placeholder:text-white/25 outline-none"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(168,85,247,0.2)" }}
+                  dir="auto"
+                />
+              </div>
+
+              {/* Avatar URL */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-white/50">
+                  {t("profile.avatarUrl")}
+                </label>
+                <input
+                  type="url"
+                  value={avatarUrlDraft}
+                  onChange={(e) => setAvatarUrlDraft(e.target.value.slice(0, 500))}
+                  placeholder="https://..."
+                  className="w-full px-4 py-3 rounded-2xl text-sm font-semibold text-white placeholder:text-white/25 outline-none"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(168,85,247,0.2)" }}
+                  dir="ltr"
+                />
+              </div>
+
+              <p className="text-[10px] font-medium text-white/35 text-center">{t("profile.note")}</p>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setProfileEditOpen(false)}
+                  className="flex-1 py-3 rounded-2xl text-sm font-bold text-white/60"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                >
+                  {t("profile.cancel")}
+                </button>
+                <button
+                  onClick={saveProfile}
+                  disabled={profileSaving}
+                  className="flex-1 py-3 rounded-2xl text-sm font-black text-white"
+                  style={{
+                    background: "linear-gradient(135deg,#7c3aed,#0891b2)",
+                    boxShadow: "0 4px 20px rgba(124,58,237,0.35)",
+                    opacity: profileSaving ? 0.6 : 1,
+                  }}
+                >
+                  {profileSaving ? t("profile.saving") : t("profile.save")}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </SkeletonTheme>
   );
 }

@@ -28,6 +28,8 @@ export const usersTable = pgTable("users", {
   totalGamesWon: integer("total_games_won").notNull().default(0),
   streakDays: integer("streak_days").notNull().default(0),
   longestStreak: integer("longest_streak").notNull().default(0),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
   streakLastClaimAt: timestamp("streak_last_claim_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

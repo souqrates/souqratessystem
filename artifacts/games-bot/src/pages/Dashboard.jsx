@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownLeft, ShieldCheck,
-  Zap, Share2, Pencil, Sparkles,
+  Zap, Share2, Sparkles,
 } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
-import ProfileEditModal from '../components/ProfileEditModal';
 import ShareProfileCard from '../components/ShareProfileCard';
 import GameCarousel from '../components/GameCarousel';
 import TopPlayers from '../components/TopPlayers';
@@ -26,7 +25,6 @@ export default function Dashboard() {
     pwaInstallPrompt, setPwaInstallPrompt,
   } = useAppStore();
 
-  const [editOpen,   setEditOpen]   = useState(false);
   const [shareOpen,  setShareOpen]  = useState(false);
   const [gami,       setGami]       = useState(null);
   const [xpProgress, setXpProgress] = useState(null);
@@ -46,10 +44,10 @@ export default function Dashboard() {
         const rows = await listLedger({ limit: 4 });
         if (!cancelled && rows?.length) {
           setActivity(rows.map(r => {
-            const isCredit = r.direction === 'credit';
-            const amt = Number(r.amount_token || r.amount_usd || 0);
+            const isCredit = r.type === 'credit' || r.type === 'deposit' || r.type === 'referral_bonus';
+            const amt = Number(r.amount_sc || 0);
             return {
-              desc:   r.description || r.category?.replace(/_/g, ' ') || 'Transaction',
+              desc:   r.description || r.category?.replace(/_/g, ' ') || r.type || 'Transaction',
               amount: `${isCredit ? '+' : '-'}${amt.toLocaleString()}`,
               time:   timeAgo(r.created_at),
               pos:    isCredit,
@@ -99,24 +97,20 @@ export default function Dashboard() {
 
         {/* Profile row */}
         <div className="flex items-center gap-4 relative z-10">
-          <button onClick={() => setEditOpen(true)} className="avatar-ring-wrap w-16 h-16 flex-shrink-0 relative group" aria-label="Edit profile">
+          <div className="avatar-ring-wrap w-16 h-16 flex-shrink-0 relative">
             <div className="avatar-ring-inner overflow-hidden">
               {avatar
                 ? <img src={avatar} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
                 : <span className="font-orbitron text-xl font-black text-white">{initial}</span>}
             </div>
-            <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#0891b2,#22d3ee)', boxShadow: '0 4px 12px rgba(34,211,238,0.5)', border: '2px solid #0b1220' }}>
-              <Pencil size={10} color="#fff" />
-            </span>
-          </button>
+          </div>
 
           <div className="flex-1 min-w-0">
-            <button onClick={() => setEditOpen(true)} className="block text-left max-w-full">
+            <div className="block text-left max-w-full">
               <h2 className="font-orbitron text-base font-black text-white truncate tracking-wide leading-snug">
                 {dispName}
               </h2>
-            </button>
+            </div>
             <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(148,163,184,0.85)' }}>
               @{user?.username || 'player'}
             </p>
@@ -128,13 +122,13 @@ export default function Dashboard() {
               )}
               <span className="w-3 h-px" style={{ background: 'rgba(148,163,184,0.3)' }} />
               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#34d399', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />
-              <span className="text-[9px] font-semibold text-emerald-400">Online</span>
+              <span className="text-[9px] font-semibold text-emerald-400">{t(language, 'online')}</span>
             </div>
           </div>
 
           <div className="flex-shrink-0 text-right">
             <div className="flex items-center justify-end gap-2 mb-1">
-              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Balance</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>{t(language, 'balance')}</p>
               <button onClick={() => setShareOpen(true)}
                 className="w-6 h-6 rounded-lg flex items-center justify-center"
                 style={{ background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)' }}>
@@ -181,9 +175,9 @@ export default function Dashboard() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2 relative z-10">
-          <HeroStat label="Win Rate" value={`${winRate}%`}              color="#34d399" />
-          <HeroStat label="Total XP"  value={totalXp.toLocaleString()}   color="#22d3ee" />
-          <HeroStat label="Matches"   value={totalGames.toLocaleString()} color="#f59e0b" />
+          <HeroStat label={t(language, 'winRate')} value={`${winRate}%`}              color="#34d399" />
+          <HeroStat label={t(language, 'totalXp')}  value={totalXp.toLocaleString()}   color="#22d3ee" />
+          <HeroStat label={t(language, 'matches')}  value={totalGames.toLocaleString()} color="#f59e0b" />
         </div>
       </motion.div>
 
@@ -237,7 +231,6 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      <ProfileEditModal open={editOpen} onClose={() => setEditOpen(false)} />
       <ShareProfileCard
         open={shareOpen}
         onClose={() => setShareOpen(false)}
