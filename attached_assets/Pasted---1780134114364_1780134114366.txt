@@ -1,0 +1,52 @@
+
+  _____
+ / ___/___  _  _ _____ _   ___  ___
+| |   / _ \| \| |_   _/ \ | _ )/ _ \
+| |__| (_) | .` | | |/ _ \| _ \ (_) |
+ \____\___/|_|\_| |_/_/ \_|___/\___/
+
+Welcome!
+
+This server is hosted by Contabo. If you have any questions or need help,
+please raise a support ticket from your customer control panel.
+Last login: Sat May 30 01:11:27 2026 from 34.180.63.192
+root@vmi3329645:~# sudo systemctl restart souqrates-sweep-bot.service
+sleep 5
+sudo systemctl status souqrates-sweep-bot.service --no-pager | tail -10
+● souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105)
+     Loaded: loaded (/etc/systemd/system/souqrates-sweep-bot.service; enabled; preset: enabled)
+     Active: activating (auto-restart) (Result: exit-code) since Sat 2026-05-30 01:38:26 CEST; 1s ago
+    Process: 12326 ExecStart=/opt/souqrates/venvs/sweep-bot/bin/python -u bot.py (code=exited, status=1/FAILURE)
+   Main PID: 12326 (code=exited, status=1/FAILURE)
+        CPU: 224ms
+root@vmi3329645:~# sudo journalctl -u souqrates-sweep-bot.service -n 30 --no-pager
+May 30 01:41:10 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Scheduled restart job, restart counter is at 48.
+May 30 01:41:10 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]: Traceback (most recent call last):
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/bot.py", line 28, in <module>
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]:     from sentry_init import init_sentry
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/sentry_init.py", line 15, in <module>
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]:     import httpx
+May 30 01:41:10 vmi3329645 souqrates-sweep-bot[12563]: ModuleNotFoundError: No module named 'httpx'
+May 30 01:41:10 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 30 01:41:10 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Failed with result 'exit-code'.
+May 30 01:41:13 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Scheduled restart job, restart counter is at 49.
+May 30 01:41:13 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]: Traceback (most recent call last):
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/bot.py", line 28, in <module>
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]:     from sentry_init import init_sentry
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/sentry_init.py", line 15, in <module>
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]:     import httpx
+May 30 01:41:14 vmi3329645 souqrates-sweep-bot[12569]: ModuleNotFoundError: No module named 'httpx'
+May 30 01:41:14 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 30 01:41:14 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Failed with result 'exit-code'.
+May 30 01:41:17 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Scheduled restart job, restart counter is at 50.
+May 30 01:41:17 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]: Traceback (most recent call last):
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/bot.py", line 28, in <module>
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]:     from sentry_init import init_sentry
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/sentry_init.py", line 15, in <module>
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]:     import httpx
+May 30 01:41:17 vmi3329645 souqrates-sweep-bot[12575]: ModuleNotFoundError: No module named 'httpx'
+May 30 01:41:17 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 30 01:41:17 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Failed with result 'exi
