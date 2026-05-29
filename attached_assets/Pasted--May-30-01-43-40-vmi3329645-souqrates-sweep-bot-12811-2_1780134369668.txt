@@ -1,0 +1,45 @@
+
+May 30 01:43:40 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:43:40,971 [INFO] sweep-bot: starting polling (USE_WEBHOOK not set)
+May 30 01:43:41 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:43:41,017 [INFO] Start polling
+May 30 01:43:41 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:43:41,052 [INFO] Run polling for bot @Souqrates_sweep_bot id=8811843109 - 'Souqrates Sweep'
+root@vmi3329645:~# sudo -u souqrates /opt/souqrates/venvs/sweep-bot/bin/pip install -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt
+sudo systemctl restart souqrates-sweep-bot.service
+sleep 5
+sudo journalctl -u souqrates-sweep-bot.service -n 10 --no-pager
+Requirement already satisfied: aiogram>=3.13 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (3.28.2)
+Requirement already satisfied: aiohttp>=3.13 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (3.13.5)
+Requirement already satisfied: httpx>=0.27 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 3)) (0.28.1)
+Requirement already satisfied: python-dotenv>=1.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 4)) (1.2.2)
+Requirement already satisfied: sentry-sdk>=2.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from -r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 5)) (2.61.0)
+Requirement already satisfied: aiofiles<26.0,>=23.2.1 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (25.1.0)
+Requirement already satisfied: certifi>=2023.7.22 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (2026.5.20)
+Requirement already satisfied: magic-filter<1.1,>=1.0.12 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (1.0.12)
+Requirement already satisfied: pydantic<2.14,>=2.4.1 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (2.13.4)
+Requirement already satisfied: typing-extensions<=5.0,>=4.7.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (4.15.0)
+Requirement already satisfied: aiohappyeyeballs>=2.5.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (2.6.2)
+Requirement already satisfied: aiosignal>=1.4.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (1.4.0)
+Requirement already satisfied: attrs>=17.3.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (26.1.0)
+Requirement already satisfied: frozenlist>=1.1.1 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (1.8.0)
+Requirement already satisfied: multidict<7.0,>=4.5 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (6.7.1)
+Requirement already satisfied: propcache>=0.2.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (0.5.2)
+Requirement already satisfied: yarl<2.0,>=1.17.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from aiohttp>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 2)) (1.24.2)
+Requirement already satisfied: anyio in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from httpx>=0.27->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 3)) (4.13.0)
+Requirement already satisfied: httpcore==1.* in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from httpx>=0.27->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 3)) (1.0.9)
+Requirement already satisfied: idna in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from httpx>=0.27->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 3)) (3.17)
+Requirement already satisfied: h11>=0.16 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from httpcore==1.*->httpx>=0.27->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 3)) (0.16.0)
+Requirement already satisfied: urllib3>=1.26.11 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from sentry-sdk>=2.0->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 5)) (2.7.0)
+Requirement already satisfied: annotated-types>=0.6.0 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from pydantic<2.14,>=2.4.1->aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.46.4 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from pydantic<2.14,>=2.4.1->aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (2.46.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in /opt/souqrates/venvs/sweep-bot/lib/python3.12/site-packages (from pydantic<2.14,>=2.4.1->aiogram>=3.13->-r /opt/souqrates/repo/artifacts/sweep-bot/requirements.txt (line 1)) (0.4.2)
+May 30 01:44:46 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:44:46,052 [WARNING] Received SIGTERM signal
+May 30 01:44:46 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:44:46,054 [INFO] Polling stopped for bot @Souqrates_sweep_bot id=8811843109 - 'Souqrates Sweep'
+May 30 01:44:46 vmi3329645 souqrates-sweep-bot[12811]: 2026-05-30 01:44:46,054 [INFO] Polling stopped
+May 30 01:44:47 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Deactivated successfully.
+May 30 01:44:47 vmi3329645 systemd[1]: Stopped souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 01:44:47 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Consumed 5.909s CPU time.
+May 30 01:44:47 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 01:44:52 vmi3329645 souqrates-sweep-bot[12871]: 2026-05-30 01:44:52,161 [INFO] sweep-bot: starting polling (USE_WEBHOOK not set)
+May 30 01:44:52 vmi3329645 souqrates-sweep-bot[12871]: 2026-05-30 01:44:52,176 [INFO] Start polling
+May 30 01:44:52 vmi3329645 souqrates-sweep-bot[12871]: 2026-05-30 01:44:52,193 [INFO] Run polling for bot @Souqrates_sweep_bot id=8811843109 - 'Souqrates Sweep'
+root@vmi3329645:~# ^C
+root@vmi3329645:~# 
