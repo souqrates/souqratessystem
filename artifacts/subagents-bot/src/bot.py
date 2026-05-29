@@ -78,21 +78,6 @@ COMMANDS: list[BotCommand] = [
 
 async def fetch_status(telegram_id: int) -> dict:
     """Read application/agent status from the server (bot API key auth)."""
-    async with httpx.AsyncClient() as http:
-        # We use a server-side proxy: GET /api/internal/subagents-status?telegramId=...
-        # To keep the bot stateless we just call the same /me endpoint via
-        # the bot API key path, falling back to "not_applied".
-        try:
-            resp = await http.get(
-                f"{API_URL}/users/{telegram_id}",
-                headers={"X-Bot-Api-Key": API_KEY},
-                timeout=5.0,
-            )
-            if resp.status_code == 404:
-                pass
-        except Exception as e:
-            logger.warning(f"fetch user failed: {e}")
-    # Fetch sub-agent row via a dedicated bot-keyed read added below.
     try:
         async with httpx.AsyncClient() as http:
             resp = await http.get(
