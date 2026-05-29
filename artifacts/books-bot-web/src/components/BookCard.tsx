@@ -1,72 +1,71 @@
 import { Link } from "wouter";
-import { Star } from "lucide-react";
+import { Star, Volume2 } from "lucide-react";
 import type { Book } from "@/lib/catalog";
 import { findCategory } from "@/lib/catalog";
-import { L } from "./Ornaments";
 
 export function BookCard({ book }: { book: Book }) {
   const cat = findCategory(book.category);
+  const isAudio = book.category === "audio";
+
   return (
     <Link
       href={`/book/${book.id}`}
-      className="group relative block cursor-pointer transition-colors hover:bg-[var(--ivory)] p-6 md:p-7"
-      style={{ borderBottom: "1px solid var(--hairline)", borderLeft: "1px solid var(--hairline)" }}
+      className="group neon-card relative block cursor-pointer rounded-xl overflow-hidden"
       data-testid={`card-book-${book.id}`}
     >
-      {/* Cover placeholder — gilded plate */}
+      {/* Cover */}
       <div
-        className="relative mb-5 mx-auto flex items-center justify-center"
+        className="relative flex flex-col items-center justify-center p-5"
         style={{
-          width: "100%",
-          aspectRatio: "3 / 4",
-          background:
-            "linear-gradient(135deg, var(--ink) 0%, #1f1c14 100%)",
-          border: "1px solid var(--gold)",
+          aspectRatio: '3 / 4',
+          background: 'linear-gradient(160deg, #0c0b18 0%, #100f1f 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div className="absolute" style={{ inset: 8, border: "1px solid var(--gold-line)" }} />
-        <div className="relative px-5 text-center">
-          <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            ❖ Vol. {book.year}
-          </div>
-          <div
-            className="font-display leading-snug"
-            style={{ color: "var(--ivory)", fontSize: "clamp(0.95rem, 1.4vw, 1.15rem)" }}
-          >
-            {book.title}
-          </div>
-          <div className="mt-3 h-px w-10 mx-auto" style={{ background: "var(--gold)" }} />
-          <div className="eyebrow mt-3" style={{ color: "rgba(184,137,58,0.7)" }}>
-            {book.author}
-          </div>
+        {/* Category badge */}
+        <div
+          className="absolute top-3 right-3 px-2 py-0.5 rounded-full eyebrow"
+          style={{ background: 'rgba(34,211,238,0.1)', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.2)', fontSize: 8 }}
+        >
+          {cat?.slug.replace(/-/g, ' ') || book.category}
         </div>
+
+        {/* Icon */}
+        <div className="text-3xl mb-3">
+          {isAudio ? '🎧' : '📖'}
+        </div>
+
+        {/* Title */}
+        <div className="text-center px-2">
+          <div className="font-bold text-sm leading-snug text-white/90 mb-2">{book.title}</div>
+          <div className="text-[11px]" style={{ color: 'rgba(148,163,184,0.55)' }}>{book.author}</div>
+        </div>
+
+        {/* Neon bottom line on hover */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ background: 'linear-gradient(90deg, transparent, #22d3ee, transparent)' }}
+        />
       </div>
 
       {/* Meta */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display text-base mb-1 truncate" style={{ color: "var(--ink)" }}>
-            {book.title}
-          </h3>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>{book.author}</p>
-        </div>
-        <div className="text-end shrink-0">
-          <div className="font-display text-sm" style={{ color: "var(--emerald)" }}>
-            {book.priceSkz.toLocaleString()} {L("SKZ")}
+      <div className="p-4">
+        <h3 className="font-bold text-sm text-white/90 mb-1 truncate">{book.title}</h3>
+        <p className="text-xs mb-3" style={{ color: 'rgba(148,163,184,0.55)' }}>
+          {isAudio && book.duration ? `⏱ ${book.duration}` : book.author}
+        </p>
+        <div className="flex items-center justify-between">
+          <div className="font-orbitron text-xs font-black" style={{ color: '#22d3ee' }}>
+            {book.priceSkz.toLocaleString()} SKZ
           </div>
-          <div className="flex items-center gap-1 mt-1 justify-end">
-            <Star size={12} fill="var(--gold)" stroke="var(--gold)" />
-            <span className="font-serif-en text-xs" dir="ltr" lang="en" style={{ color: "var(--muted)" }}>
+          <div className="flex items-center gap-1">
+            <Star size={11} fill="#f59e0b" stroke="none" />
+            <span className="text-xs" style={{ color: 'rgba(148,163,184,0.55)' }}>
               {book.rating.toFixed(1)}
             </span>
           </div>
         </div>
       </div>
-      {cat && (
-        <div className="mt-3 eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-          {cat.slug.replace("-", " ")}
-        </div>
-      )}
     </Link>
   );
 }

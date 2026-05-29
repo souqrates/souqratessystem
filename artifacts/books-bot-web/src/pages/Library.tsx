@@ -5,8 +5,6 @@ import { CATEGORIES } from "@/lib/catalog";
 import type { CategorySlug } from "@/lib/constants";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
-import { Ornament } from "@/components/Ornaments";
-import { useT } from "@/lib/i18n";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   religion: BookMarked,
@@ -17,8 +15,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   audio: Headphones,
 };
 
+const CAT_COLORS: Record<string, string> = {
+  religion:           '#22d3ee',
+  education:          '#a855f7',
+  literature:         '#ec4899',
+  kids:               '#f59e0b',
+  "self-development": '#10b981',
+  audio:              '#06b6d4',
+};
+
 export default function Library() {
-  const t = useT();
   const [q, setQ] = useState("");
   const [active, setActive] = useState<CategorySlug | "all">("all");
   const { books, loading } = useBooks();
@@ -26,168 +32,153 @@ export default function Library() {
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     let res = books;
-    if (needle) {
-      res = res.filter(
-        (b) =>
-          b.title.toLowerCase().includes(needle) ||
-          b.author.toLowerCase().includes(needle),
-      );
-    }
-    if (active !== "all") res = res.filter((b) => b.category === active);
+    if (needle) res = res.filter(b => b.title.toLowerCase().includes(needle) || b.author.toLowerCase().includes(needle));
+    if (active !== "all") res = res.filter(b => b.category === active);
     return res;
   }, [q, active, books]);
 
   return (
-    <>
-      {/* Hero band */}
-      <section className="relative py-16 md:py-20">
-        <div className="max-w-5xl mx-auto px-6 md:px-10 text-center">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            {t("library.eyebrow")}
-          </div>
-          <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 4.5vw, 3.25rem)" }}>
-            {t("library.title")}
-          </h1>
-          <Ornament className="mb-8" />
-
-          {/* Search */}
-          <div
-            className="relative max-w-xl mx-auto flex items-center"
-            style={{ borderBottom: "1px solid var(--ink)" }}
-          >
-            <Search size={18} strokeWidth={1.6} style={{ color: "var(--muted)" }} />
-            <input
-              type="search"
-              placeholder={t("library.searchPh")}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="w-full bg-transparent outline-none px-3 py-3 text-base"
-              style={{ color: "var(--ink)" }}
-              data-testid="input-search"
-            />
-            {q && (
-              <button
-                onClick={() => setQ("")}
-                className="text-xs px-2 py-1"
-                style={{ color: "var(--muted)" }}
-                data-testid="button-clear-search"
-              >
-                {t("library.clear")}
-              </button>
-            )}
-          </div>
+    <div className="max-w-5xl mx-auto px-6 py-10">
+      {/* Header */}
+      <div className="mb-8 rise">
+        <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>
+          <Link href="/" className="hover:text-white/70 transition-colors">الرئيسية</Link>
+          <span>/</span>
+          <span style={{ color: '#22d3ee' }}>الكتب</span>
         </div>
-      </section>
 
-      {/* Category filter strip */}
-      <section className="relative" style={{ borderTop: "1px solid var(--hairline)", borderBottom: "1px solid var(--hairline)", background: "var(--ivory)" }}>
-        <div className="max-w-6xl mx-auto px-6 md:px-10 py-6 flex flex-wrap gap-2 justify-center">
-          <FilterChip
-            active={active === "all"}
-            onClick={() => setActive("all")}
-            label={t("library.all")}
-            testId="chip-all"
+        <h1 className="font-orbitron font-black text-2xl text-white/90 mb-2">مكتبة SOUQRATES SOUQ</h1>
+        <div className="text-sm" style={{ color: 'rgba(148,163,184,0.55)' }}>
+          اكتشف مجموعتنا من الكتب الرقمية والصوتية
+        </div>
+
+        {/* Search */}
+        <div className="relative mt-6">
+          <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2" style={{ color: 'rgba(148,163,184,0.4)' }} />
+          <input
+            type="search"
+            placeholder="ابحث عن كتاب أو مؤلف..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-full rounded-xl px-4 py-3 pr-10 text-sm font-bold outline-none transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#f1f5f9',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(34,211,238,0.35)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            data-testid="input-search"
           />
-          {CATEGORIES.map((c) => {
-            const Icon = ICON_MAP[c.iconKey];
-            return (
-              <FilterChip
-                key={c.slug}
-                active={active === c.slug}
-                onClick={() => setActive(c.slug)}
-                label={t(`cat.${c.slug}.name`)}
-                Icon={Icon}
-                testId={`chip-${c.slug}`}
-              />
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Results */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
-          <div className="flex items-baseline justify-between mb-8">
-            <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-              {list.length} {list.length === 1 ? t("library.titleOne") : t("library.titleMany")}
-            </div>
-            <div className="text-xs" style={{ color: "var(--muted)" }}>
-              {active === "all" ? t("library.allCats") : t(`cat.${active}.name`)}
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-20" data-testid="loading">
-              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                {t("library.loadingEy")}
-              </div>
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
-                {t("library.loadingMsg")}
-              </p>
-            </div>
-          ) : list.length === 0 ? (
-            <div className="text-center py-20" data-testid="empty-results">
-              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                {t("library.nothingEy")}
-              </div>
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
-                {t("library.nothingMsg")}
-              </p>
-              <button
-                onClick={() => { setQ(""); setActive("all"); }}
-                className="mt-6 text-sm refined"
-                style={{ color: "var(--emerald)" }}
-                data-testid="button-reset-filters"
-              >
-                {t("library.resetFilters")}
-              </button>
-            </div>
-          ) : (
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}
+          {q && (
+            <button
+              onClick={() => setQ("")}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2 py-1 rounded-lg"
+              style={{ color: '#22d3ee', background: 'rgba(34,211,238,0.08)' }}
+              data-testid="button-clear-search"
             >
-              {list.map((b) => <BookCard key={b.id} book={b} />)}
-            </div>
+              مسح
+            </button>
           )}
-
-          <div className="mt-12 text-center">
-            <Link
-              href="/"
-              className="refined text-sm"
-              style={{ color: "var(--emerald)" }}
-              data-testid="link-back-home"
-            >
-              {t("library.backHome")}
-            </Link>
-          </div>
         </div>
-      </section>
-    </>
+      </div>
+
+      {/* Category filter */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        <FilterChip
+          active={active === "all"}
+          onClick={() => setActive("all")}
+          label="الكل"
+          color="#22d3ee"
+          testId="chip-all"
+        />
+        {CATEGORIES.map((c) => {
+          const Icon = ICON_MAP[c.iconKey];
+          const color = CAT_COLORS[c.slug] || '#22d3ee';
+          return (
+            <FilterChip
+              key={c.slug}
+              active={active === c.slug}
+              onClick={() => setActive(c.slug)}
+              label={c.name}
+              Icon={Icon}
+              color={color}
+              testId={`chip-${c.slug}`}
+            />
+          );
+        })}
+      </div>
+
+      {/* Count */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="font-orbitron text-xs font-black" style={{ color: 'rgba(34,211,238,0.7)' }}>
+          {list.length} كتاب
+        </div>
+        {active !== "all" && (
+          <div className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>
+            {CATEGORIES.find(c => c.slug === active)?.name}
+          </div>
+        )}
+      </div>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="text-center py-24" data-testid="loading">
+          <div className="text-3xl mb-4">📚</div>
+          <div className="font-bold text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</div>
+        </div>
+      ) : list.length === 0 ? (
+        <div className="text-center py-24" data-testid="empty-results">
+          <div className="text-3xl mb-4">🔍</div>
+          <div className="font-bold text-sm mb-4" style={{ color: 'rgba(148,163,184,0.5)' }}>
+            لا توجد نتائج لـ "{q}"
+          </div>
+          <button
+            onClick={() => { setQ(""); setActive("all"); }}
+            className="px-4 py-2 rounded-xl text-xs font-black transition-all"
+            style={{ background: 'rgba(34,211,238,0.1)', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.2)' }}
+            data-testid="button-reset-filters"
+          >
+            إعادة تعيين الفلاتر
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {list.map((b) => <BookCard key={b.id} book={b} />)}
+        </div>
+      )}
+
+      <div className="mt-10 text-center">
+        <Link href="/" className="text-xs font-black" style={{ color: 'rgba(148,163,184,0.4)' }} data-testid="link-back-home">
+          ← العودة للرئيسية
+        </Link>
+      </div>
+    </div>
   );
 }
 
 function FilterChip({
-  active, onClick, label, Icon, testId,
+  active, onClick, label, Icon, color = '#22d3ee', testId,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   Icon?: LucideIcon;
+  color?: string;
   testId?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all"
       style={{
-        background: active ? "var(--ink)" : "transparent",
-        color: active ? "var(--ivory)" : "var(--ink)",
-        border: `1px solid ${active ? "var(--ink)" : "var(--hairline)"}`,
+        background: active ? `${color}18` : 'rgba(255,255,255,0.04)',
+        color: active ? color : 'rgba(148,163,184,0.6)',
+        border: `1px solid ${active ? `${color}35` : 'rgba(255,255,255,0.07)'}`,
       }}
       data-testid={testId}
     >
-      {Icon && <Icon size={14} strokeWidth={1.5} />}
+      {Icon && <Icon size={12} />}
       {label}
     </button>
   );

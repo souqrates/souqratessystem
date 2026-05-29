@@ -1,105 +1,209 @@
-import { ArrowLeft, Wallet, Zap, ShieldCheck, Globe2, Feather, BookMarked, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BookOpen, Zap, ShieldCheck, Globe2, Wallet, Headphones, GraduationCap, ScrollText, Baby, Brain, BookMarked } from "lucide-react";
 import { Link } from "wouter";
-import { L, Ornament, CornerFlourish } from "@/components/Ornaments";
 import { CATEGORIES } from "@/lib/catalog";
+import { hotVouchers } from "@/lib/vouchers";
 import { TELEGRAM_BOT_URL, TELEGRAM_PUBLISH_URL } from "@/lib/constants";
-import { useT } from "@/lib/i18n";
 
-type IconKey = (typeof CATEGORIES)[number]["iconKey"];
-const ICON_MAP: Record<IconKey, LucideIcon> = {
-  religion: BookMarked,
-  education: GraduationCap,
-  literature: ScrollText,
-  kids: Baby,
-  self: Brain,
-  audio: Headphones,
+const CAT_ICONS: Record<string, React.ReactNode> = {
+  religion:        <BookMarked size={22} />,
+  education:       <GraduationCap size={22} />,
+  literature:      <ScrollText size={22} />,
+  kids:            <Baby size={22} />,
+  "self-development": <Brain size={22} />,
+  audio:           <Headphones size={22} />,
 };
 
+const CAT_COLORS: Record<string, string> = {
+  religion:           '#22d3ee',
+  education:          '#a855f7',
+  literature:         '#ec4899',
+  kids:               '#f59e0b',
+  "self-development": '#10b981',
+  audio:              '#06b6d4',
+};
+
+/* ── Hero ── */
 function Hero() {
-  const t = useT();
   return (
-    <section className="relative">
-      <div className="max-w-4xl mx-auto px-6 md:px-10 py-20 md:py-28 text-center rise">
-        <div className="eyebrow mb-8" style={{ color: "var(--gold)" }}>
-          <span dir="ltr" lang="en">{t("home.volume")}</span> {t("home.volumeAr")}
+    <section className="relative overflow-hidden">
+      {/* Neon glow bg */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(ellipse, #22d3ee, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[200px] rounded-full opacity-15"
+          style={{ background: 'radial-gradient(ellipse, #a855f7, transparent 70%)', filter: 'blur(50px)' }} />
+      </div>
+
+      <div className="relative max-w-4xl mx-auto px-6 py-20 md:py-28 text-center rise">
+        {/* Eyebrow */}
+        <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border"
+          style={{ borderColor: 'rgba(34,211,238,0.25)', background: 'rgba(34,211,238,0.06)' }}>
+          <span className="pulse-dot w-1.5 h-1.5 rounded-full" style={{ background: '#22d3ee' }} />
+          <span className="font-orbitron text-[9px] font-black tracking-widest" style={{ color: '#22d3ee' }}>
+            SOUQRATES SOUQ — الكتب والخدمات الرقمية
+          </span>
         </div>
 
-        <h1 className="font-display leading-[1.05] mb-8" style={{ color: "var(--ink)", fontSize: "clamp(2.5rem, 6vw, 4.75rem)" }}>
-          {t("home.heroTitleL1")}
+        {/* Headline */}
+        <h1 className="font-orbitron font-black mb-6 leading-tight"
+          style={{ fontSize: 'clamp(1.8rem, 5vw, 3.5rem)', color: '#f1f5f9' }}>
+          اكتشف عالماً من
           <br />
-          <span className="font-serif-en" dir="ltr" lang="en" style={{ color: "var(--emerald)" }}>
-            {t("home.heroTitleL2")}
-          </span>
+          <span className="shimmer-cyan">المعرفة والترفيه الرقمي</span>
         </h1>
 
-        <Ornament className="mb-8" />
-
-        <p className="max-w-2xl mx-auto text-base md:text-lg leading-loose mb-12" style={{ color: "var(--muted)" }}>
-          {t("home.heroLead", { skz: "SKZ" })}
+        <p className="max-w-xl mx-auto text-base mb-10 leading-relaxed" style={{ color: 'rgba(148,163,184,0.8)' }}>
+          كتب رقمية وصوتية + Vouchers لأشهر المنصات العالمية — كل شيء بـ SKZ مباشرة عبر تيليغرام
         </p>
 
-        <div className="flex flex-wrap justify-center items-center gap-5">
+        {/* CTAs */}
+        <div className="flex flex-wrap justify-center gap-4">
           <Link
             href="/library"
-            className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-medium tracking-wide transition-transform hover:-translate-y-0.5 cursor-pointer"
-            style={{ background: "var(--ink)", color: "var(--ivory)" }}
+            className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-black text-sm transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg,#0e7490,#22d3ee)', color: '#04030a' }}
             data-testid="button-enter-library"
           >
-            {t("home.enterLibrary")}
-            <ArrowLeft size={14} strokeWidth={1.8} />
+            <BookOpen size={15} />
+            استكشف الكتب
           </Link>
-          <a
-            href="#categories"
-            className="refined inline-flex items-center gap-1.5 text-sm font-medium px-2 py-2"
-            style={{ color: "var(--emerald)" }}
-            data-testid="link-browse-categories"
+          <Link
+            href="/digital"
+            className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-black text-sm border transition-all hover:-translate-y-0.5 hover:border-purple-500/50"
+            style={{ border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7', background: 'rgba(168,85,247,0.06)' }}
+            data-testid="link-digital-store"
           >
-            {t("home.browseCategories")}
-          </a>
+            <Zap size={15} />
+            Digital Store
+          </Link>
+        </div>
+
+        {/* Stats */}
+        <div className="flex justify-center gap-8 mt-12">
+          {[
+            { v: '12+', l: 'كتاب' },
+            { v: '15+', l: 'Voucher' },
+            { v: '6',   l: 'فئات' },
+          ].map(s => (
+            <div key={s.l} className="text-center">
+              <div className="font-orbitron text-2xl font-black" style={{ color: '#22d3ee' }}>{s.v}</div>
+              <div className="text-xs mt-1" style={{ color: 'rgba(148,163,184,0.5)' }}>{s.l}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-function Categories() {
-  const t = useT();
+/* ── Digital Services Preview ── */
+function DigitalPreview() {
+  const hot = hotVouchers().slice(0, 6);
   return (
-    <section id="categories" className="relative py-20 md:py-28">
-      <div className="max-w-6xl mx-auto px-6 md:px-10">
-        <div className="text-center mb-16">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            {t("home.categoriesEyebrow")}
+    <section className="py-16 md:py-20">
+      <div className="max-w-5xl mx-auto px-6">
+
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={16} color="#a855f7" />
+              <span className="eyebrow" style={{ color: '#a855f7', fontSize: 9 }}>DIGITAL STORE</span>
+            </div>
+            <h2 className="font-orbitron font-black text-xl text-white/90">Vouchers الأكثر طلباً</h2>
           </div>
-          <h2 className="font-display mb-4" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            {t("home.categoriesTitle")}
-          </h2>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            {t("home.categoriesLead")}
-          </p>
+          <Link
+            href="/digital"
+            className="flex items-center gap-1.5 text-xs font-black transition-colors hover:opacity-80"
+            style={{ color: '#22d3ee' }}
+          >
+            عرض الكل <ArrowLeft size={13} />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}>
-          {CATEGORIES.map(({ slug, iconKey }, i) => {
-            const Icon = ICON_MAP[iconKey];
+        {/* Voucher cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {hot.map(v => (
+            <a
+              key={v.id}
+              href={TELEGRAM_BOT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="voucher-card rounded-xl overflow-hidden relative"
+              style={{ border: `1px solid ${v.color}22` }}
+            >
+              {/* Card bg */}
+              <div className="p-4 md:p-5" style={{ background: v.bgGradient }}>
+                <div className="text-3xl mb-2">{v.emoji}</div>
+                <div className="font-black text-sm text-white/90 mb-0.5">{v.nameAr}</div>
+                <div className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{v.name}</div>
+                <div className="mt-3 flex items-center gap-1.5">
+                  <div className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                    style={{ background: `${v.color}22`, color: v.color, border: `1px solid ${v.color}33` }}>
+                    عبر تيليغرام
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* CTA bar */}
+        <div className="mt-6 rounded-xl p-5 flex items-center justify-between"
+          style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)' }}>
+          <div>
+            <div className="font-black text-sm text-white/85">15+ خدمة رقمية متاحة</div>
+            <div className="text-xs mt-0.5" style={{ color: 'rgba(148,163,184,0.5)' }}>PlayStation · Xbox · Steam · Apple · Google · Spotify وأكثر</div>
+          </div>
+          <Link
+            href="/digital"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg font-black text-xs transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#fff' }}
+          >
+            اكتشف الكل <ArrowLeft size={12} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Book Categories ── */
+function Categories() {
+  return (
+    <section id="categories" className="py-16 md:py-20" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="max-w-5xl mx-auto px-6">
+
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-1">
+            <BookOpen size={16} color="#22d3ee" />
+            <span className="eyebrow" style={{ color: '#22d3ee', fontSize: 9 }}>BOOKS CATALOG</span>
+          </div>
+          <h2 className="font-orbitron font-black text-xl text-white/90">استكشف بالفئة</h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {CATEGORIES.map(({ slug, name, desc }) => {
+            const color = CAT_COLORS[slug] || '#22d3ee';
             return (
               <Link
                 key={slug}
                 href={`/category/${slug}`}
-                className="group relative p-8 md:p-10 transition-colors hover:bg-[var(--ivory)] cursor-pointer block"
-                style={{ borderBottom: "1px solid var(--hairline)", borderLeft: "1px solid var(--hairline)" }}
+                className="group neon-card relative p-5 rounded-xl block cursor-pointer"
                 data-testid={`link-category-${slug}`}
               >
-                <div className="flex items-start justify-between mb-6">
-                  <Icon size={28} strokeWidth={1.25} style={{ color: "var(--emerald)" }} />
-                  <span className="font-serif-en text-sm" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                    № {String(i + 1).padStart(2, "0")}
-                  </span>
+                {/* Icon */}
+                <div className="mb-3 w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110"
+                  style={{ background: `${color}15`, color, border: `1px solid ${color}25` }}>
+                  {CAT_ICONS[slug]}
                 </div>
-                <div className="font-display text-xl mb-2" style={{ color: "var(--ink)" }}>{t(`cat.${slug}.name`)}</div>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{t(`cat.${slug}.desc`)}</p>
-                <div className="mt-6 h-px w-8 transition-all group-hover:w-16" style={{ background: "var(--gold)" }} />
+
+                <div className="font-black text-sm text-white/85 mb-1">{name}</div>
+                <div className="text-[11px] leading-relaxed" style={{ color: 'rgba(148,163,184,0.55)' }}>{desc}</div>
+
+                {/* Hover bottom accent */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
               </Link>
             );
           })}
@@ -109,67 +213,36 @@ function Categories() {
   );
 }
 
-function Features() {
-  const t = useT();
-  const FEATURES: { Icon: LucideIcon; title: string; desc: React.ReactNode }[] = [
-    { Icon: Wallet,      title: t("home.feat1Title"), desc: t("home.feat1Desc", { skz: "SKZ", system: "SOUQRATES SYSTEM" }) },
-    { Icon: Zap,         title: t("home.feat2Title"), desc: t("home.feat2Desc", { hmac: "HMAC" }) },
-    { Icon: ShieldCheck, title: t("home.feat3Title"), desc: t("home.feat3Desc") },
-    { Icon: Globe2,      title: t("home.feat4Title"), desc: t("home.feat4Desc") },
-  ];
-  return (
-    <section className="relative py-20 md:py-28"
-      style={{ background: "var(--ivory)", borderTop: "1px solid var(--hairline)", borderBottom: "1px solid var(--hairline)" }}>
-      <div className="max-w-6xl mx-auto px-6 md:px-10">
-        <div className="text-center mb-16">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("home.featuresEyebrow")}</div>
-          <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            {t("home.featuresTitleA")} <span dir="ltr" lang="en" className="font-orbitron" style={{ color: "var(--emerald)" }}>SOUQRATES SOUQ</span>{t("home.featuresTitleB")}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px" style={{ background: "var(--hairline)" }}>
-          {FEATURES.map(({ Icon, title, desc }) => (
-            <div key={title} className="relative p-8 md:p-10" style={{ background: "var(--ivory)" }}>
-              <CornerFlourish className="absolute top-3 right-3" />
-              <Icon size={26} strokeWidth={1.25} style={{ color: "var(--gold)" }} />
-              <h3 className="font-display text-xl mt-5 mb-3" style={{ color: "var(--ink)" }}>{title}</h3>
-              <p className="text-sm leading-loose" style={{ color: "var(--muted)" }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
+/* ── How it Works ── */
 function HowItWorks() {
-  const t = useT();
-  const STEPS: { n: string; t: React.ReactNode; d: React.ReactNode }[] = [
-    { n: "I",   t: t("home.step1Title"), d: <>{t("home.step1Desc").split(/\{start\}|\{souq\}/)[0]}{L("/start")}{t("home.step1Desc").split(/\{start\}|\{souq\}/)[1]}{L("SOUQRATES SOUQ")}{t("home.step1Desc").split(/\{start\}|\{souq\}/)[2]}</> },
-    { n: "II",  t: t("home.step2Title"), d: t("home.step2Desc") },
-    { n: "III", t: t("home.step3Title", { skz: "SKZ" }), d: t("home.step3Desc") },
-    { n: "IV",  t: t("home.step4Title"), d: t("home.step4Desc") },
+  const steps = [
+    { n: '01', t: 'افتح البوت',        d: 'ابدأ من تيليغرام عبر زر الفتح أعلاه' },
+    { n: '02', t: 'اختر المحتوى',      d: 'كتاب رقمي أو خدمة Voucher من الكتالوج' },
+    { n: '03', t: 'ادفع بـ SKZ',       d: 'محفظة موحدة — Stars أو USDT أو TON' },
+    { n: '04', t: 'استلم فوراً',       d: 'ملف PDF أو كود الـ Voucher في الخاص' },
   ];
+
   return (
-    <section className="relative py-20 md:py-28">
-      <div className="max-w-6xl mx-auto px-6 md:px-10">
-        <div className="text-center mb-16">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("home.ritualEyebrow")}</div>
-          <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            {t("home.ritualTitle")}
-          </h2>
+    <section className="py-16 md:py-20" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="max-w-5xl mx-auto px-6">
+
+        <div className="mb-10">
+          <div className="eyebrow mb-1" style={{ color: 'rgba(148,163,184,0.5)', fontSize: 9 }}>HOW IT WORKS</div>
+          <h2 className="font-orbitron font-black text-xl text-white/90">كيف يعمل؟</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-10">
-          {STEPS.map((s) => (
-            <div key={s.n} className="relative">
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="font-serif-en text-4xl leading-none" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{s.n}</span>
-                <span className="h-px flex-1" style={{ background: "var(--gold-line)" }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {steps.map((s, i) => (
+            <div
+              key={s.n}
+              className="neon-card rounded-xl p-5"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            >
+              <div className="font-orbitron text-3xl font-black mb-3" style={{ color: 'rgba(34,211,238,0.25)' }}>
+                {s.n}
               </div>
-              <h3 className="font-display text-lg mb-2" style={{ color: "var(--ink)" }}>{s.t}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{s.d}</p>
+              <div className="font-black text-sm text-white/85 mb-2">{s.t}</div>
+              <div className="text-xs leading-relaxed" style={{ color: 'rgba(148,163,184,0.55)' }}>{s.d}</div>
             </div>
           ))}
         </div>
@@ -178,45 +251,83 @@ function HowItWorks() {
   );
 }
 
-function PublishCTA() {
-  const t = useT();
+/* ── Features ── */
+function Features() {
+  const FEATS = [
+    { icon: <Wallet size={20} />,      t: 'محفظة موحدة',       d: 'كتبك وقسائمك كلها في محفظة SKZ واحدة مع بقية البوتات', color: '#22d3ee' },
+    { icon: <Zap size={20} />,         t: 'تسليم فوري',        d: 'بعد الدفع مباشرة تصلك الملفات أو كود الـ Voucher', color: '#a855f7' },
+    { icon: <ShieldCheck size={20} />, t: 'مضمون 100%',        d: 'جميع الخدمات موثوقة وكودات رسمية من المصدر', color: '#10b981' },
+    { icon: <Globe2 size={20} />,      t: 'خدمات عالمية',      d: 'PlayStation · Apple · Google · Spotify وأكثر من 15 منصة', color: '#ec4899' },
+  ];
+
   return (
-    <section className="relative py-20 md:py-28 px-6 md:px-10">
+    <section className="py-16 md:py-20" style={{ background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="mb-10">
+          <div className="eyebrow mb-1" style={{ color: 'rgba(148,163,184,0.5)', fontSize: 9 }}>WHY SOUQRATES SOUQ</div>
+          <h2 className="font-orbitron font-black text-xl text-white/90">لماذا SOUQRATES SOUQ؟</h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {FEATS.map(f => (
+            <div key={f.t} className="neon-card rounded-xl p-6 flex gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${f.color}12`, color: f.color, border: `1px solid ${f.color}22` }}>
+                {f.icon}
+              </div>
+              <div>
+                <div className="font-black text-sm text-white/85 mb-1.5">{f.t}</div>
+                <div className="text-xs leading-relaxed" style={{ color: 'rgba(148,163,184,0.55)' }}>{f.d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Publish CTA ── */
+function PublishCTA() {
+  return (
+    <section className="py-16 md:py-20 px-6">
       <div className="max-w-5xl mx-auto">
-        <div className="relative p-10 md:p-16 text-center overflow-hidden" style={{ background: "var(--ink)", color: "var(--ivory)" }}>
-          <div className="absolute pointer-events-none" style={{ inset: 12, border: "1px solid var(--gold)" }} />
-          <div className="absolute pointer-events-none" style={{ inset: 18, border: "1px solid var(--gold-line)" }} />
+        <div
+          className="relative rounded-2xl p-8 md:p-12 text-center overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #0f0e1c, #1a1030)' }}
+        >
+          {/* Neon border glow */}
+          <div className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{ border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 60px rgba(168,85,247,0.08) inset' }} />
 
           <div className="relative">
-            <Feather size={36} strokeWidth={1.2} style={{ color: "var(--gold)", margin: "0 auto" }} />
-            <div className="eyebrow mt-6 mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-              {t("home.publishEyebrow")}
-            </div>
-            <h2 className="font-display mb-6" style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)" }}>
-              {t("home.publishTitle")}
+            <div className="text-4xl mb-4">✍️</div>
+            <div className="eyebrow mb-3" style={{ color: '#a855f7', fontSize: 9 }}>FOR AUTHORS</div>
+            <h2 className="font-orbitron font-black text-xl md:text-2xl text-white/90 mb-4">
+              انشر كتابك عبر SOUQRATES SOUQ
             </h2>
-            <p className="max-w-xl mx-auto text-base leading-loose mb-10" style={{ color: "rgba(251, 246, 234, 0.7)" }}>
-              {t("home.publishLead", { skz: "SKZ" })}
+            <p className="max-w-lg mx-auto text-sm leading-relaxed mb-8" style={{ color: 'rgba(148,163,184,0.65)' }}>
+              اوصل كتابك لآلاف المشتركين في منصة SOUQRATES. سهل، سريع، وعمولة تنافسية بـ SKZ.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
               <a
                 href={TELEGRAM_PUBLISH_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-medium tracking-wide transition-transform hover:-translate-y-0.5"
-                style={{ background: "var(--gold)", color: "var(--ink)" }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg,#6d28d9,#a855f7)', color: '#fff' }}
                 data-testid="button-start-publishing"
               >
-                {t("home.publishCta")}
-                <ArrowLeft size={14} strokeWidth={1.8} />
+                ابدأ النشر الآن
+                <ArrowLeft size={13} />
               </a>
               <Link
                 href="/publish"
-                className="refined inline-flex items-center gap-1.5 text-sm font-medium px-2 py-2 cursor-pointer"
-                style={{ color: "var(--gold)" }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm border transition-all hover:border-purple-500/40"
+                style={{ border: '1px solid rgba(168,85,247,0.2)', color: 'rgba(168,85,247,0.8)' }}
                 data-testid="link-publish-details"
               >
-                {t("home.publishDetails")}
+                تفاصيل أكثر
               </Link>
             </div>
           </div>
@@ -226,13 +337,15 @@ function PublishCTA() {
   );
 }
 
+/* ── Page ── */
 export default function Home() {
   return (
     <>
       <Hero />
+      <DigitalPreview />
       <Categories />
-      <Features />
       <HowItWorks />
+      <Features />
       <PublishCTA />
     </>
   );

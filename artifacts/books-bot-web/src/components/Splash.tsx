@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import logoUrl from "@/assets/souqrates-logo.webp";
-import { useT } from "@/lib/i18n";
 
 interface SplashProps {
   onDone: () => void;
   durationMs?: number;
 }
 
-export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
-  const t = useT();
+export function Splash({ onDone, durationMs = 2400 }: SplashProps) {
   const [progress, setProgress] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
@@ -16,7 +14,7 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const effective = reduced ? 600 : durationMs;
+    const effective = reduced ? 500 : durationMs;
 
     const start = performance.now();
     let raf = 0;
@@ -28,7 +26,7 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
         raf = requestAnimationFrame(tick);
       } else {
         setLeaving(true);
-        window.setTimeout(onDone, reduced ? 200 : 520);
+        window.setTimeout(onDone, reduced ? 150 : 450);
       }
     };
     raf = requestAnimationFrame(tick);
@@ -39,108 +37,85 @@ export function Splash({ onDone, durationMs = 2800 }: SplashProps) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-500"
       style={{
-        background: "var(--ink)",
+        background: '#04030a',
         opacity: leaving ? 0 : 1,
         pointerEvents: leaving ? "none" : "auto",
       }}
-      aria-label={t("splash.aria")}
+      aria-label="جار التحميل..."
     >
-      {/* gold double frame */}
-      <div className="absolute pointer-events-none" style={{ inset: 18, border: "1px solid var(--gold)" }} />
-      <div className="absolute pointer-events-none" style={{ inset: 26, border: "1px solid var(--gold-line)" }} />
+      {/* Ambient glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px]"
+          style={{ background: 'radial-gradient(ellipse, rgba(168,85,247,0.15), transparent 70%)', filter: 'blur(40px)' }} />
+        <div className="absolute bottom-0 right-0 w-[350px] h-[200px]"
+          style={{ background: 'radial-gradient(ellipse, rgba(34,211,238,0.12), transparent 70%)', filter: 'blur(40px)' }} />
+      </div>
 
-      <div className="relative flex flex-col items-center px-8 max-w-md w-full">
-        {/* Logo — full size, no crop */}
+      {/* Neon border frame */}
+      <div className="absolute pointer-events-none rounded-2xl"
+        style={{ inset: 16, border: '1px solid rgba(34,211,238,0.15)' }} />
+      <div className="absolute pointer-events-none rounded-2xl"
+        style={{ inset: 24, border: '1px solid rgba(168,85,247,0.1)' }} />
+
+      <div className="relative flex flex-col items-center px-8 max-w-sm w-full">
+        {/* Logo */}
         <div
-          className="relative mb-10"
+          className="relative mb-8"
           style={{
-            width: 280,
-            boxShadow: "0 30px 80px -20px rgba(184,137,58,0.35)",
+            width: 240,
+            filter: 'drop-shadow(0 20px 60px rgba(168,85,247,0.4))',
           }}
         >
           <img
             src={logoUrl}
             alt="SOUQRATES SOUQ"
             className="block w-full h-auto"
-            style={{
-              objectFit: "contain",
-              filter: "drop-shadow(0 8px 28px rgba(184,137,58,0.45))",
-            }}
             draggable={false}
           />
-          {/* slow rotating star accent */}
+          {/* Spinning star */}
           <svg
             className="absolute -top-3 left-1/2 -translate-x-1/2"
-            width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden
-            style={{ animation: "spin 6s linear infinite" }}
+            width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden
+            style={{ animation: "spin 5s linear infinite" }}
           >
-            <path
-              d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z"
-              fill="var(--gold)"
-            />
+            <path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="#22d3ee" />
           </svg>
         </div>
 
         {/* Wordmark */}
-        <div className="text-center mb-2">
-          <div
-            className="font-display tracking-[0.18em] text-3xl md:text-4xl"
-            dir="ltr"
-            lang="en"
-            style={{ color: "var(--ivory)" }}
-          >
-            SOUQRATES <span style={{ color: "var(--gold)" }}>SOUQ</span>
+        <div className="text-center mb-8">
+          <div className="font-orbitron tracking-widest text-2xl font-black text-white/90" dir="ltr">
+            SOUQRATES <span style={{ color: '#22d3ee' }}>SOUQ</span>
           </div>
-          <div
-            className="eyebrow mt-3"
-            dir="ltr"
-            lang="en"
-            style={{ color: "rgba(184,137,58,0.7)", letterSpacing: "0.32em" }}
-          >
-            {t("splash.tagline")}
+          <div className="eyebrow mt-2" dir="ltr" style={{ color: 'rgba(34,211,238,0.55)', letterSpacing: '0.3em', fontSize: 9 }}>
+            DIGITAL BOOKS · EST. 2026
           </div>
         </div>
 
-        {/* small ornament */}
-        <div className="flex items-center justify-center gap-3 my-7" aria-hidden>
-          <span className="h-px w-12" style={{ background: "rgba(184,137,58,0.45)" }} />
-          <span className="text-lg" style={{ color: "var(--gold)" }}>❖</span>
-          <span className="h-px w-12" style={{ background: "rgba(184,137,58,0.45)" }} />
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-7">
+          <span className="h-px w-10" style={{ background: 'rgba(34,211,238,0.3)' }} />
+          <span style={{ color: 'rgba(34,211,238,0.5)' }}>◆</span>
+          <span className="h-px w-10" style={{ background: 'rgba(34,211,238,0.3)' }} />
         </div>
 
-        {/* Progress 0 → 100 */}
-        <div
-          className="w-full max-w-xs"
-          role="progressbar"
-          aria-valuenow={progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={t("splash.progressAria")}
-        >
-          <div
-            className="relative h-[3px] w-full overflow-hidden"
-            style={{ background: "rgba(184,137,58,0.18)" }}
-          >
+        {/* Progress bar */}
+        <div className="w-full max-w-xs">
+          <div className="relative h-[2px] w-full overflow-hidden rounded-full"
+            style={{ background: 'rgba(255,255,255,0.07)' }}>
             <div
-              className="absolute inset-y-0 right-0 transition-[width] duration-100 ease-linear"
+              className="absolute inset-y-0 right-0 transition-[width] duration-100 ease-linear rounded-full"
               style={{
                 width: `${progress}%`,
-                background:
-                  "linear-gradient(to left, #8a651f, #b8893a, #f3d68a, #b8893a)",
-                boxShadow: "0 0 12px rgba(243,214,138,0.55)",
+                background: 'linear-gradient(to left, #7c3aed, #22d3ee, #67e8f9)',
+                boxShadow: '0 0 12px rgba(34,211,238,0.5)',
               }}
             />
           </div>
-          <div
-            className="mt-4 flex items-center justify-between font-serif-en text-xs"
-            dir="ltr"
-            lang="en"
-            style={{ color: "rgba(243,214,138,0.85)", letterSpacing: "0.18em" }}
-          >
+          <div className="mt-3 flex items-center justify-between font-orbitron text-[10px] font-black" dir="ltr"
+            style={{ color: 'rgba(148,163,184,0.4)', letterSpacing: '0.15em' }}>
             <span>LOADING</span>
-            <span className="tabular-nums">
-              {String(progress).padStart(3, "0")} / 100
-            </span>
+            <span className="tabular-nums">{String(progress).padStart(3, "0")} / 100</span>
           </div>
         </div>
       </div>

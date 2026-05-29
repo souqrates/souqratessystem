@@ -9,6 +9,7 @@ import Library from "@/pages/Library";
 import Category from "@/pages/Category";
 import BookPage from "@/pages/Book";
 import Publish from "@/pages/Publish";
+import DigitalServices from "@/pages/DigitalServices";
 import NotFound from "@/pages/not-found";
 
 const SPLASH_STORAGE_KEY = "souq:splashSeen";
@@ -29,7 +30,13 @@ function FloatingLangToggle() {
     <button
       type="button"
       onClick={() => setLang(next)}
-      className="fixed top-3 left-3 z-50 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/70 text-white border border-white/20 backdrop-blur hover:bg-black/85 transition shadow-lg"
+      className="fixed top-14 left-3 z-50 text-xs font-black px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
+      style={{
+        background: 'rgba(34,211,238,0.1)',
+        color: '#22d3ee',
+        border: '1px solid rgba(34,211,238,0.25)',
+        backdropFilter: 'blur(8px)',
+      }}
       aria-label={t("langToggle.aria")}
       title={t("langToggle.title")}
     >
@@ -65,6 +72,7 @@ export default function App() {
             <Route path="/category/:slug" component={Category} />
             <Route path="/book/:id" component={BookPage} />
             <Route path="/publish" component={Publish} />
+            <Route path="/digital" component={DigitalServices} />
             <Route component={NotFound} />
           </Switch>
         </Page>

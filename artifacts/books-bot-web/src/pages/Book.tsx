@@ -3,22 +3,20 @@ import { ArrowLeft, Star, Download, ShieldCheck, Clock, BookOpen } from "lucide-
 import { findCategory } from "@/lib/catalog";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
-import { L, Ornament } from "@/components/Ornaments";
 import { buyOnTelegram } from "@/lib/constants";
-import { useT } from "@/lib/i18n";
 import NotFound from "./not-found";
 
 export default function Book() {
-  const t = useT();
   const params = useParams<{ id: string }>();
   const { books, loading } = useBooks();
   const book = books.find((b) => b.id === (params.id ?? ""));
 
   if (loading) {
     return (
-      <section className="py-32 text-center">
-        <p className="text-sm" style={{ color: "var(--muted)" }}>{t("common.loadingLong")}</p>
-      </section>
+      <div className="text-center py-32">
+        <div className="text-3xl mb-4">📖</div>
+        <p className="text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</p>
+      </div>
     );
   }
   if (!book) return <NotFound />;
@@ -28,148 +26,155 @@ export default function Book() {
 
   return (
     <>
-      <section className="relative py-12 md:py-20">
-        <div className="max-w-5xl mx-auto px-6 md:px-10">
-          <div className="text-xs mb-6" style={{ color: "var(--muted)" }}>
-            <Link href="/" className="refined" data-testid="bc-home">{t("book.bcHome")}</Link>
-            <span className="mx-2" style={{ color: "var(--hairline)" }}>/</span>
-            <Link href="/library" className="refined" data-testid="bc-library">{t("book.bcLibrary")}</Link>
+      <section className="py-10 md:py-16">
+        <div className="max-w-5xl mx-auto px-6">
+
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 mb-8 text-xs" style={{ color: 'rgba(148,163,184,0.45)' }}>
+            <Link href="/" data-testid="bc-home" className="hover:text-white/60 transition-colors">الرئيسية</Link>
+            <span>/</span>
+            <Link href="/library" data-testid="bc-library" className="hover:text-white/60 transition-colors">الكتب</Link>
             {category && (
               <>
-                <span className="mx-2" style={{ color: "var(--hairline)" }}>/</span>
-                <Link href={`/category/${category.slug}`} className="refined" data-testid="bc-category">{t(`cat.${category.slug}.name`)}</Link>
+                <span>/</span>
+                <Link href={`/category/${category.slug}`} data-testid="bc-category" className="hover:text-white/60 transition-colors">
+                  {category.name}
+                </Link>
               </>
             )}
+            <span>/</span>
+            <span className="text-white/60 truncate max-w-[120px]">{book.title}</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-10 md:gap-14 items-start">
-            {/* Cover plate */}
-            <div className="mx-auto md:mx-0 w-full max-w-[260px]">
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8 md:gap-12 items-start">
+
+            {/* Cover */}
+            <div className="mx-auto md:mx-0 w-full max-w-[240px]">
               <div
-                className="relative flex items-center justify-center"
+                className="relative flex flex-col items-center justify-center p-6 rounded-2xl"
                 style={{
-                  aspectRatio: "3 / 4",
-                  background: "linear-gradient(135deg, var(--ink) 0%, #1f1c14 100%)",
-                  border: "1px solid var(--gold)",
+                  aspectRatio: '3 / 4',
+                  background: 'linear-gradient(160deg, #0c0b18 0%, #100f1f 100%)',
+                  border: '1px solid rgba(34,211,238,0.2)',
+                  boxShadow: '0 20px 60px rgba(34,211,238,0.08)',
                 }}
               >
-                <div className="absolute" style={{ inset: 10, border: "1px solid var(--gold-line)" }} />
-                <div className="relative px-6 text-center">
-                  <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                    {t("book.coverVol", { year: book.year })}
-                  </div>
-                  <div className="font-display leading-snug" style={{ color: "var(--ivory)", fontSize: "1.25rem" }}>
-                    {book.title}
-                  </div>
-                  <div className="mt-3 h-px w-12 mx-auto" style={{ background: "var(--gold)" }} />
-                  <div className="eyebrow mt-3" style={{ color: "rgba(184,137,58,0.7)" }}>
-                    {book.author}
-                  </div>
+                <div className="text-5xl mb-4">
+                  {book.category === 'audio' ? '🎧' : '📖'}
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-sm text-white/90 mb-2 leading-snug">{book.title}</div>
+                  <div className="h-px w-12 mx-auto mb-2" style={{ background: 'rgba(34,211,238,0.4)' }} />
+                  <div className="text-xs" style={{ color: 'rgba(148,163,184,0.55)' }}>{book.author}</div>
+                </div>
+                <div className="absolute top-3 right-3 text-[9px] font-black px-2 py-0.5 rounded-full"
+                  style={{ background: 'rgba(34,211,238,0.1)', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.2)' }}>
+                  {book.year}
                 </div>
               </div>
             </div>
 
             {/* Details */}
             <div>
-              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-                ❖ {category?.slug.replace("-", " ") ?? t("book.titleFallback")}
-              </div>
-              <h1 className="font-display mb-3" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.5rem)" }}>
+              {/* Category badge */}
+              {category && (
+                <div className="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full text-xs font-black"
+                  style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.25)' }}>
+                  {category.name}
+                </div>
+              )}
+
+              <h1 className="font-orbitron font-black text-2xl md:text-3xl text-white/90 mb-3">
                 {book.title}
               </h1>
-              <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
-                {t("book.by")} <span style={{ color: "var(--ink)" }}>{book.author}</span>
-                {" · "}
-                <span dir="ltr" lang="en">{book.year}</span>
+              <p className="text-sm mb-5" style={{ color: 'rgba(148,163,184,0.6)' }}>
+                {book.author} · <span dir="ltr">{book.year}</span>
               </p>
 
-              <div className="flex items-center gap-4 mb-6 text-sm" style={{ color: "var(--muted)" }}>
-                <span className="inline-flex items-center gap-1">
-                  <Star size={14} fill="var(--gold)" stroke="var(--gold)" />
-                  <span dir="ltr" lang="en" style={{ color: "var(--ink)" }}>{book.rating.toFixed(1)}</span>
-                  <span className="font-serif-en text-xs" dir="ltr" lang="en">({book.ratingCount})</span>
-                </span>
+              {/* Stats */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <Star size={14} fill="#f59e0b" stroke="none" />
+                  <span className="font-bold text-sm text-white/80" dir="ltr">{book.rating.toFixed(1)}</span>
+                  <span className="text-xs" style={{ color: 'rgba(148,163,184,0.45)' }} dir="ltr">({book.ratingCount})</span>
+                </div>
                 {book.pages && (
-                  <span className="inline-flex items-center gap-1">
-                    <BookOpen size={14} strokeWidth={1.5} />
-                    {t("book.pages", { n: book.pages })}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(148,163,184,0.6)' }}>
+                    <BookOpen size={14} />
+                    <span>{book.pages} صفحة</span>
+                  </div>
                 )}
                 {book.duration && (
-                  <span className="inline-flex items-center gap-1">
-                    <Clock size={14} strokeWidth={1.5} />
-                    {book.duration}
-                  </span>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ color: 'rgba(148,163,184,0.6)' }}>
+                    <Clock size={14} />
+                    <span>{book.duration}</span>
+                  </div>
                 )}
               </div>
 
-              <Ornament className="my-6" />
+              {/* Excerpt */}
+              <div className="neon-card rounded-xl p-5 mb-6">
+                <p className="text-sm leading-loose" style={{ color: 'rgba(241,245,249,0.75)' }}>
+                  {book.excerpt}
+                </p>
+              </div>
 
-              <p className="leading-loose mb-8" style={{ color: "var(--ink)" }}>
-                {book.excerpt}
-              </p>
-
-              <div
-                className="flex items-center justify-between p-5 mb-6"
-                style={{ background: "var(--ivory)", border: "1px solid var(--hairline)" }}
-              >
+              {/* Price + CTA */}
+              <div className="rounded-xl p-5 mb-5 flex items-center justify-between gap-4"
+                style={{ background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.15)' }}>
                 <div>
-                  <div className="eyebrow" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("book.price")}</div>
-                  <div className="font-display text-2xl mt-1" style={{ color: "var(--emerald)" }}>
-                    {book.priceSkz.toLocaleString()} {L("SKZ")}
+                  <div className="text-xs mb-1" style={{ color: 'rgba(148,163,184,0.5)' }}>السعر</div>
+                  <div className="font-orbitron font-black text-2xl" style={{ color: '#22d3ee' }}>
+                    {book.priceSkz.toLocaleString()} <span className="text-sm">SKZ</span>
                   </div>
                 </div>
-                <div className="text-xs text-end" style={{ color: "var(--muted)" }}>
-                  {t("book.instantPay1")}<br />
-                  <span dir="ltr" lang="en">{t("book.instantPay2")}</span>
+                <div className="text-xs text-end" style={{ color: 'rgba(148,163,184,0.5)' }}>
+                  ادفع بـ Stars<br />أو USDT · TON
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <a
                   href={buyOnTelegram(book.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-medium tracking-wide transition-transform hover:-translate-y-0.5"
-                  style={{ background: "var(--ink)", color: "var(--ivory)" }}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all hover:-translate-y-0.5"
+                  style={{ background: 'linear-gradient(135deg,#0e7490,#22d3ee)', color: '#04030a' }}
                   data-testid="button-buy"
                 >
-                  {t("book.buy")}
-                  <ArrowLeft size={14} strokeWidth={1.8} />
+                  اشترِ عبر تيليغرام
+                  <ArrowLeft size={13} />
                 </a>
                 <Link
                   href={`/category/${book.category}`}
-                  className="refined inline-flex items-center gap-1 text-sm px-2 py-2 cursor-pointer"
-                  style={{ color: "var(--emerald)" }}
+                  className="px-5 py-3 rounded-xl text-xs font-black border transition-all hover:border-cyan-500/30"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.7)' }}
                   data-testid="link-more-in-category"
                 >
-                  {t("book.moreIn", { name: category ? t(`cat.${category.slug}.name`) : "" })}
+                  مزيد من الكتب في هذا القسم
                 </Link>
               </div>
 
-              <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs" style={{ color: "var(--muted)" }}>
-                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure1")}</li>
-                <li className="inline-flex items-center gap-2"><Download size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure2")}</li>
-                <li className="inline-flex items-center gap-2"><ShieldCheck size={14} strokeWidth={1.5} style={{ color: "var(--gold)" }} /> {t("book.assure3")}</li>
+              {/* Assurances */}
+              <ul className="mt-6 flex flex-wrap gap-4 text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>
+                <li className="flex items-center gap-1.5"><ShieldCheck size={13} style={{ color: '#10b981' }} /> مضمون 100%</li>
+                <li className="flex items-center gap-1.5"><Download size={13} style={{ color: '#22d3ee' }} /> تحميل فوري</li>
+                <li className="flex items-center gap-1.5"><ShieldCheck size={13} style={{ color: '#a855f7' }} /> دعم 24/7</li>
               </ul>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Related */}
       {related.length > 0 && (
-        <section className="py-16 md:py-20" style={{ borderTop: "1px solid var(--hairline)", background: "var(--ivory)" }}>
-          <div className="max-w-6xl mx-auto px-6 md:px-10">
-            <div className="mb-10 text-center">
-              <div className="eyebrow mb-3" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("book.alsoEyebrow")}</div>
-              <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-                {t("book.alsoTitle")}
-              </h2>
+        <section className="py-12 px-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-6">
+              <div className="eyebrow mb-1" style={{ color: 'rgba(148,163,184,0.4)', fontSize: 9 }}>MORE BOOKS</div>
+              <h2 className="font-orbitron font-black text-lg text-white/85">كتب مشابهة</h2>
             </div>
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-              style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}
-            >
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {related.map((b) => <BookCard key={b.id} book={b} />)}
             </div>
           </div>

@@ -1,70 +1,105 @@
 import { Link, useParams } from "wouter";
+import { ArrowLeft } from "lucide-react";
 import { findCategory } from "@/lib/catalog";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
-import { Ornament } from "@/components/Ornaments";
-import { useT } from "@/lib/i18n";
 import NotFound from "./not-found";
 
+const CAT_COLORS: Record<string, string> = {
+  religion:           '#22d3ee',
+  education:          '#a855f7',
+  literature:         '#ec4899',
+  kids:               '#f59e0b',
+  "self-development": '#10b981',
+  audio:              '#06b6d4',
+};
+
+const CAT_EMOJIS: Record<string, string> = {
+  religion:           '📖',
+  education:          '🎓',
+  literature:         '📜',
+  kids:               '🧒',
+  "self-development": '🧠',
+  audio:              '🎧',
+};
+
 export default function Category() {
-  const t = useT();
   const params = useParams<{ slug: string }>();
   const cat = findCategory(params.slug ?? "");
   const { books: all, loading } = useBooks();
   if (!cat) return <NotFound />;
   const books = all.filter((b) => b.category === cat.slug);
+  const color = CAT_COLORS[cat.slug] || '#22d3ee';
+  const emoji = CAT_EMOJIS[cat.slug] || '📚';
 
   return (
-    <>
-      <section className="relative py-16 md:py-20">
-        <div className="max-w-4xl mx-auto px-6 md:px-10 text-center">
-          <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>
-            {t("category.chapter")} · {cat.slug.replace("-", " ")}
+    <div className="max-w-5xl mx-auto px-6 py-10">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-8 text-xs" style={{ color: 'rgba(148,163,184,0.45)' }}>
+        <Link href="/" className="hover:text-white/60 transition-colors">الرئيسية</Link>
+        <span>/</span>
+        <Link href="/library" className="hover:text-white/60 transition-colors">الكتب</Link>
+        <span>/</span>
+        <span style={{ color }}>{ cat.name }</span>
+      </div>
+
+      {/* Category header */}
+      <div className="rise mb-10">
+        <div className="flex items-center gap-4 mb-4">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+            style={{ background: `${color}12`, border: `1px solid ${color}25` }}
+          >
+            {emoji}
           </div>
-          <h1 className="font-display mb-6" style={{ color: "var(--ink)", fontSize: "clamp(2rem, 4.5vw, 3rem)" }}>
-            {t(`cat.${cat.slug}.name`)}
-          </h1>
-          <Ornament className="mb-6" />
-          <p className="text-sm md:text-base" style={{ color: "var(--muted)" }}>
-            {t(`cat.${cat.slug}.desc`)}
-          </p>
-        </div>
-      </section>
-
-      <section className="py-12 md:py-16" style={{ borderTop: "1px solid var(--hairline)" }}>
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
-          {loading ? (
-            <div className="text-center py-20">
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
-                {t("common.loadingLong")}
-              </p>
-            </div>
-          ) : books.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
-                {t("category.empty")}
-              </p>
-            </div>
-          ) : (
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              style={{ borderTop: "1px solid var(--hairline)", borderRight: "1px solid var(--hairline)" }}
-            >
-              {books.map((b) => <BookCard key={b.id} book={b} />)}
-            </div>
-          )}
-
-          <div className="mt-12 flex items-center justify-center gap-6 text-sm">
-            <Link href="/library" className="refined" style={{ color: "var(--emerald)" }} data-testid="link-all-library">
-              {t("category.allLibrary")}
-            </Link>
-            <span style={{ color: "var(--hairline)" }}>·</span>
-            <Link href="/" className="refined" style={{ color: "var(--emerald)" }} data-testid="link-home">
-              {t("category.home")}
-            </Link>
+          <div>
+            <h1 className="font-orbitron font-black text-2xl text-white/90">{cat.name}</h1>
+            <div className="text-sm mt-1" style={{ color: 'rgba(148,163,184,0.55)' }}>{cat.desc}</div>
           </div>
         </div>
-      </section>
-    </>
+        {/* Accent line */}
+        <div className="h-px w-full" style={{ background: `linear-gradient(90deg, ${color}50, transparent)` }} />
+      </div>
+
+      {/* Books */}
+      {loading ? (
+        <div className="text-center py-24">
+          <div className="text-3xl mb-4">{emoji}</div>
+          <div className="font-bold text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</div>
+        </div>
+      ) : books.length === 0 ? (
+        <div className="text-center py-24">
+          <div className="text-3xl mb-4">📭</div>
+          <div className="font-bold text-sm mb-4" style={{ color: 'rgba(148,163,184,0.5)' }}>لا توجد كتب في هذا القسم بعد</div>
+          <Link href="/library"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all"
+            style={{ background: `${color}12`, color, border: `1px solid ${color}25` }}
+            data-testid="link-all-library"
+          >
+            <ArrowLeft size={12} /> عرض كل الكتب
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="font-orbitron text-xs font-black mb-5" style={{ color: `${color}99` }}>
+            {books.length} كتاب في هذا القسم
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {books.map((b) => <BookCard key={b.id} book={b} />)}
+          </div>
+        </>
+      )}
+
+      {/* Footer nav */}
+      <div className="mt-10 flex items-center gap-4 text-xs" style={{ color: 'rgba(148,163,184,0.4)' }}>
+        <Link href="/library" className="hover:text-white/60 transition-colors" data-testid="link-all-library">
+          ← كل الكتب
+        </Link>
+        <span>·</span>
+        <Link href="/" className="hover:text-white/60 transition-colors" data-testid="link-home">
+          الرئيسية
+        </Link>
+      </div>
+    </div>
   );
 }
