@@ -104,11 +104,15 @@ for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
   fi
 done
 
-log "Reinstall systemd units / nginx config if changed"
-if echo "$CHANGED" | grep -q '^deploy/systemd/'; then
-  install -m 0644 "${REPO_DIR}/deploy/systemd/"*.service /etc/systemd/system/
-  systemctl daemon-reload
-fi
+log "Reinstall systemd units (always — ensures new services are registered)"
+install -m 0644 "${REPO_DIR}/deploy/systemd/"*.service /etc/systemd/system/
+systemctl daemon-reload
+# Enable any service that isn't yet enabled (new bots added after initial install)
+for svc in souqrates-api souqrates-mother-bot souqrates-books-bot \
+            souqrates-contests-bot souqrates-subagents-bot souqrates-sweep-bot; do
+  systemctl is-enabled --quiet "${svc}.service" || systemctl enable "${svc}.service"
+done
+
 if echo "$CHANGED" | grep -q '^deploy/nginx/'; then
   install -m 0644 "${REPO_DIR}/deploy/nginx/souqrates.conf" /etc/nginx/sites-available/souqrates.conf
   nginx -t && systemctl reload nginx
