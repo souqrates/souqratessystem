@@ -5,10 +5,11 @@ import Games from "./pages/Games";
 import Lotto from "./pages/Lotto";
 import MyTickets from "./pages/MyTickets";
 import ScratchCard from "./pages/ScratchCard";
+import DrawHistory from "./pages/DrawHistory";
 import { GameConfig } from "./lib/games";
 import { tg } from "./lib/telegram";
 
-export type Page = "home" | "games" | "lotto" | "tickets";
+export type Page = "home" | "games" | "lotto" | "tickets" | "history";
 
 type AuthState = "checking" | "ok" | "error";
 
@@ -102,6 +103,7 @@ function SweepApp({ initData }: { initData: string }) {
         {page === "games" && <Games onSelectGame={openGame} />}
         {page === "lotto" && <Lotto initData={initData} />}
         {page === "tickets" && <MyTickets initData={initData} onSelectGame={openGame} />}
+        {page === "history" && <DrawHistory />}
       </div>
       <BottomNav current={page} onChange={setPage} />
     </div>

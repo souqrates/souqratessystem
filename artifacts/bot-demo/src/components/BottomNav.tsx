@@ -10,6 +10,7 @@ const tabs: { id: Page; emoji: string; label: string }[] = [
   { id: "games", emoji: "🎰", label: "الألعاب" },
   { id: "lotto", emoji: "🎱", label: "اللوتو" },
   { id: "tickets", emoji: "🎫", label: "تذاكري" },
+  { id: "history", emoji: "📋", label: "السجل" },
 ];
 
 export default function BottomNav({ current, onChange }: Props) {

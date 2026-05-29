@@ -134,6 +134,61 @@ router.get("/sweep/jackpot", async (_req, res): Promise<void> => {
   });
 });
 
+// ── GET /sweep/draws/history ──────────────────────────────────────────────────
+// Public endpoint — returns completed draws for transparency / Provably Fair
+// display. Includes winning numbers, jackpot, entry count, and winner count.
+router.get("/sweep/draws/history", async (req, res): Promise<void> => {
+  const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
+  const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10), 0);
+
+  const draws = await db
+    .select({
+      id: sweepLottoDrawsTable.id,
+      drawNumber: sweepLottoDrawsTable.drawNumber,
+      winningNumbers: sweepLottoDrawsTable.winningNumbers,
+      jackpotAmountSkz: sweepLottoDrawsTable.jackpotAmountSkz,
+      totalEntries: sweepLottoDrawsTable.totalEntries,
+      totalPaidOutSkz: sweepLottoDrawsTable.totalPaidOutSkz,
+      drawnAt: sweepLottoDrawsTable.drawnAt,
+      serverSeedHash: sweepLottoDrawsTable.serverSeedHash,
+      serverSeed: sweepLottoDrawsTable.serverSeed,
+    })
+    .from(sweepLottoDrawsTable)
+    .where(eq(sweepLottoDrawsTable.status, "drawn"))
+    .orderBy(desc(sweepLottoDrawsTable.drawNumber))
+    .limit(limit)
+    .offset(offset);
+
+  // Count winners (entries with matchCount === 6) per draw in one query
+  const drawIds = draws.map((d) => d.id);
+  let winnerCounts: Record<number, number> = {};
+  if (drawIds.length > 0) {
+    const rows = await db
+      .select({
+        drawId: sweepLottoEntriesTable.drawId,
+        winnerCount: sql<number>`cast(count(*) as int)`,
+      })
+      .from(sweepLottoEntriesTable)
+      .where(
+        and(
+          sql`${sweepLottoEntriesTable.drawId} = ANY(${sql.raw(`ARRAY[${drawIds.join(",")}]::int[]`)})`,
+          eq(sweepLottoEntriesTable.isJackpot, true),
+        ),
+      )
+      .groupBy(sweepLottoEntriesTable.drawId);
+    winnerCounts = Object.fromEntries(rows.map((r) => [r.drawId, r.winnerCount]));
+  }
+
+  const data = draws.map((d) => ({
+    ...d,
+    jackpotAmountSkz: parseFloat(d.jackpotAmountSkz),
+    totalPaidOutSkz: parseFloat(d.totalPaidOutSkz),
+    winnerCount: winnerCounts[d.id] ?? 0,
+  }));
+
+  res.json({ data, limit, offset, total: data.length });
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 // INTERNAL ROUTES
 // ═════════════════════════════════════════════════════════════════════════════
