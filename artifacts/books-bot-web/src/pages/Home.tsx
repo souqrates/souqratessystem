@@ -124,7 +124,7 @@ function Features() {
         <div className="text-center mb-16">
           <div className="eyebrow mb-4" dir="ltr" lang="en" style={{ color: "var(--gold)" }}>{t("home.featuresEyebrow")}</div>
           <h2 className="font-display" style={{ color: "var(--ink)", fontSize: "clamp(1.875rem, 4vw, 2.75rem)" }}>
-            {t("home.featuresTitleA")} <span dir="ltr" lang="en" style={{ color: "var(--emerald)" }}>SOUQRATES SOUQ</span>{t("home.featuresTitleB")}
+            {t("home.featuresTitleA")} <span dir="ltr" lang="en" className="font-orbitron" style={{ color: "var(--emerald)" }}>SOUQRATES SOUQ</span>{t("home.featuresTitleB")}
           </h2>
         </div>
 

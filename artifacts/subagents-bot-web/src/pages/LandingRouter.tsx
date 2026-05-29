@@ -46,7 +46,7 @@ export default function LandingRouter() {
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 space-y-4">
           <ShieldCheck className="w-16 h-16 text-secondary mx-auto" />
-          <h1 className="text-3xl font-bold">برنامج شركاء SOUQRATES</h1>
+          <h1 className="text-3xl font-bold">برنامج شركاء <span className="font-orbitron">SOUQRATES</span></h1>
           <p className="text-primary-foreground/80 max-w-sm mx-auto text-sm leading-relaxed">
             بوابة النخبة لبيع وتوزيع أرصدة SKZ. انضم الآن، تدرج في مستويات الشراكة، واحصل على خصومات حصرية ومزايا استثنائية.
           </p>

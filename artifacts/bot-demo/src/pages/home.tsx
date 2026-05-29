@@ -136,7 +136,7 @@ export function Home() {
                   </div>
                 ) : (
                   <motion.h2
-                    className="text-[54px] font-black gradient-text tracking-tighter leading-none mb-1"
+                    className="text-[54px] font-black gradient-text tracking-tighter leading-none mb-1 font-orbitron"
                     initial={{ scale: 0.85, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -283,7 +283,7 @@ export function Home() {
             >
               <Flame size={22} color={streak >= 7 ? "#fbbf24" : "#f97316"} />
             </motion.div>
-            <p className="text-xl font-black" style={{ color: streak >= 7 ? "#fbbf24" : "#f97316", lineHeight: 1 }}>{streak}</p>
+            <p className="text-xl font-black font-orbitron" style={{ color: streak >= 7 ? "#fbbf24" : "#f97316", lineHeight: 1 }}>{streak}</p>
             <p className="text-[9px] text-white/35 font-bold text-center leading-tight">يوم متتالي</p>
           </div>
           {/* Total earned */}
@@ -294,7 +294,7 @@ export function Home() {
               </div>
               <p className="text-[10px] text-white/45 font-medium">{t("home.stats.totalEarned")}</p>
             </div>
-            <p className="text-lg font-black text-success">
+            <p className="text-lg font-black text-success font-orbitron">
               {walletLoading ? <Skeleton width={60} height={22} /> : fmt(totalEarnedSkz)}
             </p>
             <p className="text-[9px] text-white/25 font-medium mt-0.5">SKZ</p>
@@ -307,7 +307,7 @@ export function Home() {
               </div>
               <p className="text-[10px] text-white/45 font-medium">{t("home.stats.withdrawn")}</p>
             </div>
-            <p className="text-lg font-black text-white/70">
+            <p className="text-lg font-black text-white/70 font-orbitron">
               {walletLoading ? <Skeleton width={60} height={22} /> : fmt(totalWithdrawnSkz)}
             </p>
             <p className="text-[9px] text-white/25 font-medium mt-0.5">SKZ</p>
@@ -332,7 +332,7 @@ export function Home() {
                       border={`${ci.color}25`} boxSize={22} radius={6} />
                     <p className="text-[10px] font-bold" style={{ color: ci.color }}>{item.key}</p>
                   </div>
-                  <p className="text-xl font-black text-white">
+                  <p className="text-xl font-black text-white font-orbitron">
                     {walletLoading ? <Skeleton width={70} height={24} /> : item.val}
                   </p>
                   <p className="text-[9px] text-white/30 mt-1 font-medium">
@@ -426,7 +426,7 @@ export function Home() {
                     <Crown size={20} color="#D4AF37" />
                   </div>
                   <div>
-                    <p className="text-sm font-black mb-1" style={{ color: "#D4AF37" }}>♛ SOUQRATES SUB-AGENTS</p>
+                    <p className="text-sm font-black font-orbitron mb-1" style={{ color: "#D4AF37" }}>♛ SOUQRATES SUB-AGENTS</p>
                     <p className="text-[11px] text-white/50 leading-snug">برنامج الشركاء — بيع SKZ واربح عمولات تصاعدية</p>
                   </div>
                 </div>

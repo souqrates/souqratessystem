@@ -230,7 +230,7 @@ export function Agreement() {
               className="relative w-24 h-24 rounded-2xl object-cover ring-1 ring-white/15 shadow-[0_10px_40px_rgba(168,85,247,0.45)]"
             />
           </div>
-          <h1 className="mt-5 text-3xl font-extrabold tracking-tight gradient-text">SOUQRATES SYSTEM</h1>
+          <h1 className="mt-5 text-3xl font-extrabold tracking-tight gradient-text font-orbitron">SOUQRATES SYSTEM</h1>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-[12px] text-white/80">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             {t("agreement.badge")}

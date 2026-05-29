@@ -229,7 +229,7 @@ function Hero({
               </span>
             )}
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-glow-gold">
+          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-glow-gold font-orbitron">
             {contest.title}
           </h1>
           {contest.description && (
@@ -238,11 +238,11 @@ function Hero({
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
               <div className="text-[11px] text-stage-mute">{t("total_votes_label")}</div>
-              <div className="text-2xl font-extrabold num-anim" key={totalVotes}>{fmtInt(totalVotes)}</div>
+              <div className="text-2xl font-extrabold num-anim font-orbitron" key={totalVotes}>{fmtInt(totalVotes)}</div>
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
               <div className="text-[11px] text-stage-mute">{t("contestants_label")}</div>
-              <div className="text-2xl font-extrabold tabular-nums">{contestants.length}</div>
+              <div className="text-2xl font-extrabold tabular-nums font-orbitron">{contestants.length}</div>
             </div>
             <div className="px-4 py-2 rounded-xl bg-black/30 border border-stage-line">
               <div className="text-[11px] text-stage-mute">{t("live_activity")}</div>
@@ -484,7 +484,7 @@ function PackCard({ p }: { p: VotePack }) {
         )}
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-black text-stage-gold text-glow-gold">{fmtInt(total)}</span>
+        <span className="text-3xl font-black text-stage-gold text-glow-gold font-orbitron">{fmtInt(total)}</span>
         <span className="text-sm text-stage-mute">{t("votes_unit")}</span>
         {p.bonusVotes > 0 && (
           <span className="text-[11px] text-stage-green">{t("bonus_votes_suffix", { n: p.bonusVotes })}</span>

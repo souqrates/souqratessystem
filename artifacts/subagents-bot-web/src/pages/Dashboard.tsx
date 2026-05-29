@@ -58,7 +58,7 @@ export default function DashboardPage() {
           <p className="text-sm font-medium text-white/80 mb-1 flex items-center gap-2">
             <Wallet className="w-4 h-4" /> رصيد SKZ المتاح
           </p>
-          <h2 className="text-4xl font-bold text-white tracking-tight" dir="ltr" style={{ textAlign: 'right' }}>
+          <h2 className="text-4xl font-bold text-white tracking-tight font-orbitron" dir="ltr" style={{ textAlign: 'right' }}>
             {parseFloat(wallet?.balanceSkz || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h2>
         </div>

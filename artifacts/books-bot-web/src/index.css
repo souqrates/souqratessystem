@@ -33,6 +33,11 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.04em;
+}
+
 .font-display {
   font-family: 'Amiri', 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   font-weight: 700;

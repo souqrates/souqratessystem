@@ -102,7 +102,7 @@ export default function SellPage() {
       <div className="p-4 flex-1">
         <div className="bg-primary text-primary-foreground p-5 rounded-2xl mb-6 shadow-sm">
           <p className="text-sm opacity-90 mb-1">رصيدك المتاح</p>
-          <h2 className="text-3xl font-bold" dir="ltr">{balance.toLocaleString()} <span className="text-lg font-medium">SKZ</span></h2>
+          <h2 className="text-3xl font-bold font-orbitron" dir="ltr">{balance.toLocaleString()} <span className="text-lg font-medium">SKZ</span></h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card p-5 rounded-2xl border shadow-sm">
