@@ -88,8 +88,8 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
 
-log "7/9  Python venvs for the 4 bots"
-for bot in mother-bot books-bot contests-bot subagents-bot; do
+log "7/9  Python venvs for the 5 bots"
+for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
   venv="${VENVS_DIR}/${bot}"
   req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
   if [[ ! -f "$req" ]]; then echo "  skip ${bot}: no requirements.txt"; continue; fi
@@ -109,7 +109,7 @@ mkdir -p /var/www/certbot
 systemctl daemon-reload
 
 log "9/9  Seed example env files (if not already present)"
-for f in api-server mother-bot books-bot contests-bot subagents-bot; do
+for f in api-server mother-bot books-bot contests-bot subagents-bot sweep-bot; do
   src="${REPO_DIR}/deploy/env/${f}.env.example"
   dst="${ENV_DIR}/${f}.env"
   if [[ ! -f "$dst" ]]; then
@@ -126,12 +126,13 @@ cat <<EOF
   Install finished. Next steps (in order):
 ============================================================
 
-1. Fill the 5 env files in ${ENV_DIR}/   (chmod is already 0640)
+1. Fill the 6 env files in ${ENV_DIR}/   (chmod is already 0640)
        \$EDITOR ${ENV_DIR}/api-server.env
        \$EDITOR ${ENV_DIR}/mother-bot.env
        \$EDITOR ${ENV_DIR}/books-bot.env
        \$EDITOR ${ENV_DIR}/contests-bot.env
        \$EDITOR ${ENV_DIR}/subagents-bot.env
+       \$EDITOR ${ENV_DIR}/sweep-bot.env
 
 2. Push DB schema to Neon (one-time, from the repo):
        cd ${REPO_DIR}
@@ -149,15 +150,17 @@ cat <<EOF
        systemctl enable --now souqrates-mother-bot.service \\
                               souqrates-books-bot.service \\
                               souqrates-contests-bot.service \\
-                              souqrates-subagents-bot.service
+                              souqrates-subagents-bot.service \\
+                              souqrates-sweep-bot.service
        systemctl reload nginx
 
 5. Smoke-test:
        curl -sf https://souqrates.com/api/healthz
-       for p in 8101 8102 8103 8104; do
+       for p in 8101 8102 8103 8104 8105; do
          curl -sf http://127.0.0.1:\$p/telegram-webhook/\$(case \$p in
            8101) echo mother-bot;; 8102) echo books-bot;;
-           8103) echo contests-bot;; 8104) echo subagents-bot;; esac)/healthz
+           8103) echo contests-bot;; 8104) echo subagents-bot;;
+           8105) echo sweep-bot;; esac)/healthz
        done
 
 6. UFW (firewall):

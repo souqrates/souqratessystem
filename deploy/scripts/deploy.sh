@@ -77,6 +77,17 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
 
+log "Seed new env files (first deploy of a new bot)"
+ENV_DIR="/etc/souqrates"
+for f in sweep-bot; do
+  src="${REPO_DIR}/deploy/env/${f}.env.example"
+  dst="${ENV_DIR}/${f}.env"
+  if [[ ! -f "$dst" && -f "$src" ]]; then
+    install -m 0640 -o root -g "${APP_USER}" "$src" "$dst"
+    echo "  → seeded ${dst}  ← EDIT before the service restarts"
+  fi
+done
+
 log "Refresh Python deps if requirements.txt changed"
 for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
   if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
