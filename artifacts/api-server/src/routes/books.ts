@@ -201,31 +201,35 @@ router.get("/books/products", async (req, res): Promise<void> => {
   }
   if (q) conds.push(ilike(digitalProductsTable.title, `%${q}%`));
 
-  const rows = await db
-    .select({
-      id: digitalProductsTable.id,
-      title: digitalProductsTable.title,
-      description: digitalProductsTable.description,
-      coverUrl: digitalProductsTable.coverUrl,
-      categoryId: digitalProductsTable.categoryId,
-      priceUsdt: digitalProductsTable.priceUsdt,
-      salesCount: digitalProductsTable.salesCount,
-      rating: digitalProductsTable.rating,
-      ratingCount: digitalProductsTable.ratingCount,
-      createdAt: digitalProductsTable.createdAt,
-    })
-    .from(digitalProductsTable)
-    .where(and(...conds))
-    .orderBy(desc(digitalProductsTable.salesCount), desc(digitalProductsTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+  const [rows, [{ total }], { perUsdt }] = await Promise.all([
+    db
+      .select({
+        id: digitalProductsTable.id,
+        title: digitalProductsTable.title,
+        description: digitalProductsTable.description,
+        coverUrl: digitalProductsTable.coverUrl,
+        categoryId: digitalProductsTable.categoryId,
+        priceUsdt: digitalProductsTable.priceUsdt,
+        salesCount: digitalProductsTable.salesCount,
+        rating: digitalProductsTable.rating,
+        ratingCount: digitalProductsTable.ratingCount,
+        createdAt: digitalProductsTable.createdAt,
+      })
+      .from(digitalProductsTable)
+      .where(and(...conds))
+      .orderBy(desc(digitalProductsTable.salesCount), desc(digitalProductsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ total: count() }).from(digitalProductsTable).where(and(...conds)),
+    getSkzRates(),
+  ]);
 
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(digitalProductsTable)
-    .where(and(...conds));
+  const data = rows.map(r => ({
+    ...r,
+    priceSkz: +(parseFloat(r.priceUsdt) * perUsdt).toFixed(2),
+  }));
 
-  res.json({ data: rows, total: Number(total), limit, offset });
+  res.json({ data, total: Number(total), limit, offset });
 });
 
 router.get("/books/products/:id", async (req, res): Promise<void> => {
@@ -248,7 +252,8 @@ router.get("/books/products/:id", async (req, res): Promise<void> => {
     .from(digitalProductsTable)
     .where(eq(digitalProductsTable.id, id));
   if (!row || row.status !== "approved") { res.status(404).json({ error: "Product not found" }); return; }
-  res.json(row);
+  const { perUsdt } = await getSkzRates();
+  res.json({ ...row, priceSkz: +(parseFloat(row.priceUsdt) * perUsdt).toFixed(2) });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1442,8 +1442,28 @@ router.post("/internal/game/credit-reward", perUserCreateLimiter, async (req, re
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /internal/game/tiers — solo fee tiers (no bot auth required — public info)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/internal/game/tiers", async (_req, res): Promise<void> => {
+router.get("/internal/game/tiers", async (req, res): Promise<void> => {
   try {
+    const gameIdParam = req.query.gameId ? parseInt(String(req.query.gameId), 10) : null;
+
+    // If a specific gameId is requested, return its admin-configured tiers from game_configs.
+    // This is the live path used by the front-end before presenting tier choices to the user.
+    if (gameIdParam && Number.isInteger(gameIdParam)) {
+      const [gameCfg] = await db.select().from(gameConfigsTable).where(eq(gameConfigsTable.gameId, gameIdParam));
+      if (gameCfg) {
+        const perGameTiers = normalizeTiers(
+          gameCfg.publishedPriceTiers,
+          Number(gameCfg.publishedEntryFee),
+          Number(gameCfg.publishedWinAmount),
+        );
+        if (perGameTiers.length > 0) {
+          res.json({ tiers: perGameTiers, source: "game_configs" });
+          return;
+        }
+      }
+    }
+
+    // Fallback: global platform_settings tiers (legacy — used when game_configs has no tiers)
     const rows = await db.select().from(platformSettingsTable)
       .where(inArray(platformSettingsTable.key, [
         "solo_entry_fee_easy", "solo_entry_fee_medium", "solo_entry_fee_hard", "solo_multiplier",
@@ -1456,7 +1476,7 @@ router.get("/internal/game/tiers", async (_req, res): Promise<void> => {
       { difficulty: "Medium", entryFee: parseFloat(map["solo_entry_fee_medium"] ?? "10"), multiplier, isDefault: true  },
       { difficulty: "Hard",   entryFee: parseFloat(map["solo_entry_fee_hard"]   ?? "15"), multiplier, isDefault: false },
     ];
-    res.json({ tiers });
+    res.json({ tiers, source: "platform_settings" });
   } catch (err) {
     logger.error({ err }, "internal: game tiers failed");
     res.status(500).json({ error: "Internal server error" });
