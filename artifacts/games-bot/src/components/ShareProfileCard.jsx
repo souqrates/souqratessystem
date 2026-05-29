@@ -125,7 +125,7 @@ export default function ShareProfileCard({ xp, wins, totalGames, winRate, open, 
                     </div>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="font-orbitron text-xl font-black shimmer-gold">{Number(xp || 0).toLocaleString()}</p>
+                    <p className="font-orbitron text-xl font-black text-white">{Number(xp || 0).toLocaleString()}</p>
                     <p className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: 'rgba(148,163,184,0.6)' }}>XP</p>
                   </div>
                 </div>

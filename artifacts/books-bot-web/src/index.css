@@ -27,7 +27,7 @@
 html, body {
   background: var(--parchment);
   color: var(--ink);
-  font-family: 'Tajawal', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Orbitron', 'Tajawal', system-ui, -apple-system, sans-serif;
   direction: rtl;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

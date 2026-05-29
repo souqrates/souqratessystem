@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-sans: 'Inter', 'Tajawal', system-ui, sans-serif;
+  --font-sans: 'Orbitron', 'Tajawal', system-ui, sans-serif;
   --font-display: 'Orbitron', sans-serif;
   --color-stage-bg: #07070d;
   --color-stage-panel: #0f0f1c;

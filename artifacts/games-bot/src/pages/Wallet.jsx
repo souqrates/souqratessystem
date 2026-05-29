@@ -25,11 +25,11 @@ function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `منذ ${mins} د`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return new Date(dateStr).toLocaleDateString();
+  if (hrs < 24) return `منذ ${hrs} س`;
+  return new Date(dateStr).toLocaleDateString('ar');
 }
 export default function Wallet() {
   const { language, appConfig } = useAppStore();

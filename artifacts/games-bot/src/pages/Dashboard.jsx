@@ -135,7 +135,7 @@ export default function Dashboard() {
                 <Share2 size={10} color="#22d3ee" />
               </button>
             </div>
-            <p className="font-orbitron text-2xl font-black shimmer-gold leading-none">
+            <p className="font-orbitron text-2xl font-black text-white leading-none">
               {scBalance.toLocaleString()}
             </p>
             <p className="text-[9px] font-medium mt-1 uppercase tracking-wider" style={{ color: 'rgba(148,163,184,0.6)' }}>
@@ -259,9 +259,9 @@ function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `منذ ${mins} د`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return `منذ ${hrs} س`;
+  return `منذ ${Math.floor(hrs / 24)} ي`;
 }

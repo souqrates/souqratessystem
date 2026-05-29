@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Orbitron", "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: "Orbitron", sans-serif;
 
   /* Core palette */
