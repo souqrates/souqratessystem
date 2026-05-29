@@ -62,7 +62,7 @@
 | mother-bot   | SOUQRATES SYSTEM   | البوت الأم (المحفظة الموحّدة) |
 | games-bot    | SOUQRATES SKILLZ   | الألعاب                     |
 | books-bot    | SOUQRATES SOUQ     | الكتب والمنتجات الرقمية    |
-| video-bot    | SOUQRATES SCENE    | الفيديوهات                  |
+| sweep-bot    | SOUQRATES SWEEP    | ألعاب الحظ واليانصيب        |
 | voice-bot    | SOUQRATES STREAM   | الغرف الصوتية               |
 | ai-bot       | SOUQRATES SIGNAL   | الذكاء الاصطناعي           |
 | contests-bot | SOUQRATES STAGE    | المسابقات والتصويت         |
