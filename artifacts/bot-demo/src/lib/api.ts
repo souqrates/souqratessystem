@@ -7,12 +7,17 @@
 const BASE = "/api/sweep";
 const DEV_TELEGRAM_ID = "999999999"; // stable dev user
 
+const BOT_API_KEY = import.meta.env.VITE_SWEEP_BOT_API_KEY as string | undefined;
+
 function headers(initData: string): HeadersInit {
   const h: HeadersInit = { "Content-Type": "application/json" };
   if (initData) {
     h["X-Telegram-Init-Data"] = initData;
   } else {
     h["X-Dev-Telegram-Id"] = DEV_TELEGRAM_ID;
+  }
+  if (BOT_API_KEY) {
+    h["X-Bot-Api-Key"] = BOT_API_KEY;
   }
   return h;
 }

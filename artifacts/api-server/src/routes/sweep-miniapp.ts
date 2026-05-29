@@ -548,6 +548,18 @@ router.post("/sweep/lotto/enter", requireSweepAuth, perUserCreateLimiter, async 
         .set({ totalEntries: sql`${sweepLottoDrawsTable.totalEntries} + 1` })
         .where(eq(sweepLottoDrawsTable.id, draw.id));
 
+      // Grow the jackpot pool so the displayed jackpot reflects each subscription immediately.
+      await tx
+        .insert(sweepJackpotPoolTable)
+        .values({ id: 1, balanceSkz: String(entryPrice), totalContributedSkz: String(entryPrice) })
+        .onConflictDoUpdate({
+          target: sweepJackpotPoolTable.id,
+          set: {
+            balanceSkz: sql`${sweepJackpotPoolTable.balanceSkz} + ${entryPrice}`,
+            totalContributedSkz: sql`${sweepJackpotPoolTable.totalContributedSkz} + ${entryPrice}`,
+          },
+        });
+
       const [entry] = await tx.insert(sweepLottoEntriesTable).values({
         drawId: draw.id,
         userId: user.id,
