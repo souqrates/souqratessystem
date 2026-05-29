@@ -297,6 +297,7 @@ export default function DrawHistory({ initData }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [myEntries, setMyEntries] = useState<MyEntry[]>([]);
+  const [winnersOnly, setWinnersOnly] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -314,17 +315,19 @@ export default function DrawHistory({ initData }: Props) {
       if (drawsRes.status === "fulfilled") {
         setDraws(drawsRes.value.data ?? []);
       } else {
-        throw new Error("draws");
+        throw new Error("تعذّر تحميل سجل السحبات");
       }
 
       if (entriesRes.status === "fulfilled") {
-        const mapped: MyEntry[] = entriesRes.value.data
-          .filter((e) => e.drawNumber != null)
-          .map((e) => ({
-            numbers: e.entry.chosenNumbers,
-            drawNumber: e.drawNumber as number,
-          }));
-        setMyEntries(mapped);
+        const raw = entriesRes.value.data ?? [];
+        setMyEntries(
+          raw
+            .filter((e) => e.drawNumber !== null)
+            .map((e) => ({
+              drawNumber: e.drawNumber as number,
+              numbers: e.entry.chosenNumbers,
+            }))
+        );
       }
 =======
       const res = await fetch("/api/sweep/draws/history?limit=30&detail=true");
@@ -341,6 +344,17 @@ export default function DrawHistory({ initData }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  const hasMyEntries = myEntries.length > 0;
+
+  const visibleDraws = winnersOnly
+    ? draws.filter((draw) => {
+        const winningSet = new Set((draw.winningNumbers ?? []).map(Number));
+        return myEntries
+          .filter((e) => e.drawNumber === draw.drawNumber)
+          .some((e) => e.numbers.filter((n) => winningSet.has(n)).length >= 2);
+      })
+    : draws;
+
   return (
     <div className="px-4 pt-6 pb-6 fade-up">
       {/* Header */}
@@ -353,7 +367,7 @@ export default function DrawHistory({ initData }: Props) {
       </div>
 
       {/* Provably Fair banner */}
-      <div className="rounded-2xl px-4 py-3 mb-5 flex items-start gap-3"
+      <div className="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3"
         style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}>
         <span className="text-xl flex-shrink-0 mt-0.5">🔐</span>
         <div>
@@ -363,6 +377,46 @@ export default function DrawHistory({ initData }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Winners-only filter toggle (shown only when user has entries) */}
+      {!loading && !error && hasMyEntries && (
+        <div className="mb-4">
+          <button
+            onClick={() => setWinnersOnly((v) => !v)}
+            className="flex items-center gap-2 w-full rounded-2xl px-4 py-3 text-right transition-all"
+            style={{
+              background: winnersOnly
+                ? "rgba(16,185,129,0.12)"
+                : "rgba(255,255,255,0.04)",
+              border: winnersOnly
+                ? "1px solid rgba(16,185,129,0.35)"
+                : "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <span className="text-lg flex-shrink-0">{winnersOnly ? "🏆" : "🎯"}</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-sm" style={{ color: winnersOnly ? "#10b981" : "rgba(255,255,255,0.75)" }}>
+                فائزة فقط
+              </div>
+              <div className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+                {winnersOnly ? "يعرض السحبات التي طابق فيها تذاكرك ≥٢ أرقام" : "اضغط لرؤية سحباتك الفائزة فقط"}
+              </div>
+            </div>
+            {/* Toggle pill */}
+            <div className="flex-shrink-0 relative"
+              style={{ width: 40, height: 22 }}>
+              <div className="absolute inset-0 rounded-full transition-all"
+                style={{ background: winnersOnly ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.1)" }} />
+              <div className="absolute top-1 transition-all rounded-full"
+                style={{
+                  width: 14, height: 14,
+                  background: winnersOnly ? "#10b981" : "rgba(255,255,255,0.4)",
+                  left: winnersOnly ? 22 : 4,
+                }} />
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
@@ -383,7 +437,7 @@ export default function DrawHistory({ initData }: Props) {
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty — no draws at all */}
       {!loading && !error && draws.length === 0 && (
         <div className="text-center py-16">
           <div className="text-5xl mb-3">📋</div>
@@ -392,10 +446,27 @@ export default function DrawHistory({ initData }: Props) {
         </div>
       )}
 
+      {/* Empty — filter active but no wins */}
+      {!loading && !error && draws.length > 0 && winnersOnly && visibleDraws.length === 0 && (
+        <div className="text-center py-16">
+          <div className="text-5xl mb-3">🎯</div>
+          <div className="font-bold text-sm text-white mb-1">لم تُطابق ≥٢ أرقام في أي سحب بعد</div>
+          <div className="text-xs mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>
+            استمر في المشاركة — يوماً ما ستكون هناك!
+          </div>
+          <button
+            onClick={() => setWinnersOnly(false)}
+            className="btn-ghost text-sm px-4 py-2"
+          >
+            عرض كل السحبات
+          </button>
+        </div>
+      )}
+
       {/* Draw cards */}
-      {!loading && !error && draws.length > 0 && (
+      {!loading && !error && visibleDraws.length > 0 && (
         <div className="flex flex-col gap-3">
-          {draws.map((draw) => (
+          {visibleDraws.map((draw) => (
             <DrawCard key={draw.id} draw={draw} myEntries={myEntries} />
           ))}
         </div>
