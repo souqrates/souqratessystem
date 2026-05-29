@@ -20,6 +20,12 @@
     -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+      // Detect iOS early — used by CSS to kill all animations that cause WebKit compositor flicker
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        document.documentElement.classList.add('ios');
+      }
+    </script>
+    <script>
       // Apply Telegram colors + expand as the VERY first JS after the SDK is
       // loaded — beats React mount by ~50ms, eliminating the viewport flash.
       (function(){
@@ -49,7 +55,7 @@
     <link rel="preconnect" href="https://gldgmwubjkkcbqemlvzu.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://toncenter.com" />
     <link rel="dns-prefetch" href="https://tonapi.io" />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

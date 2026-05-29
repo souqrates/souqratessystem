@@ -117,7 +117,7 @@ body.game-locked .game-modal-body * {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #e2e8f0;
@@ -659,6 +659,29 @@ html.device-low .glass-input {
 html.device-low .app-shell::before { animation: none !important; opacity: 0.5; }
 html.device-low .app-shell::after { display: none !important; }
 html.device-low .avatar-ring-wrap { animation: none !important; }
+/* ─── iOS FINAL FLICKER FIX ───────────────────────────────────────────────
+   On iOS/iPadOS Telegram WebView, CSS keyframe animations that mutate
+   box-shadow, filter, or opacity on elements sharing a compositor layer with
+   backdrop-filter triggers a full-layer recomposite on every frame → strobe.
+   Solution: kill ALL such animations on iOS unconditionally.
+   The .ios class is set synchronously in index.html before React mounts.
+──────────────────────────────────────────────────────────────────────────── */
+html.ios .play-pulse,
+html.ios .shimmer-gold,
+html.ios .shimmer-purple,
+html.ios .hot-pulse,
+html.ios .violet-pulse,
+html.ios .fire-flicker,
+html.ios .trophy-pulse,
+html.ios .avatar-ring-wrap {
+  animation: none !important;
+}
+html.ios .play-pulse        { box-shadow: 0 0 20px rgba(8,145,178,0.5); }
+html.ios .shimmer-gold      { background: #f59e0b; -webkit-text-fill-color: #f59e0b; }
+html.ios .shimmer-purple    { background: #22d3ee; -webkit-text-fill-color: #22d3ee; }
+html.ios .fire-flicker      { filter: drop-shadow(0 0 6px rgba(249,115,22,0.7)); }
+html.ios .avatar-ring-wrap  { background: conic-gradient(from 0deg, #0891b2, #22d3ee, #67e8f9, #0891b2); }
+
 html.device-low .play-pulse { animation: none !important; box-shadow: 0 0 20px rgba(124,58,237,0.5); }
 html.device-low .shimmer-gold,
 html.device-low .shimmer-purple,
