@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import LottoPicker from "../components/LottoPicker";
-import { getLottoCurrent, enterLotto, getMyLottoEntries, ApiError, type LottoEntry } from "../lib/api";
+import { getLottoCurrent, enterLotto, getMyLottoEntries, getBalance, ApiError, type LottoEntry } from "../lib/api";
 import { haptic } from "../lib/telegram";
 
 interface Props {
@@ -14,6 +14,7 @@ export default function Lotto({ initData }: Props) {
   const [entryPrice, setEntryPrice] = useState(5);
   const [drawNumber, setDrawNumber] = useState<number | null>(null);
   const [hasOpenDraw, setHasOpenDraw] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,15 +24,17 @@ export default function Lotto({ initData }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [current, myEntries] = await Promise.all([
+      const [current, myEntries, balanceRes] = await Promise.all([
         getLottoCurrent(initData),
         getMyLottoEntries(initData),
+        getBalance(initData),
       ]);
       setJackpot(current.jackpotBalanceSkz);
       setEntryPrice(current.entryPriceSKZ);
       setHasOpenDraw(!!current.draw);
       setDrawNumber(current.draw?.drawNumber ?? null);
       setEntries(myEntries.data);
+      setBalance(parseFloat(balanceRes.balanceSkz));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "خطأ في تحميل البيانات");
     } finally {
@@ -156,6 +159,15 @@ export default function Lotto({ initData }: Props) {
               <span className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>سعر الورقة</span>
               <span className="font-orbitron font-black text-sm" style={{ color: "#f59e0b" }}>{entryPrice} SKZ</span>
             </div>
+            {balance !== null && (
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>رصيدك</span>
+                <span className="font-orbitron font-black text-sm"
+                  style={{ color: balance >= entryPrice ? "#10b981" : "#ef4444" }}>
+                  {balance.toLocaleString()} SKZ
+                </span>
+              </div>
+            )}
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>الأرقام المختارة</span>
               <span className="font-bold text-sm"
@@ -175,17 +187,27 @@ export default function Lotto({ initData }: Props) {
               </div>
             )}
 
+            {balance !== null && balance < entryPrice && (
+              <div className="rounded-xl px-3 py-2 mb-3 text-xs font-bold flex items-center gap-2"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+                <span>⚠️</span>
+                <span>رصيدك أقل من سعر الورقة — اشحن محفظتك أولاً</span>
+              </div>
+            )}
+
             <button
               onClick={handleSubscribe}
-              disabled={selectedNums.length !== 6 || submitting}
+              disabled={selectedNums.length !== 6 || submitting || (balance !== null && balance < entryPrice)}
               className="btn-gold w-full py-3.5 font-black text-base"
-              style={{ opacity: (selectedNums.length !== 6 || submitting) ? 0.6 : 1 }}
+              style={{ opacity: (selectedNums.length !== 6 || submitting || (balance !== null && balance < entryPrice)) ? 0.6 : 1 }}
             >
               {submitting
                 ? "⏳ جاري الاشتراك…"
-                : selectedNums.length === 6
-                  ? `🎱 اشترك الآن — ${entryPrice} SKZ`
-                  : `اختر ${6 - selectedNums.length} أرقام أخرى`}
+                : balance !== null && balance < entryPrice
+                  ? "💸 رصيد غير كافٍ"
+                  : selectedNums.length === 6
+                    ? `🎱 اشترك الآن — ${entryPrice} SKZ`
+                    : `اختر ${6 - selectedNums.length} أرقام أخرى`}
             </button>
           </div>
         </>
