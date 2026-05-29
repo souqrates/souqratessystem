@@ -698,4 +698,42 @@ router.post("/games/withdraw", requireTelegramAuth, async (req: Request, res: Re
   await forwardPost(req, res, "/internal/withdraw", body);
 });
 
+/**
+ * GET /api/games/leaderboard
+ * Returns top 10 players by XP (today's winners shown first).
+ * Public within the games-bot (still requires Telegram auth).
+ */
+router.get("/games/leaderboard", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const top = await db
+      .select({
+        telegramId: usersTable.telegramId,
+        firstName:  usersTable.firstName,
+        username:   usersTable.username,
+        xp:         usersTable.xp,
+        level:      usersTable.level,
+        totalWins:  usersTable.totalGamesWon,
+        totalGames: usersTable.totalGamesPlayed,
+      })
+      .from(usersTable)
+      .orderBy(desc(usersTable.xp))
+      .limit(10);
+
+    res.json(top.map((u, i) => ({
+      rank:       i + 1,
+      telegramId: u.telegramId,
+      name:       u.firstName || u.username || `Player`,
+      username:   u.username,
+      xp:         u.xp,
+      level:      u.level,
+      totalWins:  u.totalWins,
+      totalGames: u.totalGames,
+      winRate:    u.totalGames > 0 ? Math.round((u.totalWins / u.totalGames) * 100) : 0,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "games: leaderboard fetch failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

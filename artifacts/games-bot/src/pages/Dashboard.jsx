@@ -1,92 +1,87 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Gamepad2, ArrowUpRight, ArrowDownLeft, ShieldCheck, Flame, Zap,
-  TrendingUp, User, Sparkles, ChevronRight, Pencil, Smartphone, Share2,
+  ArrowUpRight, ArrowDownLeft, ShieldCheck,
+  Zap, Share2, Pencil, Sparkles,
 } from 'lucide-react';
 import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
-import { isIOS } from '../lib/deviceProfile';
 import ProfileEditModal from '../components/ProfileEditModal';
 import ShareProfileCard from '../components/ShareProfileCard';
+import GameCarousel from '../components/GameCarousel';
+import TopPlayers from '../components/TopPlayers';
+import GameStats from '../components/GameStats';
 import { listLedger } from '../lib/payments';
-import { fetchGamification } from '../lib/gamification';
+import { fetchGamification, xpProgressToNext } from '../lib/gamification';
+import { rankFor } from '../lib/ranks';
 import { displayNameOf, avatarUrlOf, initialOf } from '../lib/profile';
 
 const container = { animate: {} };
 const item      = { initial: {}, animate: {} };
 
-const QUICK_MODES = [
-  { id: 'solo', labelKey: 'soloLabel', icon: User, hex: '#22d3ee', glow: 'rgba(34,211,238,0.35)', descKey: 'beatYourBest', comingSoon: false },
-];
-
 export default function Dashboard() {
-  const { user, wallet, language, appConfig, setCurrentPage, navigateToGames, refreshBalance, pwaInstallPrompt, setPwaInstallPrompt } = useAppStore();
-  const [editOpen,  setEditOpen]  = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [totalXp,   setTotalXp]   = useState(0);
-  const [totalGames, setTotalGames] = useState(0);
-  const [activity,  setActivity]  = useState([]);
-  const [gami,      setGami]      = useState(null);
+  const {
+    user, wallet, language, appConfig,
+    setCurrentPage, refreshBalance,
+    pwaInstallPrompt, setPwaInstallPrompt,
+  } = useAppStore();
+
+  const [editOpen,   setEditOpen]   = useState(false);
+  const [shareOpen,  setShareOpen]  = useState(false);
+  const [gami,       setGami]       = useState(null);
+  const [xpProgress, setXpProgress] = useState(null);
+  const [activity,   setActivity]   = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadMine() {
-      const gamiData = await fetchGamification();
-      if (!cancelled) {
-        setTotalXp(Number(gamiData?.xp || 0));
-        setTotalGames(Number(gamiData?.total_games || 0));
-        setGami(gamiData);
+    async function load() {
+      const g = await fetchGamification();
+      if (!cancelled && g) {
+        setGami(g);
+        setXpProgress(xpProgressToNext(g.xp || 0));
       }
     }
     async function loadActivity() {
       try {
-        const rows = await listLedger({ limit: 6 });
+        const rows = await listLedger({ limit: 4 });
         if (!cancelled && rows?.length) {
           setActivity(rows.map(r => {
             const isCredit = r.direction === 'credit';
             const amt = Number(r.amount_token || r.amount_usd || 0);
             return {
-              desc: r.description || r.category?.replace(/_/g, ' ') || 'Transaction',
+              desc:   r.description || r.category?.replace(/_/g, ' ') || 'Transaction',
               amount: `${isCredit ? '+' : '-'}${amt.toLocaleString()}`,
-              time: timeAgo(r.created_at),
-              pos: isCredit,
+              time:   timeAgo(r.created_at),
+              pos:    isCredit,
             };
           }));
         }
       } catch { /* ignore */ }
     }
-    loadMine();
+    load();
     loadActivity();
     return () => { cancelled = true; };
   }, [user?.telegram_id]);
 
-  const sym          = appConfig?.currency_symbol || 'SKZ';
-  const dashboardCta = (typeof appConfig?.dashboard_cta === 'string' && appConfig.dashboard_cta.trim())
-    ? appConfig.dashboard_cta.trim() : null;
+  const sym        = appConfig?.currency_symbol || 'SKZ';
+  const scBalance  = Number(wallet?.sc_balance) || 0;
+  const trialActive = !!wallet?.trial_active;
+  const totalXp    = Number(gami?.xp || 0);
+  const totalWins  = Number(gami?.total_wins  || 0);
+  const totalGames = Number(gami?.total_games || 0);
+  const winRate    = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
 
-  const soloEnabled  = appConfig?.solo_games_enabled  !== false;
-  const duoEnabled   = appConfig?.duo_games_enabled   !== false;
-  const quadEnabled  = appConfig?.quad_games_enabled  !== false;
-  const groupEnabled = appConfig?.group_games_enabled !== false;
-  const visibleModes = QUICK_MODES.filter(({ id }) => {
-    if (id === 'solo')  return soloEnabled;
-    if (id === 'pvp')   return duoEnabled;
-    if (id === 'quad')  return quadEnabled;
-    if (id === 'group') return groupEnabled;
-    return true;
-  });
-
-  const scBalance        = Number(wallet?.sc_balance) || 0;
-  const trialActive      = !!wallet?.trial_active;
-  const totalWins        = Number(gami?.total_wins  || 0);
-  const totalGamesPlayed = Number(gami?.total_games || totalGames || 0);
-  const winRate          = totalGamesPlayed > 0
-    ? Math.round((totalWins / totalGamesPlayed) * 100) : 0;
-
+  const rank     = rankFor(xpProgress?.level || 1);
   const initial  = initialOf(user);
   const avatar   = avatarUrlOf(user);
   const dispName = displayNameOf(user);
+
+  function onOpenGame(g, tiers) {
+    useAppStore.getState().setCurrentPage('games');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('open-game', { detail: { game: g, tiers } }));
+    }, 50);
+  }
 
   return (
     <motion.div
@@ -95,20 +90,16 @@ export default function Dashboard() {
       initial="initial"
       animate="animate"
     >
-      {/* HERO */}
+      {/* ── HERO CARD ─────────────────────────────────────────── */}
       <motion.div variants={item} className="glass-hero rounded-3xl p-5 relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(34,211,238,0.20)' }} />
+          style={{ background: 'rgba(34,211,238,0.18)' }} />
         <div className="absolute -bottom-16 -left-12 w-44 h-44 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(16,185,129,0.16)' }} />
+          style={{ background: 'rgba(167,139,250,0.12)' }} />
 
         {/* Profile row */}
         <div className="flex items-center gap-4 relative z-10">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="avatar-ring-wrap w-16 h-16 flex-shrink-0 relative group"
-            aria-label="Edit profile"
-          >
+          <button onClick={() => setEditOpen(true)} className="avatar-ring-wrap w-16 h-16 flex-shrink-0 relative group" aria-label="Edit profile">
             <div className="avatar-ring-inner overflow-hidden">
               {avatar
                 ? <img src={avatar} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
@@ -131,18 +122,11 @@ export default function Dashboard() {
             </p>
             <div className="flex items-center gap-1.5 mt-1.5">
               {trialActive ? (
-                <>
-                  <Sparkles size={10} style={{ color: '#fbbf24' }} />
-                  <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: '#fbbf24' }}>Free Trial Active</span>
-                </>
+                <><Sparkles size={10} style={{ color: '#fbbf24' }} /><span className="text-[9px] font-black tracking-widest uppercase" style={{ color: '#fbbf24' }}>Free Trial</span></>
               ) : (
-                <>
-                  <ShieldCheck size={10} style={{ color: '#10b981' }} />
-                  <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: '#10b981' }}>Pro Member</span>
-                </>
+                <><ShieldCheck size={10} style={{ color: '#10b981' }} /><span className="text-[9px] font-black tracking-widest uppercase" style={{ color: '#10b981' }}>Pro Member</span></>
               )}
               <span className="w-3 h-px" style={{ background: 'rgba(148,163,184,0.3)' }} />
-              {/* Static online dot — no animate-pulse to avoid iOS flicker */}
               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#34d399', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />
               <span className="text-[9px] font-semibold text-emerald-400">Online</span>
             </div>
@@ -151,11 +135,9 @@ export default function Dashboard() {
           <div className="flex-shrink-0 text-right">
             <div className="flex items-center justify-end gap-2 mb-1">
               <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Balance</p>
-              <button
-                onClick={() => setShareOpen(true)}
+              <button onClick={() => setShareOpen(true)}
                 className="w-6 h-6 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)' }}
-              >
+                style={{ background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.25)' }}>
                 <Share2 size={10} color="#22d3ee" />
               </button>
             </div>
@@ -168,9 +150,36 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mt-5 mb-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)' }} />
+        {/* Rank + XP progress */}
+        {xpProgress && (
+          <div className="mt-4 relative z-10">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider"
+                  style={{ background: `${rank?.hex}18`, border: `1px solid ${rank?.hex}40`, color: rank?.hex }}>
+                  LV {xpProgress.level} · {rank?.name}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold" style={{ color: 'rgba(148,163,184,0.6)' }}>
+                {xpProgress.inLevel.toLocaleString()} / {xpProgress.span.toLocaleString()} XP
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${xpProgress.pct}%` }}
+                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.5 }}
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${rank?.hex}99, ${rank?.hex})` }}
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Stats row — Win Rate / Total XP / Matches only */}
+        <div className="mt-4 mb-3 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.2), transparent)' }} />
+
+        {/* Stats row */}
         <div className="grid grid-cols-3 gap-2 relative z-10">
           <HeroStat label="Win Rate" value={`${winRate}%`}              color="#34d399" />
           <HeroStat label="Total XP"  value={totalXp.toLocaleString()}   color="#22d3ee" />
@@ -178,99 +187,30 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* PLAY NOW */}
-      <motion.button
-        variants={item}
-        onClick={() => setCurrentPage('games')}
-        className="w-full py-4 rounded-2xl btn-primary btn-sweep flex items-center justify-center gap-3"
-        whileTap={{ scale: 0.96 }}
-        style={{ boxShadow: '0 0 20px rgba(8,145,178,0.45)' }}
-      >
-        <Gamepad2 size={20} style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' }} />
-        <span className="text-sm tracking-[0.12em]">{dashboardCta || t(language, 'playNow')}</span>
-        <Flame size={16} className="text-amber-300" />
-      </motion.button>
-
-      {/* ADD TO HOMESCREEN */}
-      {pwaInstallPrompt && (
-        <motion.button
-          variants={item}
-          onClick={async () => {
-            try {
-              pwaInstallPrompt.prompt();
-              const result = await pwaInstallPrompt.userChoice;
-              if (result.outcome === 'accepted') setPwaInstallPrompt(null);
-            } catch { /* ignore */ }
-          }}
-          className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2.5"
-          style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)' }}
-          whileTap={{ scale: 0.96 }}
-        >
-          <Smartphone size={16} style={{ color: '#22d3ee' }} />
-          <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#22d3ee', fontFamily: 'Orbitron, sans-serif' }}>
-            {t(language, 'addToHomeScreen')}
-          </span>
-        </motion.button>
-      )}
-
-      {/* QUICK MODES */}
+      {/* ── GAME CAROUSEL ─────────────────────────────────────── */}
       <motion.div variants={item}>
-        <SectionTitle icon={Gamepad2} label={t(language, 'gameModes')} />
-        <div className="grid grid-cols-2 gap-2.5">
-          {visibleModes.map(({ id, labelKey, icon: Icon, hex, glow, descKey, comingSoon }) => (
-            comingSoon ? (
-              <div key={id} className="relative rounded-2xl p-3.5 text-left overflow-hidden"
-                style={{ background: 'rgba(15,23,42,0.35)', border: `1px solid ${hex}18`, opacity: 0.7, cursor: 'not-allowed' }}>
-                <div className="relative z-10 flex items-center gap-2.5 mb-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${hex}12`, border: `1px solid ${hex}25` }}>
-                    <Icon size={16} color={`${hex}80`} />
-                  </div>
-                  <p className="font-orbitron text-[13px] font-black tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                    {t(language, labelKey)}
-                  </p>
-                </div>
-                <p className="text-[10px] font-medium relative z-10" style={{ color: 'rgba(148,163,184,0.45)' }}>
-                  {t(language, descKey)}
-                </p>
-                <div className="mt-2.5 flex items-center justify-between relative z-10">
-                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: hex, opacity: 0.9 }}>Coming Soon</span>
-                </div>
-              </div>
-            ) : (
-              <motion.button
-                key={id}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => navigateToGames(id === 'pvp' ? 'duo' : id)}
-                className="relative rounded-2xl p-3.5 text-left overflow-hidden"
-                style={{ background: 'rgba(15,23,42,0.55)', border: `1px solid ${hex}30`, boxShadow: `0 10px 24px -16px ${glow}` }}
-              >
-                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl pointer-events-none"
-                  style={{ background: glow }} />
-                <div className="relative z-10 flex items-center gap-2.5 mb-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${hex}1f`, border: `1px solid ${hex}40` }}>
-                    <Icon size={16} color={hex} />
-                  </div>
-                  <p className="font-orbitron text-[13px] font-black tracking-wide text-white">{t(language, labelKey)}</p>
-                </div>
-                <p className="text-[10px] font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>{t(language, descKey)}</p>
-                <div className="mt-2.5 flex items-center justify-between relative z-10">
-                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: hex }}>
-                    {t(language, 'playNowShort')}
-                  </span>
-                  <ChevronRight size={12} color={hex} />
-                </div>
-              </motion.button>
-            )
-          ))}
-        </div>
+        <GameCarousel onOpenGame={onOpenGame} appConfig={appConfig} />
       </motion.div>
 
-      {/* RECENT ACTIVITY */}
+      {/* ── TOP PLAYERS ───────────────────────────────────────── */}
+      <motion.div variants={item}>
+        <TopPlayers currentTelegramId={user?.telegram_id || user?.id} />
+      </motion.div>
+
+      {/* ── GAME STATS ────────────────────────────────────────── */}
+      <motion.div variants={item}>
+        <GameStats gami={gami} onOpenGame={onOpenGame} />
+      </motion.div>
+
+      {/* ── RECENT ACTIVITY ───────────────────────────────────── */}
       {activity.length > 0 && (
         <motion.div variants={item}>
-          <SectionTitle icon={Zap} label={t(language, 'recentActivity')} />
+          <div className="flex items-center gap-2 mb-3">
+            <Zap size={11} style={{ color: '#22d3ee', filter: 'drop-shadow(0 0 6px rgba(34,211,238,0.8))' }} />
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.75)' }}>
+              {t(language, 'recentActivity')}
+            </p>
+          </div>
           <div className="glass-card rounded-2xl overflow-hidden">
             {activity.map((a, i) => (
               <div key={i}
@@ -282,9 +222,7 @@ export default function Dashboard() {
                   style={a.pos
                     ? { background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.18)' }
                     : { background: 'rgba(244,63,94,0.10)',  border: '1px solid rgba(244,63,94,0.18)' }}>
-                  {a.pos
-                    ? <ArrowDownLeft size={14} className="text-emerald-400" />
-                    : <ArrowUpRight  size={14} className="text-rose-400" />}
+                  {a.pos ? <ArrowDownLeft size={14} className="text-emerald-400" /> : <ArrowUpRight size={14} className="text-rose-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{a.desc}</p>
@@ -318,17 +256,6 @@ function HeroStat({ label, value, color }) {
       style={{ background: `${color}10`, border: `1px solid ${color}30` }}>
       <p className="font-orbitron text-base font-black leading-none" style={{ color }}>{value}</p>
       <p className="text-[9px] font-bold uppercase tracking-widest mt-1.5" style={{ color: 'rgba(148,163,184,0.7)' }}>
-        {label}
-      </p>
-    </div>
-  );
-}
-
-function SectionTitle({ icon: Icon, label }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <Icon size={11} style={{ color: '#22d3ee', filter: 'drop-shadow(0 0 6px rgba(34,211,238,0.8))' }} />
-      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.75)' }}>
         {label}
       </p>
     </div>
