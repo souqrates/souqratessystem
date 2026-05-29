@@ -1,0 +1,33 @@
+Updating 5afa989..17dbc27
+Fast-forward
+ .../vite.config.ts        | 23 +-----
+ .../vite.config.ts        | 23 +-----
+ .../vite.config.ts        | 23 +-----
+ .../vite.config.ts        | 23 +-----
+ .../vite.config.ts        | 23 +-----
+ 5 files changed, 10 insertions(+), 105 deletions(-)
+
+> @workspace/bot-demo@0.0.0 build /opt/souqrates/repo/artifacts/bot-demo
+> vite build --config vite.config.ts
+
+vite v7.3.3 building client environment for production...
+✓ 2 modules transformed.
+✗ Build failed in 335ms
+error during build:
+[vite]: Rollup failed to resolve import "@fontsource-variable/inter" from "/opt/souqrates/repo/artifacts/bot-demo/src/main.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///opt/souqrates/repo/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33655:57)
+    at file:///opt/souqrates/repo/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33689:73
+    at onwarn (file:///opt/souqrates/repo/node_modules/.pnpm/@vitejs+plugin-react@5.2.0_vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4_/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///opt/souqrates/repo/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33689:28
+    at onRollupLog (file:///opt/souqrates/repo/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33684:63)
+    at onLog (file:///opt/souqrates/repo/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33487:4)
+    at file:///opt/souqrates/repo/node_modules/.pnpm/rollup@4.60.3/node_modules/rollup/dist/es/shared/node-entry.js:21389:32
+    at Object.logger [as onLog] (file:///opt/souqrates/repo/node_modules/.pnpm/rollup@4.60.3/node_modules/rollup/dist/es/shared/node-entry.js:23384:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///opt/souqrates/repo/node_modules/.pnpm/rollup@4.60.3/node_modules/rollup/dist/es/shared/node-entry.js:22128:26)
+    at file:///opt/souqrates/repo/node_modules/.pnpm/rollup@4.60.3/node_modules/rollup/dist/es/shared/node-entry.js:22086:26
+/opt/souqrates/repo/artifacts/bot-demo:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/bot-demo@0.0.0 build: `vite build --config vite.config.ts`
+Exit status 1
