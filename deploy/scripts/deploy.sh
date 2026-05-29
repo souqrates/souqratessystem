@@ -88,11 +88,19 @@ for f in sweep-bot; do
   fi
 done
 
-log "Refresh Python deps if requirements.txt changed"
+log "Ensure Python venvs exist + refresh deps if requirements.txt changed"
 for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
-  if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
+  venv="${VENVS_DIR}/${bot}"
+  req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
+  if [[ ! -f "$req" ]]; then echo "  skip ${bot}: no requirements.txt"; continue; fi
+  if [[ ! -d "$venv" ]]; then
+    echo "  creating venv for ${bot} (first deploy)"
+    sudo -u "${APP_USER}" python3.12 -m venv "$venv"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet --upgrade pip
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
+  elif echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
     echo "  reinstalling ${bot} deps"
-    sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
   fi
 done
 
@@ -117,7 +125,7 @@ systemctl restart \
   souqrates-sweep-bot.service
 
 log "Health check"
-sleep 3
+sleep 8
 curl -sfS http://127.0.0.1:8080/api/healthz && echo "  api ok"
 for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot 8105:sweep-bot; do
   port="${p%:*}"; slug="${p#*:}"
