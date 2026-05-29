@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { getMyLottoEntries, ApiError } from "../lib/api";
 
 interface PastDraw {
   id: number;
@@ -219,26 +220,49 @@ function MiniStat({ label, value, unit, color }: { label: string; value: string;
   );
 }
 
-export default function DrawHistory() {
+interface Props {
+  initData: string;
+}
+
+export default function DrawHistory({ initData }: Props) {
   const [draws, setDraws] = useState<PastDraw[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [myEntries] = useState<MyEntry[]>([]);
+  const [myEntries, setMyEntries] = useState<MyEntry[]>([]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/sweep/draws/history?limit=30");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json() as { data: PastDraw[] };
-      setDraws(json.data ?? []);
+      const [drawsRes, entriesRes] = await Promise.allSettled([
+        fetch("/api/sweep/draws/history?limit=30").then(async (r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json() as Promise<{ data: PastDraw[] }>;
+        }),
+        getMyLottoEntries(initData),
+      ]);
+
+      if (drawsRes.status === "fulfilled") {
+        setDraws(drawsRes.value.data ?? []);
+      } else {
+        throw new Error("draws");
+      }
+
+      if (entriesRes.status === "fulfilled") {
+        const mapped: MyEntry[] = entriesRes.value.data
+          .filter((e) => e.drawNumber != null)
+          .map((e) => ({
+            numbers: e.entry.chosenNumbers,
+            drawNumber: e.drawNumber as number,
+          }));
+        setMyEntries(mapped);
+      }
     } catch (e) {
       setError("تعذّر تحميل سجل السحبات");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [initData]);
 
   useEffect(() => { load(); }, [load]);
 
