@@ -40,7 +40,17 @@ else
   echo "  ⚠  $GAMES_BOT_ENV not found — games-bot ranks/XP will be disabled"
 fi
 
+log "Fix node_modules ownership (prevent EACCES on pnpm install)"
+chown -R "${APP_USER}:${APP_USER}" "${REPO_DIR}/node_modules" 2>/dev/null || true
+chown -R "${APP_USER}:${APP_USER}" "${REPO_DIR}" 2>/dev/null || true
+
 log "pnpm install + typecheck + build"
+sudo -u "${APP_USER}" -H bash -lc "
+  set -euo pipefail
+  cd '${REPO_DIR}'
+  # Remove stale pnpm lock file that can block install
+  rm -f node_modules/.pnpm/lock.yaml 2>/dev/null || true
+"
 sudo -u "${APP_USER}" -H bash -lc "
   set -euo pipefail
   cd '${REPO_DIR}'
