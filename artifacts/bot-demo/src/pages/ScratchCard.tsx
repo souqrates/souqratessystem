@@ -2,8 +2,10 @@ import { useState, useCallback } from "react";
 import { GameConfig } from "../lib/games";
 import ScratchCanvas from "../components/ScratchCanvas";
 import FairVerifier from "../components/FairVerifier";
-import { generateTicket, TicketResult } from "../lib/provablyFair";
+import { TicketResult } from "../lib/provablyFair";
+import { buyTicket, ApiError } from "../lib/api";
 import { haptic } from "../lib/telegram";
+import { generateSeed } from "../lib/provablyFair";
 
 interface Props {
   game: GameConfig;
@@ -30,24 +32,40 @@ function ConfettiPiece({ color, left, delay }: { color: string; left: string; de
 
 const CONFETTI_COLORS = ["#f59e0b", "#8b5cf6", "#10b981", "#ef4444", "#3b82f6", "#ec4899"];
 
-export default function ScratchCard({ game, initData: _initData, onClose }: Props) {
+export default function ScratchCard({ game, initData, onClose }: Props) {
   const [qty, setQty] = useState(1);
   const [phase, setPhase] = useState<Phase>("select");
   const [ticket, setTicket] = useState<TicketResult | null>(null);
   const [showFair, setShowFair] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleBuy = useCallback(async () => {
     setPhase("buying");
+    setError(null);
     haptic("medium");
     try {
-      const t = await generateTicket(game.id, game.symbols, game.gridSize, game.price, qty);
-      setTicket(t);
+      const clientSeed = generateSeed();
+      const resp = await buyTicket(initData, game.id, clientSeed, qty);
+
+      const result: TicketResult = {
+        serverSeedHash: resp.serverSeedHash,
+        serverSeed: resp.serverSeed,
+        clientSeed: resp.clientSeed,
+        nonce: resp.nonce,
+        outcome: resp.outcome,
+        isWinner: resp.isWinner,
+        prize: resp.prizeSkz,
+      };
+
+      setTicket(result);
       setPhase("scratch");
-    } catch {
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "حدث خطأ — حاول مجدداً";
+      setError(msg);
       setPhase("select");
     }
-  }, [game, qty]);
+  }, [game, qty, initData]);
 
   const handleComplete = useCallback((pct: number) => {
     if (pct > 90 && ticket && phase === "scratch") {
@@ -143,6 +161,14 @@ export default function ScratchCard({ game, initData: _initData, onClose }: Prop
               </div>
             </div>
 
+            {/* Error */}
+            {error && (
+              <div className="rounded-2xl px-4 py-3 mb-4 text-sm font-bold text-center"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+                ⚠️ {error}
+              </div>
+            )}
+
             <button onClick={handleBuy} className="btn-gold w-full py-4 font-black text-lg mb-2">
               💳 اشترِ {qty > 1 ? `${qty} أوراق` : "ورقة"} وابدأ الحك
             </button>
@@ -235,7 +261,7 @@ export default function ScratchCard({ game, initData: _initData, onClose }: Prop
             </button>
 
             <button
-              onClick={() => { setPhase("select"); setTicket(null); }}
+              onClick={() => { setPhase("select"); setTicket(null); setError(null); }}
               className="btn-gold w-full py-3.5 font-black text-base"
             >
               🎰 العب مجدداً
@@ -250,7 +276,7 @@ export default function ScratchCard({ game, initData: _initData, onClose }: Prop
           {Array.from({ length: 24 }).map((_, i) => (
             <ConfettiPiece
               key={i}
-              color={CONFETTI_COLORS[i % CONFETTI_COLORS.length]}
+              color={CONFETTI_COLORS[i % CONFETTI_COLORS.length]!}
               left={`${(Math.random() * 100).toFixed(1)}%`}
               delay={`${(Math.random() * 0.6).toFixed(2)}s`}
             />

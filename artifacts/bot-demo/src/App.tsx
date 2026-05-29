@@ -101,7 +101,7 @@ function SweepApp({ initData }: { initData: string }) {
         {page === "home" && <Home onNavigate={setPage} />}
         {page === "games" && <Games onSelectGame={openGame} />}
         {page === "lotto" && <Lotto initData={initData} />}
-        {page === "tickets" && <MyTickets onSelectGame={openGame} />}
+        {page === "tickets" && <MyTickets initData={initData} onSelectGame={openGame} />}
       </div>
       <BottomNav current={page} onChange={setPage} />
     </div>

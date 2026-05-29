@@ -19,53 +19,32 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [[ports]]
-localPort = 5173
-externalPort = 5173
-exposeLocalhost = true
-
-[[ports]]
 localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
 externalPort = 80
 
 [[ports]]
-localPort = 8082
-externalPort = 3003
-
-[[ports]]
 localPort = 18555
-externalPort = 8000
-
-[[ports]]
-localPort = 19460
 externalPort = 4200
 
 [[ports]]
-localPort = 21905
-externalPort = 3001
-
-[[ports]]
-localPort = 21906
+localPort = 19460
 externalPort = 3002
 
 [[ports]]
-localPort = 21907
-externalPort = 5000
-
-[[ports]]
-localPort = 22133
+localPort = 21905
 externalPort = 3000
 
 [[ports]]
+localPort = 21906
+externalPort = 5000
+
+[[ports]]
 localPort = 23482
-externalPort = 6800
+externalPort = 3001
 
 [[ports]]
 localPort = 23758
-externalPort = 6000
+externalPort = 3003
 
 [nix]
 channel = "stable-25_05"

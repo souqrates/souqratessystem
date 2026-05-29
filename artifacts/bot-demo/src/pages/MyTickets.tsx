@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GAMES, GameConfig } from "../lib/games";
-import { generateTicket, TicketResult } from "../lib/provablyFair";
+import { TicketResult } from "../lib/provablyFair";
 import FairVerifier from "../components/FairVerifier";
+import { getMyTickets, ApiError, type SweepTicketRow } from "../lib/api";
 
 interface Props {
+  initData: string;
   onSelectGame: (game: GameConfig) => void;
 }
 
@@ -14,45 +16,79 @@ interface HistoryTicket {
   timestamp: string;
 }
 
-export default function MyTickets({ onSelectGame }: Props) {
+const FALLBACK_GAME: GameConfig = {
+  id: "unknown",
+  emoji: "🎰",
+  nameAr: "لعبة",
+  theme: "—",
+  mechanic: "—",
+  price: 0,
+  maxPrize: 0,
+  gradientFrom: "#1e1b4b",
+  gradientTo: "#3730a3",
+  accentColor: "#8b5cf6",
+  gridSize: 6,
+  symbols: ["🎰"],
+};
+
+function mapRow(row: SweepTicketRow): HistoryTicket {
+  const game = GAMES.find((g) => g.id === row.gameSlug) ?? {
+    ...FALLBACK_GAME,
+    id: row.gameSlug ?? "unknown",
+    emoji: row.gameEmoji ?? "🎰",
+    nameAr: row.gameNameAr ?? row.gameName ?? "لعبة",
+  };
+
+  const resultJson = row.ticket.result ?? {};
+  const outcome: string[] = Array.isArray(resultJson.outcome)
+    ? (resultJson.outcome as string[])
+    : [];
+
+  const ticketResult: TicketResult = {
+    serverSeedHash: row.ticket.serverSeedHash,
+    serverSeed: row.ticket.serverSeed,
+    clientSeed: row.ticket.clientSeed,
+    nonce: 0,
+    outcome,
+    isWinner: row.ticket.isWin,
+    prize: parseFloat(row.ticket.prizeSkz),
+  };
+
+  return {
+    id: row.ticket.id,
+    game,
+    result: ticketResult,
+    timestamp: new Date(row.ticket.createdAt).toLocaleString("ar-EG"),
+  };
+}
+
+export default function MyTickets({ initData, onSelectGame }: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [tickets, setTickets] = useState<HistoryTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [fairTicket, setFairTicket] = useState<{ result: TicketResult; game: GameConfig } | null>(null);
 
-  // Generate demo tickets with real Provably Fair data on mount
-  useEffect(() => {
-    let cancelled = false;
-    async function generate() {
-      const now = Date.now();
-      const demos: HistoryTicket[] = [];
-      for (let i = 0; i < 8; i++) {
-        const game = GAMES[i % GAMES.length];
-        const result = await generateTicket(game.id, game.symbols, game.gridSize, game.price);
-        // Force some wins for demo purposes
-        if (i % 3 === 0) {
-          result.isWinner = true;
-          result.prize = game.price * 3;
-        }
-        demos.push({
-          id: now - i * 3_600_000,
-          game,
-          result,
-          timestamp: new Date(now - i * 3_600_000).toLocaleString("ar-EG"),
-        });
-      }
-      if (!cancelled) {
-        setTickets(demos);
-        setLoading(false);
-      }
+  const loadTickets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await getMyTickets(initData, 30);
+      setTickets(resp.data.map(mapRow));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "خطأ في تحميل التذاكر");
+    } finally {
+      setLoading(false);
     }
-    generate();
-    return () => { cancelled = true; };
-  }, []);
+  }, [initData]);
+
+  useEffect(() => { loadTickets(); }, [loadTickets]);
 
   const filtered = filter === "all" ? tickets : tickets.filter((t) => t.game.id === filter);
   const wins = tickets.filter((t) => t.result.isWinner).length;
   const totalPrize = tickets.filter((t) => t.result.isWinner).reduce((s, t) => s + t.result.prize, 0);
+
+  const uniqueGameIds = Array.from(new Set(tickets.map((t) => t.game.id)));
 
   return (
     <div className="px-4 pt-6 fade-up">
@@ -71,7 +107,18 @@ export default function MyTickets({ onSelectGame }: Props) {
         </div>
       )}
 
-      {!loading && (
+      {/* Error */}
+      {!loading && error && (
+        <div className="rounded-2xl px-4 py-3 mb-4 text-center"
+          style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+          <div className="font-bold text-sm mb-1">⚠️ {error}</div>
+          <button onClick={loadTickets} className="text-xs underline" style={{ color: "#ef4444" }}>
+            أعد المحاولة
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
         <>
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 mb-5">
@@ -81,20 +128,32 @@ export default function MyTickets({ onSelectGame }: Props) {
           </div>
 
           {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
-            <FilterChip id="all" label="الكل" active={filter === "all"} onClick={() => setFilter("all")} />
-            {GAMES.slice(0, 5).map((g) => (
-              <FilterChip key={g.id} id={g.id} label={`${g.emoji} ${g.nameAr}`}
-                active={filter === g.id} onClick={() => setFilter(g.id)} />
-            ))}
-          </div>
+          {tickets.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+              <FilterChip id="all" label="الكل" active={filter === "all"} onClick={() => setFilter("all")} />
+              {uniqueGameIds.map((id) => {
+                const g = GAMES.find((g) => g.id === id);
+                return (
+                  <FilterChip key={id} id={id}
+                    label={g ? `${g.emoji} ${g.nameAr}` : id}
+                    active={filter === id}
+                    onClick={() => setFilter(id)} />
+                );
+              })}
+            </div>
+          )}
 
-          {/* Ticket list */}
-          {filtered.length === 0 ? (
+          {/* Empty state */}
+          {filtered.length === 0 && tickets.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-5xl mb-3">🎫</div>
-              <div className="font-bold text-sm text-white mb-1">لا توجد تذاكر</div>
+              <div className="font-bold text-sm text-white mb-1">لا توجد تذاكر بعد</div>
               <div className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>العب لعبة لتظهر هنا</div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-3xl mb-2">🔍</div>
+              <div className="text-sm text-white">لا توجد تذاكر بهذا الفلتر</div>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -200,20 +259,22 @@ function TicketRow({
       </div>
 
       {/* Symbols */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {result.outcome.slice(0, 6).map((sym, i) => (
-          <span key={i} className="text-lg w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            {sym}
-          </span>
-        ))}
-        {result.outcome.length > 6 && (
-          <span className="text-xs px-2 py-1 rounded-lg"
-            style={{ color: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.03)" }}>
-            +{result.outcome.length - 6}
-          </span>
-        )}
-      </div>
+      {result.outcome.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {result.outcome.slice(0, 6).map((sym, i) => (
+            <span key={i} className="text-lg w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              {sym}
+            </span>
+          ))}
+          {result.outcome.length > 6 && (
+            <span className="text-xs px-2 py-1 rounded-lg"
+              style={{ color: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.03)" }}>
+              +{result.outcome.length - 6}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Prize */}
       {result.isWinner && (
