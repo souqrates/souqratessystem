@@ -23,6 +23,7 @@ export const walletsTable = pgTable("wallets", {
   totalWithdrawnSkz: numeric("total_withdrawn_skz", { precision: 18, scale: 2 }).notNull().default("0"),
   totalEarned: numeric("total_earned", { precision: 18, scale: 6 }).notNull().default("0"),
   totalWithdrawn: numeric("total_withdrawn", { precision: 18, scale: 6 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
   // Top-balance leaderboards / admin filters benefit from a btree on balance.
