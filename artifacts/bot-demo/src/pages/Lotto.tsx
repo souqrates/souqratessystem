@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import LottoPicker from "../components/LottoPicker";
 import { getLottoCurrent, enterLotto, getMyLottoEntries, ApiError, type LottoEntry } from "../lib/api";
+import { haptic } from "../lib/telegram";
 
 interface Props {
   initData: string;
@@ -50,15 +51,18 @@ export default function Lotto({ initData }: Props) {
     if (selectedNums.length !== 6 || submitting) return;
     setSubmitting(true);
     setError(null);
+    haptic("medium");
     try {
       await enterLotto(initData, [...selectedNums].sort((a, b) => a - b));
       setSelectedNums([]);
       setShowSuccess(true);
+      haptic("success");
       setTimeout(() => setShowSuccess(false), 3000);
       const myEntries = await getMyLottoEntries(initData);
       setEntries(myEntries.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "حدث خطأ — حاول مجدداً");
+      haptic("error");
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +125,9 @@ export default function Lotto({ initData }: Props) {
           <span className="text-2xl">✅</span>
           <div>
             <div className="font-bold text-sm" style={{ color: "#10b981" }}>تم الاشتراك بنجاح!</div>
-            <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>أرقامك مسجلة في السحب الأسبوعي</div>
+            <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
+              خُصم {entryPrice} SKZ · أرقامك مسجلة في السحب الأسبوعي
+            </div>
           </div>
         </div>
       )}
@@ -175,7 +181,11 @@ export default function Lotto({ initData }: Props) {
               className="btn-gold w-full py-3.5 font-black text-base"
               style={{ opacity: (selectedNums.length !== 6 || submitting) ? 0.6 : 1 }}
             >
-              {submitting ? "⏳ جاري الاشتراك…" : selectedNums.length === 6 ? "🎱 اشترك الآن" : `اختر ${6 - selectedNums.length} أرقام أخرى`}
+              {submitting
+                ? "⏳ جاري الاشتراك…"
+                : selectedNums.length === 6
+                  ? `🎱 اشترك الآن — ${entryPrice} SKZ`
+                  : `اختر ${6 - selectedNums.length} أرقام أخرى`}
             </button>
           </div>
         </>
@@ -184,7 +194,7 @@ export default function Lotto({ initData }: Props) {
       {/* My entries */}
       {entries.length > 0 && (
         <div className="mt-5">
-          <div className="section-label mb-3">اشتراكاتي</div>
+          <div className="section-label mb-3">اشتراكاتي ({entries.length})</div>
           <div className="flex flex-col gap-2">
             {entries.map((e) => (
               <EntryRow key={e.entry.id} entry={e} />
