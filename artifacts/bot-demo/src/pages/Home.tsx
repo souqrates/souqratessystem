@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Page } from "../App";
 import JackpotTrophy from "../components/JackpotTrophy";
 
@@ -6,17 +6,68 @@ interface Props {
   onNavigate: (p: Page) => void;
 }
 
-const JACKPOT_BASE = 128450;
-const DRAW_DAY = 6; // Saturday
+interface JackpotData {
+  jackpotBalanceSkz: number;
+  nextDrawAt: string | null;
+  totalEntries: number;
+  drawNumber: number | null;
+}
 
-function getNextDraw(): Date {
+const FALLBACK_JACKPOT = 0;
+const POLL_INTERVAL_MS = 30_000;
+
+// ── CountUp hook ─────────────────────────────────────────────────────────────
+// Smoothly animates a number from its previous value to the new target.
+function useCountUp(target: number, durationMs = 1200): number {
+  const [displayed, setDisplayed] = useState(target);
+  const fromRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(Math.round(from + (target - from) * eased));
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = target;
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, durationMs]);
+
+  return displayed;
+}
+
+// ── Jackpot API fetcher ───────────────────────────────────────────────────────
+async function fetchJackpot(): Promise<JackpotData> {
+  const res = await fetch("/api/sweep/jackpot");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<JackpotData>;
+}
+
+// ── Countdown hook ────────────────────────────────────────────────────────────
+function getNextSaturday(): Date {
   const now = new Date();
-  const next = new Date(now);
+  const sat = new Date(now);
   const dayOfWeek = now.getDay();
-  const daysUntilSat = (DRAW_DAY - dayOfWeek + 7) % 7 || 7;
-  next.setDate(now.getDate() + daysUntilSat);
-  next.setHours(20, 0, 0, 0);
-  return next;
+  const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
+  sat.setDate(now.getDate() + daysUntilSat);
+  sat.setHours(20, 0, 0, 0);
+  return sat;
 }
 
 function useCountdown(target: Date) {
@@ -45,16 +96,43 @@ function CountdownBox({ val, label }: { val: number; label: string }) {
 }
 
 export default function Home({ onNavigate }: Props) {
-  const [jackpot, setJackpot] = useState(JACKPOT_BASE);
-  const target = getNextDraw();
-  const { days, hours, mins, secs } = useCountdown(target);
+  const [jackpotData, setJackpotData] = useState<JackpotData | null>(null);
+  const [fetchError, setFetchError] = useState(false);
 
-  // Simulate jackpot growing
+  // Raw target from API (or fallback)
+  const rawJackpot = jackpotData?.jackpotBalanceSkz ?? FALLBACK_JACKPOT;
+  // Animated display value
+  const jackpot = useCountUp(rawJackpot);
+
+  // Draw target: prefer API value, fall back to next Saturday
+  const drawTarget = jackpotData?.nextDrawAt
+    ? new Date(jackpotData.nextDrawAt)
+    : getNextSaturday();
+
+  const { days, hours, mins, secs } = useCountdown(drawTarget);
+
+  // Initial fetch + poll every 30 s
   useEffect(() => {
-    const id = setInterval(() => {
-      setJackpot((j) => j + Math.floor(Math.random() * 3));
-    }, 4000);
-    return () => clearInterval(id);
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const data = await fetchJackpot();
+        if (!cancelled) {
+          setJackpotData(data);
+          setFetchError(false);
+        }
+      } catch {
+        if (!cancelled) setFetchError(true);
+      }
+    }
+
+    load();
+    const id = setInterval(load, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   return (
@@ -94,6 +172,20 @@ export default function Home({ onNavigate }: Props) {
             {jackpot.toLocaleString("ar-EG")}
           </div>
           <div className="text-sm font-bold" style={{ color: "rgba(245,158,11,0.7)" }}>SKZ</div>
+
+          {/* Live participant count */}
+          {jackpotData && jackpotData.totalEntries > 0 && (
+            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+              {jackpotData.totalEntries.toLocaleString("ar-EG")} مشترك في السحب الحالي
+            </div>
+          )}
+
+          {/* Soft error hint — keeps last known value visible */}
+          {fetchError && (
+            <div className="mt-1 text-xs" style={{ color: "rgba(245,158,11,0.4)" }}>
+              ⚠️ تعذّر تحديث المبلغ
+            </div>
+          )}
         </div>
 
         {/* Countdown */}

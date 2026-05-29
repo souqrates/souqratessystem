@@ -91,6 +91,50 @@ async function ensureJackpotPool(): Promise<typeof sweepJackpotPoolTable.$inferS
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// PUBLIC ROUTES — no auth required
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── GET /sweep/jackpot ────────────────────────────────────────────────────────
+// Returns the live jackpot amount + next draw time. Called by the Mini App
+// every 30 s so users see the growing pot in real time. No auth required.
+router.get("/sweep/jackpot", async (_req, res): Promise<void> => {
+  const [pool, openDraw] = await Promise.all([
+    ensureJackpotPool(),
+    db
+      .select({
+        closesAt: sweepLottoDrawsTable.closesAt,
+        totalEntries: sweepLottoDrawsTable.totalEntries,
+        drawNumber: sweepLottoDrawsTable.drawNumber,
+      })
+      .from(sweepLottoDrawsTable)
+      .where(eq(sweepLottoDrawsTable.status, "open"))
+      .orderBy(desc(sweepLottoDrawsTable.drawNumber))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+
+  // If the draw has an explicit closesAt, surface it; otherwise compute the
+  // upcoming Saturday at 20:00 (local server time) as the default countdown target.
+  let nextDrawAt: string | null = openDraw?.closesAt?.toISOString() ?? null;
+  if (!nextDrawAt) {
+    const now = new Date();
+    const sat = new Date(now);
+    const dayOfWeek = now.getDay(); // 0 = Sun, 6 = Sat
+    const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
+    sat.setDate(now.getDate() + daysUntilSat);
+    sat.setHours(20, 0, 0, 0);
+    nextDrawAt = sat.toISOString();
+  }
+
+  res.json({
+    jackpotBalanceSkz: parseFloat(pool.balanceSkz),
+    nextDrawAt,
+    totalEntries: openDraw?.totalEntries ?? 0,
+    drawNumber: openDraw?.drawNumber ?? null,
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // INTERNAL ROUTES
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -376,6 +420,9 @@ router.post("/internal/sweep/lotto/enter", perUserCreateLimiter, async (req, res
   if (!draw) { res.status(400).json({ error: "لا يوجد سحب مفتوح حالياً" }); return; }
 
   const entryPrice = 5; // SKZ per lotto entry
+  // Each lotto ticket feeds 100% of its price into the jackpot pool so the
+  // displayed jackpot grows by exactly entryPrice per subscription.
+  const jackpotContrib = entryPrice;
 
   try {
     const entry = await db.transaction(async (tx) => {
@@ -410,6 +457,19 @@ router.post("/internal/sweep/lotto/enter", perUserCreateLimiter, async (req, res
         .update(sweepLottoDrawsTable)
         .set({ totalEntries: sql`${sweepLottoDrawsTable.totalEntries} + 1` })
         .where(eq(sweepLottoDrawsTable.id, draw.id));
+
+      // Grow the jackpot pool — atomic upsert so GET /sweep/jackpot reflects
+      // the real progressive total immediately after each subscription.
+      await tx
+        .insert(sweepJackpotPoolTable)
+        .values({ id: 1, balanceSkz: String(jackpotContrib), totalContributedSkz: String(jackpotContrib) })
+        .onConflictDoUpdate({
+          target: sweepJackpotPoolTable.id,
+          set: {
+            balanceSkz: sql`${sweepJackpotPoolTable.balanceSkz} + ${jackpotContrib}`,
+            totalContributedSkz: sql`${sweepJackpotPoolTable.totalContributedSkz} + ${jackpotContrib}`,
+          },
+        });
 
       const [entry] = await tx.insert(sweepLottoEntriesTable).values({
         drawId: draw.id,
