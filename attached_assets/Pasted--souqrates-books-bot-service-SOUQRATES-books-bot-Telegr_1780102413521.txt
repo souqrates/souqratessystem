@@ -1,0 +1,43 @@
+● souqrates-books-bot.service - SOUQRATES books-bot (Telegram, webhook on :8102)
+     Loaded: loaded (/etc/systemd/system/souqrates-books-bot.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-05-29 16:50:25 CEST; 1min 53s ago
+     CGroup: /system.slice/souqrates-books-bot.service
+May 29 16:50:46 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 7 default commands to BotFather menu
+May 29 16:50:46 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 7 commands for language=ar
+May 29 16:50:46 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 7 commands for language=en
+May 29 16:50:46 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 6 commands for language=ru
+May 29 16:50:46 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 6 commands for language=es
+May 29 16:50:47 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 6 commands for language=fr
+May 29 16:50:47 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 6 commands for language=tr
+May 29 16:50:47 vmi3329645 souqrates-books-bot[196590]: INFO:books-bot:published 6 commands for language=fa
+May 29 16:50:47 vmi3329645 souqrates-books-bot[196590]: INFO:webhook_runtime:books-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/books-bot
+May 29 16:50:47 vmi3329645 souqrates-books-bot[196590]: INFO:webhook_runtime:books-bot: webhook server listening on 127.0.0.1:8102/telegram-webhook/books-bot
+● souqrates-contests-bot.service - SOUQRATES contests-bot (Telegram, webhook on :8103)
+     Loaded: loaded (/etc/systemd/system/souqrates-contests-bot.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-05-29 16:50:25 CEST; 1min 53s ago
+     CGroup: /system.slice/souqrates-contests-bot.service
+May 29 16:50:25 vmi3329645 systemd[1]: Started souqrates-contests-bot.service - SOUQRATES contests-bot (Telegram, webhook on :8103).
+May 29 16:50:29 vmi3329645 souqrates-contests-bot[196593]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 29 16:50:46 vmi3329645 souqrates-contests-bot[196593]: 2026-05-29 16:50:46,340 [INFO] published 8 default commands
+May 29 16:50:46 vmi3329645 souqrates-contests-bot[196593]: 2026-05-29 16:50:46,512 [INFO] menu button → web app: https://souqrates.com/contests-bot-web/
+May 29 16:50:46 vmi3329645 souqrates-contests-bot[196593]: 2026-05-29 16:50:46,773 [INFO] contests-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/contests-bot
+May 29 16:50:46 vmi3329645 souqrates-contests-bot[196593]: 2026-05-29 16:50:46,776 [INFO] contests-bot: webhook server listening on 127.0.0.1:8103/telegram-webhook/contests-bot
+● souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104)
+     Loaded: loaded (/etc/systemd/system/souqrates-subagents-bot.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-05-29 16:50:26 CEST; 1min 53s ago
+     CGroup: /system.slice/souqrates-subagents-bot.service
+May 29 16:50:26 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 29 16:50:29 vmi3329645 souqrates-subagents-bot[196595]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 29 16:50:45 vmi3329645 souqrates-subagents-bot[196595]: 2026-05-29 16:50:45,765 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 29 16:50:45 vmi3329645 souqrates-subagents-bot[196595]: 2026-05-29 16:50:45,772 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+root@vmi3329645:~# curl -s http://127.0.0.1:8080/api/healthz
+{"status":"ok"}root@vmi3329645:~# systemctl status souqrates-mother-bot souqrates-books-bot souqrates-contests-bot souqrates-subagents-bot --no-pager | grep -E "Active:|●"
+● souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101)
+     Active: active (running) since Fri 2026-05-29 16:50:25 CEST; 3min 14s ago
+● souqrates-books-bot.service - SOUQRATES books-bot (Telegram, webhook on :8102)
+     Active: active (running) since Fri 2026-05-29 16:50:25 CEST; 3min 14s ago
+● souqrates-contests-bot.service - SOUQRATES contests-bot (Telegram, webhook on :8103)
+     Active: active (running) since Fri 2026-05-29 16:50:25 CEST; 3min 14s ago
+● souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104)
+     Active: active (running) since Fri 2026-05-29 16:50:26 CEST; 3min 14s ago
+root@vmi3329645:~# 
