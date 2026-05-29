@@ -4,8 +4,8 @@ import { useWallet, getTelegramId } from "../lib/use-wallet";
 import { Users, Copy, Share2, Check, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBox } from "../components/icons";
-import { useT, useLang } from "../lib/i18n";
-import { showTelegramAlert } from "../lib/telegram";
+import { useT } from "../lib/i18n";
+import { toast } from "sonner";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } };
 const fadeUp = {
@@ -21,22 +21,22 @@ const TIERS_CONFIG = [
 
 export function Referral() {
   const t = useT();
-  const [lang] = useLang();
   const [copied, setCopied] = useState(false);
   const { settings } = usePlatformSettings();
   const { user } = useWallet();
 
   const telegramId = getTelegramId();
-  const botUsername = "MotherSkzBot";
+
+  const refCode = telegramId ? `souqrates${telegramId}` : "souqrates";
   const refLink = telegramId
-    ? `t.me/${botUsername}?start=ref_${telegramId}`
-    : `t.me/${botUsername}`;
+    ? `t.me/SouqratesBot?start=${refCode}`
+    : `t.me/SouqratesBot`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(refLink).catch(() => {});
+    navigator.clipboard.writeText(`https://${refLink}`).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
-    showTelegramAlert(t("referral.copied"));
+    toast.success(t("referral.copied"), { duration: 2000 });
   };
 
   const handleShare = () => {
@@ -115,24 +115,35 @@ export function Referral() {
         </div>
       </motion.div>
 
-      {/* Referral link card */}
+      {/* Referral code card */}
       <motion.div variants={fadeUp}>
         <p className="section-label mb-3">{t("referral.inviteLink")}</p>
         <div className="rounded-2xl overflow-hidden"
           style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}>
-          <div className="px-4 py-4 flex items-center justify-between gap-3">
-            <p className="font-mono text-[12px] text-white/60 truncate flex-1 text-left" dir="ltr">
-              {refLink}
-            </p>
-            <motion.button onClick={handleCopy} whileTap={{ scale: 0.88 }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
-              style={{ background: copied ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.08)" }}>
-              <AnimatePresence mode="wait" initial={false}>
-                {copied
-                  ? <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={15} className="text-success" strokeWidth={2.5} /></motion.div>
-                  : <motion.div key="copy"  initial={{ scale: 0 }} animate={{ scale: 1 }}><Copy  size={15} className="text-white/60" /></motion.div>}
-              </AnimatePresence>
-            </motion.button>
+          {/* Code display */}
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider mb-1.5">رمز الإحالة الخاص بك</p>
+            <div
+              className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl"
+              style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}
+            >
+              <p className="font-black text-sm text-skz-light tracking-wide" dir="ltr">
+                {refCode}
+              </p>
+              <motion.button onClick={handleCopy} whileTap={{ scale: 0.88 }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                style={{ background: copied ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.08)" }}>
+                <AnimatePresence mode="wait" initial={false}>
+                  {copied
+                    ? <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={14} className="text-success" strokeWidth={2.5} /></motion.div>
+                    : <motion.div key="copy"  initial={{ scale: 0 }} animate={{ scale: 1 }}><Copy  size={14} className="text-white/60" /></motion.div>}
+                </AnimatePresence>
+              </motion.button>
+            </div>
+          </div>
+          {/* Full link */}
+          <div className="px-4 pb-3">
+            <p className="font-mono text-[11px] text-white/35 truncate" dir="ltr">{refLink}</p>
           </div>
           <div className="divider mx-0" />
           <motion.button onClick={handleShare} whileTap={{ scale: 0.97 }}

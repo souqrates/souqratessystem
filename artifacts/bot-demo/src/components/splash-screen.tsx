@@ -46,75 +46,34 @@ export function SplashScreen({ onDone }: Props) {
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
           style={{ background: "radial-gradient(ellipse at 50% 38%, #0d0a1e 0%, #060412 55%, #020208 100%)" }}
         >
-          {/* Star particles */}
-          {Array.from({ length: 24 }).map((_, i) => (
-            <div key={i} style={{
-              position: "absolute",
-              width: i % 3 === 0 ? 2 : 1,
-              height: i % 3 === 0 ? 2 : 1,
-              borderRadius: "50%",
-              background: i % 4 === 0 ? "#D4AF37" : "rgba(168,85,247,0.6)",
-              left: `${(i * 41 + 7) % 100}%`,
-              top: `${(i * 67 + 13) % 100}%`,
-              opacity: 0.4 + (i % 3) * 0.15,
-              animation: `twinkle-s ${1.6 + (i % 5) * 0.5}s ease-in-out ${(i * 0.2) % 1.8}s infinite alternate`,
-            }} />
-          ))}
-
-          {/* Outer ambient glow */}
-          <div style={{
-            position: "absolute",
-            width: 480,
-            height: 480,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(212,175,55,0.12) 0%, rgba(168,85,247,0.08) 50%, transparent 70%)",
-            filter: "blur(40px)",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -58%)",
-            pointerEvents: "none",
-          }} />
-
-          {/* Logo — large & prominent */}
+          {/* Logo — full size, no crop, no geometric background */}
           <motion.div
-            initial={{ scale: 0.7, opacity: 0, y: 24 }}
+            initial={{ scale: 0.72, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ delay: 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            style={{ marginBottom: 32, position: "relative" }}
+            transition={{ delay: 0.08, duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+            style={{ marginBottom: 28 }}
           >
-            {/* Soft ambient glow behind logo */}
-            <div style={{
-              position: "absolute",
-              inset: -24,
-              borderRadius: "40%",
-              boxShadow: "0 0 80px 24px rgba(212,175,55,0.2), 0 0 140px 40px rgba(168,85,247,0.1)",
-              animation: "pulseRing-s 2.8s ease-in-out infinite",
-              pointerEvents: "none",
-            }} />
-            {/* Logo image — full, no crop */}
             <img
               src={`${import.meta.env.BASE_URL}souqrates-logo.webp`}
               alt="SOUQRATES SYSTEM"
               draggable={false}
               style={{
                 display: "block",
-                width: "min(80vw, 340px)",
+                width: "min(88vw, 420px)",
                 height: "auto",
                 objectFit: "contain",
-                position: "relative",
-                zIndex: 1,
                 userSelect: "none",
-                filter: "drop-shadow(0 8px 32px rgba(212,175,55,0.35))",
+                filter: "drop-shadow(0 6px 28px rgba(212,175,55,0.28)) drop-shadow(0 2px 8px rgba(168,85,247,0.18))",
               }}
             />
           </motion.div>
 
           {/* Brand name */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            style={{ textAlign: "center", marginBottom: 28 }}
+            transition={{ delay: 0.38, duration: 0.48 }}
+            style={{ textAlign: "center", marginBottom: 32 }}
           >
             <div style={{
               fontFamily: "Orbitron, sans-serif",
@@ -129,8 +88,8 @@ export function SplashScreen({ onDone }: Props) {
               SOUQRATES SYSTEM
             </div>
             <div style={{
-              marginTop: 6,
-              fontFamily: "Inter, sans-serif",
+              marginTop: 7,
+              fontFamily: "Inter Variable, Inter, sans-serif",
               fontWeight: 600,
               fontSize: 10,
               letterSpacing: "0.38em",
@@ -175,7 +134,6 @@ export function SplashScreen({ onDone }: Props) {
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(212,175,55,0.2)",
               overflow: "hidden",
-              position: "relative",
             }}>
               <div style={{
                 height: "100%",
@@ -198,21 +156,6 @@ export function SplashScreen({ onDone }: Props) {
               {t("splash.loading")}
             </div>
           </motion.div>
-
-          <style>{`
-            @keyframes pulseRing-s {
-              0%,100% { opacity:.65; transform:scale(1); }
-              50%      { opacity:1;   transform:scale(1.04); }
-            }
-            @keyframes spinSlow-s {
-              from { transform:rotate(0deg); }
-              to   { transform:rotate(360deg); }
-            }
-            @keyframes twinkle-s {
-              0%   { opacity:.15; transform:scale(.8); }
-              100% { opacity:.9;  transform:scale(1.5); }
-            }
-          `}</style>
         </motion.div>
       )}
     </AnimatePresence>

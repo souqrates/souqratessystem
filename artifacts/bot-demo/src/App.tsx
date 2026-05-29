@@ -14,6 +14,8 @@ import { SubAgentsApply } from "./pages/subagents-apply";
 import { SubAgentsPending } from "./pages/subagents-pending";
 import { SubAgentsDashboard } from "./pages/subagents-dashboard";
 import { SplashScreen } from "./components/splash-screen";
+import { Toaster } from "sonner";
+import { Globe } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,11 +36,31 @@ function FloatingLangToggle() {
     <button
       type="button"
       onClick={() => setLang(next)}
-      className="fixed top-3 left-3 z-50 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-black/70 text-white border border-white/20 backdrop-blur hover:bg-black/85 transition shadow-lg"
       aria-label={t("langToggle.aria")}
       title={t("langToggle.title")}
+      style={{
+        position: "fixed",
+        bottom: "calc(60px + env(safe-area-inset-bottom, 0px) + 14px)",
+        right: 14,
+        zIndex: 60,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 12px 6px 8px",
+        borderRadius: 999,
+        background: "rgba(12, 18, 32, 0.88)",
+        border: "1px solid rgba(168,85,247,0.35)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(168,85,247,0.15)",
+        cursor: "pointer",
+        transition: "all 0.18s ease",
+      }}
     >
-      {lang === "ar" ? "EN" : "ع"}
+      <Globe size={14} color="#c084fc" />
+      <span style={{ fontSize: 11, fontWeight: 800, color: "#c084fc", letterSpacing: "0.06em" }}>
+        {lang === "ar" ? "EN" : "ع"}
+      </span>
     </button>
   );
 }
@@ -53,12 +75,12 @@ function NotFoundFallback() {
 }
 
 export default function App() {
-  // Persist across iframe reloads / canvas re-mounts so the splash only ever
-  // plays once per browser session. This is the #1 cause of "flicker" the
-  // user perceives — the intro replaying on every navigation.
   const [splashDone, setSplashDone] = useState(() => {
     if (typeof window === "undefined") return true;
-    try { return sessionStorage.getItem(SPLASH_KEY) === "1"; } catch { return false; }
+    try {
+      if (new URL(window.location.href).searchParams.has("nosplash")) return true;
+      return sessionStorage.getItem(SPLASH_KEY) === "1";
+    } catch { return false; }
   });
 
   const isAgreementRoute =
@@ -72,12 +94,27 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster
+        position="top-center"
+        theme="dark"
+        richColors
+        toastOptions={{
+          style: {
+            background: "rgba(12,18,32,0.95)",
+            border: "1px solid rgba(168,85,247,0.3)",
+            color: "#fff",
+            fontFamily: "Inter Variable, Inter, sans-serif",
+            fontWeight: 600,
+            fontSize: 13,
+            backdropFilter: "blur(20px)",
+          },
+        }}
+      />
       {!splashDone && !isAgreementRoute && <SplashScreen onDone={finishSplash} />}
       <FloatingLangToggle />
 
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <Switch>
-          {/* Standalone public page — no Layout chrome (logo/footer/etc.) */}
           <Route path="/agreement" component={Agreement} />
           <Route>
             <Layout>

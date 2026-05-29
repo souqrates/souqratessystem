@@ -73,5 +73,11 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@types/numeral": "^2.0.5",
+    "numeral": "^2.0.6",
+    "react-loading-skeleton": "^3.5.0"
   }
 }
