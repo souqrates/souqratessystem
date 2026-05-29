@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 type SignatureRow = {
   id: number;
@@ -53,7 +55,6 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   );
 }
 
-// ─── Tab 1: edit the master agreement text ────────────────────────────────
 function AgreementTextEditor() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
@@ -137,7 +138,130 @@ function AgreementTextEditor() {
   );
 }
 
-// ─── Tab 2: signers list + viewer modal ──────────────────────────────────
+/* ─── PDF generation ──────────────────────────────────────────────────────── */
+
+async function generateAgreementPdf(record: SignatureDetail): Promise<void> {
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = [
+    "position:fixed",
+    "left:-9999px",
+    "top:0",
+    "width:794px",
+    "padding:48px 56px",
+    "background:#ffffff",
+    "font-family:Arial,Helvetica,sans-serif",
+    "direction:rtl",
+    "box-sizing:border-box",
+    "color:#1e293b",
+    "line-height:1.7",
+  ].join(";");
+
+  const date = new Date(record.createdAt).toLocaleString("ar-EG", {
+    year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+  wrapper.innerHTML = `
+    <div style="text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #e2e8f0;">
+      <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:#4f46e5;">SOUQRATES SYSTEM</div>
+      <div style="font-size:13px;color:#64748b;margin-top:4px;">وثيقة الاتفاقية الرسمية الموقّعة</div>
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;margin-bottom:28px;">
+      <div style="font-size:14px;font-weight:700;color:#475569;margin-bottom:14px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">بيانات الموقّع</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+        <tr>
+          <td style="padding:5px 0;color:#64748b;width:130px;">الاسم الكامل</td>
+          <td style="padding:5px 0;font-weight:600;">${escHtml(record.name)}</td>
+          <td style="padding:5px 0;color:#64748b;width:130px;">رقم التسجيل</td>
+          <td style="padding:5px 0;font-weight:600;">#${record.id}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#64748b;">البريد الإلكتروني</td>
+          <td style="padding:5px 0;direction:ltr;text-align:right;">${escHtml(record.email)}</td>
+          <td style="padding:5px 0;color:#64748b;">رقم الهاتف</td>
+          <td style="padding:5px 0;direction:ltr;text-align:right;">${escHtml(record.phone ?? "—")}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#64748b;">تاريخ التوقيع</td>
+          <td style="padding:5px 0;" colspan="3">${date}</td>
+        </tr>
+        ${record.ipAddress ? `
+        <tr>
+          <td style="padding:5px 0;color:#64748b;">عنوان IP</td>
+          <td style="padding:5px 0;direction:ltr;text-align:right;" colspan="3">${escHtml(record.ipAddress)}</td>
+        </tr>` : ""}
+        ${record.notes ? `
+        <tr>
+          <td style="padding:5px 0;color:#64748b;vertical-align:top;">ملاحظات</td>
+          <td style="padding:5px 0;" colspan="3">${escHtml(record.notes)}</td>
+        </tr>` : ""}
+      </table>
+    </div>
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:14px;font-weight:700;color:#475569;margin-bottom:10px;">نصّ الاتفاقية كما وُقِّع عليه</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;font-size:12.5px;line-height:1.85;color:#334155;white-space:pre-wrap;max-height:400px;overflow:hidden;">
+        ${escHtml(record.agreementContent)}
+      </div>
+    </div>
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:14px;font-weight:700;color:#475569;margin-bottom:10px;">التوقيع الشخصي</div>
+      <div style="border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;display:inline-block;background:#fff;">
+        <img src="${record.signatureDataUrl}" alt="signature" style="max-width:340px;max-height:160px;display:block;" />
+      </div>
+    </div>
+
+    <div style="border-top:2px solid #e2e8f0;padding-top:16px;font-size:11.5px;color:#94a3b8;text-align:center;">
+      <div>تم إنشاء هذه الوثيقة تلقائياً بواسطة منصة SOUQRATES SYSTEM</div>
+      <div style="margin-top:2px;">رقم المرجع: AGR-${record.id.toString().padStart(6, "0")} | ${new Date().toLocaleDateString("ar-EG")}</div>
+    </div>
+  `;
+
+  document.body.appendChild(wrapper);
+
+  try {
+    const canvas = await html2canvas(wrapper, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+    });
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const imgData = canvas.toDataURL("image/jpeg", 0.93);
+
+    let remaining = imgH;
+    let yOffset = 0;
+
+    while (remaining > 0) {
+      pdf.addImage(imgData, "JPEG", 0, yOffset, imgW, imgH);
+      remaining -= pageH;
+      yOffset -= pageH;
+      if (remaining > 0) pdf.addPage();
+    }
+
+    pdf.save(`اتفاقية-${record.name.replace(/\s+/g, "_")}-${record.id}.pdf`);
+  } finally {
+    document.body.removeChild(wrapper);
+  }
+}
+
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ─── Signers list + detail modal ────────────────────────────────────────── */
+
 function SignersList() {
   const [rows, setRows] = useState<SignatureRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -145,6 +269,8 @@ function SignersList() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SignatureDetail | null>(null);
   const [selLoading, setSelLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const pdfBtnRef = useRef<HTMLButtonElement>(null);
 
   async function load() {
     setLoading(true); setError(null);
@@ -168,6 +294,18 @@ function SignersList() {
       setError((e as Error).message);
     } finally {
       setSelLoading(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    if (!selected) return;
+    setPdfLoading(true);
+    try {
+      await generateAgreementPdf(selected);
+    } catch (e) {
+      console.error("PDF generation failed", e);
+    } finally {
+      setPdfLoading(false);
     }
   }
 
@@ -236,14 +374,33 @@ function SignersList() {
             dir="rtl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="font-semibold text-slate-900">📄 الاتفاقية الموقّعة</div>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-slate-500 hover:text-slate-900 text-xl leading-none"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                {selected && (
+                  <button
+                    ref={pdfBtnRef}
+                    onClick={handleDownloadPdf}
+                    disabled={pdfLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                  >
+                    {pdfLoading ? (
+                      <>
+                        <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        جاري الإنشاء…
+                      </>
+                    ) : (
+                      <>⬇️ تحميل PDF</>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelected(null)}
+                  className="text-slate-500 hover:text-slate-900 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className="p-5">
               {selLoading || !selected ? (
@@ -278,6 +435,23 @@ function SignersList() {
                   {selected.userAgent && (
                     <p className="text-[11px] text-slate-400 break-all">UA: {selected.userAgent}</p>
                   )}
+
+                  <div className="pt-2 border-t border-slate-100">
+                    <button
+                      onClick={handleDownloadPdf}
+                      disabled={pdfLoading}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                    >
+                      {pdfLoading ? (
+                        <>
+                          <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          جاري إنشاء الـ PDF…
+                        </>
+                      ) : (
+                        <>⬇️ تحميل الاتفاقية كـ PDF</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

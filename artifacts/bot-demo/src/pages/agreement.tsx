@@ -223,14 +223,17 @@ export function Agreement() {
         {/* Logo + title */}
         <div className="flex flex-col items-center mb-7">
           <div className="relative">
-            <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-purple-500/40 via-fuchsia-500/20 to-cyan-500/30 blur-xl opacity-80" />
+            {/* outer glow ring */}
+            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-purple-500/50 via-fuchsia-500/30 to-cyan-500/40 blur-2xl opacity-90" />
+            {/* subtle pulsing halo */}
+            <div className="absolute -inset-1 rounded-[1.6rem] bg-gradient-to-br from-purple-400/30 to-cyan-400/20 blur-md animate-pulse" />
             <img
-              src={`${import.meta.env.BASE_URL}logo.jpg`}
+              src={`${import.meta.env.BASE_URL}souqrates-logo.webp`}
               alt="SOUQRATES SYSTEM"
-              className="relative w-24 h-24 rounded-2xl object-cover ring-1 ring-white/15 shadow-[0_10px_40px_rgba(168,85,247,0.45)]"
+              className="relative w-40 h-40 rounded-2xl object-contain bg-black/20 ring-2 ring-white/20 shadow-[0_16px_60px_rgba(168,85,247,0.55)]"
             />
           </div>
-          <h1 className="mt-5 text-3xl font-extrabold tracking-tight gradient-text font-orbitron">SOUQRATES SYSTEM</h1>
+          <h1 className="mt-6 text-3xl font-extrabold tracking-tight gradient-text font-orbitron">SOUQRATES SYSTEM</h1>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-[12px] text-white/80">
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             {t("agreement.badge")}
