@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { BookCoverPicker } from "@/components/BookCoverPicker";
 
 type Product = {
   id: number;
@@ -34,21 +35,33 @@ type Stats = {
 };
 
 export default function BooksPage() {
-  const [tab, setTab] = useState<"products" | "categories" | "stats">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "stats" | "covers">("products");
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold" style={{ color: "#0F766E" }}>❖ SOUQRATES SOUQ — الكتب والمنتجات الرقمية</h1>
         <p className="text-sm text-slate-500 mt-1">مراجعة الكتب المرسلة، إدارة التصنيفات، ومتابعة المبيعات.</p>
       </div>
-      <div className="flex gap-2 mb-4 border-b border-slate-200">
-        <TabBtn active={tab === "products"} onClick={() => setTab("products")}>📖 الكتب</TabBtn>
+      <div className="flex gap-2 mb-4 border-b border-slate-200 flex-wrap">
+        <TabBtn active={tab === "products"}   onClick={() => setTab("products")}>📖 الكتب</TabBtn>
         <TabBtn active={tab === "categories"} onClick={() => setTab("categories")}>🏷️ التصنيفات</TabBtn>
-        <TabBtn active={tab === "stats"} onClick={() => setTab("stats")}>📊 الإحصاءات</TabBtn>
+        <TabBtn active={tab === "stats"}      onClick={() => setTab("stats")}>📊 الإحصاءات</TabBtn>
+        <TabBtn active={tab === "covers"}     onClick={() => setTab("covers")}>🎨 إنشاء غلاف</TabBtn>
       </div>
-      {tab === "products" && <ProductsTab />}
+      {tab === "products"   && <ProductsTab />}
       {tab === "categories" && <CategoriesTab />}
-      {tab === "stats" && <StatsTab />}
+      {tab === "stats"      && <StatsTab />}
+      {tab === "covers"     && (
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5">
+          <div className="mb-4">
+            <div className="font-semibold text-slate-900 text-base">🎨 مولّد أغلفة الكتب</div>
+            <p className="text-sm text-slate-500 mt-1">
+              اختر تصميماً من 10 قوالب جاهزة تناسب كل أنواع الكتب — اكتب العنوان وستظهر على جميع الأغلفة فوراً.
+            </p>
+          </div>
+          <BookCoverPicker />
+        </div>
+      )}
     </div>
   );
 }
