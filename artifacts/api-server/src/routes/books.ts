@@ -178,6 +178,50 @@ async function getBooksBotRecord() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HELPERS — Telegram WebApp initData validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Validate Telegram WebApp initData and return the telegramId.
+ * Returns null if invalid / tampered / expired (>1 h old).
+ */
+function validateTgInitData(initData: string, botToken: string): bigint | null {
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get("hash");
+    if (!hash) return null;
+
+    // Build data-check string (all keys except hash, sorted, key=value\n)
+    const entries: string[] = [];
+    for (const [k, v] of params.entries()) {
+      if (k !== "hash") entries.push(`${k}=${v}`);
+    }
+    entries.sort();
+    const dataCheckString = entries.join("\n");
+
+    // Derive secret key: HMAC-SHA256("WebAppData", bot_token)
+    const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+    const expectedHash = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+    const a = Buffer.from(hash, "hex");
+    const b = Buffer.from(expectedHash, "hex");
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+    // Optional freshness check (1 h)
+    const authDate = parseInt(params.get("auth_date") ?? "0", 10);
+    if (Date.now() / 1000 - authDate > 3600) return null;
+
+    const userJson = params.get("user");
+    if (!userJson) return null;
+    const user = JSON.parse(userJson) as { id?: number };
+    if (!user.id) return null;
+    return BigInt(user.id);
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -254,6 +298,49 @@ router.get("/books/products/:id", async (req, res): Promise<void> => {
   if (!row || row.status !== "approved") { res.status(404).json({ error: "Product not found" }); return; }
   const { perUsdt } = await getSkzRates();
   res.json({ ...row, priceSkz: +(parseFloat(row.priceUsdt) * perUsdt).toFixed(2) });
+});
+
+/**
+ * GET /books/my-library
+ * Returns the authenticated user's purchased books with signed download URLs.
+ * Authentication: Telegram WebApp initData (validated via BOOKS_BOT_TOKEN).
+ * No X-Bot-Api-Key needed — this is called from the public web Mini App.
+ */
+router.get("/books/my-library", async (req, res): Promise<void> => {
+  const initData = String(req.query.initData ?? "");
+  if (!initData) { res.status(401).json({ error: "initData required" }); return; }
+
+  const botToken = process.env.BOOKS_BOT_TOKEN ?? "";
+  if (!botToken) { res.status(503).json({ error: "Bot token not configured" }); return; }
+
+  const telegramId = validateTgInitData(initData, botToken);
+  if (!telegramId) { res.status(401).json({ error: "Invalid or expired Telegram session" }); return; }
+
+  const purchases = await db.select({
+    id: productPurchasesTable.id,
+    productId: productPurchasesTable.productId,
+    title: digitalProductsTable.title,
+    description: digitalProductsTable.description,
+    coverUrl: digitalProductsTable.coverUrl,
+    fileSize: digitalProductsTable.fileSize,
+    pricePaid: productPurchasesTable.pricePaid,
+    downloadToken: productPurchasesTable.downloadToken,
+    downloadExpiresAt: productPurchasesTable.downloadExpiresAt,
+    createdAt: productPurchasesTable.createdAt,
+  })
+    .from(productPurchasesTable)
+    .leftJoin(digitalProductsTable, eq(productPurchasesTable.productId, digitalProductsTable.id))
+    .where(eq(productPurchasesTable.buyerTelegramId, telegramId))
+    .orderBy(desc(productPurchasesTable.createdAt))
+    .limit(100);
+
+  const data = purchases.map((p) => ({
+    ...p,
+    downloadUrl: publicDownloadUrl(p.downloadToken),
+    expired: new Date(p.downloadExpiresAt).getTime() < Date.now(),
+  }));
+
+  res.json({ data });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

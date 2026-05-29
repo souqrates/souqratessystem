@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, ShoppingBag, Zap, Home } from "lucide-react";
+import { ArrowLeft, BookOpen, ShoppingBag, Zap, Home, Library } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import type { ReactNode } from "react";
 import { TELEGRAM_BOT_URL } from "@/lib/constants";
@@ -7,9 +7,10 @@ export function Header() {
   const [location] = useLocation();
 
   const navItems = [
-    { href: "/",        label: "الرئيسية", icon: <Home size={12} /> },
-    { href: "/library", label: "الكتب",    icon: <BookOpen size={12} /> },
-    { href: "/digital", label: "Vouchers", icon: <Zap size={12} /> },
+    { href: "/",            label: "الرئيسية", icon: <Home size={12} /> },
+    { href: "/library",     label: "الكتب",    icon: <BookOpen size={12} /> },
+    { href: "/digital",     label: "Vouchers", icon: <Zap size={12} /> },
+    { href: "/my-library",  label: "مكتبتي",   icon: <Library size={12} /> },
   ];
 
   return (

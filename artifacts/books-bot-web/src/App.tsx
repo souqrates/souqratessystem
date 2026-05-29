@@ -10,6 +10,7 @@ import Category from "@/pages/Category";
 import BookPage from "@/pages/Book";
 import Publish from "@/pages/Publish";
 import DigitalServices from "@/pages/DigitalServices";
+import MyLibrary from "@/pages/MyLibrary";
 import NotFound from "@/pages/not-found";
 
 const SPLASH_STORAGE_KEY = "souq:splashSeen";
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/book/:id" component={BookPage} />
             <Route path="/publish" component={Publish} />
             <Route path="/digital" component={DigitalServices} />
+            <Route path="/my-library" component={MyLibrary} />
             <Route component={NotFound} />
           </Switch>
         </Page>
