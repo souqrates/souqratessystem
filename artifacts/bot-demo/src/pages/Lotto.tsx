@@ -61,8 +61,12 @@ export default function Lotto({ initData }: Props) {
       setShowSuccess(true);
       haptic("success");
       setTimeout(() => setShowSuccess(false), 3000);
-      const myEntries = await getMyLottoEntries(initData);
+      const [myEntries, balanceRes] = await Promise.all([
+        getMyLottoEntries(initData),
+        getBalance(initData),
+      ]);
       setEntries(myEntries.data);
+      setBalance(parseFloat(balanceRes.balanceSkz));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "حدث خطأ — حاول مجدداً");
       haptic("error");
