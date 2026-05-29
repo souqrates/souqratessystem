@@ -19,6 +19,20 @@ interface LottoDraw {
   winningNumbers: number[] | null; jackpotAmountSkz: string;
   totalEntries: number; totalPaidOutSkz: string;
   opensAt: string; closesAt: string | null; drawnAt: string | null;
+  serverSeedHash: string | null;
+}
+interface LottoEntry {
+  id: number; drawId: number; userId: number;
+  chosenNumbers: number[]; priceSKZ: string;
+  matchCount: number | null; prizeSkz: string | null; isJackpot: boolean | null;
+  createdAt: string;
+  telegramId: string | null; username: string | null; firstName: string | null;
+}
+interface DrawEntriesResponse {
+  draw: LottoDraw;
+  data: LottoEntry[];
+  total: number; page: number; limit: number;
+  winnersCount: number;
 }
 interface TopGame {
   gameTypeId: number; name: string; nameAr: string; slug: string;
@@ -54,7 +68,9 @@ const sweepApi = {
   deleteGameType: (id: number) => api.del(`/superadmin/sweep/game-types/${id}`),
   getTickets: (params: string) => api.get<{ data: TicketRow[]; total: number; page: number }>(`/superadmin/sweep/tickets?${params}`),
   getDraws: () => api.get<{ data: LottoDraw[] }>("/superadmin/sweep/lotto/draws"),
-  triggerDraw: () => api.post<{ winningNumbers: number[]; winners: unknown[]; totalPaidOut: number; jackpotWon: boolean }>("/superadmin/sweep/lotto/trigger-draw", {}),
+  getDrawEntries: (drawId: number, page = 1) =>
+    api.get<DrawEntriesResponse>(`/superadmin/sweep/lotto/draws/${drawId}/entries?page=${page}&limit=100`),
+  triggerDraw: (drawId?: number) => api.post<{ draw: LottoDraw; winningNumbers: number[]; winners: Array<{ entryId: number; userId: number; matchCount: number; prizeSkz: number }>; totalPaidOut: number; jackpotWon: boolean }>("/superadmin/sweep/lotto/trigger-draw", drawId ? { drawId } : {}),
   openDraw: (closesAt?: string) => api.post("/superadmin/sweep/lotto/open", { closesAt }),
   getJackpot: () => api.get<JackpotPool>("/superadmin/sweep/jackpot"),
   setJackpot: (bal: number) => api.patch("/superadmin/sweep/jackpot", { balanceSkz: bal }),
@@ -65,7 +81,7 @@ const TABS = ["📊 إحصاءات", "🎲 أنواع الألعاب", "🎟 ا�
 type Tab = typeof TABS[number];
 
 export default function SweepPage() {
-  const [tab, setTab] = useState<Tab>("📊 إحصاءات");
+  const [tab, setTab] = useState<Tab>("🎱 اللوتو");
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
@@ -379,13 +395,18 @@ function LottoTab() {
   const { data: jackpot, isLoading: jackpotLoading } = useQuery({ queryKey: ["sweep-jackpot"], queryFn: sweepApi.getJackpot });
   const [jackpotEdit, setJackpotEdit] = useState("");
   const [newDrawClosesAt, setNewDrawClosesAt] = useState("");
+  const [selectedDrawId, setSelectedDrawId] = useState<number | null>(null);
+  const [entriesPage, setEntriesPage] = useState(1);
 
   const triggerMut = useMutation({
-    mutationFn: sweepApi.triggerDraw,
-    onSuccess: () => {
+    mutationFn: (drawId?: number) => sweepApi.triggerDraw(drawId),
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["sweep-draws"] });
       qc.invalidateQueries({ queryKey: ["sweep-jackpot"] });
       qc.invalidateQueries({ queryKey: ["sweep-stats"] });
+      if (selectedDrawId) {
+        qc.invalidateQueries({ queryKey: ["sweep-draw-entries", selectedDrawId] });
+      }
     },
   });
 
@@ -403,15 +424,56 @@ function LottoTab() {
     },
   });
 
+  const { data: entriesData, isLoading: entriesLoading } = useQuery({
+    queryKey: ["sweep-draw-entries", selectedDrawId, entriesPage],
+    queryFn: () => sweepApi.getDrawEntries(selectedDrawId!, entriesPage),
+    enabled: selectedDrawId !== null,
+  });
+
   const draws = drawsData?.data ?? [];
+  const currentDraw = draws.find((d) => d.status === "open") ?? draws[0] ?? null;
+
+  // Auto-select the current open draw on first load
+  if (selectedDrawId === null && currentDraw) {
+    setSelectedDrawId(currentDraw.id);
+  }
+
+  const selectedDraw = draws.find((d) => d.id === selectedDrawId) ?? null;
 
   return (
     <div className="space-y-6">
-      {/* Jackpot control */}
+      {/* ── Top stats row ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="الجائزة الكبرى الحالية"
+          value={`${parseFloat(jackpot?.balanceSkz ?? "0").toLocaleString()} SKZ`}
+          icon="💎"
+          color="text-amber-400"
+        />
+        <StatCard
+          label="إجمالي تذاكر السحب الحالي"
+          value={(currentDraw?.totalEntries ?? 0).toLocaleString()}
+          icon="🎫"
+          color="text-blue-400"
+        />
+        <StatCard
+          label="حجم الجائزة المجمّعة"
+          value={`${(currentDraw ? parseFloat(currentDraw.jackpotAmountSkz) + parseFloat(jackpot?.balanceSkz ?? "0") : 0).toLocaleString()} SKZ`}
+          icon="🏆"
+          color="text-green-400"
+        />
+        <StatCard
+          label="عدد السحوبات المنجزة"
+          value={draws.filter((d) => d.status === "drawn").length.toLocaleString()}
+          icon="✅"
+        />
+      </div>
+
+      {/* ── Jackpot control ── */}
       <div className="bg-slate-800 rounded-xl p-5 border border-amber-500/20">
         <h2 className="font-bold text-white mb-3 flex items-center gap-2">💎 الجائزة الكبرى (Jackpot Pool)</h2>
         {jackpotLoading ? <LoadingSpinner /> : (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div>
               <div className="text-3xl font-bold text-amber-400">{parseFloat(jackpot?.balanceSkz ?? "0").toLocaleString()} SKZ</div>
               <div className="text-xs text-slate-500 mt-0.5">
@@ -419,7 +481,7 @@ function LottoTab() {
                 {" · "}إجمالي المدفوع: {parseFloat(jackpot?.totalPaidOutSkz ?? "0").toLocaleString()} SKZ
               </div>
             </div>
-            <div className="flex-1 flex items-center gap-2 mr-8">
+            <div className="flex-1 flex items-center gap-2 min-w-48">
               <input
                 type="number" min={0} step="0.01"
                 placeholder="تعديل الرصيد يدوياً…"
@@ -439,11 +501,11 @@ function LottoTab() {
         )}
       </div>
 
-      {/* Open new draw */}
+      {/* ── Open new draw ── */}
       <div className="bg-slate-800 rounded-xl p-5">
         <h2 className="font-bold text-white mb-3">🆕 فتح سحب جديد</h2>
-        <div className="flex gap-3 items-end">
-          <div className="flex-1">
+        <div className="flex gap-3 items-end flex-wrap">
+          <div className="flex-1 min-w-48">
             <label className="text-xs text-slate-400 block mb-1">تاريخ الإغلاق (اختياري)</label>
             <input
               type="datetime-local"
@@ -460,26 +522,78 @@ function LottoTab() {
             {openMut.isPending ? "جارٍ الفتح…" : "فتح سحب جديد"}
           </button>
         </div>
+        {openMut.isError && (
+          <p className="text-xs text-red-400 mt-2">{String((openMut.error as Error)?.message ?? "خطأ")}</p>
+        )}
       </div>
 
-      {/* Draws list */}
+      {/* ── Draws list with trigger ── */}
       <div className="bg-slate-800 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-white">سجل السحوبات</h2>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 className="font-bold text-white">📋 سجل السحوبات</h2>
           <button
-            onClick={() => { if (confirm("تشغيل السحب الآن؟ سيتم توزيع الجوائز فوراً.")) triggerMut.mutate(); }}
+            onClick={() => {
+              const active = draws.find((d) => d.status === "open" || d.status === "closed");
+              if (!active) { alert("لا يوجد سحب قابل للتشغيل"); return; }
+              if (confirm(`تشغيل السحب رقم ${active.drawNumber} الآن؟ سيتم توزيع الجوائز فوراً على ${active.totalEntries} مشترك.`)) {
+                triggerMut.mutate(active.id);
+              }
+            }}
             disabled={triggerMut.isPending}
             className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg disabled:opacity-50"
           >
-            {triggerMut.isPending ? "جارٍ السحب…" : "🎱 تشغيل السحب الآن"}
+            {triggerMut.isPending ? "⏳ جارٍ السحب…" : "🎱 إجراء السحب الآن"}
           </button>
         </div>
 
-        {triggerMut.isSuccess && (
-          <div className="mb-4 bg-green-900/30 border border-green-700 rounded-lg p-3 text-sm text-green-300">
-            ✅ تم السحب! الأرقام الفائزة: {triggerMut.data?.winningNumbers?.join(" - ")}
+        {/* Draw result banner */}
+        {triggerMut.isSuccess && triggerMut.data && (
+          <div className="mb-4 bg-gradient-to-l from-purple-900/40 to-green-900/40 border border-purple-700/50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🎉</span>
+              <span className="font-bold text-white">تم السحب بنجاح!</span>
+              {triggerMut.data.jackpotWon && (
+                <span className="bg-amber-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">🏆 فاز شخص بالجائزة الكبرى!</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {triggerMut.data.winningNumbers?.map((n: number) => (
+                <span key={n} className="w-10 h-10 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold text-sm">
+                  {n}
+                </span>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="bg-slate-800/60 rounded-lg p-2 text-center">
+                <div className="text-xl font-bold text-green-400">{triggerMut.data.winners?.length ?? 0}</div>
+                <div className="text-xs text-slate-400">عدد الفائزين</div>
+              </div>
+              <div className="bg-slate-800/60 rounded-lg p-2 text-center">
+                <div className="text-xl font-bold text-amber-400">{(triggerMut.data.totalPaidOut ?? 0).toLocaleString()}</div>
+                <div className="text-xs text-slate-400">SKZ موزَّعة</div>
+              </div>
+              <div className="bg-slate-800/60 rounded-lg p-2 text-center">
+                <div className="text-xl font-bold text-blue-400">{triggerMut.data.draw?.totalEntries ?? 0}</div>
+                <div className="text-xs text-slate-400">إجمالي المشتركين</div>
+              </div>
+            </div>
+            {(triggerMut.data.winners?.length ?? 0) > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-slate-400 mb-2">الفائزون:</p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {triggerMut.data.winners.map((w) => (
+                    <div key={w.entryId} className="flex items-center justify-between text-xs bg-slate-800/60 rounded px-2 py-1">
+                      <span className="text-slate-300">مشترك #{w.userId}</span>
+                      <span className="text-green-400 font-medium">{w.matchCount} أرقام متطابقة</span>
+                      <span className="text-amber-400 font-bold">{w.prizeSkz.toLocaleString()} SKZ</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
+
         {triggerMut.isError && (
           <div className="mb-4 bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-300">
             ❌ فشل السحب: {String((triggerMut.error as Error)?.message ?? "خطأ غير معروف")}
@@ -487,47 +601,283 @@ function LottoTab() {
         )}
 
         {drawsLoading ? <LoadingSpinner /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-slate-400 border-b border-slate-700">
+                <tr>
+                  <th className="pb-2 px-2 text-right">#</th>
+                  <th className="pb-2 px-2 text-right">الحالة</th>
+                  <th className="pb-2 px-2 text-right">الأرقام الفائزة</th>
+                  <th className="pb-2 px-2 text-right">المشتركون</th>
+                  <th className="pb-2 px-2 text-right">الجائزة الكبرى</th>
+                  <th className="pb-2 px-2 text-right">الجوائز المدفوعة</th>
+                  <th className="pb-2 px-2 text-right">تاريخ السحب</th>
+                  <th className="pb-2 px-2 text-right">الاشتراكات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {draws.map((d: LottoDraw) => (
+                  <tr
+                    key={d.id}
+                    className={`border-b border-slate-700/50 transition-colors ${
+                      selectedDrawId === d.id ? "bg-slate-700/40" : "hover:bg-slate-700/20"
+                    }`}
+                  >
+                    <td className="py-2.5 px-2 text-slate-300 font-mono font-bold">{d.drawNumber}</td>
+                    <td className="py-2.5 px-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        d.status === "open" ? "bg-green-900/50 text-green-400" :
+                        d.status === "drawn" ? "bg-blue-900/50 text-blue-400" :
+                        d.status === "processing" ? "bg-yellow-900/50 text-yellow-400" :
+                        "bg-slate-700 text-slate-400"
+                      }`}>
+                        {d.status === "open" ? "مفتوح" :
+                         d.status === "drawn" ? "منجز" :
+                         d.status === "processing" ? "جارٍ السحب" :
+                         d.status === "closed" ? "مغلق" : d.status}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-2">
+                      {d.winningNumbers ? (
+                        <div className="flex flex-wrap gap-1">
+                          {d.winningNumbers.map((n) => (
+                            <span key={n} className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/40">
+                              {n}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 text-xs">لم يُجرَ السحب بعد</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-2 text-slate-300 font-medium">{d.totalEntries.toLocaleString()}</td>
+                    <td className="py-2.5 px-2 text-slate-300 text-xs">{parseFloat(d.jackpotAmountSkz).toLocaleString()} SKZ</td>
+                    <td className="py-2.5 px-2 text-xs">
+                      <span className={parseFloat(d.totalPaidOutSkz) > 0 ? "text-green-400 font-medium" : "text-slate-500"}>
+                        {parseFloat(d.totalPaidOutSkz).toLocaleString()} SKZ
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-2 text-xs text-slate-500">
+                      {d.drawnAt ? new Date(d.drawnAt).toLocaleString("ar") : "—"}
+                    </td>
+                    <td className="py-2.5 px-2">
+                      <button
+                        onClick={() => {
+                          if (selectedDrawId === d.id) {
+                            setSelectedDrawId(null);
+                          } else {
+                            setSelectedDrawId(d.id);
+                            setEntriesPage(1);
+                          }
+                        }}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                          selectedDrawId === d.id
+                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                            : "bg-slate-700 hover:bg-slate-600 text-slate-300"
+                        }`}
+                      >
+                        {selectedDrawId === d.id ? "إخفاء ▲" : "عرض ▼"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {draws.length === 0 && (
+                  <tr><td colSpan={8} className="py-8 text-center text-slate-500">لا توجد سحوبات بعد</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Draw entries panel ── */}
+      {selectedDrawId !== null && (
+        <DrawEntriesPanel
+          draw={selectedDraw}
+          data={entriesData}
+          isLoading={entriesLoading}
+          page={entriesPage}
+          onPageChange={(p) => setEntriesPage(p)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Draw Entries Panel ─────────────────────────────────────────────────────────
+function DrawEntriesPanel({
+  draw,
+  data,
+  isLoading,
+  page,
+  onPageChange,
+}: {
+  draw: LottoDraw | null;
+  data: DrawEntriesResponse | undefined;
+  isLoading: boolean;
+  page: number;
+  onPageChange: (p: number) => void;
+}) {
+  const entries = data?.data ?? [];
+  const winningNums = draw?.winningNumbers ? new Set(draw.winningNumbers) : null;
+
+  return (
+    <div className="bg-slate-800 rounded-xl p-5 border border-slate-600/50">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <h2 className="font-bold text-white flex items-center gap-2">
+            📋 اشتراكات السحب رقم {draw?.drawNumber ?? "—"}
+            <span className="text-xs font-normal text-slate-400">
+              ({data?.total ?? 0} اشتراك)
+            </span>
+          </h2>
+          {draw?.serverSeedHash && (
+            <p className="text-xs text-slate-500 mt-0.5 font-mono break-all">
+              Hash: {draw.serverSeedHash}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {data && (
+            <>
+              <div className="bg-blue-900/30 border border-blue-700/40 rounded-lg px-3 py-1.5 text-center">
+                <div className="text-lg font-bold text-blue-400">{data.total}</div>
+                <div className="text-xs text-slate-400">إجمالي التذاكر</div>
+              </div>
+              <div className="bg-green-900/30 border border-green-700/40 rounded-lg px-3 py-1.5 text-center">
+                <div className="text-lg font-bold text-green-400">{data.winnersCount}</div>
+                <div className="text-xs text-slate-400">الفائزون</div>
+              </div>
+              <div className="bg-amber-900/30 border border-amber-700/40 rounded-lg px-3 py-1.5 text-center">
+                <div className="text-lg font-bold text-amber-400">
+                  {data.total > 0 ? parseFloat(((data.winnersCount / data.total) * 100).toFixed(1)) : 0}%
+                </div>
+                <div className="text-xs text-slate-400">نسبة الفوز</div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Winning numbers display */}
+      {draw?.winningNumbers && (
+        <div className="mb-4 bg-gradient-to-l from-amber-900/20 to-purple-900/20 border border-amber-700/30 rounded-xl p-4">
+          <p className="text-xs text-slate-400 mb-2">الأرقام الفائزة:</p>
+          <div className="flex flex-wrap gap-2">
+            {draw.winningNumbers.map((n) => (
+              <span
+                key={n}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold text-sm shadow-lg"
+              >
+                {n}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isLoading ? <LoadingSpinner /> : entries.length === 0 ? (
+        <EmptyState message="لا توجد اشتراكات في هذا السحب بعد" />
+      ) : (
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-slate-400 border-b border-slate-700">
               <tr>
-                <th className="pb-2 text-right">#</th>
-                <th className="pb-2 text-right">الحالة</th>
-                <th className="pb-2 text-right">الأرقام الفائزة</th>
-                <th className="pb-2 text-right">المشتركون</th>
-                <th className="pb-2 text-right">الجائزة الكبرى</th>
-                <th className="pb-2 text-right">الجوائز المدفوعة</th>
-                <th className="pb-2 text-right">تاريخ السحب</th>
+                <th className="pb-2 px-3 text-right">#</th>
+                <th className="pb-2 px-3 text-right">المستخدم</th>
+                <th className="pb-2 px-3 text-right">الأرقام المختارة</th>
+                {draw?.winningNumbers && (
+                  <>
+                    <th className="pb-2 px-3 text-right">تطابق</th>
+                    <th className="pb-2 px-3 text-right">الجائزة</th>
+                  </>
+                )}
+                <th className="pb-2 px-3 text-right">تاريخ الاشتراك</th>
               </tr>
             </thead>
             <tbody>
-              {draws.map((d: LottoDraw) => (
-                <tr key={d.id} className="border-b border-slate-700/50">
-                  <td className="py-2.5 text-slate-300 font-mono">{d.drawNumber}</td>
-                  <td className="py-2.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      d.status === "open" ? "bg-green-900/50 text-green-400" :
-                      d.status === "drawn" ? "bg-blue-900/50 text-blue-400" :
-                      "bg-slate-700 text-slate-400"
-                    }`}>{d.status}</span>
-                  </td>
-                  <td className="py-2.5 font-mono text-xs text-amber-400">
-                    {d.winningNumbers ? d.winningNumbers.join(" · ") : "—"}
-                  </td>
-                  <td className="py-2.5 text-slate-300">{d.totalEntries.toLocaleString()}</td>
-                  <td className="py-2.5 text-slate-300">{parseFloat(d.jackpotAmountSkz).toLocaleString()} SKZ</td>
-                  <td className="py-2.5 text-slate-300">{parseFloat(d.totalPaidOutSkz).toLocaleString()} SKZ</td>
-                  <td className="py-2.5 text-xs text-slate-500">
-                    {d.drawnAt ? new Date(d.drawnAt).toLocaleString("ar") : "—"}
-                  </td>
-                </tr>
-              ))}
-              {draws.length === 0 && (
-                <tr><td colSpan={7} className="py-8 text-center text-slate-500">لا توجد سحوبات بعد</td></tr>
-              )}
+              {entries.map((e: LottoEntry) => {
+                const isWinner = (e.matchCount ?? 0) >= 3;
+                const isJackpot = e.isJackpot;
+                return (
+                  <tr
+                    key={e.id}
+                    className={`border-b border-slate-700/50 ${
+                      isJackpot ? "bg-amber-900/20" :
+                      isWinner ? "bg-green-900/10" : ""
+                    }`}
+                  >
+                    <td className="py-2.5 px-3 text-slate-500 text-xs">{e.id}</td>
+                    <td className="py-2.5 px-3">
+                      <div className="font-medium text-white text-sm">{e.firstName ?? "—"}</div>
+                      <div className="text-xs text-slate-500">
+                        {e.username ? `@${e.username}` : e.telegramId ?? ""}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-wrap gap-1">
+                        {(e.chosenNumbers ?? []).map((n: number) => {
+                          const isMatch = winningNums?.has(n);
+                          return (
+                            <span
+                              key={n}
+                              className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition ${
+                                isMatch
+                                  ? "bg-amber-500 text-black shadow-md"
+                                  : "bg-slate-700 text-slate-300"
+                              }`}
+                            >
+                              {n}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    {draw?.winningNumbers && (
+                      <>
+                        <td className="py-2.5 px-3">
+                          {e.matchCount !== null ? (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                              e.matchCount === 6 ? "bg-amber-500 text-black" :
+                              e.matchCount >= 3 ? "bg-green-900/50 text-green-400" :
+                              "bg-slate-700 text-slate-400"
+                            }`}>
+                              {e.matchCount} ✓
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {isJackpot ? (
+                            <span className="text-xs font-bold text-amber-400">🏆 جائزة كبرى</span>
+                          ) : parseFloat(e.prizeSkz ?? "0") > 0 ? (
+                            <span className="text-xs font-medium text-green-400">
+                              {parseFloat(e.prizeSkz ?? "0").toLocaleString()} SKZ
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-600">—</span>
+                          )}
+                        </td>
+                      </>
+                    )}
+                    <td className="py-2.5 px-3 text-xs text-slate-500">
+                      {new Date(e.createdAt).toLocaleString("ar")}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {(data?.total ?? 0) > (data?.limit ?? 100) && (
+        <div className="flex gap-2 justify-center mt-4">
+          <button disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))} className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg disabled:opacity-40">السابق</button>
+          <span className="px-4 py-2 text-sm text-slate-400">صفحة {page} من {Math.ceil((data?.total ?? 1) / (data?.limit ?? 100))}</span>
+          <button disabled={entries.length < (data?.limit ?? 100)} onClick={() => onPageChange(page + 1)} className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg disabled:opacity-40">التالي</button>
+        </div>
+      )}
     </div>
   );
 }

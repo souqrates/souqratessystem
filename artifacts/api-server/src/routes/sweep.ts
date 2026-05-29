@@ -638,6 +638,56 @@ router.patch("/superadmin/sweep/lotto/draws/:id", requireSuperAdmin, async (req,
   res.json(row);
 });
 
+// ── GET /superadmin/sweep/lotto/draws/:id/entries ────────────────────────────
+router.get("/superadmin/sweep/lotto/draws/:id/entries", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(String(req.query.limit ?? "100"), 10) || 100));
+  const offset = (page - 1) * limit;
+
+  const [draw] = await db.select().from(sweepLottoDrawsTable).where(eq(sweepLottoDrawsTable.id, id));
+  if (!draw) { res.status(404).json({ error: "Draw not found" }); return; }
+
+  const [entries, countResult] = await Promise.all([
+    db
+      .select({
+        entry: sweepLottoEntriesTable,
+        telegramId: usersTable.telegramId,
+        username: usersTable.username,
+        firstName: usersTable.firstName,
+      })
+      .from(sweepLottoEntriesTable)
+      .leftJoin(usersTable, eq(usersTable.id, sweepLottoEntriesTable.userId))
+      .where(eq(sweepLottoEntriesTable.drawId, id))
+      .orderBy(desc(sweepLottoEntriesTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(sweepLottoEntriesTable)
+      .where(eq(sweepLottoEntriesTable.drawId, id)),
+  ]);
+
+  const total = Number(countResult[0]?.c ?? 0);
+  const winnersCount = entries.filter((e) => (e.entry.matchCount ?? 0) >= 3).length;
+
+  res.json({
+    draw,
+    data: entries.map((e) => ({
+      ...e.entry,
+      telegramId: e.telegramId?.toString() ?? null,
+      username: e.username ?? null,
+      firstName: e.firstName ?? null,
+    })),
+    total,
+    page,
+    limit,
+    winnersCount,
+  });
+});
+
 // ── Shared draw-execution logic ────────────────────────────────────────────────
 async function executeLottoDraw(
   rawDraw: typeof sweepLottoDrawsTable.$inferSelect,
