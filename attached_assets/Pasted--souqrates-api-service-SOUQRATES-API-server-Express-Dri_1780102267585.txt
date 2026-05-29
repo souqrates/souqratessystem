@@ -1,0 +1,19 @@
+● souqrates-api.service - SOUQRATES API server (Express + Drizzle, Neon Postgres + R2)
+     Loaded: loaded (/etc/systemd/system/souqrates-api.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-05-29 16:50:23 CEST; 56s ago
+   Main PID: 196566 (MainThread)
+      Tasks: 11 (limit: 14306)
+     Memory: 206.7M (peak: 227.4M)
+        CPU: 11.819s
+     CGroup: /system.slice/souqrates-api.service
+             └─196566 /usr/bin/node --enable-source-maps /opt/souqrates/repo/artifacts/api-server/dist/index.mjs
+
+May 29 16:50:23 vmi3329645 systemd[1]: Started souqrates-api.service - SOUQRATES API server (Express + Drizzle, Neon Postgres + R2).
+May 29 16:50:36 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066236391,"pid":196566,"hostname":"vmi3329645","msg":"Sentry not configured/enabled — skipping init"}
+May 29 16:50:36 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066236580,"pid":196566,"hostname":"vmi3329645","msg":"Rate limit: Upstash not configured, using in-memory store"}
+May 29 16:50:37 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066237079,"pid":196566,"hostname":"vmi3329645","port":8080,"msg":"Server listening"}
+May 29 16:50:37 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066237083,"pid":196566,"hostname":"vmi3329645","component":"deposit-watcher","address":"UQA6ob_h_pLqtbdEMY2nmCuKemoHl2c4zuA9bo3oUu_9g8e1","intervalMs":30000,"msg":"deposit watcher started"}
+May 29 16:50:37 vmi3329645 souqrates-api[196566]: {"level":40,"time":1780066237628,"pid":196566,"hostname":"vmi3329645","component":"deposit-watcher","status":429,"msg":"tonapi events fetch non-OK"}
+May 29 16:50:37 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066237661,"pid":196566,"hostname":"vmi3329645","component":"deposit-watcher","raw":"0:3aa1bfe1fe92eab5b744318da7982b8a7a6a07976738cee03d6e8de852effd83","msg":"deposit address resolved"}
+May 29 16:50:47 vmi3329645 souqrates-api[196566]: {"level":30,"time":1780066247439,"pid":196566,"hostname":"vmi3329645","component":"deposit-watcher","req":{"id":1,"method":"GET","url":"/api/superadmin/bot-texts"},"res":{"statusCode":200},"responseTime":408,"msg":"request completed"}
+root@vmi3329645:~# 
