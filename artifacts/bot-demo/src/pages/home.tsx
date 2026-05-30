@@ -21,12 +21,12 @@ const fadeUp = {
 };
 
 const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: string }[] = [
-  { name: "Skillz",    brand: "SOUQRATES SKILLZ",     short: "SKILLZ",     live: true,  url: "https://souqrates.com/games-bot/" },
-  { name: "Souq",      brand: "SOUQRATES SOUQ",        short: "SOUQ",       live: true,  url: "https://souqrates.com/books-bot-web/" },
+  { name: "Skillz",    brand: "SOUQRATES SKILLZ",     short: "SKILLZ",     live: true,  url: "https://t.me/Souqrates_skillz_bot/app" },
+  { name: "Souq",      brand: "SOUQRATES SOUQ",        short: "SOUQ",       live: true,  url: "https://t.me/souqrates_souq_bot/app" },
   { name: "Scene",     brand: "SOUQRATES SCENE",       short: "SCENE" },
   { name: "Stream",    brand: "SOUQRATES STREAM",      short: "STREAM" },
   { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS",  short: "SUB-AGENTS", live: true,  url: "/subagents" },
-  { name: "Stage",     brand: "SOUQRATES STAGE",       short: "STAGE",      live: true,  url: "https://souqrates.com/contests-bot-web/" },
+  { name: "Stage",     brand: "SOUQRATES STAGE",       short: "STAGE",      live: true,  url: "https://t.me/Souqrates_stage_bot/app" },
 ];
 
 function useDailyStreak(): number {
