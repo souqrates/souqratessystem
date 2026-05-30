@@ -1,0 +1,74 @@
+════════════════════════════════════════════
+ 1) فحص الأصول (JS/CSS) لكل تطبيق
+════════════════════════════════════════════
+── bot-demo  (/)
+   index.html: 200
+      ✅ 200  https://telegram.org/js/telegram-web-app.js
+      ❌ 404  /assets/index-Bb0l7qpL.js
+      ❌ 404  /assets/index-Bniyc4y9.css
+── games-bot  (/games-bot/)
+   index.html: 200
+      ✅ 200  https://telegram.org/js/telegram-web-app.js
+      ❌ 404  /games-bot/assets/main-tl1wUHPR.js
+      ❌ 404  /games-bot/assets/vendor-DVKLclyd.js
+      ❌ 404  /games-bot/assets/vendor-react-DMGzRFGa.js
+      ❌ 404  /games-bot/assets/vendor-state-DY9EeAcj.js
+      ❌ 404  /games-bot/assets/vendor-motion-Dg2nBlho.js
+      ❌ 404  /games-bot/assets/vendor-icons-DmqKFjnB.js
+      ❌ 404  /games-bot/assets/main-Bqd5wHnx.css
+── books-bot-web  (/books-bot-web/)
+   index.html: 200
+      ✅ 200  https://telegram.org/js/telegram-web-app.js
+      ❌ 404  /books-bot-web/assets/index-DYYEt2Ht.js
+      ❌ 404  /books-bot-web/assets/index-BgLmb0E6.css
+── contests-bot-web  (/contests-bot-web/)
+   index.html: 200
+      ❌ 404  /contests-bot-web/assets/index-BGquP4bl.js
+      ❌ 404  /contests-bot-web/assets/index-rQywxoMt.css
+── subagents-bot-web  (/subagents-bot-web/)
+   index.html: 200
+      ✅ 200  https://telegram.org/js/telegram-web-app.js
+      ❌ 404  /subagents-bot-web/assets/index-B3JH3MRG.js
+      ❌ 404  /subagents-bot-web/assets/index-B7zQQFRi.css
+── superadmin  (/superadmin/)
+   index.html: 200
+      ❌ 404  /superadmin/assets/index-BLtnj3jT.js
+      ❌ 404  /superadmin/assets/index-YAG9htOo.css
+
+════════════════════════════════════════════
+ 2) حالة الخدمات (systemd)
+════════════════════════════════════════════
+   ✅ souqrates-mother-bot: active
+   ✅ souqrates-books-bot: active
+   ✅ souqrates-contests-bot: active
+   ✅ souqrates-subagents-bot: active
+
+════════════════════════════════════════════
+ 3) صحة API + webhooks
+════════════════════════════════════════════
+   API healthz:        200
+   mother webhook:     200
+   books webhook:      200
+   contests webhook:   200
+   subagents webhook:  200
+
+════════════════════════════════════════════
+ 4) nginx config + القرص
+════════════════════════════════════════════
+   nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+   nginx: configuration file /etc/nginx/nginx.conf test is successful
+   مساحة القرص: 3% مستخدم، 188G متبقٍ
+
+════════════════════════════════════════════
+ 5) ملفات غريبة في مجلدات النشر
+════════════════════════════════════════════
+   ⚠ bot-demo: deposit_guide.png favicon.svg logo.jpg opengraph.jpg robots.txt souqrates-logo.webp 
+   ⚠ games-bot: WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg index.html.br index.html.gz manifest.webmanifest robots.txt souqrates-logo.webp 
+   ⚠ books-bot-web: favicon.svg opengraph.jpg robots.txt souqrates-logo.webp 
+   ⚠ contests-bot-web: favicon.svg opengraph.jpg robots.txt souqrates-logo.webp 
+   ⚠ subagents-bot-web: favicon.svg opengraph.jpg robots.txt souqrates-logo.webp 
+   ⚠ superadmin: favicon.svg opengraph.jpg robots.txt 
+   (لا شيء أعلاه = نظيف)
+
+✅ انتهى الفحص
+root@vmi3329645:/opt/souqrates/repo# 
