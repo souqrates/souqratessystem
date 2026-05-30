@@ -1,0 +1,46 @@
+0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 04:47:52 vmi3329645 souqrates-mother-bot[24162]: INFO:aiogram.event:Update id=758710874 is handled. Duration 1573 ms by bot id=8761522056
+May 30 04:48:11 vmi3329645 souqrates-mother-bot[24162]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:03:48:11 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 04:48:12 vmi3329645 souqrates-mother-bot[24162]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 04:48:12 vmi3329645 souqrates-mother-bot[24162]: INFO:aiogram.event:Update id=758710875 is handled. Duration 1184 ms by bot id=8761522056
+May 30 04:49:54 vmi3329645 systemd[1]: Stopping souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101)...
+May 30 04:49:54 vmi3329645 systemd[1]: souqrates-mother-bot.service: Deactivated successfully.
+May 30 04:49:54 vmi3329645 systemd[1]: Stopped souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 04:49:54 vmi3329645 systemd[1]: souqrates-mother-bot.service: Consumed 24.716s CPU time.
+May 30 04:49:54 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 04:49:55 vmi3329645 souqrates-mother-bot[26554]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:Mini App URL: https://souqrates.com/
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 3 default commands to BotFather menu
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 3 commands for language=en
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 3 commands for language=ar
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 2 commands for language=ru
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 2 commands for language=es
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 2 commands for language=fr
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 2 commands for language=tr
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: INFO:__main__:published 2 commands for language=fa
+May 30 04:50:02 vmi3329645 souqrates-mother-bot[26554]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 30 04:50:03 vmi3329645 souqrates-mother-bot[26554]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 30 04:50:03 vmi3329645 souqrates-mother-bot[26554]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+● souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101)
+     Loaded: loaded (/etc/systemd/system/souqrates-mother-bot.service; enabled; preset: enabled)
+     Active: active (running) since Sat 2026-05-30 04:49:54 CEST; 2min 21s ago
+   Main PID: 26554 (python)
+      Tasks: 2 (limit: 14306)
+     Memory: 133.4M (peak: 133.7M)
+        CPU: 7.069s
+     CGroup: /system.slice/souqrates-mother-bot.service
+             └─26554 /opt/souqrates/venvs/mother…
+
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:00 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:02 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:03 vmi3329645 souqrates-mother-bot[26554]: ...
+May 30 04:50:03 vmi3329645 souqrates-mother-bot[26554]: ...
+Hint: Some lines were ellipsized, use -l to show in full.
+root@vmi3329645:~# 
