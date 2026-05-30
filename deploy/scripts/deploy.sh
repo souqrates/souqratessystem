@@ -77,6 +77,30 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
 
+log "Cloudflare cache purge (HTML index files)"
+CF_ENV="/etc/souqrates/api-server.env"
+CF_TOKEN=""
+CF_ZONE=""
+if [[ -f "$CF_ENV" ]]; then
+  CF_TOKEN=$(grep '^CLOUDFLARE_API_TOKEN=' "$CF_ENV" | cut -d= -f2- | tr -d '"' || true)
+  CF_ZONE=$(grep  '^CLOUDFLARE_ZONE_ID='    "$CF_ENV" | cut -d= -f2- | tr -d '"' || true)
+fi
+if [[ -n "$CF_TOKEN" && -n "$CF_ZONE" ]]; then
+  PURGE_FILES='["https://souqrates.com/","https://souqrates.com/superadmin/","https://souqrates.com/books-bot-web/","https://souqrates.com/contests-bot-web/","https://souqrates.com/subagents-bot-web/","https://souqrates.com/games-bot/"]'
+  RESULT=$(curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
+    -H "Authorization: Bearer ${CF_TOKEN}" \
+    -H "Content-Type: application/json" \
+    --data "{\"files\":${PURGE_FILES}}" 2>&1 || true)
+  if echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('success') else 1)" 2>/dev/null; then
+    echo "  ✓ HTML cache purged from Cloudflare edge"
+  else
+    echo "  ⚠ Cloudflare purge failed — token may lack Cache Purge permission"
+    echo "    $(echo "$RESULT" | head -c 200)"
+  fi
+else
+  echo "  ⚠ CLOUDFLARE_API_TOKEN / CLOUDFLARE_ZONE_ID not in ${CF_ENV} — skipping"
+fi
+
 log "Refresh Python deps if requirements.txt changed"
 for bot in mother-bot books-bot contests-bot subagents-bot; do
   if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
