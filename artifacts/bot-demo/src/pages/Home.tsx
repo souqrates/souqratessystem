@@ -3,8 +3,6 @@ import { motion } from 'framer-motion';
 import { TrendingUp, Users, Zap, BarChart3, ChevronRight } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
 import type { Page } from '../App';
-import { CARDS } from '../components/ScratchReveal';
-
 interface Props {
   lang: Lang;
   balance: number;
@@ -27,8 +25,6 @@ const STATS = [
   { key: 'winRate'       as const, value: '24.6%', icon: Zap,        color: '#818cf8' },
   { key: 'biggestWin'    as const, value: '1000',  icon: Users,      color: '#06b6d4' },
 ];
-
-const diamond = CARDS[3];
 
 export default function Home({ balance, onNavigate }: Props) {
   const [countdown] = useState({ d: 0, h: 18, m: 42, s: 17 });

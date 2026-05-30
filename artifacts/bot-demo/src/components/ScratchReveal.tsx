@@ -1,314 +1,470 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Gem, Trophy, Coins } from 'lucide-react';
-import { t } from '../lib/i18n';
+import { type GameDef, type TierDef } from '../lib/games-data';
+import { t, type Lang } from '../lib/i18n';
 
-export type Tier = 'bronze' | 'silver' | 'gold' | 'diamond';
-
-export interface CardDef {
-  tier: Tier;
-  entry: number;
-  prizes: number[];
-  weights: number[];
-  color: string;
-  coverClass: string;
-  Icon: typeof Star;
+interface Props {
+  game: GameDef;
+  tier: TierDef;
+  cardNum: number;
+  lang: Lang;
+  onResult: (prize: number) => void;
+  onPlayAgain: () => void;
 }
 
-export const CARDS: CardDef[] = [
-  {
-    tier: 'bronze', entry: 1,
-    prizes: [0, 2, 3, 5, 10],
-    weights: [0.62, 0.20, 0.10, 0.06, 0.02],
-    color: '#cd7f32', coverClass: 'cover-bronze',
-    Icon: Coins,
-  },
-  {
-    tier: 'silver', entry: 5,
-    prizes: [0, 8, 15, 30, 50],
-    weights: [0.60, 0.22, 0.11, 0.05, 0.02],
-    color: '#94a3b8', coverClass: 'cover-silver',
-    Icon: Star,
-  },
-  {
-    tier: 'gold', entry: 20,
-    prizes: [0, 40, 80, 150, 200],
-    weights: [0.58, 0.23, 0.12, 0.05, 0.02],
-    color: '#f59e0b', coverClass: 'cover-gold',
-    Icon: Trophy,
-  },
-  {
-    tier: 'diamond', entry: 100,
-    prizes: [0, 200, 400, 750, 1000],
-    weights: [0.56, 0.24, 0.12, 0.06, 0.02],
-    color: '#818cf8', coverClass: 'cover-diamond',
-    Icon: Gem,
-  },
-];
-
-function rollPrize(card: CardDef): number {
+function rollPrize(tier: TierDef): number {
   let r = Math.random(), cum = 0;
-  for (let i = 0; i < card.weights.length; i++) {
-    cum += card.weights[i];
-    if (r < cum) return card.prizes[i];
+  for (let i = 0; i < tier.weights.length; i++) {
+    cum += tier.weights[i];
+    if (r < cum) return tier.prizes[i];
   }
   return 0;
 }
 
-function getSymbols(prize: number, card: CardDef): [string, string, string] {
+function getWinSymbols(prize: number, game: GameDef): [string, string, string] {
   if (prize === 0) {
-    const mis = ['✕', '○', '—'];
-    return [mis[0], mis[1], mis[2]];
+    const s = game.symbols;
+    return [s[0], s[1], s[2]];
   }
-  const s = card.tier === 'diamond' ? '◆' : card.tier === 'gold' ? '★' : card.tier === 'silver' ? '◈' : '●';
-  return [s, s, s];
+  const sym = game.symbols[3];
+  return [sym, sym, sym];
 }
 
-interface Props {
-  card: CardDef;
-  onResult: (prize: number) => void;
-  onClose: () => void;
-}
+export default function ScratchCanvas({ game, tier, cardNum, lang, onResult, onPlayAgain }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isPointerDown = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const revealedRef = useRef(false);
+  const resultCalledRef = useRef(false);
 
-export default function ScratchReveal({ card, onResult, onClose }: Props) {
-  const [phase, setPhase] = useState<'cover' | 'scratching' | 'revealed'>('cover');
-  const [prize, setPrize] = useState<number | null>(null);
-  const [symbols, setSymbols] = useState<[string,string,string]>(['?','?','?']);
-  const { Icon } = card;
+  const [prize] = useState(() => rollPrize(tier));
+  const [symbols] = useState<[string, string, string]>(() => getWinSymbols(rollPrize(tier), game));
+  const [scratchPct, setScratchPct] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [showResult, setShowResult] = useState(false);
 
-  function handleScratch() {
-    setPhase('scratching');
-    const p = rollPrize(card);
-    const syms = getSymbols(p, card);
-    setTimeout(() => {
-      setPrize(p);
-      setSymbols(syms);
-      setPhase('revealed');
-      onResult(p);
-    }, 900);
+  const prizeRef = useRef(prize);
+  prizeRef.current = prize;
+
+  const won = prize > 0;
+  const isRtl = lang === 'ar';
+
+  // Init canvas cover layer
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Draw metallic gradient cover
+    const grd = ctx.createLinearGradient(0, 0, W, H);
+    grd.addColorStop(0, game.color1);
+    grd.addColorStop(0.5, adjustBrightness(game.color1, 30));
+    grd.addColorStop(1, game.color2);
+    ctx.fillStyle = grd;
+    ctx.roundRect(0, 0, W, H, 18);
+    ctx.fill();
+
+    // Shimmer stripe overlay
+    const shimmer = ctx.createLinearGradient(0, 0, W, H);
+    shimmer.addColorStop(0, 'rgba(255,255,255,0)');
+    shimmer.addColorStop(0.4, 'rgba(255,255,255,0.08)');
+    shimmer.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+    shimmer.addColorStop(0.6, 'rgba(255,255,255,0.08)');
+    shimmer.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = shimmer;
+    ctx.roundRect(0, 0, W, H, 18);
+    ctx.fill();
+
+    // Dot pattern
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (let x = 14; x < W; x += 22) {
+      for (let y = 14; y < H; y += 22) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Game emoji
+    ctx.font = '36px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(game.emoji, W / 2, H / 2 - 22);
+
+    // "احك هنا" label
+    ctx.font = `bold 14px "Tajawal", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText(isRtl ? '← احك بإصبعك →' : '← Scratch Here →', W / 2, H / 2 + 18);
+
+    // Card number badge top-right
+    ctx.font = `bold 11px "Orbitron", sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.textAlign = isRtl ? 'left' : 'right';
+    ctx.fillText(`#${cardNum}`, isRtl ? 12 : W - 12, 16);
+  }, []);
+
+  function adjustBrightness(hex: string, amount: number) {
+    try {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const r = Math.min(255, (num >> 16) + amount);
+      const g = Math.min(255, ((num >> 8) & 0x00ff) + amount);
+      const b = Math.min(255, (num & 0x0000ff) + amount);
+      return `rgb(${r},${g},${b})`;
+    } catch {
+      return hex;
+    }
   }
 
-  const tierName = t(card.tier);
-  const won = prize !== null && prize > 0;
+  function getCanvasPos(e: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height),
+    };
+  }
+
+  function scratchAt(x: number, y: number, fromX?: number, fromY?: number) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (fromX !== undefined && fromY !== undefined) {
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(x, y);
+      ctx.lineWidth = 52;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, 26, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    sampleReveal(canvas);
+  }
+
+  const sampleReveal = useCallback((canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let transparent = 0;
+    const step = 8;
+    const total = Math.floor(canvas.width * canvas.height / step);
+    for (let i = 3; i < data.length; i += 4 * step) {
+      if (data[i] < 100) transparent++;
+    }
+    const pct = Math.min(100, Math.round((transparent / total) * 100));
+    setScratchPct(pct);
+
+    if (pct >= 60 && !revealedRef.current) {
+      revealedRef.current = true;
+      setRevealed(true);
+      if (!resultCalledRef.current) {
+        resultCalledRef.current = true;
+        onResult(prizeRef.current);
+      }
+      // Fade out canvas
+      let alpha = 1;
+      const fade = () => {
+        alpha -= 0.06;
+        if (canvas) canvas.style.opacity = Math.max(0, alpha).toString();
+        if (alpha > 0) requestAnimationFrame(fade);
+        else if (canvas) canvas.style.pointerEvents = 'none';
+      };
+      setTimeout(() => requestAnimationFrame(fade), 200);
+      setTimeout(() => setShowResult(true), 800);
+    }
+  }, [onResult]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (revealedRef.current) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isPointerDown.current = true;
+    const pos = getCanvasPos(e);
+    lastPos.current = pos;
+    scratchAt(pos.x, pos.y);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isPointerDown.current || revealedRef.current) return;
+    const pos = getCanvasPos(e);
+    if (lastPos.current) {
+      scratchAt(pos.x, pos.y, lastPos.current.x, lastPos.current.y);
+    }
+    lastPos.current = pos;
+  };
+
+  const onPointerUp = () => {
+    isPointerDown.current = false;
+    lastPos.current = null;
+  };
+
+  function handleRevealAll() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    revealedRef.current = true;
+    setRevealed(true);
+    setScratchPct(100);
+    if (!resultCalledRef.current) {
+      resultCalledRef.current = true;
+      onResult(prizeRef.current);
+    }
+    let alpha = 1;
+    const fade = () => {
+      alpha -= 0.1;
+      canvas.style.opacity = Math.max(0, alpha).toString();
+      if (alpha > 0) requestAnimationFrame(fade);
+      else canvas.style.pointerEvents = 'none';
+    };
+    requestAnimationFrame(fade);
+    setTimeout(() => setShowResult(true), 600);
+  }
 
   return (
     <div style={{
-      background: '#030a05',
-      borderRadius: 20,
-      padding: 20,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 16,
+      padding: '0 16px',
       width: '100%',
+      maxWidth: 360,
     }}>
-      {/* Card body */}
+      {/* Prize card backing (canvas sits on top) */}
       <div style={{
-        width: '100%', maxWidth: 300,
-        borderRadius: 16,
-        overflow: 'hidden',
+        width: '100%',
+        maxWidth: 320,
         position: 'relative',
-        minHeight: 180,
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: `0 8px 40px ${game.color1}cc`,
+        border: `1px solid ${revealed && won ? game.accent + '88' : game.accent + '22'}`,
+        transition: 'border-color 0.4s',
       }}>
-        {/* Reveal layer */}
+        {/* ── Prize reveal layer (behind canvas) ── */}
         <div style={{
-          background: '#0c1d10',
-          border: `1px solid ${won ? 'rgba(34,197,94,0.4)' : 'rgba(100,116,139,0.2)'}`,
-          borderRadius: 16,
-          padding: 20,
+          background: won
+            ? `linear-gradient(145deg, #0a1f0a, #0e2d10)`
+            : `linear-gradient(145deg, #0a0e14, #0d1220)`,
+          padding: '22px 16px 20px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 12,
-          minHeight: 180,
+          gap: 14,
+          minHeight: 200,
           justifyContent: 'center',
         }}>
-          <Icon size={32} style={{ color: card.color }} strokeWidth={1.8} />
+          {/* Game name strip */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0,
+            padding: '7px 12px',
+            background: `linear-gradient(90deg, ${game.color1}88, transparent)`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{
+              fontSize: 9, fontFamily: '"Orbitron", sans-serif',
+              color: game.accent, fontWeight: 800, letterSpacing: '0.08em',
+            }}>
+              SOUQRATES SCRATCHY
+            </span>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>
+              #{cardNum} • {tier.cost} SKZ
+            </span>
+          </div>
 
-          {phase !== 'cover' && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              {symbols.map((sym, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: i * 0.12 + 0.1, type: 'spring', stiffness: 300 }}
-                  style={{
-                    width: 64, height: 64,
-                    borderRadius: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 26,
-                    fontWeight: 800,
-                  }}
-                  className={won ? 'prize-win' : 'prize-lose'}
-                >
-                  <span style={{ color: won ? '#4ade80' : '#475569' }}>{sym}</span>
-                </motion.div>
-              ))}
-            </div>
-          )}
+          {/* 3 symbol windows */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            {([0, 1, 2] as const).map(idx => (
+              <motion.div
+                key={idx}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: idx * 0.1 + 0.1, type: 'spring', stiffness: 280 }}
+                style={{
+                  width: 70, height: 70,
+                  borderRadius: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 30,
+                  fontWeight: 900,
+                  background: won
+                    ? `linear-gradient(135deg, ${game.color1}cc, ${game.color2})`
+                    : 'rgba(15,20,30,0.8)',
+                  border: won
+                    ? `2px solid ${game.accent}88`
+                    : '1px solid rgba(100,116,139,0.15)',
+                  boxShadow: won ? `0 0 20px ${game.accent}44` : 'none',
+                  color: won ? game.accent : '#334155',
+                }}
+              >
+                {symbols[idx]}
+              </motion.div>
+            ))}
+          </div>
 
-          {phase === 'cover' && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              {['?','?','?'].map((sym, i) => (
-                <div key={i} style={{
-                  width: 64, height: 64,
-                  borderRadius: 12,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22, fontWeight: 800, color: '#334155',
-                  background: '#0a1a0e', border: '1px solid rgba(34,197,94,0.1)',
-                }}>{sym}</div>
-              ))}
-            </div>
-          )}
-
-          {phase === 'revealed' && prize !== null && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{ textAlign: 'center' }}
-            >
-              {won ? (
-                <>
-                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>{t('winMsg')}</div>
+          {/* Prize amount */}
+          <AnimatePresence>
+            {showResult && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                style={{ textAlign: 'center' }}
+              >
+                {won ? (
+                  <>
+                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3 }}>
+                      {t('winMsg')}
+                    </div>
+                    <div style={{
+                      fontFamily: '"Orbitron", sans-serif',
+                      fontSize: 32, fontWeight: 900,
+                      background: `linear-gradient(90deg, ${game.accent}, #22c55e)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '0.02em',
+                    }}>
+                      +{prize.toLocaleString()} SKZ
+                    </div>
+                  </>
+                ) : (
                   <div style={{
-                    fontSize: 28, fontWeight: 900,
-                    fontFamily: '"Orbitron", sans-serif',
-                  }}
-                    className="text-grad-green"
-                  >
-                    +{prize} SKZ
+                    fontSize: 13, color: '#475569', fontWeight: 600,
+                    fontFamily: '"Tajawal", sans-serif',
+                  }}>
+                    {t('loseMsg')}
                   </div>
-                </>
-              ) : (
-                <div style={{ fontSize: 14, color: '#475569', fontWeight: 600 }}>{t('loseMsg')}</div>
-              )}
-            </motion.div>
-          )}
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Metallic cover overlay */}
-        <AnimatePresence>
-          {phase === 'cover' && (
-            <motion.div
-              key="cover"
-              exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              style={{
-                position: 'absolute', inset: 0,
-                borderRadius: 16,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                gap: 8, overflow: 'hidden',
-                transformOrigin: 'top center',
-              }}
-              className={card.coverClass}
-            >
-              <div className="shimmer-anim" style={{ position: 'absolute', inset: 0 }} />
-              <Icon size={36} color="rgba(255,255,255,0.9)" strokeWidth={2} />
-              <div style={{
-                fontFamily: '"Orbitron", sans-serif',
-                fontSize: 12, fontWeight: 800,
-                color: 'rgba(255,255,255,0.85)',
-                letterSpacing: '0.08em',
-                textShadow: '0 1px 4px rgba(0,0,0,0.4)',
-              }}>
-                {tierName.toUpperCase()}
-              </div>
-              <div style={{
-                fontSize: 10, fontWeight: 600,
-                color: 'rgba(255,255,255,0.6)',
-                letterSpacing: '0.06em',
-              }}>
-                SCRATCH ME
-              </div>
-            </motion.div>
-          )}
-          {phase === 'scratching' && (
-            <motion.div
-              key="scratching"
-              initial={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              style={{
-                position: 'absolute', inset: 0, borderRadius: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              className={card.coverClass}
-            >
-              <div className="shimmer-anim" style={{ position: 'absolute', inset: 0 }} />
-              <div style={{
-                fontFamily: '"Orbitron", sans-serif',
-                fontSize: 11, fontWeight: 800,
-                color: 'rgba(255,255,255,0.9)',
-                letterSpacing: '0.06em',
-                animation: 'pulse-green 1s infinite',
-              }}>
-                {t('scratching')}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Entry fee label */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 12, color: '#475569' }}>{t('entryFee')}:</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: card.color }}>{card.entry} SKZ</span>
-        <span style={{ fontSize: 11, color: '#334155', marginLeft: 8 }}>{t('maxPrize')}:</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>
-          {card.prizes[card.prizes.length - 1]} SKZ
-        </span>
-      </div>
-
-      {/* Action button */}
-      {phase === 'cover' && (
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={handleScratch}
+        {/* ── Canvas scratch overlay ── */}
+        <canvas
+          ref={canvasRef}
+          width={320}
+          height={220}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
           style={{
-            width: '100%', maxWidth: 300,
-            padding: '14px 0',
-            borderRadius: 14,
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            borderRadius: 20,
+            cursor: revealed ? 'default' : 'crosshair',
+            touchAction: 'none',
+            userSelect: 'none',
+          }}
+        />
+      </div>
+
+      {/* Scratch progress bar */}
+      {!revealed && (
+        <div style={{ width: '100%', maxWidth: 320, marginTop: 12 }}>
+          <div style={{
+            height: 3,
+            background: 'rgba(255,255,255,0.06)',
+            borderRadius: 99,
+            overflow: 'hidden',
+          }}>
+            <motion.div
+              style={{
+                height: '100%',
+                background: `linear-gradient(90deg, ${game.accent}, #22c55e)`,
+                borderRadius: 99,
+              }}
+              animate={{ width: `${scratchPct}%` }}
+              transition={{ duration: 0.12 }}
+            />
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: 5,
+            fontSize: 10,
+            color: '#475569',
+          }}>
+            <span>{t('scratchToReveal')}</span>
+            <span style={{ color: scratchPct > 40 ? game.accent : '#475569', fontWeight: 700 }}>
+              {scratchPct}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Quick reveal button */}
+      {!revealed && scratchPct < 60 && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.5 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={handleRevealAll}
+          style={{
+            marginTop: 10,
+            background: 'transparent',
             border: 'none',
-            background: `linear-gradient(135deg, ${card.color}cc, ${card.color})`,
-            color: '#fff',
-            fontSize: 16,
-            fontWeight: 800,
+            color: '#334155',
+            fontSize: 11,
             cursor: 'pointer',
             fontFamily: '"Tajawal", sans-serif',
-            boxShadow: `0 4px 20px ${card.color}44`,
-            letterSpacing: '0.02em',
+            textDecoration: 'underline',
           }}
         >
-          {t('scratchNow')} — {card.entry} SKZ
+          {isRtl ? 'كشف تلقائي' : 'Auto Reveal'}
         </motion.button>
       )}
 
-      {phase === 'revealed' && (
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={onClose}
-          style={{
-            width: '100%', maxWidth: 300,
-            padding: '14px 0',
-            borderRadius: 14,
-            border: '1px solid rgba(34,197,94,0.25)',
-            background: 'rgba(34,197,94,0.08)',
-            color: '#22c55e',
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: '"Tajawal", sans-serif',
-          }}
-        >
-          {t('scratchAnother')}
-        </motion.button>
-      )}
+      {/* Play again */}
+      <AnimatePresence>
+        {showResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{ width: '100%', maxWidth: 320, marginTop: 14 }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={onPlayAgain}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                borderRadius: 14,
+                border: `1px solid ${game.accent}44`,
+                background: `linear-gradient(135deg, ${game.color1}cc, ${game.color2})`,
+                color: game.accent,
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontFamily: '"Tajawal", sans-serif',
+                boxShadow: `0 4px 20px ${game.color1}88`,
+              }}
+            >
+              {t('scratchAnother')}
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
