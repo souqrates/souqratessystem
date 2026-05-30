@@ -423,10 +423,6 @@ export function Home() {
                   onClick={() => {
                     if (bot.live && bot.url) {
                       if (bot.url.startsWith("/")) { window.location.href = bot.url; return; }
-                      try {
-                        const target = new URL(bot.url);
-                        if (target.origin === window.location.origin) { window.location.href = target.pathname + target.search + target.hash; return; }
-                      } catch {}
                       openTelegramApp(bot.url);
                     } else {
                       showTelegramAlert(t("home.bot.launchingSoon", { brand: bot.brand }));
