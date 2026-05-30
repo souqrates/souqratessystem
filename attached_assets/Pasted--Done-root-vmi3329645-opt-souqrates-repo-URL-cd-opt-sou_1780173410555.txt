@@ -1,0 +1,80 @@
+✅ Done
+root@vmi3329645:/opt/souqrates/repo# # تحقق من URL التي يستخدمها البوت
+cd /opt/souqrates/repo
+python3 -c "
+import os
+def resolve():
+    pub = os.getenv('PUBLIC_BASE_URL','').strip() 
+    if pub: return pub.rstrip('/')
+    rd = os.getenv('REPLIT_DOMAINS','').strip()
+    if rd: return 'https://'+rd.split(',')[0].strip()
+    dev = os.getenv('REPLIT_DEV_DOMAIN','').strip()
+    if dev: return 'https://'+dev
+    return 'https://souqrates.com'
+base = resolve()
+print('MINI_APP_URL:', base+'/')
+print('GAMES_APP_URL:', base+'/games-bot/')
+print('CONTESTS_APP_URL:', base+'/contests-bot-web/')
+"
+
+# تحقق أن ملفات games-bot موجودة
+ls /var/www/souqrates/games-bot/ | head -5
+curl -s -o /dev/null -w "%{http_code}" https://souqrates.com/games-bot/
+MINI_APP_URL: https://souqrates.com/
+GAMES_APP_URL: https://souqrates.com/games-bot/
+CONTESTS_APP_URL: https://souqrates.com/contests-bot-web/
+WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg
+_headers
+_redirects
+assets
+index.html
+root@vmi3329645:/opt/souqrates/repo# grep -A 20 "games.bot\|games-bot" /etc/nginx/sites-enabled/souqrates.confonf
+#   /games-bot/*                → static
+#   /                            → static (bot-demo, the mother-bot Mini App root)
+#
+# All static roots are served out of /var/www/souqrates/<slug>/ — deploy.sh
+# rsyncs each artifact's `dist/public` into the matching folder.
+
+# Rate-limit zone for webhook traffic (shared 10MB ≈ 160k IPs)
+limit_req_zone $binary_remote_addr zone=tg_webhook:10m rate=30r/s;
+
+# Common Telegram-webhook proxy settings.
+# (Inlined where used — keeps the file self-contained for the runbook.)
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name souqrates.com www.souqrates.com;
+
+    # ACME http-01 challenge for certbot.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+--
+    location /games-bot/ {
+        alias /var/www/souqrates/games-bot/;
+        try_files $uri $uri/ /games-bot/index.html;
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600";
+        location ~* \.(?:js|css|woff2?|ttf|otf|eot|ico|png|jpg|jpeg|webp|svg|gif|map)$ {
+            alias /var/www/souqrates/games-bot/;
+            try_files $uri =404;
+            expires 30d;
+            add_header Cache-Control "public, max-age=2592000, immutable";
+        }
+    }
+
+    # ─── Root: bot-demo (mother-bot Mini App, built with BASE_PATH=/) ─────
+    location / {
+        root /var/www/souqrates/bot-demo;
+        try_files $uri $uri/ /index.html;
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600";
+        location ~* \.(?:js|css|woff2?|ttf|otf|eot|ico|png|jpg|jpeg|webp|svg|gif|map)$ {
+            root /var/www/souqrates/bot-demo;
+            try_files $uri =404;
+            expires 30d;
+            add_header Cache-Control "public, max-age=2592000, immutable";
+        }
+    }
+}
