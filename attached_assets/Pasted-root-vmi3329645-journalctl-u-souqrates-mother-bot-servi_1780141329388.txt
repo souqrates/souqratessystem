@@ -1,0 +1,124 @@
+root@vmi3329645:~# journalctl -u souqrates-mother-bot.service -n 50 --no-pager
+May 30 03:19:05 vmi3329645 systemd[1]: souqrates-mother-bot.service: Consumed 6.764s CPU time, 133.7M memory peak, 0B memory swap peak.
+May 30 03:19:05 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 03:19:09 vmi3329645 souqrates-mother-bot[17480]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 03:19:26 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally
+May 30 03:19:26 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:Mini App URL: https://souqrates.com/
+May 30 03:19:27 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 3 default commands to BotFather menu
+May 30 03:19:27 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 3 commands for language=en
+May 30 03:19:27 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 3 commands for language=ar
+May 30 03:19:27 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=ru
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=es
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=fr
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=tr
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=fa
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:19:29 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:19:30 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:aiogram.event:Update id=758710862 is handled. Duration 1740 ms by bot id=8761522056
+May 30 03:24:01 vmi3329645 souqrates-mother-bot[17480]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:24:01 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:24:04 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:24:04 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:24:05 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:24:05 vmi3329645 souqrates-mother-bot[17480]: INFO:aiogram.event:Update id=758710863 is handled. Duration 3659 ms by bot id=8761522056
+May 30 03:35:51 vmi3329645 systemd[1]: Stopping souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101)...
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-mother-bot.service: Deactivated successfully.
+May 30 03:35:51 vmi3329645 systemd[1]: Stopped souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-mother-bot.service: Consumed 15.587s CPU time, 148.2M memory peak, 0B memory swap peak.
+May 30 03:35:51 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 03:35:53 vmi3329645 souqrates-mother-bot[18481]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:Mini App URL: https://souqrates.com/
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 default commands to BotFather menu
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 commands for language=en
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 commands for language=ar
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=ru
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=es
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=fr
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=tr
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=fa
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+May 30 03:38:17 vmi3329645 souqrates-mother-bot[18481]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:38:17 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:38:19 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:38:20 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:38:21 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:38:21 vmi3329645 souqrates-mother-bot[18481]: INFO:aiogram.event:Update id=758710864 is handled. Duration 3933 ms by bot id=8761522056
+root@vmi3329645:~# journalctl -u souqrates-subagents-bot.service -n 30 --no-pager
+May 30 02:56:31 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Consumed 11.080s CPU time, 140.2M memory peak, 0B memory swap peak.
+May 30 02:56:31 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 02:56:32 vmi3329645 souqrates-subagents-bot[16197]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 02:56:37 vmi3329645 souqrates-subagents-bot[16197]: 2026-05-30 02:56:37,523 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 30 02:56:37 vmi3329645 souqrates-subagents-bot[16197]: 2026-05-30 02:56:37,525 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+May 30 02:56:40 vmi3329645 souqrates-subagents-bot[16197]: 2026-05-30 02:56:40,024 [INFO] 127.0.0.1 [30/May/2026:01:56:40 +0100] "GET /telegram-webhook/subagents-bot/healthz HTTP/1.1" 200 171 "-" "curl/8.5.0"
+May 30 02:58:21 vmi3329645 systemd[1]: Stopping souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104)...
+May 30 02:58:21 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Deactivated successfully.
+May 30 02:58:21 vmi3329645 systemd[1]: Stopped souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 02:58:21 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Consumed 5.549s CPU time.
+May 30 02:58:23 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 02:58:24 vmi3329645 souqrates-subagents-bot[16283]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 02:58:30 vmi3329645 souqrates-subagents-bot[16283]: 2026-05-30 02:58:30,012 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 30 02:58:30 vmi3329645 souqrates-subagents-bot[16283]: 2026-05-30 02:58:30,016 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+May 30 03:19:04 vmi3329645 systemd[1]: Stopping souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104)...
+May 30 03:19:04 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Deactivated successfully.
+May 30 03:19:04 vmi3329645 systemd[1]: Stopped souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 03:19:04 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Consumed 6.412s CPU time, 130.7M memory peak, 0B memory swap peak.
+May 30 03:19:05 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 03:19:09 vmi3329645 souqrates-subagents-bot[17460]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 03:19:27 vmi3329645 souqrates-subagents-bot[17460]: 2026-05-30 03:19:27,203 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 30 03:19:27 vmi3329645 souqrates-subagents-bot[17460]: 2026-05-30 03:19:27,204 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+May 30 03:35:51 vmi3329645 systemd[1]: Stopping souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104)...
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Deactivated successfully.
+May 30 03:35:51 vmi3329645 systemd[1]: Stopped souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-subagents-bot.service: Consumed 14.429s CPU time, 143.3M memory peak, 0B memory swap peak.
+May 30 03:35:51 vmi3329645 systemd[1]: Started souqrates-subagents-bot.service - SOUQRATES subagents-bot (Telegram, webhook on :8104).
+May 30 03:35:51 vmi3329645 souqrates-subagents-bot[18482]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 03:36:02 vmi3329645 souqrates-subagents-bot[18482]: 2026-05-30 03:36:02,014 [INFO] subagents-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/subagents-bot
+May 30 03:36:02 vmi3329645 souqrates-subagents-bot[18482]: 2026-05-30 03:36:02,015 [INFO] subagents-bot: webhook server listening on 127.0.0.1:8104/telegram-webhook/subagents-bot
+root@vmi3329645:~# journalctl -u souqrates-mother-bot.service -n 40 --no-pager
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=fr
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=tr
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:__main__:published 2 commands for language=fa
+May 30 03:19:28 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+May 30 03:19:29 vmi3329645 souqrates-mother-bot[17480]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:19:29 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:19:30 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:19:31 vmi3329645 souqrates-mother-bot[17480]: INFO:aiogram.event:Update id=758710862 is handled. Duration 1740 ms by bot id=8761522056
+May 30 03:24:01 vmi3329645 souqrates-mother-bot[17480]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:24:01 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:24:04 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:24:04 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:24:05 vmi3329645 souqrates-mother-bot[17480]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:24:05 vmi3329645 souqrates-mother-bot[17480]: INFO:aiogram.event:Update id=758710863 is handled. Duration 3659 ms by bot id=8761522056
+May 30 03:35:51 vmi3329645 systemd[1]: Stopping souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101)...
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-mother-bot.service: Deactivated successfully.
+May 30 03:35:51 vmi3329645 systemd[1]: Stopped souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 03:35:51 vmi3329645 systemd[1]: souqrates-mother-bot.service: Consumed 15.587s CPU time, 148.2M memory peak, 0B memory swap peak.
+May 30 03:35:51 vmi3329645 systemd[1]: Started souqrates-mother-bot.service - SOUQRATES mother-bot (Telegram, webhook on :8101).
+May 30 03:35:53 vmi3329645 souqrates-mother-bot[18481]: Sentry init failed (non-fatal): [Errno 111] Connection refused
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:DISABLE_SUBAGENTS_SPAWN set — subagents-bot is managed externally
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:Mini App URL: https://souqrates.com/
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 default commands to BotFather menu
+May 30 03:36:01 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 commands for language=en
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 3 commands for language=ar
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=ru
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=es
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=fr
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=tr
+May 30 03:36:02 vmi3329645 souqrates-mother-bot[18481]: INFO:__main__:published 2 commands for language=fa
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/superadmin/bot-texts?botSlug=mother-bot "HTTP/1.1 200 OK"
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:webhook_runtime:mother-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/mother-bot
+May 30 03:36:03 vmi3329645 souqrates-mother-bot[18481]: INFO:webhook_runtime:mother-bot: webhook server listening on 127.0.0.1:8101/telegram-webhook/mother-bot
+May 30 03:38:17 vmi3329645 souqrates-mother-bot[18481]: INFO:aiohttp.access:127.0.0.1 [30/May/2026:02:38:17 +0100] "POST /telegram-webhook/mother-bot HTTP/1.1" 200 180 "-" "-"
+May 30 03:38:19 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: POST http://127.0.0.1:8080/api/internal/users/upsert "HTTP/1.1 200 OK"
+May 30 03:38:20 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:38:21 vmi3329645 souqrates-mother-bot[18481]: INFO:httpx:HTTP Request: GET http://127.0.0.1:8080/api/users/8763315766 "HTTP/1.1 200 OK"
+May 30 03:38:21 vmi3329645 souqrates-mother-bot[18481]: INFO:aiogram.event:Update id=758710864 is handled. Duration 3933 ms by bot id=8761522056
+root@vmi3329645:~# 
