@@ -97,19 +97,32 @@ fi
 
 log "Restart services"
 systemctl restart souqrates-api.service
-sleep 2
+sleep 5
 systemctl restart \
   souqrates-mother-bot.service \
   souqrates-books-bot.service \
   souqrates-contests-bot.service \
   souqrates-subagents-bot.service
 
-log "Health check"
-sleep 3
-curl -sfS http://127.0.0.1:8080/api/healthz && echo "  api ok"
+log "Health check (waiting 35s for bots to initialise…)"
+sleep 35
+# API — retry up to 5 times, 3s apart
+api_ok=0
+for i in 1 2 3 4 5; do
+  if curl -sfS http://127.0.0.1:8080/api/healthz 2>/dev/null; then
+    echo "  api ok"; api_ok=1; break
+  fi
+  echo "  api not ready yet (attempt $i/5)…"; sleep 3
+done
+[[ $api_ok -eq 0 ]] && echo "  ⚠ api did not respond — check: journalctl -u souqrates-api.service -n 30"
+# Bots
 for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot; do
   port="${p%:*}"; slug="${p#*:}"
-  curl -sfS "http://127.0.0.1:${port}/telegram-webhook/${slug}/healthz" && echo
+  if curl -sfS "http://127.0.0.1:${port}/telegram-webhook/${slug}/healthz" 2>/dev/null; then
+    echo "  ${slug} ok"
+  else
+    echo "  ⚠ ${slug} did not respond — check: journalctl -u souqrates-${slug}.service -n 20"
+  fi
 done
 
 log "Deploy complete: ${HEAD:0:8}"
