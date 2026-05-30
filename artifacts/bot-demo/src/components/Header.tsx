@@ -7,9 +7,10 @@ interface Props {
   lang: Lang;
   onToggleLang: () => void;
   onNavigate: (p: Page) => void;
+  onTopUp: () => void;
 }
 
-export default function Header({ balance, lang, onToggleLang }: Props) {
+export default function Header({ balance, lang, onToggleLang, onTopUp }: Props) {
   return (
     <header
       style={{
@@ -45,23 +46,28 @@ export default function Header({ balance, lang, onToggleLang }: Props) {
         </span>
       </div>
 
-      {/* Balance */}
-      <div style={{
-        background: 'rgba(34,197,94,0.08)',
-        border: '1px solid rgba(34,197,94,0.2)',
-        borderRadius: 20,
-        padding: '4px 12px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-      }}>
+      {/* Balance — tap to add +1000 SKZ for testing */}
+      <button
+        onClick={onTopUp}
+        title="+1000 SKZ"
+        style={{
+          background: 'rgba(34,197,94,0.08)',
+          border: '1px solid rgba(34,197,94,0.2)',
+          borderRadius: 20,
+          padding: '4px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          cursor: 'pointer',
+        }}
+      >
         <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>
           {balance.toLocaleString('en', { maximumFractionDigits: 1 })}
         </span>
         <span style={{ fontSize: 10, fontWeight: 600, color: '#22c55e', opacity: .8 }}>
-          {t('skz')}
+          {t('skz')} +
         </span>
-      </div>
+      </button>
 
       {/* Lang toggle */}
       <button

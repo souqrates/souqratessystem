@@ -32,7 +32,7 @@ export default function App() {
 
   return (
     <div className="scrch-shell" dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang}>
-      <Header balance={balance} lang={lang} onToggleLang={toggleLang} onNavigate={setPage} />
+      <Header balance={balance} lang={lang} onToggleLang={toggleLang} onNavigate={setPage} onTopUp={() => setBalance(b => +(b + 1000).toFixed(2))} />
       <div className="scrch-scroll">
         {page === 'home'    && <Home    lang={lang} balance={balance} onNavigate={setPage} />}
         {page === 'cards'   && <Cards   lang={lang} balance={balance} onDeduct={deduct} onCredit={credit} />}
