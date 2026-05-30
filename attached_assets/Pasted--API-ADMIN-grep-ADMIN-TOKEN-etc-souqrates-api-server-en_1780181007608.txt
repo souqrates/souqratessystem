@@ -1,0 +1,17 @@
+# أو عبر API
+ADMIN=$(grep 'ADMIN_TOKEN=' /etc/souqrates/api-server.env | cut -d= -f2-)
+curl -sk "http://127.0.0.1:8080/api/superadmin/bots" \
+  -H "Authorization: Bearer $ADMIN" | head -200
+     slug      | is_active 
+---------------+-----------
+ books-bot     | t
+ mother-bot    | t
+ subagents-bot | t
+ video-bot     | f
+ voice-bot     | f
+ contests-bot  | t
+ store-bot     | f
+ games-bot     | t
+(8 rows)
+
+{"data":[{"id":1,"slug":"games-bot","name":"SOUQRATES SKILLZ","description":"ألعاب المهارات مع رهانات ومكافآت","commissionRate":"0.0800","isActive":true,"totalVolumeUsdt":"230.000000","totalCommissionUsdt":"60.400000","createdAt":"2026-05-23T14:30:15.828Z","updatedAt":"2026-05-29T16:43:56.065Z"},{"id":2,"slug":"video-bot","name":"SOUQRATES SCENE","description":"منصة فيديو مع أرباح للمنشئين","commissionRate":"0.1000","isActive":false,"totalVolumeUsdt":"0.000000","totalCommissionUsdt":"0.000000","createdAt":"2026-05-23T14:30:15.843Z","updatedAt":"2026-05-23T14:30:15.843Z"},{"id":3,"slug":"voice-bot","name":"SOUQRATES STREAM","description":"غرف صوتية مدفوعة ومجانية","commissionRate":"0.1000","isActive":false,"totalVolumeUsdt":"0.000000","totalCommissionUsdt":"0.000000","createdAt":"2026-05-23T14:30:15.849Z","updatedAt":"2026-05-23T14:30:15.849Z"},{"id":4,"slug":"subagents-bot","name":"SOUQRATES SUB-AGENTS","description":"برنامج الشركاء والموزّعين — بيع SKZ بالجملة بأسعار خصومات حسب المرتبة","commissionRate":"0.0000","isActive":true,"totalVolumeUsdt":"0.000000","totalCommissionUsdt":"0.000000","createdAt":"2026-05-23T14:30:15.855Z","updatedAt":"2026-05-27T00:38:28.026Z"},{"id":5,"slug":"store-bot","name":"المتجر الرقمي","description":"بيع وشراء المنتجات الرقمية","commissionRate":"0.0500","isActive":false,"totalVolumeUsdt":"0.000000","totalCommissionUsdt":"0.000000","createdAt":"2026-05-23T14:30:15.862Z","updatedAt":"2026-05-23T14:30:15.862Z"},{"id":6,"slug":"contests-bot","name":"SOUQRATES STAGE","description":"مسابقات تصويتية احترافية — صوت مجاني يومي + باقات أصوات (قد تشمل كتبًا/مكافآت رقمية)","commissionRate":"0.0800","isActive":true,"totalVolumeUsdt":"30.000000","totalCommissionUsdt":"2.400000","createdAt":"2026-05-23T14:30:15.868Z","updatedAt":"2026-05-27T22:12:40.447Z"},{"id":7,"slug":"mother-bot","name":"SOUQRATES SYSTEM","description":"البوت الأم - المركز المالي","commissionRate":"0.0000","isActive":true,"totalVolumeUsdt":"0.000000","totalCommissionUsdt":"0.000000","createdAt":"2026-05-23T19:43:40.736Z","updatedAt":"2026-05-23T19:43:40.736Z"},{"id":8,"slug":"books-bot","name":"SOUQRATES SOUQ","description":"متجر الكتب والمنتجات الرقمية","commissionRate":"0.1000","isActive":true,"totalVolumeUsdt":"1065.400000","totalCommissionUsdt":"106.540000","createdAt":"2026-05-24T22:56:24.225Z","updatedAt":"2026-05-26T01:06:29.754Z"}]}root@vmi3329645:/opt/souqrates/repo# 
