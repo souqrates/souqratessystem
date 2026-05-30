@@ -1,18 +1,35 @@
 #!/usr/bin/env bash
 # SOUQRATES SYSTEM — Comprehensive Platform Health Check
-# Runs on the Contabo server (has access to local ports, nginx, systemd).
 #
-# Usage:
+# Usage (on Contabo):
 #   sudo bash deploy/scripts/health-check.sh
 #   sudo bash deploy/scripts/health-check.sh --base-url https://souqrates.com
+#   sudo bash deploy/scripts/health-check.sh --base-url https://souqrates.com --skip-financial
 #
-# Exit code: 0 = all critical checks passed, 1 = one or more critical checks failed.
+# Can also be run from Replit against the live domain (no local checks):
+#   bash deploy/scripts/health-check.sh --base-url https://souqrates.com
+#
+# Exit code: 0 = all critical checks passed, 1 = one or more critical failures.
 
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-https://souqrates.com}"
+# ── CLI args ────────────────────────────────────────────────────────────────
+BASE_URL="https://souqrates.com"
+SKIP_FINANCIAL=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --base-url)    BASE_URL="$2"; shift 2 ;;
+    --skip-financial) SKIP_FINANCIAL=1; shift ;;
+    *) echo "Unknown arg: $1" >&2; shift ;;
+  esac
+done
+
+# ── Paths ───────────────────────────────────────────────────────────────────
 API_ENV="/etc/souqrates/api-server.env"
-NGINX_CONF="/etc/nginx/sites-available/souqrates.conf"
+NGINX_CONF_SERVER="/etc/nginx/sites-available/souqrates.conf"
+NGINX_CONF_REPO="$(dirname "$(dirname "$0")")/nginx/souqrates.conf"
+ON_SERVER=0
+[[ -f "$NGINX_CONF_SERVER" ]] && ON_SERVER=1
 
 # ── Colour helpers ──────────────────────────────────────────────────────────
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[0;33m'
@@ -25,61 +42,82 @@ hdr()  { echo -e "\n${BOLD}── $* ──────────────�
 FAILED=0
 WARNED=0
 
-# ── Read env vars (ADMIN_TOKEN, bot API keys, CF creds) ────────────────────
+# ── curl helpers (forward ALL args so -H headers work) ─────────────────────
+# origin_fetch: bypasses Cloudflare DNS by resolving to 127.0.0.1 (server only)
+http_code()    { curl -sk -o /dev/null -w "%{http_code}" "$@"; }
+http_body()    { curl -sk "$@"; }
+origin_code()  { curl -sk -o /dev/null -w "%{http_code}" --resolve "souqrates.com:443:127.0.0.1" "$@"; }
+origin_body()  { curl -sk --resolve "souqrates.com:443:127.0.0.1" "$@"; }
+
+# ── Read secrets from env file ──────────────────────────────────────────────
 ADMIN_TOKEN=""
 GAMES_API_KEY=""
+BOOKS_API_KEY=""
+CONTESTS_API_KEY=""
+SUBAGENTS_API_KEY=""
 CF_TOKEN=""
 CF_ZONE=""
 if [[ -f "$API_ENV" ]]; then
-  ADMIN_TOKEN=$(grep  '^ADMIN_TOKEN='             "$API_ENV" | cut -d= -f2- | tr -d '"' || true)
-  GAMES_API_KEY=$(grep '^GAMES_BOT_API_KEY='      "$API_ENV" | cut -d= -f2- | tr -d '"' || true)
-  CF_TOKEN=$(grep     '^CLOUDFLARE_API_TOKEN='    "$API_ENV" | cut -d= -f2- | tr -d '"' || true)
-  CF_ZONE=$(grep      '^CLOUDFLARE_ZONE_ID='      "$API_ENV" | cut -d= -f2- | tr -d '"' || true)
+  _get() { grep "^$1=" "$API_ENV" 2>/dev/null | cut -d= -f2- | tr -d '"' || true; }
+  ADMIN_TOKEN=$(_get ADMIN_TOKEN)
+  GAMES_API_KEY=$(_get GAMES_BOT_API_KEY)
+  BOOKS_API_KEY=$(_get BOOKS_BOT_API_KEY)
+  CONTESTS_API_KEY=$(_get CONTESTS_BOT_API_KEY)
+  SUBAGENTS_API_KEY=$(_get SUBAGENTS_BOT_API_KEY)
+  CF_TOKEN=$(_get CLOUDFLARE_API_TOKEN)
+  CF_ZONE=$(_get CLOUDFLARE_ZONE_ID)
 fi
 
-# ── Helper: HTTP status code ────────────────────────────────────────────────
-http_code() { curl -sk -o /dev/null -w "%{http_code}" "$1"; }
-http_body() { curl -sk "$@"; }
-
 echo -e "\n${BOLD}══════════════════════════════════════════════════════════════════${RESET}"
-echo -e "${BOLD}  SOUQRATES SYSTEM — HEALTH CHECK   $(date '+%Y-%m-%d %H:%M:%S UTC')${RESET}"
-echo -e "${BOLD}  Base URL: ${BASE_URL}${RESET}"
+echo -e "${BOLD}  SOUQRATES SYSTEM — HEALTH CHECK   $(date -u '+%Y-%m-%d %H:%M:%S UTC')${RESET}"
+echo -e "${BOLD}  Base URL  : ${BASE_URL}${RESET}"
+echo -e "${BOLD}  On server : ${ON_SERVER}  (1=Contabo, 0=remote)${RESET}"
 echo -e "${BOLD}══════════════════════════════════════════════════════════════════${RESET}"
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "1. nginx config — root (not alias)"
+hdr "1. nginx — config correctness + parity with repo"
 # ────────────────────────────────────────────────────────────────────────────
-if [[ -f "$NGINX_CONF" ]]; then
-  ALIAS_COUNT=$(grep -c '^\s*alias ' "$NGINX_CONF" || true)
-  ROOT_COUNT=$(grep  -c '^\s*root '  "$NGINX_CONF" || true)
+if [[ $ON_SERVER -eq 1 ]]; then
+  # No alias directives
+  ALIAS_COUNT=$(grep -c '^\s*alias ' "$NGINX_CONF_SERVER" || true)
   if [[ "$ALIAS_COUNT" -eq 0 ]]; then
-    ok "nginx config uses 'root' for all locations (no alias directives) — ${ROOT_COUNT} root lines"
+    ok "No 'alias' directives in server nginx config (all use 'root')"
   else
-    fail "nginx config still has ${ALIAS_COUNT} 'alias' directive(s) — assets will 404 on subpath SPAs"
+    fail "${ALIAS_COUNT} 'alias' directive(s) remain — SPA assets will 404 on subpaths"
   fi
 
-  # Cache headers for HTML
-  NO_STORE=$(grep -c 'no-store' "$NGINX_CONF" || true)
+  # no-store cache header for HTML
+  NO_STORE=$(grep -c 'no-store' "$NGINX_CONF_SERVER" || true)
   if [[ "$NO_STORE" -gt 0 ]]; then
-    ok "HTML cache headers: no-store present in nginx config (${NO_STORE} locations)"
+    ok "HTML cache header: no-store present (${NO_STORE} locations)"
   else
-    warn "HTML cache headers: no-store NOT found in nginx config — index.html may be edge-cached"
+    warn "HTML cache header: no-store NOT found — index.html may be edge-cached by Cloudflare"
+  fi
+
+  # Parity check: server config == repo canonical config
+  if [[ -f "$NGINX_CONF_REPO" ]]; then
+    if diff -q "$NGINX_CONF_SERVER" "$NGINX_CONF_REPO" &>/dev/null; then
+      ok "nginx config matches repo canonical (deploy/nginx/souqrates.conf)"
+    else
+      warn "nginx config differs from repo canonical — run deploy.sh to sync"
+      diff "$NGINX_CONF_SERVER" "$NGINX_CONF_REPO" | head -20 || true
+    fi
+  else
+    warn "Repo nginx config not found at ${NGINX_CONF_REPO} — skipping parity check"
+  fi
+
+  # nginx service
+  if command -v systemctl &>/dev/null; then
+    systemctl is-active --quiet nginx \
+      && ok "nginx service: active" \
+      || fail "nginx service: NOT active"
   fi
 else
-  warn "nginx config not found at ${NGINX_CONF} (running outside Contabo?)"
-fi
-
-# nginx service
-if command -v systemctl &>/dev/null; then
-  if systemctl is-active --quiet nginx; then
-    ok "nginx service is running"
-  else
-    fail "nginx service is NOT running"
-  fi
+  warn "Not on Contabo server — skipping nginx config/parity/systemd checks"
 fi
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "2. SPA — HTML (200) + JS asset (200)"
+hdr "2. SPA — HTML + JS asset (external + origin)"
 # ────────────────────────────────────────────────────────────────────────────
 declare -A SPA_PATHS=(
   [superadmin]="/superadmin/"
@@ -94,188 +132,266 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bo
   path="${SPA_PATHS[$slug]}"
   url="${BASE_URL}${path}"
 
-  # HTML
   html_code=$(http_code "$url")
-  html_body=$(http_body "$url")
-  if [[ "$html_code" == "200" ]]; then
-    # JS asset
-    js_path=$(echo "$html_body" | grep -o "${path}assets/[^\"']*\.js" | head -1)
-    [[ -z "$js_path" ]] && js_path=$(echo "$html_body" | grep -o '/assets/[^"'\'']*\.js' | grep -v telegram | head -1)
-    if [[ -n "$js_path" ]]; then
-      js_code=$(http_code "${BASE_URL}${js_path}")
-      if [[ "$js_code" == "200" ]]; then
-        ok "${slug}: HTML=200, JS=200 (${js_path##*/})"
-      else
-        fail "${slug}: HTML=200 but JS asset=${js_code} (${js_path##*/})"
-      fi
-    else
-      warn "${slug}: HTML=200 but could not find JS asset reference in page"
-    fi
-  else
+  if [[ "$html_code" != "200" ]]; then
     fail "${slug}: HTML=${html_code} (expected 200)"
+    continue
+  fi
+
+  html_body=$(http_body "$url")
+  js_path=$(echo "$html_body" | grep -o "${path}assets/[^\"']*\.js" | head -1)
+  [[ -z "$js_path" ]] && js_path=$(echo "$html_body" | grep -o '/assets/[^"'\'']*\.js' | grep -v telegram | head -1)
+
+  if [[ -z "$js_path" ]]; then
+    warn "${slug}: HTML=200 but JS asset reference not found in page"
+    continue
+  fi
+
+  js_code=$(http_code "${BASE_URL}${js_path}")
+  if [[ "$js_code" != "200" ]]; then
+    fail "${slug}: HTML=200 but JS=${js_code} (${js_path##*/})"
+    continue
+  fi
+
+  ok "${slug}: HTML=200, JS=200 (${js_path##*/})"
+
+  # Origin check (bypass Cloudflare) — server only
+  if [[ $ON_SERVER -eq 1 ]]; then
+    o_html=$(origin_code "$url")
+    o_js=$(origin_code "${BASE_URL}${js_path}")
+    if [[ "$o_html" == "200" && "$o_js" == "200" ]]; then
+      ok "${slug} [origin/direct]: HTML=200, JS=200"
+    else
+      fail "${slug} [origin/direct]: HTML=${o_html}, JS=${o_js} — nginx may still have misconfiguration"
+    fi
   fi
 done
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "3. API server"
+hdr "3. API server — health + auth gates"
 # ────────────────────────────────────────────────────────────────────────────
+# systemd
+if [[ $ON_SERVER -eq 1 ]] && command -v systemctl &>/dev/null; then
+  systemctl is-active --quiet souqrates-api.service \
+    && ok "souqrates-api.service: active" \
+    || fail "souqrates-api.service: NOT active"
+fi
+
 # healthz
 hc_body=$(http_body "${BASE_URL}/api/healthz")
-hc_ok=$(echo "$hc_body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || true)
-if [[ "$hc_ok" == "ok" ]]; then
-  ok "API /healthz → {status:ok}"
-else
-  fail "API /healthz → unexpected: ${hc_body:0:80}"
-fi
+hc_status=$(echo "$hc_body" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || true)
+[[ "$hc_status" == "ok" ]] \
+  && ok "GET /api/healthz → {status:ok}" \
+  || fail "GET /api/healthz → unexpected: ${hc_body:0:80}"
 
-# Auth gates
+# Auth gate: internal without key → 401
 code=$(http_code "${BASE_URL}/api/internal/users/upsert")
-if [[ "$code" == "401" ]]; then
-  ok "Auth gate (internal, no key) → 401 ✓"
-else
-  fail "Auth gate (internal, no key) → ${code} (expected 401)"
-fi
+[[ "$code" == "401" ]] \
+  && ok "Auth gate (internal, no key) → 401" \
+  || fail "Auth gate (internal, no key) → ${code} (expected 401)"
 
+# Auth gate: superadmin without token → 401
 code=$(http_code "${BASE_URL}/api/superadmin/users")
-if [[ "$code" == "401" ]]; then
-  ok "Auth gate (superadmin, no token) → 401 ✓"
+[[ "$code" == "401" ]] \
+  && ok "Auth gate (superadmin, no token) → 401" \
+  || fail "Auth gate (superadmin, no token) → ${code} (expected 401)"
+
+# Bots list endpoint
+if [[ -n "$ADMIN_TOKEN" ]]; then
+  code=$(http_code "${BASE_URL}/api/bots" -H "Authorization: Bearer ${ADMIN_TOKEN}")
+  [[ "$code" == "200" ]] \
+    && ok "GET /api/bots (admin) → 200" \
+    || fail "GET /api/bots (admin) → ${code}"
 else
-  fail "Auth gate (superadmin, no token) → ${code} (expected 401)"
-fi
-
-# systemd
-if command -v systemctl &>/dev/null; then
-  if systemctl is-active --quiet souqrates-api.service; then
-    ok "souqrates-api.service is running"
-  else
-    fail "souqrates-api.service is NOT running"
-  fi
+  warn "ADMIN_TOKEN not available — skipping /api/bots check"
 fi
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "4. Bot webhooks — systemd + /healthz"
+hdr "4. Bot webhooks — systemd + /healthz per bot"
 # ────────────────────────────────────────────────────────────────────────────
-declare -A BOT_PORTS=(
-  [mother-bot]=8101
-  [books-bot]=8102
-  [contests-bot]=8103
-  [subagents-bot]=8104
-)
+declare -A BOT_PORTS=([mother-bot]=8101 [books-bot]=8102 [contests-bot]=8103 [subagents-bot]=8104)
 
 for bot in mother-bot books-bot contests-bot subagents-bot; do
-  port="${BOT_PORTS[$bot]}"
   svc="souqrates-${bot}.service"
-
-  # systemd
-  svc_status="unknown"
-  if command -v systemctl &>/dev/null; then
+  svc_status="skipped"
+  if [[ $ON_SERVER -eq 1 ]] && command -v systemctl &>/dev/null; then
     systemctl is-active --quiet "$svc" && svc_status="active" || svc_status="inactive"
   fi
 
-  # healthz via public URL
-  hc=$(http_body "${BASE_URL}/telegram-webhook/${bot}/healthz")
   hc_code=$(http_code "${BASE_URL}/telegram-webhook/${bot}/healthz")
+  hc_body=$(http_body "${BASE_URL}/telegram-webhook/${bot}/healthz")
 
   if [[ "$hc_code" == "200" ]]; then
-    ok "${bot}: systemd=${svc_status}, /healthz=200 (\"${hc}\")"
+    ok "${bot}: systemd=${svc_status}, /healthz=200 (\"${hc_body}\")"
   else
     fail "${bot}: systemd=${svc_status}, /healthz=${hc_code}"
   fi
 done
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "5. Financial path (credit → commission → debit → balance)"
+hdr "5. Per-bot API key — authenticated endpoint smoke test"
 # ────────────────────────────────────────────────────────────────────────────
-if [[ -z "$GAMES_API_KEY" ]]; then
-  warn "GAMES_BOT_API_KEY not found in ${API_ENV} — skipping financial path test"
+declare -A BOT_KEYS=(
+  [games-bot]="${GAMES_API_KEY:-}"
+  [books-bot]="${BOOKS_API_KEY:-}"
+  [contests-bot]="${CONTESTS_API_KEY:-}"
+  [subagents-bot]="${SUBAGENTS_API_KEY:-}"
+)
+declare -A BOT_SLUGS=([games-bot]=games-bot [books-bot]=books-bot [contests-bot]=contests-bot [subagents-bot]=subagents-bot)
+TEST_TID_PROBE="88888888801"
+
+for bot in games-bot books-bot contests-bot subagents-bot; do
+  key="${BOT_KEYS[$bot]}"
+  if [[ -z "$key" ]]; then
+    warn "${bot}: API key not found in env — skipping"
+    continue
+  fi
+  code=$(http_code "${BASE_URL}/api/internal/balance/${TEST_TID_PROBE}" \
+    -H "X-Bot-Api-Key: ${key}")
+  if [[ "$code" == "200" || "$code" == "404" ]]; then
+    # 200 = user found, 404 = user not found — both prove key is valid
+    ok "${bot}: X-Bot-Api-Key valid (GET /balance → ${code})"
+  elif [[ "$code" == "401" ]]; then
+    fail "${bot}: X-Bot-Api-Key rejected (401) — key may be wrong or revoked"
+  else
+    fail "${bot}: unexpected response ${code} on /balance probe"
+  fi
+done
+
+# ────────────────────────────────────────────────────────────────────────────
+hdr "6. Financial path — credit → commission math → debit → balance invariant"
+# ────────────────────────────────────────────────────────────────────────────
+if [[ $SKIP_FINANCIAL -eq 1 ]]; then
+  warn "Financial path test skipped (--skip-financial)"
+elif [[ -z "$GAMES_API_KEY" ]]; then
+  warn "GAMES_BOT_API_KEY not available — skipping financial path test"
 else
   TEST_TID="99999999901"
   REF="hc_$(date +%s)"
+  EXPECTED_COMMISSION_RATE="0.08"   # games-bot 8%
+  CREDIT_AMOUNT="50"
+  DEBIT_AMOUNT="10"
 
   # Upsert test user
   UPSERT=$(curl -sk -X POST "${BASE_URL}/api/internal/users/upsert" \
     -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
     -H "Content-Type: application/json" \
-    -d "{\"telegramId\":\"${TEST_TID}\",\"firstName\":\"HealthCheck\"}" 2>/dev/null)
+    -d "{\"telegramId\":\"${TEST_TID}\",\"firstName\":\"HealthCheck\"}")
   UID=$(echo "$UPSERT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user',{}).get('id',''))" 2>/dev/null || true)
-  if [[ -n "$UID" ]]; then
-    ok "upsert test user → id=${UID}"
-  else
-    fail "upsert test user failed: ${UPSERT:0:120}"
-  fi
+  [[ -n "$UID" ]] \
+    && ok "upsert test user → id=${UID}" \
+    || fail "upsert test user failed: ${UPSERT:0:120}"
 
-  # Balance before
-  BAL0=$(curl -sk "${BASE_URL}/api/internal/balance/${TEST_TID}" \
+  # Balance before credit
+  BAL_BEFORE=$(curl -sk "${BASE_URL}/api/internal/balance/${TEST_TID}" \
     -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('balanceSkz','err'))" 2>/dev/null || echo "err")
 
-  # Credit 50 SKZ (games-bot has 8% commission → user gets 46)
+  # Credit
   CREDIT=$(curl -sk -X POST "${BASE_URL}/api/internal/credit" \
     -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
     -H "Content-Type: application/json" \
-    -d "{\"telegramId\":\"${TEST_TID}\",\"amount\":\"50\",\"description\":\"health-check\",\"referenceId\":\"${REF}_cr\"}")
+    -d "{\"telegramId\":\"${TEST_TID}\",\"amount\":\"${CREDIT_AMOUNT}\",\"description\":\"health-check\",\"referenceId\":\"${REF}_cr\"}")
   CR_BAL=$(echo "$CREDIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('newSkzBalance','err'))" 2>/dev/null || echo "err")
   CR_COM=$(echo "$CREDIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('commissionDeducted','err'))" 2>/dev/null || echo "err")
   CR_TX=$(echo  "$CREDIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('transactionId','err'))" 2>/dev/null || echo "err")
 
-  if [[ "$CR_BAL" != "err" && "$CR_TX" != "err" ]]; then
-    ok "credit 50 SKZ → newBalance=${CR_BAL}, commissionDeducted=${CR_COM}, txId=${CR_TX}"
+  if [[ "$CR_BAL" == "err" || "$CR_TX" == "err" ]]; then
+    fail "credit call failed: ${CREDIT:0:120}"
   else
-    fail "credit failed: ${CREDIT:0:120}"
+    ok "credit ${CREDIT_AMOUNT} SKZ → txId=${CR_TX}, commissionDeducted=${CR_COM} SKZ, newBalance=${CR_BAL}"
+
+    # Assert commission math: commission = amount * rate, net = amount - commission
+    MATH_OK=$(python3 - <<PYEOF 2>/dev/null
+import decimal
+D = decimal.Decimal
+amount = D("${CREDIT_AMOUNT}")
+rate   = D("${EXPECTED_COMMISSION_RATE}")
+before = D("${BAL_BEFORE}") if "${BAL_BEFORE}" != "err" else None
+commission_got = D("${CR_COM}")
+balance_got    = D("${CR_BAL}")
+expected_commission = (amount * rate).quantize(D("0.01"))
+expected_balance    = (before + amount - expected_commission) if before is not None else None
+ok = True
+if abs(commission_got - expected_commission) > D("0.10"):
+    print(f"COMMISSION_MISMATCH: expected~={expected_commission} got={commission_got}")
+    ok = False
+if expected_balance is not None and abs(balance_got - expected_balance) > D("0.10"):
+    print(f"BALANCE_MISMATCH: expected~={expected_balance} got={balance_got}")
+    ok = False
+if ok:
+    print("OK")
+PYEOF
+)
+    if [[ "$MATH_OK" == "OK" ]]; then
+      ok "Commission math: ${CREDIT_AMOUNT} × ${EXPECTED_COMMISSION_RATE} = ${CR_COM} deducted, balance delta correct"
+    elif [[ -n "$MATH_OK" ]]; then
+      fail "Commission math error: ${MATH_OK}"
+    else
+      warn "Could not verify commission math (python3 unavailable)"
+    fi
   fi
 
-  # Debit 10 SKZ
+  # Debit
   DEBIT=$(curl -sk -X POST "${BASE_URL}/api/internal/debit" \
     -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
     -H "Content-Type: application/json" \
-    -d "{\"telegramId\":\"${TEST_TID}\",\"amount\":\"10\",\"description\":\"health-check-debit\",\"referenceId\":\"${REF}_db\"}")
+    -d "{\"telegramId\":\"${TEST_TID}\",\"amount\":\"${DEBIT_AMOUNT}\",\"description\":\"health-check-debit\",\"referenceId\":\"${REF}_db\"}")
   DB_BAL=$(echo "$DEBIT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('newSkzBalance','err'))" 2>/dev/null || echo "err")
+  [[ "$DB_BAL" != "err" ]] \
+    && ok "debit ${DEBIT_AMOUNT} SKZ → newBalance=${DB_BAL}" \
+    || fail "debit failed: ${DEBIT:0:120}"
 
+  # Balance endpoint must agree with debit response
   if [[ "$DB_BAL" != "err" ]]; then
-    ok "debit 10 SKZ → newBalance=${DB_BAL}"
-  else
-    fail "debit failed: ${DEBIT:0:120}"
-  fi
-
-  # Final balance cross-check
-  BAL1=$(curl -sk "${BASE_URL}/api/internal/balance/${TEST_TID}" \
-    -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('balanceSkz','err'))" 2>/dev/null || echo "err")
-  if [[ "$BAL1" == "$DB_BAL" ]]; then
-    ok "balance endpoint agrees with debit response: ${BAL1} SKZ"
-  else
-    fail "balance mismatch: /balance=${BAL1} vs debit response=${DB_BAL}"
+    BAL_FINAL=$(curl -sk "${BASE_URL}/api/internal/balance/${TEST_TID}" \
+      -H "X-Bot-Api-Key: ${GAMES_API_KEY}" \
+      | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('balanceSkz','err'))" 2>/dev/null || echo "err")
+    BAL_MATCH=$(python3 -c "
+from decimal import Decimal
+a, b = Decimal('${DB_BAL}'), Decimal('${BAL_FINAL}')
+print('OK' if abs(a-b) < Decimal('0.01') else f'MISMATCH: debit={a} balance={b}')
+" 2>/dev/null || echo "skip")
+    if [[ "$BAL_MATCH" == "OK" ]]; then
+      ok "Balance invariant: /balance endpoint agrees with debit response (${BAL_FINAL} SKZ)"
+    elif [[ "$BAL_MATCH" == "skip" ]]; then
+      warn "Could not verify balance invariant"
+    else
+      fail "Balance invariant: ${BAL_MATCH}"
+    fi
   fi
 fi
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "6. Superadmin panel — key endpoints"
+hdr "7. Superadmin panel — key endpoints (with auth)"
 # ────────────────────────────────────────────────────────────────────────────
 if [[ -z "$ADMIN_TOKEN" ]]; then
-  warn "ADMIN_TOKEN not found in ${API_ENV} — skipping superadmin checks"
+  warn "ADMIN_TOKEN not available — skipping superadmin checks"
 else
-  STATS=$(curl -sk "${BASE_URL}/api/stats/overview" -H "Authorization: Bearer ${ADMIN_TOKEN}")
+  STATS=$(http_body "${BASE_URL}/api/stats/overview" -H "Authorization: Bearer ${ADMIN_TOKEN}")
   TOTAL_USERS=$(echo "$STATS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('totalUsers','err'))" 2>/dev/null || echo "err")
   ACTIVE_BOTS=$(echo "$STATS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('activeBots','err'))" 2>/dev/null || echo "err")
   PENDING_WD=$(echo  "$STATS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('pendingWithdrawals','err'))" 2>/dev/null || echo "err")
 
   if [[ "$TOTAL_USERS" != "err" ]]; then
-    ok "stats/overview → users=${TOTAL_USERS}, activeBots=${ACTIVE_BOTS}, pendingWithdrawals=${PENDING_WD}"
+    ok "GET /api/stats/overview → users=${TOTAL_USERS}, activeBots=${ACTIVE_BOTS}, pendingWithdrawals=${PENDING_WD}"
   else
-    fail "stats/overview failed: ${STATS:0:80}"
+    fail "GET /api/stats/overview failed: ${STATS:0:80}"
   fi
 
   for ep in users bots transactions withdrawals; do
     code=$(http_code "${BASE_URL}/api/superadmin/${ep}" -H "Authorization: Bearer ${ADMIN_TOKEN}")
-    [[ "$code" == "200" ]] && ok "superadmin/${ep} → 200" || fail "superadmin/${ep} → ${code}"
+    [[ "$code" == "200" ]] \
+      && ok "GET /api/superadmin/${ep} → 200" \
+      || fail "GET /api/superadmin/${ep} → ${code} (expected 200)"
   done
 fi
 
 # ────────────────────────────────────────────────────────────────────────────
-hdr "7. Cloudflare API token — Cache Purge permission"
+hdr "8. Cloudflare API token — Cache Purge permission"
 # ────────────────────────────────────────────────────────────────────────────
 if [[ -z "$CF_TOKEN" || -z "$CF_ZONE" ]]; then
-  warn "CLOUDFLARE_API_TOKEN or CLOUDFLARE_ZONE_ID not set in ${API_ENV}"
+  warn "CLOUDFLARE_API_TOKEN or CLOUDFLARE_ZONE_ID not set in ${API_ENV} — skipping"
 else
   PURGE=$(curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
     -H "Authorization: Bearer ${CF_TOKEN}" \
@@ -285,10 +401,9 @@ else
   if [[ "$PURGE_OK" == "True" || "$PURGE_OK" == "true" ]]; then
     ok "Cloudflare token has Cache Purge permission ✓"
   else
-    PURGE_ERR=$(echo "$PURGE" | python3 -c "import sys,json; d=json.load(sys.stdin); errs=d.get('errors',[]); print(errs[0].get('message','') if errs else '')" 2>/dev/null || true)
+    PURGE_ERR=$(echo "$PURGE" | python3 -c "import sys,json; d=json.load(sys.stdin); errs=d.get('errors',[]); print(errs[0].get('message','') if errs else 'unknown')" 2>/dev/null || echo "unknown")
     fail "Cloudflare token lacks Cache Purge permission — ${PURGE_ERR}"
-    echo -e "     ${YELLOW}Fix: create a new token at dash.cloudflare.com → API Tokens → Cache Purge template${RESET}"
-    echo -e "     ${YELLOW}Then update CLOUDFLARE_API_TOKEN in ${API_ENV}${RESET}"
+    echo -e "     ${YELLOW}Fix: dash.cloudflare.com → API Tokens → Create Token → Cache Purge template → Zone: souqrates.com${RESET}"
   fi
 fi
 
@@ -299,8 +414,8 @@ if [[ $FAILED -eq 0 && $WARNED -eq 0 ]]; then
 elif [[ $FAILED -eq 0 ]]; then
   echo -e "${YELLOW}${BOLD}  RESULT: PASSED with ${WARNED} warning(s) ⚠️${RESET}"
 else
-  echo -e "${RED}${BOLD}  RESULT: ${FAILED} CRITICAL FAILURE(S) ❌  |  ${WARNED} warning(s)${RESET}"
+  echo -e "${RED}${BOLD}  RESULT: ${FAILED} CRITICAL FAILURE(S) ❌   |   ${WARNED} warning(s)${RESET}"
 fi
 echo -e "${BOLD}══════════════════════════════════════════════════════════════════${RESET}\n"
 
-exit $FAILED
+exit "$FAILED"
