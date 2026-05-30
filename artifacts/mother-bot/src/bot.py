@@ -78,7 +78,7 @@ _DEFAULT_BASE = _resolve_default_base()
 # brand domain, whose DNS currently points at a stale build (missing newer
 # games, wrong tier labels). Always derive from the resolved base; the
 # single supported override is PUBLIC_BASE_URL (set as a Replit secret).
-_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/scratchy-bot-web/"
+_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/"
 _BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
 _BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
 _BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
@@ -220,9 +220,6 @@ def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Main menu — big open-app button on top, quick actions below.
     Labels are localised by the caller-provided `lang` (ar/en)."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        # ① Launch the full Mini App
-        [InlineKeyboardButton(text=t(lang, "btn_open_platform"),
-                              web_app=WebAppInfo(url=MINI_APP_URL))],
         # ② Launch Games
         [InlineKeyboardButton(text=t(lang, "btn_play_games"),
                               web_app=WebAppInfo(url=GAMES_APP_URL))],
@@ -273,10 +270,6 @@ def info_back_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
 def back_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(
-                text=t(lang, "btn_open_app"),
-                web_app=WebAppInfo(url=MINI_APP_URL),
-            ),
             InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu"),
         ]
     ])
@@ -455,8 +448,7 @@ async def cb_wallet(callback: CallbackQuery):
             InlineKeyboardButton(text=t(lang, "btn_topup_stars"), callback_data="topup_stars"),
         ],
         [
-            InlineKeyboardButton(text=t(lang, "btn_open_app"), web_app=WebAppInfo(url=MINI_APP_URL)),
-            InlineKeyboardButton(text=t(lang, "btn_back"),     callback_data="menu"),
+            InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu"),
         ],
     ])
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
@@ -1111,7 +1103,7 @@ async def cmd_balance(message: Message):
             f"⭐ Stars: {int(float(w['balanceStars'])):,}\n"
             f"💎 TON: {float(w['balanceTon']):.4f}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text=t(lang, "btn_open_full_app"), web_app=WebAppInfo(url=MINI_APP_URL))
+                InlineKeyboardButton(text=t(lang, "btn_back"), callback_data="menu")
             ]])
         )
     except Exception:
