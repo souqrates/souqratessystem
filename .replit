@@ -28,6 +28,10 @@ args = "books-bot: SOUQRATES SOUQ"
 task = "workflow.run"
 args = "contests-bot: SOUQRATES STAGE"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/mother-bot-web: web"
+
 [[workflows.workflow]]
 name = "mother-bot: SOUQRATES SYSTEM"
 author = "agent"
@@ -61,6 +65,17 @@ args = "python3 artifacts/contests-bot/src/bot.py"
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "artifacts/mother-bot-web: web"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/mother-bot-web run dev"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -85,6 +100,10 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3003
+
+[[ports]]
+localPort = 17321
+externalPort = 8008
 
 [[ports]]
 localPort = 18555

@@ -78,7 +78,7 @@ _DEFAULT_BASE = _resolve_default_base()
 # brand domain, whose DNS currently points at a stale build (missing newer
 # games, wrong tier labels). Always derive from the resolved base; the
 # single supported override is PUBLIC_BASE_URL (set as a Replit secret).
-_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/scratchy-bot-web/"
+_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/mother-bot-web/"
 _BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
 _BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
 _BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
