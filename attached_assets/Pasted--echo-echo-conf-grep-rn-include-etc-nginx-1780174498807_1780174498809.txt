@@ -1,0 +1,62 @@
+
+echo ""
+echo "═══ هل توجد ملفات .conf أخرى مُضمّنة قد تتعارض؟ ═══"
+grep -rn 'include' /etc/nginx/nginx.conf | grep -v '#'
+ls -la /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null
+
+echo ""
+echo "═══ هل games-bot/contests محجوبة بـ server block آخر؟ ابحث عن كل location لـ games ═══"
+grep -n 'games-bot' /etc/nginx/sites-enabled/souqrates.conf
+═══ كل كتل location + سطور root/alias (مع أرقام الأسطر) ═══
+30:        root /var/www/certbot;
+134:    location /superadmin/ {
+135:        root /var/www/souqrates;
+136:        try_files $uri $uri/ /superadmin/index.html;
+140:            root /var/www/souqrates;
+141:            try_files $uri =404;
+146:    location /books-bot-web/ {
+147:        root /var/www/souqrates;
+148:        try_files $uri $uri/ /books-bot-web/index.html;
+152:            root /var/www/souqrates;
+153:            try_files $uri =404;
+158:    location /contests-bot-web/ {
+159:        root /var/www/souqrates;
+160:        try_files $uri $uri/ /contests-bot-web/index.html;
+164:            root /var/www/souqrates;
+165:            try_files $uri =404;
+170:    location /subagents-bot-web/ {
+171:        root /var/www/souqrates;
+172:        try_files $uri $uri/ /subagents-bot-web/index.html;
+176:            root /var/www/souqrates;
+177:            try_files $uri =404;
+182:    location /games-bot/ {
+183:        root /var/www/souqrates;
+184:        try_files $uri $uri/ /games-bot/index.html;
+188:            root /var/www/souqrates;
+189:            try_files $uri =404;
+197:        root /var/www/souqrates/bot-demo;
+198:        try_files $uri $uri/ /index.html;
+202:            root /var/www/souqrates/bot-demo;
+203:            try_files $uri =404;
+
+═══ هل توجد ملفات .conf أخرى مُضمّنة قد تتعارض؟ ═══
+5:include /etc/nginx/modules-enabled/*.conf;
+26: include /etc/nginx/mime.types;
+59: include /etc/nginx/conf.d/*.conf;
+60: include /etc/nginx/sites-enabled/*;
+/etc/nginx/conf.d/:
+total 8
+drwxr-xr-x 2 root root 4096 May 14 09:55 .
+drwxr-xr-x 8 root root 4096 May 28 12:31 ..
+
+/etc/nginx/sites-enabled/:
+total 20
+drwxr-xr-x 2 root root 4096 May 30 12:52 .
+drwxr-xr-x 8 root root 4096 May 28 12:31 ..
+-rw-r--r-- 1 root root 9155 May 30 12:52 souqrates.conf
+
+═══ هل games-bot/contests محجوبة بـ server block آخر؟ ابحث عن كل location لـ games ═══
+11:#   /games-bot/*                → static
+182:    location /games-bot/ {
+184:        try_files $uri $uri/ /games-bot/index.html;
+root@vmi3329645:/opt/souqrates/repo# 
