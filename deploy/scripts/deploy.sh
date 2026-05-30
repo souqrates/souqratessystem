@@ -78,7 +78,7 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo
 done
 
 log "Refresh Python deps if requirements.txt changed"
-for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
+for bot in mother-bot books-bot contests-bot subagents-bot; do
   if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
     echo "  reinstalling ${bot} deps"
     sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
@@ -102,13 +102,12 @@ systemctl restart \
   souqrates-mother-bot.service \
   souqrates-books-bot.service \
   souqrates-contests-bot.service \
-  souqrates-subagents-bot.service \
-  souqrates-sweep-bot.service
+  souqrates-subagents-bot.service
 
 log "Health check"
 sleep 3
 curl -sfS http://127.0.0.1:8080/api/healthz && echo "  api ok"
-for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot 8105:sweep-bot; do
+for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot; do
   port="${p%:*}"; slug="${p#*:}"
   curl -sfS "http://127.0.0.1:${port}/telegram-webhook/${slug}/healthz" && echo
 done

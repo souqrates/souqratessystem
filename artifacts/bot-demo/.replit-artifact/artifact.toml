@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "SOUQRATES SWEEP — ألعاب الحك واللوتو"
+title = "محاكاة البوت - عرض المستخدم"
 version = "1.0.0"
 id = "artifacts/bot-demo"
 router = "path"

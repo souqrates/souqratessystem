@@ -24,8 +24,6 @@ import integrationsRouter from "./integrations";
 import runtimeConfigRouter from "./runtime-config";
 import subagentsRouter from "./subagents";
 import superadminSubagentsRouter from "./superadmin-subagents";
-import sweepRouter from "./sweep";
-import sweepMiniappRouter from "./sweep-miniapp";
 
 const router: IRouter = Router();
 
@@ -51,7 +49,5 @@ router.use(integrationsRouter);
 router.use(runtimeConfigRouter);
 router.use(subagentsRouter);
 router.use(superadminSubagentsRouter);
-router.use(sweepRouter);
-router.use(sweepMiniappRouter);
 
 export default router;

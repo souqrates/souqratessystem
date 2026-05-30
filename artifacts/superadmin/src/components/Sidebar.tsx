@@ -108,28 +108,6 @@ export default function Sidebar() {
           sub="عمولة، إعدادات عامة"
         />
 
-        {/* SOUQRATES SWEEP — ألعاب الحظ واليانصيب */}
-        <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#f59e0b" }}>
-          🎰 SOUQRATES SWEEP
-          <div className="text-[10px] font-normal text-slate-500 normal-case">ألعاب الحظ + لوتو أسبوعي</div>
-        </div>
-        <SidebarLink
-          href="/sweep"
-          active={location.startsWith("/sweep")}
-          icon="🎰"
-          label="لوحة SWEEP"
-          sub="ألعاب، تذاكر، لوتو، جائزة كبرى"
-          color="#f59e0b"
-        />
-        <SidebarLink
-          href="/bots/sweep-bot"
-          active={location === "/bots/sweep-bot"}
-          icon="💰"
-          label="اقتصاد بوت SWEEP"
-          sub="عمولة، إعدادات عامة"
-          color="#f59e0b"
-        />
-
         {/* SOUQRATES SUB-AGENTS — برنامج الشركاء */}
         <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#D4AF37" }}>
           ♛ SOUQRATES SUB-AGENTS

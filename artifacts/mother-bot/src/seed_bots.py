@@ -21,9 +21,9 @@ BOTS = [
         "commissionRate": "0.1000",
     },
     {
-        "slug": "sweep-bot",
-        "name": "SOUQRATES SWEEP",
-        "description": "ألعاب الحظ واليانصيب — 10 ألعاب + لوتو أسبوعي",
+        "slug": "video-bot",
+        "name": "SOUQRATES SCENE",
+        "description": "منصة فيديو قصير مع أرباح للمنشئين",
         "commissionRate": "0.1000",
     },
     {

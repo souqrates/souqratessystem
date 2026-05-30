@@ -1,71 +1,47 @@
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: TelegramWebApp;
-    };
+import { MOCK_USER } from "./mock-data";
+
+export function showTelegramAlert(message: string) {
+  if (typeof window === "undefined") return;
+  const wa = window.Telegram?.WebApp;
+  // showAlert/showPopup exist as functions even on Telegram WebApp 6.0
+  // (the preview iframe), where they throw a non-Error rejection
+  // "Method ... is not supported in version 6.0". Truthy-checking the
+  // function is not enough — wrap each attempt in try/catch and fall
+  // through to the next option, ending with browser alert().
+  if (wa?.showAlert) {
+    try { wa.showAlert(message); return; } catch { /* fall through */ }
+  }
+  if (wa?.showPopup) {
+    try { wa.showPopup({ message }); return; } catch { /* fall through */ }
+  }
+  try { alert(message); } catch { /* ignore */ }
+  try { wa?.HapticFeedback?.impactOccurred?.("light"); } catch { /* ignore */ }
+}
+
+export function openTelegramApp(url: string) {
+  if (typeof window === "undefined") return;
+  const wa = window.Telegram?.WebApp;
+  if (wa?.openTelegramLink && url.startsWith("https://t.me/")) {
+    wa.openTelegramLink(url);
+  } else if (wa?.openLink) {
+    wa.openLink(url);
+  } else {
+    window.open(url, "_blank");
   }
 }
 
-interface TelegramWebApp {
-  initData: string;
-  initDataUnsafe: {
-    user?: {
-      id: number;
-      first_name: string;
-      last_name?: string;
-      username?: string;
-      language_code?: string;
-    };
-    start_param?: string;
-  };
-  ready: () => void;
-  expand: () => void;
-  close: () => void;
-  colorScheme?: "light" | "dark";
-  themeParams?: Record<string, string>;
-  HapticFeedback?: {
-    impactOccurred: (style: "light" | "medium" | "heavy" | "rigid" | "soft") => void;
-    notificationOccurred: (type: "error" | "success" | "warning") => void;
-    selectionChanged: () => void;
-  };
-  MainButton?: {
-    show: () => void;
-    hide: () => void;
-    setText: (text: string) => void;
-    onClick: (fn: () => void) => void;
-    offClick: (fn: () => void) => void;
-    showProgress: (leaveActive?: boolean) => void;
-    hideProgress: () => void;
-    enable: () => void;
-    disable: () => void;
-  };
-  setHeaderColor?: (color: string) => void;
-  setBackgroundColor?: (color: string) => void;
-  setBottomBarColor?: (color: string) => void;
-}
-
-export const tg = (): TelegramWebApp | null =>
-  (window.Telegram?.WebApp ?? null) as TelegramWebApp | null;
-
-export function getInitData(): string {
-  return tg()?.initData ?? "";
-}
-
 export function getTelegramUser() {
-  return tg()?.initDataUnsafe?.user ?? null;
-}
-
-export function haptic(type: "light" | "medium" | "heavy" | "success" | "error" | "selection" = "light") {
-  try {
-    const hf = tg()?.HapticFeedback;
-    if (!hf) return;
-    if (type === "success") hf.notificationOccurred("success");
-    else if (type === "error") hf.notificationOccurred("error");
-    else if (type === "selection") hf.selectionChanged();
-    else hf.impactOccurred(type);
-  } catch (_) {}
-}
-
-export function isInTelegram(): boolean {
-  return !!(tg()?.initData);
+  if (typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp) {
+    const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+    if (initDataUnsafe && initDataUnsafe.user) {
+      return {
+        firstName: initDataUnsafe.user.first_name,
+        lastName: initDataUnsafe.user.last_name || "",
+        username: initDataUnsafe.user.username || "",
+        isPremium: initDataUnsafe.user.is_premium || false,
+        avatarUrl: initDataUnsafe.user.photo_url || null,
+      };
+    }
+  }
+  return MOCK_USER;
 }

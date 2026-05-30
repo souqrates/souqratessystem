@@ -23,7 +23,6 @@ import VotePacksPage from "@/pages/VotePacks";
 import IntegrationsPage from "@/pages/Integrations";
 import AuditLogPage from "@/pages/AuditLog";
 import SystemHealthPage from "@/pages/SystemHealth";
-import SweepPage from "@/pages/Sweep";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -52,7 +51,6 @@ function AuthedRoutes() {
         <Route path="/integrations" component={IntegrationsPage} />
         <Route path="/subagents" component={SubagentsPage} />
         <Route path="/subagents/tiers" component={SubagentTiersPage} />
-        <Route path="/sweep" component={SweepPage} />
         <Route path="/audit-log" component={AuditLogPage} />
         <Route path="/system-health" component={SystemHealthPage} />
         <Route>
