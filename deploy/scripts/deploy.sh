@@ -57,12 +57,16 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
+  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot mother-bot-web; do
     if [ \"\$slug\" = \"games-bot\" ]; then
       BP=/\${slug}/
       VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
     elif [ \"\$slug\" = \"bot-demo\" ]; then
       BP=/sweep-bot-web/
+      PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+    elif [ \"\$slug\" = \"mother-bot-web\" ]; then
+      # SOUQRATES SYSTEM hub — served at the site root (/)
+      BP=/
       PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
     else
       BP=/\${slug}/
@@ -72,10 +76,13 @@ sudo -u "${APP_USER}" -H bash -lc "
 "
 
 log "rsync static assets"
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot mother-bot-web; do
   src="${REPO_DIR}/artifacts/${slug}/dist/public"
-  # bot-demo is the SWEEP Mini App — deploy to sweep-bot-web/ so nginx finds it
-  if [[ "$slug" == "bot-demo" ]]; then dst="${WWW_DIR}/sweep-bot-web"; else dst="${WWW_DIR}/${slug}"; fi
+  # bot-demo is the SWEEP Mini App — deploy to sweep-bot-web/ so nginx finds it.
+  # mother-bot-web is the SOUQRATES SYSTEM hub — deploy to hub/ (served at site root).
+  if [[ "$slug" == "bot-demo" ]]; then dst="${WWW_DIR}/sweep-bot-web";
+  elif [[ "$slug" == "mother-bot-web" ]]; then dst="${WWW_DIR}/hub";
+  else dst="${WWW_DIR}/${slug}"; fi
   [[ -d "$src" ]] || continue
   install -d -o "${APP_USER}" -g "${APP_USER}" "${dst}"
   rsync -a --delete "${src}/" "${dst}/"

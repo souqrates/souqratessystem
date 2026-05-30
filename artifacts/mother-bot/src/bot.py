@@ -78,12 +78,14 @@ _DEFAULT_BASE = _resolve_default_base()
 # brand domain, whose DNS currently points at a stale build (missing newer
 # games, wrong tier labels). Always derive from the resolved base; the
 # single supported override is PUBLIC_BASE_URL (set as a Replit secret).
-# NOTE: MINI_APP_URL now points directly to /sweep-bot-web/ (the SWEEP Mini App
-# path). Previously it pointed to root "/" which nginx 301-redirected to
-# /sweep-bot-web/, but Telegram Mini App WebView does NOT follow HTTP redirects —
-# it renders a black screen when the URL returns a 3xx. Using the final URL
-# directly avoids the redirect and loads the app correctly.
-_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/sweep-bot-web/"
+# NOTE: MINI_APP_URL is the mother bot's main "open platform" button and points
+# at the site ROOT "/", which now serves the SOUQRATES SYSTEM hub (the unified
+# portal linking every bot — built from artifacts/mother-bot-web with
+# BASE_PATH=/). The root is served STATICALLY (no 301 redirect), so the Telegram
+# Mini App WebView loads it directly — important because the WebView renders a
+# black screen on any 3xx redirect. The per-bot Mini Apps keep their own
+# sub-paths below.
+_BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/"
 _BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
 _BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
 _BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
