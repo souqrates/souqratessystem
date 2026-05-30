@@ -96,7 +96,7 @@ const TR: Record<string, Record<Lang, string>> = {
   // (have wallet / need wallet) — NO Visa / card option. Earnings flow
   // back to the user's TON Keeper wallet, so installing one is framed
   // as a one-time onboarding step rather than a payment method.
-  "deposit.copied":           { ar: "✓ تم النسخ",  en: "✓ Copied" },
+  "deposit.copied":           { ar: "تم النسخ",    en: "Copied" },
   "deposit.title":            { ar: "إيداع SKZ",   en: "Deposit SKZ" },
   "deposit.subtitle":         { ar: "أودِع وتحوَّل تلقائيًا إلى SKZ", en: "Deposit and auto-convert to SKZ" },
   "deposit.banner.title":     { ar: "تحويل تلقائي إلى SKZ", en: "Auto-converted to SKZ" },
@@ -144,8 +144,8 @@ const TR: Record<string, Record<Lang, string>> = {
   "deposit.willReceive":       { ar: "ستستلم", en: "You receive" },
   "deposit.addressLabel":      { ar: "عنوان الإيداع ({network})", en: "Deposit address ({network})" },
   "deposit.addressUnavailable": {
-    ar: "⚠️ عنوان الإيداع غير مفعَّل حاليًا. يرجى التواصل مع الدعم (@{support}) أو انتظار تفعيله من قِبَل الإدارة.",
-    en: "⚠️ Deposit address isn't active right now. Please contact support (@{support}) or wait for it to be enabled by admins.",
+    ar: "عنوان الإيداع غير مفعَّل حاليًا. يرجى التواصل مع الدعم (@{support}) أو انتظار تفعيله من قِبَل الإدارة.",
+    en: "Deposit address isn't active right now. Please contact support (@{support}) or wait for it to be enabled by admins.",
   },
   "deposit.warn.networkOnly":  { ar: "أرسل {sym} فقط عبر هذه الشبكة — أي عملة أخرى تُفقد نهائيًا", en: "Send {sym} only over this network — any other asset will be lost permanently" },
   "deposit.warn.min":          { ar: "الحد الأدنى: {min} {unit}", en: "Minimum: {min} {unit}" },
@@ -171,7 +171,7 @@ const TR: Record<string, Record<Lang, string>> = {
   "withdraw.rules.eta":       { ar: "• مدة المعالجة: حتى {hrs} ساعة بعد الموافقة", en: "• Processing time: up to {hrs}h after approval" },
   "withdraw.rules.addrTrc20": { ar: "• صيغة العنوان: TRC20 يبدأ بـ T (٣٤ خانة)", en: "• Address format: TRC20 starting with T (34 chars)" },
   "withdraw.rules.addrTon":   { ar: "• صيغة العنوان: TON يبدأ بـ EQ/UQ (٤٨ خانة)", en: "• Address format: TON starting with EQ/UQ (48 chars)" },
-  "withdraw.rules.warn":      { ar: "⚠️ تأكَّد من صحة العنوان والشبكة — أي خطأ يُفقد المبلغ نهائيًا", en: "⚠️ Verify address and network — any mistake will result in permanent loss" },
+  "withdraw.rules.warn":      { ar: "تأكَّد من صحة العنوان والشبكة — أي خطأ يُفقد المبلغ نهائيًا", en: "Verify address and network — any mistake will result in permanent loss" },
   "withdraw.amountLabel":     { ar: "المبلغ بـ SKZ", en: "Amount in SKZ" },
   "withdraw.max":             { ar: "الأقصى — {max}", en: "Max — {max}" },
   "withdraw.err.overMax":     { ar: "المبلغ يتجاوز رصيدك المتاح", en: "Amount exceeds your available balance" },
@@ -180,7 +180,7 @@ const TR: Record<string, Record<Lang, string>> = {
   "withdraw.addrPlaceholder": { ar: "أدخل عنوان {sym}...", en: "Enter {sym} address..." },
   "withdraw.addr.invalidTrc20": { ar: "عنوان TRC20 غير صحيح (يبدأ بـ T وطوله 34 خانة)", en: "Invalid TRC20 address (starts with T, 34 chars)" },
   "withdraw.addr.invalidTon":   { ar: "عنوان TON غير صحيح (يبدأ بـ EQ/UQ/kQ/0Q وطوله 48 خانة)", en: "Invalid TON address (starts with EQ/UQ/kQ/0Q, 48 chars)" },
-  "withdraw.addr.valid":      { ar: "✓ صيغة العنوان صحيحة", en: "✓ Address format is valid" },
+  "withdraw.addr.valid":      { ar: "صيغة العنوان صحيحة", en: "Address format is valid" },
   "withdraw.sum.amount":      { ar: "المبلغ (SKZ)", en: "Amount (SKZ)" },
   "withdraw.sum.equiv":       { ar: "المعادل", en: "Equivalent" },
   "withdraw.sum.fee":         { ar: "رسوم الشبكة ({pct}%)", en: "Network fee ({pct}%)" },
@@ -197,7 +197,7 @@ const TR: Record<string, Record<Lang, string>> = {
   },
 
   // ── Referral ──
-  "referral.copied":         { ar: "✓ تم نسخ الرابط!", en: "✓ Link copied!" },
+  "referral.copied":         { ar: "تم نسخ الرابط!", en: "Link copied!" },
   "referral.title":          { ar: "نظام الإحالة", en: "Referral System" },
   "referral.headerLine":     { ar: "ادعُ أصدقاءك واربح حتى {pct}% من أرباحهم بـ SKZ — مدى الحياة", en: "Invite friends and earn up to {pct}% of their SKZ earnings — for life" },
   "referral.tiers":          { ar: "نسب العمولة", en: "Commission Tiers" },

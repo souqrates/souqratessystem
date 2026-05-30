@@ -51,7 +51,7 @@ const TR: Record<string, Record<Lang, string>> = {
   lang_label:         { ar: "EN",                            en: "ع" },
 
   // ── Home: hero ────────────────────────────────────────────────────
-  "home.volume":      { ar: "❖ Volume I",                    en: "❖ Volume I" },
+  "home.volume":      { ar: "Volume I",                      en: "Volume I" },
   "home.volumeAr":    { ar: "· المجلَّد الأوّل",                en: "· Volume One" },
   "home.heroTitleL1": { ar: "مكتبةٌ كاملة",                   en: "An entire library" },
   "home.heroTitleL2": { ar: "in your pocket.",               en: "in your pocket." },
@@ -135,7 +135,7 @@ const TR: Record<string, Record<Lang, string>> = {
   // ── Book / ProductDetail ─────────────────────────────────────────
   "book.bcHome":         { ar: "الواجهة",                     en: "Home" },
   "book.bcLibrary":      { ar: "المكتبة",                     en: "Library" },
-  "book.coverVol":       { ar: "❖ Vol. {year}",               en: "❖ Vol. {year}" },
+  "book.coverVol":       { ar: "Vol. {year}",                  en: "Vol. {year}" },
   "book.titleFallback":  { ar: "Title",                       en: "Title" },
   "book.by":             { ar: "بقلم",                        en: "By" },
   "book.pages":          { ar: "{n} صفحة",                    en: "{n} pages" },

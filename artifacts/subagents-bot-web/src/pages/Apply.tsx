@@ -4,8 +4,10 @@ import { useApplySubAgent, useGetSubAgentIdPhotoUploadUrl } from "@workspace/api
 import { Loader2, UploadCloud, FileImage, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 
 export default function ApplyPage() {
+  const t = useT();
   const [, setLocation] = useLocation();
   const applyMutation = useApplySubAgent();
   const getUploadUrlMutation = useGetSubAgentIdPhotoUploadUrl();
@@ -28,12 +30,12 @@ export default function ApplyPage() {
     if (!selected) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(selected.type)) {
-      toast.error("صيغة الملف غير مدعومة. يرجى رفع صورة (JPG, PNG, WEBP)");
+      toast.error(t("apply.err.format"));
       return;
     }
 
     if (selected.size > 8 * 1024 * 1024) {
-      toast.error("حجم الصورة يجب أن لا يتجاوز 8 ميجابايت");
+      toast.error(t("apply.err.size"));
       return;
     }
 
@@ -44,7 +46,7 @@ export default function ApplyPage() {
 
   const uploadPhoto = async () => {
     if (!file) return false;
-    
+
     setUploadStatus("uploading");
     try {
       const { uploadUrl, objectPath: path } = await getUploadUrlMutation.mutateAsync({
@@ -68,7 +70,7 @@ export default function ApplyPage() {
     } catch (err) {
       console.error(err);
       setUploadStatus("error");
-      toast.error("فشل رفع الصورة، يرجى المحاولة مرة أخرى");
+      toast.error(t("apply.err.uploadFail"));
       return false;
     }
   };
@@ -76,7 +78,7 @@ export default function ApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName || !form.dob || !form.country || !form.phone || !form.address) {
-      toast.error("يرجى تعبئة جميع الحقول المطلوبة");
+      toast.error(t("apply.err.required"));
       return;
     }
 
@@ -94,10 +96,11 @@ export default function ApplyPage() {
           idPhotoPath: finalPath,
         }
       });
-      toast.success("تم إرسال الطلب بنجاح");
+      toast.success(t("apply.success"));
       setLocation("/pending");
-    } catch (err: any) {
-      toast.error(err?.message || "حدث خطأ أثناء تقديم الطلب");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : undefined;
+      toast.error(msg || t("apply.err.generic"));
     }
   };
 
@@ -106,81 +109,89 @@ export default function ApplyPage() {
       <div className="bg-primary text-primary-foreground p-6 pt-12 pb-8 rounded-b-3xl shadow-sm mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <ShieldCheck className="text-secondary" />
-          طلب الانضمام كشريك
+          {t("apply.title")}
         </h1>
         <p className="text-primary-foreground/80 text-sm mt-2">
-          يرجى تعبئة البيانات بدقة لتسريع عملية المراجعة (KYC).
+          {t("apply.subtitle")}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="px-4 space-y-5">
         <div className="space-y-4 bg-card p-5 rounded-2xl border shadow-sm">
           <div>
-            <label className="block text-sm font-medium mb-1.5">الاسم الثلاثي كما في الهوية *</label>
-            <input 
+            <label className="block text-sm font-medium mb-1.5">{t("apply.fullName")}</label>
+            <input
               required minLength={2} maxLength={120}
-              type="text" 
-              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20" 
-              value={form.fullName} onChange={e => setForm({...form, fullName: e.target.value})}
+              type="text"
+              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20"
+              value={form.fullName}
+              onChange={e => setForm({ ...form, fullName: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">تاريخ الميلاد *</label>
-            <input 
+            <label className="block text-sm font-medium mb-1.5">{t("apply.dob")}</label>
+            <input
               required
-              type="date" 
-              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20" 
-              value={form.dob} onChange={e => setForm({...form, dob: e.target.value})}
+              type="date"
+              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20"
+              value={form.dob}
+              onChange={e => setForm({ ...form, dob: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">بلد الإقامة *</label>
-            <input 
+            <label className="block text-sm font-medium mb-1.5">{t("apply.country")}</label>
+            <input
               required minLength={2} maxLength={80}
-              type="text" 
-              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20" 
-              value={form.country} onChange={e => setForm({...form, country: e.target.value})}
+              type="text"
+              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20"
+              value={form.country}
+              onChange={e => setForm({ ...form, country: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">رقم الجوال (مع كود الدولة) *</label>
-            <input 
+            <label className="block text-sm font-medium mb-1.5">{t("apply.phone")}</label>
+            <input
               required minLength={5} maxLength={40}
-              type="tel" dir="ltr"
+              type="tel"
+              dir="ltr"
               placeholder="+971501234567"
-              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-left" 
-              value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-left"
+              value={form.phone}
+              onChange={e => setForm({ ...form, phone: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">البريد الإلكتروني (اختياري)</label>
-            <input 
-              type="email" dir="ltr"
-              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-left" 
-              value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+            <label className="block text-sm font-medium mb-1.5">{t("apply.email")}</label>
+            <input
+              type="email"
+              dir="ltr"
+              className="w-full bg-background border border-input rounded-lg h-11 px-3 outline-none focus:ring-2 focus:ring-primary/20 text-left"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">العنوان الكامل *</label>
-            <textarea 
+            <label className="block text-sm font-medium mb-1.5">{t("apply.address")}</label>
+            <textarea
               required minLength={5} maxLength={500} rows={3}
-              className="w-full bg-background border border-input rounded-lg py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 resize-none" 
-              value={form.address} onChange={e => setForm({...form, address: e.target.value})}
+              className="w-full bg-background border border-input rounded-lg py-2 px-3 outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              value={form.address}
+              onChange={e => setForm({ ...form, address: e.target.value })}
             />
           </div>
         </div>
 
         <div className="bg-card p-5 rounded-2xl border shadow-sm space-y-4">
-          <label className="block text-sm font-medium">صورة إثبات الهوية (جواز سفر أو هوية وطنية) *</label>
-          
+          <label className="block text-sm font-medium">{t("apply.idPhoto")}</label>
+
           <div className="relative">
-            <input 
-              type="file" 
+            <input
+              type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -194,24 +205,24 @@ export default function ApplyPage() {
               {uploadStatus === "success" ? (
                 <>
                   <ShieldCheck className="w-8 h-8 text-green-500" />
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">تم الرفع بنجاح</span>
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">{t("apply.uploadSuccess")}</span>
                 </>
               ) : uploadStatus === "uploading" ? (
                 <>
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <span className="text-sm font-medium text-muted-foreground">جاري الرفع...</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t("apply.uploading")}</span>
                 </>
               ) : file ? (
                 <>
                   <FileImage className="w-8 h-8 text-primary" />
                   <span className="text-sm font-medium">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">انقر للتغيير</span>
+                  <span className="text-xs text-muted-foreground">{t("apply.clickToChange")}</span>
                 </>
               ) : (
                 <>
                   <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">انقر لاختيار صورة</span>
-                  <span className="text-xs text-muted-foreground">JPG, PNG, WEBP (Max 8MB)</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t("apply.clickToSelect")}</span>
+                  <span className="text-xs text-muted-foreground">{t("apply.maxSize")}</span>
                 </>
               )}
             </div>
@@ -219,14 +230,14 @@ export default function ApplyPage() {
         </div>
 
         <div className="pt-4 pb-8">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
             disabled={!file || applyMutation.isPending || uploadStatus === "uploading"}
           >
             {applyMutation.isPending || uploadStatus === "uploading" ? (
               <Loader2 className="w-5 h-5 animate-spin" />
-            ) : "إرسال الطلب"}
+            ) : t("apply.submitBtn")}
           </Button>
         </div>
       </form>

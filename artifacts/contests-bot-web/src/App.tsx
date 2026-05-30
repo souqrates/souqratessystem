@@ -1,5 +1,6 @@
 import "./index.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Crown, Moon } from "lucide-react";
 import { getActive, type ActivePayload, type Contestant, type VotePack } from "@/lib/api";
 import { fmtInt, fmtSkz, pct } from "@/lib/format";
 import { useLang, useT, t as tt } from "@/lib/i18n";
@@ -101,7 +102,6 @@ function CountdownPill({ endsAt }: { endsAt: string | null }) {
   );
   return (
     <span className="chip" style={style} title={t("countdown_title")}>
-      ⏳
       {c.d > 0 && cell(c.d, t("day_full"))}
       {cell(c.h, t("hour_full"))}
       {cell(c.m, t("minute_full"))}
@@ -274,19 +274,18 @@ function Podium({ top3 }: { top3: Contestant[] }) {
         {order.map((c) => {
           const rank = top3.findIndex((x) => x.id === c.id) + 1;
           const cls = rank === 1 ? "podium-1" : rank === 2 ? "podium-2" : "podium-3";
-          const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
-          const color = rank === 1 ? "#fbbf24" : rank === 2 ? "#cbd5e1" : "#fdba74";
+          const podiumColor = rank === 1 ? "#fbbf24" : rank === 2 ? "#cbd5e1" : "#fdba74";
           return (
-            <div key={c.id} className={`podium-col ${cls}`} style={{ color }}>
-              {rank === 1 && <span className="podium-crown">👑</span>}
+            <div key={c.id} className={`podium-col ${cls}`} style={{ color: podiumColor }}>
+              {rank === 1 && <span className="podium-crown"><Crown size={18} /></span>}
               <div className="podium-avatar">
                 {c.photoUrl ? (
                   <img src={c.photoUrl} alt={c.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span>🎭</span>
+                  <span className="font-bold text-xl text-stage-mute">{c.name.charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <div className="text-2xl mb-1">{medal}</div>
+              <div className="text-xl font-extrabold mb-1">#{rank}</div>
               <div className="font-extrabold text-base text-stage-fg truncate">{c.name}</div>
               <div className="mt-1 text-xs text-stage-mute">{fmtInt(c.voteCount)} {t("votes_unit")}</div>
               <BotLink className="btn-primary text-xs mt-3 inline-flex" payload={`vote_${c.id}`}>{t("vote_for_him")}</BotLink>
@@ -339,7 +338,7 @@ function TrendingStrip({
       <div className="trending-strip">
         <span className="trending-pulse" />
         <span className="text-sm">
-          🚀 <b>{t("trending_fastest")}</b> {t("now_word")}:
+          <b>{t("trending_fastest")}</b> {t("now_word")}:
         </span>
         <span className="font-extrabold text-stage-gold">{best.c.name}</span>
         <span className="chip" style={{ background: "rgba(52,211,153,.12)", borderColor: "rgba(52,211,153,.35)", color: "#6ee7b7" }}>
@@ -382,7 +381,8 @@ function ContestantRow({
 }) {
   const t = useT();
   const p = pct(Number(c.voteCount), totalVotes);
-  const medal = meta.rank === 0 ? "🥇" : meta.rank === 1 ? "🥈" : meta.rank === 2 ? "🥉" : `#${meta.rank + 1}`;
+  const medal = `#${meta.rank + 1}`;
+  const medalColor = meta.rank === 0 ? "#fbbf24" : meta.rank === 1 ? "#cbd5e1" : meta.rank === 2 ? "#fdba74" : undefined;
   const rankDelta = meta.prevRank !== null ? meta.prevRank - meta.rank : 0;
 
   let flash = "";
@@ -398,12 +398,12 @@ function ContestantRow({
       {meta.voteDelta > 0 && (
         <span className="vote-pop" key={`vp-${c.id}-${c.voteCount}`}>+{meta.voteDelta}</span>
       )}
-      <div className="w-12 text-center text-xl font-extrabold text-stage-gold tabular-nums">{medal}</div>
-      <div className="w-14 h-14 rounded-xl overflow-hidden bg-stage-panel border border-stage-line shrink-0 grid place-items-center text-2xl">
+      <div className="w-12 text-center text-xl font-extrabold tabular-nums" style={{ color: medalColor ?? "var(--color-stage-mute)" }}>{medal}</div>
+      <div className="w-14 h-14 rounded-xl overflow-hidden bg-stage-panel border border-stage-line shrink-0 grid place-items-center text-xl">
         {c.photoUrl ? (
           <img src={c.photoUrl} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <span>🎭</span>
+          <span className="font-bold text-stage-mute">{c.name.charAt(0).toUpperCase()}</span>
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -493,7 +493,7 @@ function PackCard({ p }: { p: VotePack }) {
       {p.description && <p className="text-xs text-stage-mute">{p.description}</p>}
       {p.bonusDescription && (
         <div className="text-[11px] px-3 py-2 rounded-lg bg-stage-cyan/5 border border-stage-cyan/20 text-stage-cyan">
-          🎁 {p.bonusDescription}
+          {p.bonusDescription}
         </div>
       )}
       <div className="mt-auto flex items-center justify-between pt-2 border-t border-stage-line">
@@ -560,7 +560,7 @@ function EmptyState() {
   const t = useT();
   return (
     <section className="max-w-3xl mx-auto px-4 py-20 text-center">
-      <div className="text-6xl mb-4">🌙</div>
+      <div className="mb-6 flex justify-center text-stage-mute"><Moon size={56} strokeWidth={1.5} /></div>
       <h1 className="text-2xl font-extrabold mb-2">{t("empty_title")}</h1>
       <p className="text-stage-mute mb-6">{t("empty_subtitle")}</p>
       <BotLink className="btn-primary">{t("open_bot_notifications")}</BotLink>
