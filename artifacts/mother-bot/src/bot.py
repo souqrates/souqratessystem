@@ -82,6 +82,7 @@ _BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/"
 _BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
 _BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
 _BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
+_BASE_SCRATCHY_APP_URL   = f"{_DEFAULT_BASE}/scratchy-bot-web/"
 BOOKS_BOT_USERNAME    = os.getenv("BOOKS_BOT_USERNAME",    "Souqrates_souq_bot")
 CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot")
 
@@ -103,6 +104,7 @@ MINI_APP_URL      = _BASE_MINI_APP_URL
 GAMES_APP_URL     = _BASE_GAMES_APP_URL
 CONTESTS_APP_URL  = _BASE_CONTESTS_APP_URL
 SUBAGENTS_APP_URL = _BASE_SUBAGENTS_APP_URL
+SCRATCHY_APP_URL  = _BASE_SCRATCHY_APP_URL
 ADMIN_IDS        = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 router = Router()
@@ -235,6 +237,9 @@ def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         # ②.7 Sub-Agents partner programme
         [InlineKeyboardButton(text="♛ SOUQRATES SUB-AGENTS",
                               web_app=WebAppInfo(url=SUBAGENTS_APP_URL))],
+        # ②.8 Scratchy — luck & scratch-to-win games
+        [InlineKeyboardButton(text="🎰 SOUQRATES SCRATCHY",
+                              web_app=WebAppInfo(url=SCRATCHY_APP_URL))],
         # ③ Quick text shortcuts (localised)
         [
             InlineKeyboardButton(text=t(lang, "btn_balance"),      callback_data="wallet"),
