@@ -1,0 +1,106 @@
+.jsxs("div",{className:"flex items-center justify-between",children:[u.jsx(ri,{className:vr,children:t("agreement.signature")}),u.jsxs(jf,{type:"button",variant:"ghost",size:"sm",onClick:()=>H.clear(),className:"h-7 text-xs text-white/70 hover:text-white hover:bg-white/10",children:[u.jsx(c5,{className:"w-3.5 h-3.5 ms-1"}),t("agreement.clear")]})]}),u.jsx("div",{className:"relative rounded-xl p-[1.5px] bg-gradient-to-br from-purple-500/50 via-fuchsia-500/30 to-cyan-500/50",children:u.jsx("div",{className:"rounded-[10px] border-2 border-dashed border-white/20 bg-white overflow-hidden",children:u.jsx("canvas",{ref:_,className:"block w-full h-44 touch-none cursor-crosshair","aria-label":"signature pad"})})}),u.jsx("p",{className:"text-[12px] text-white/65",children:t("agreement.signHint")})]}),N&&u.jsx("div",{className:"rounded-xl bg-rose-500/10 border border-rose-400/30 text-rose-200 text-sm px-3 py-2.5 backdrop-blur",children:N}),u.jsx(jf,{type:"submit",disabled:S,className:`w-full h-12 text-base font-bold text-white rounded-xl border-0
+root@vmi3329645:/opt/souqrates/repo# grep -o 'souqrates\.com/games-bot\|souqratesskillz\|t\.me/Souqrates_skillz' /var/www/souqrates/bot-demo/assets/*.js 2>/dev/null | head -5
+t.me/Souqrates_skillz
+souqratesskillz
+root@vmi3329645:/opt/souqrates/repo# # شاهد ماذا يحدث عند / 
+curl -I https://souqrates.com/ 2>/dev/null | head -15
+
+# شاهد إعداد / في nginx
+grep -A 10 'location = /\|location /\b' /etc/nginx/sites-available/souqrates.conf | head -40
+
+# شاهد ما هو الـ root path المضبوط
+grep 'root\|index\|try_files' /etc/nginx/sites-available/souqrates.conf | head -20
+HTTP/2 200 
+date: Sat, 30 May 2026 11:50:58 GMT
+content-type: text/html
+server: cloudflare
+last-modified: Sat, 30 May 2026 11:42:38 GMT
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ND5F18VTXjBDOqHGQ4c1C3wjrWFh8qHwJE9L0s7qkjwQjF1W0vX%2FTqu9z1%2BctZosUVj66Hov6%2BGEOUY6zoGZEw083JLSANoYEL%2F3sfZz91eiieaN6vlHW%2FioNzJxS3xwbQvkykqSJ7E%2FmQbi"}]}
+expires: Sat, 30 May 2026 12:50:58 GMT
+cache-control: max-age=3600
+cache-control: public, max-age=3600
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+cf-cache-status: DYNAMIC
+cf-ray: a03d8635ec60e282-FRA
+alt-svc: h3=":443"; ma=86400
+
+    location = /telegram-webhook/mother-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8101;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/books-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8102;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/contests-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8103;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/subagents-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8104;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#   /                            → static (bot-demo, the mother-bot Mini App root)
+# All static roots are served out of /var/www/souqrates/<slug>/ — deploy.sh
+        root /var/www/certbot;
+    # are immutable, so we cache them aggressively. index.html stays at 1h.
+    # locations and try to serve /superadmin/main-abc.js from the wrong root.
+        try_files $uri $uri/ /superadmin/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /books-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /contests-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /subagents-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /games-bot/index.html;
+            try_files $uri =404;
+        root /var/www/souqrates/bot-demo;
+        try_files $uri $uri/ /index.html;
+            root /var/www/souqrates/bot-demo;
+            try_files $uri =404;
+root@vmi3329645:/opt/souqrates/repo# # 1) ما العنوان الذي يعرضه index.html الحالي؟
+grep -o '<title>[^<]*</title>' /var/www/souqrates/bot-demo/index.html
+
+# 2) متى آخر تحديث للملفات؟
+ls -lt /var/www/souqrates/bot-demo/ | head -5
+
+# 3) ما محتوى مجلد /var/www/souqrates/ كاملاً؟
+ls /var/www/souqrates/
+<title>SKZ Platform</title>
+total 1968
+drwxrwxr-x 2 souqrates souqrates    4096 May 30 13:42 assets
+-rw-rw-r-- 1 souqrates souqrates     972 May 30 13:42 index.html
+-rw-rw-r-- 1 souqrates souqrates  573486 May 30 13:42 souqrates-logo.webp
+-rw-rw-r-- 1 souqrates souqrates      23 May 30 13:42 robots.txt
+books-bot-web     hub
+bot-demo          subagents-bot-web
+contests-bot-web  superadmin
+games-bot         sweep-bot-web
+root@vmi3329645:/opt/souqrates/repo# grep -n 'sweep\|return 301\|return 302\|redirect' /etc/nginx/sites-available/souqrates.conf
+35:        return 301 https://$host$request_uri;
+root@vmi3329645:/opt/souqrates/repo# 
