@@ -1,15 +1,37 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" style="background:#07070d;color-scheme:dark;">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23eab308'/%3E%3Ctext x='50' y='72' font-size='72' text-anchor='middle' font-family='Arial' font-weight='900' fill='%23000'%3E%E2%98%85%3C/text%3E%3C/svg%3E" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#07070d" />
+    <meta name="color-scheme" content="dark" />
+    <style>html,body,#root{background:#07070d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}</style>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23eab308'/%3E%3Ctext x='50' y='72' font-size='72' text-anchor='middle' font-family='Arial' font-weight='900' fill='%23000'%3E%E2%98%85%3C/text%3E%3C/svg%3E" />
     <title>SOUQRATES STAGE — مسرح المسابقات</title>
     <meta name="description" content="مسرح المسابقات والتصويت الرسمي في منظومة SOUQRATES. تابع المسابقة الحالية وصَوِّت لمتسابقك المفضّل." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=block" rel="stylesheet" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        document.documentElement.classList.add('ios');
+      }
+    </script>
+    <script>
+      (function(){
+        try{
+          var wa = window.Telegram && window.Telegram.WebApp;
+          if(wa){
+            try{ wa.setHeaderColor && wa.setHeaderColor('#07070d'); }catch(_){}
+            try{ wa.setBackgroundColor && wa.setBackgroundColor('#07070d'); }catch(_){}
+            try{ wa.setBottomBarColor && wa.setBottomBarColor('#07070d'); }catch(_){}
+            try{ wa.ready && wa.ready(); }catch(_){}
+            try{ wa.expand && wa.expand(); }catch(_){}
+          }
+        }catch(_){}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

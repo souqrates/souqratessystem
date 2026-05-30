@@ -87,9 +87,12 @@ class GameModalErrorBoundary extends React.Component {
 }
 
 const isSlowDevice = document.documentElement.classList.contains('device-low') || document.documentElement.classList.contains('device-mid');
-// No exit animation — new page overlaps immediately so there's never a blank frame.
-// Only animate entrance (fade in). Exit is instant (opacity:1, no transition).
-const pageVariants = isSlowDevice
+// On iOS, AnimatePresence mode="wait" produces a blank frame between pages:
+// the exiting component is unmounted before the entering one mounts, and WebKit
+// doesn't guarantee a synchronous repaint in between. Fix: skip transitions on
+// iOS entirely (instant swap, no flicker) — same as isSlowDevice.
+const isIos = document.documentElement.classList.contains('ios');
+const pageVariants = (isSlowDevice || isIos)
   ? { initial: {}, animate: {}, exit: {} }
   : {
       initial: { opacity: 0 },

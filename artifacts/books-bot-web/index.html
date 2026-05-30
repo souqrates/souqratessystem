@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" style="background:#07060d;color-scheme:dark;">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#07060d" />
+    <meta name="color-scheme" content="dark" />
+    <style>html,body,#root{background:#07060d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}</style>
     <title>SOUQRATES SOUQ — الكتب والمنتجات الرقمية</title>
     <meta name="description" content="SOUQRATES SOUQ — متجر الكتب والمنتجات الرقمية في تيليغرام. اشترِ، انشر، واربح بعملة SKZ ضمن منظومة SOUQRATES." />
     <meta name="robots" content="index, follow" />
@@ -15,8 +18,27 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=Amiri:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&family=Amiri:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=block" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        document.documentElement.classList.add('ios');
+      }
+    </script>
+    <script>
+      (function(){
+        try{
+          var wa = window.Telegram && window.Telegram.WebApp;
+          if(wa){
+            try{ wa.setHeaderColor && wa.setHeaderColor('#07060d'); }catch(_){}
+            try{ wa.setBackgroundColor && wa.setBackgroundColor('#07060d'); }catch(_){}
+            try{ wa.setBottomBarColor && wa.setBottomBarColor('#07060d'); }catch(_){}
+            try{ wa.ready && wa.ready(); }catch(_){}
+            try{ wa.expand && wa.expand(); }catch(_){}
+          }
+        }catch(_){}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

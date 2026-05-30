@@ -166,14 +166,17 @@ body {
 }
 
 main {
-  will-change: transform;
+  /* will-change: transform removed — it promoted the entire scroll area to a
+     compositor layer; combined with backdrop-filter children it exhausted
+     iOS Safari/Telegram WebView's layer budget → strobe on every scroll. */
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
 [data-motion-animate] {
-  will-change: transform, opacity;
+  /* will-change removed — too broad; Framer Motion promotes per-element only
+     while the animation is actively running, which is the correct pattern. */
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -666,19 +669,34 @@ html.device-low .avatar-ring-wrap { animation: none !important; }
    Solution: kill ALL such animations on iOS unconditionally.
    The .ios class is set synchronously in index.html before React mounts.
 ──────────────────────────────────────────────────────────────────────────── */
+/* Disable all animations AND backdrop-filter on iOS.
+   backdrop-filter on any element sharing a compositor layer with a
+   keyframe animation (box-shadow/filter/opacity mutation) triggers a full
+   recomposite on every frame in WebKit → visible strobe/flicker.
+   Killing backdrop-filter removes the stacked compositor cost entirely. */
+html.ios .glass-hero,
+html.ios .glass-card,
+html.ios .glass-input {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 html.ios .play-pulse,
 html.ios .shimmer-gold,
 html.ios .shimmer-purple,
+html.ios .shimmer-cyan,
 html.ios .hot-pulse,
 html.ios .violet-pulse,
 html.ios .fire-flicker,
 html.ios .trophy-pulse,
-html.ios .avatar-ring-wrap {
+html.ios .avatar-ring-wrap,
+html.ios .banner-sheen {
   animation: none !important;
 }
 html.ios .play-pulse        { box-shadow: 0 0 20px rgba(8,145,178,0.5); }
 html.ios .shimmer-gold      { background: #f59e0b; -webkit-text-fill-color: #f59e0b; }
 html.ios .shimmer-purple    { background: #22d3ee; -webkit-text-fill-color: #22d3ee; }
+html.ios .shimmer-cyan      { background: #22d3ee; -webkit-text-fill-color: #22d3ee; }
 html.ios .fire-flicker      { filter: drop-shadow(0 0 6px rgba(249,115,22,0.7)); }
 html.ios .avatar-ring-wrap  { background: conic-gradient(from 0deg, #0891b2, #22d3ee, #67e8f9, #0891b2); }
 

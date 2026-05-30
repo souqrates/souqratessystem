@@ -38,6 +38,24 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: "es2020",
+    cssCodeSplit: true,
+    sourcemap: false,
+    minify: "esbuild",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("framer-motion")) return "vendor-motion";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("@tanstack")) return "vendor-query";
+          if (id.includes("react-dom")) return "vendor-react";
+          if (id.includes("react/") || id.endsWith("/react")) return "vendor-react";
+          if (id.includes("wouter")) return "vendor-router";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port,
