@@ -1,0 +1,47 @@
+
+This server is hosted by Contabo. If you have any questions or need help,
+please raise a support ticket from your customer control panel.
+Last login: Sat May 30 01:52:44 2026 from 34.180.63.192
+root@vmi3329645:~# sudo journalctl -u souqrates-sweep-bot.service -n 20 --no-pager
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]: Traceback (most recent call last):
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/bot.py", line 825, in <module>
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:     asyncio.run(main())
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:     return runner.run(main)
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:            ^^^^^^^^^^^^^^^^
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:     return self._loop.run_until_complete(task)
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:   File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:     return future.result()
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:            ^^^^^^^^^^^^^^^
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:   File "/opt/souqrates/repo/artifacts/sweep-bot/src/bot.py", line 791, in main
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]:     raise RuntimeError("SWEEP_BOT_TOKEN is not set")
+May 30 02:00:58 vmi3329645 souqrates-sweep-bot[13570]: RuntimeError: SWEEP_BOT_TOKEN is not set
+May 30 02:01:00 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Main process exited, code=exited, status=1/FAILURE
+May 30 02:01:00 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Failed with result 'exit-code'.
+May 30 02:01:00 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Consumed 6.354s CPU time.
+May 30 02:01:03 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Scheduled restart job, restart counter is at 46.
+May 30 02:01:03 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+root@vmi3329645:~# sudo bash -c 'cat > /etc/souqrates/sweep-bot.env << EOF
+SWEEP_BOT_TOKEN=8811843109:AAEd1e8E5M5YqBBNHRXKfMbsHXhMiFQAms0 
+SWEEP_BOT_API_KEY=30291674cabae376d1349f1847da9cd04219adedfa9a68f1b5858bcc0ea7f8dd
+MOTHER_API_URL=http://localhost:80/api
+USE_WEBHOOK=1
+WEBHOOK_BASE_URL=https://souqrates.com
+WEBHOOK_SECRET=sweep_webhook_secret_2026
+WEBHOOK_PORT=8105
+EOF
+chmod 640 /etc/souqrates/sweep-bot.env
+chown root:souqrates /etc/souqrates/sweep-bot.env'
+root@vmi3329645:~# sudo systemctl restart souqrates-sweep-bot.service
+sleep 6
+sudo journalctl -u souqrates-sweep-bot.service -n 8 --no-pager
+May 30 02:02:00 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 02:02:01 vmi3329645 systemd[1]: Stopping souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105)...
+May 30 02:02:02 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Deactivated successfully.
+May 30 02:02:02 vmi3329645 systemd[1]: Stopped souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 02:02:02 vmi3329645 systemd[1]: souqrates-sweep-bot.service: Consumed 1.742s CPU time.
+May 30 02:02:03 vmi3329645 systemd[1]: Started souqrates-sweep-bot.service - SOUQRATES sweep-bot (Telegram, webhook on :8105).
+May 30 02:02:08 vmi3329645 souqrates-sweep-bot[13636]: 2026-05-30 02:02:08,801 [INFO] sweep-bot: webhook registered with Telegram → https://souqrates.com/telegram-webhook/sweep-bot
+May 30 02:02:08 vmi3329645 souqrates-sweep-bot[13636]: 2026-05-30 02:02:08,865 [INFO] sweep-bot: webhook server listening on 127.0.0.1:8105/telegram-webhook/sweep-bot
