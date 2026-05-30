@@ -52,6 +52,7 @@ const T = {
     liveWinners: 'الفائزون الآن',
     yourNumbers: 'أرقامك',
     quickPick: 'اختيار عشوائي',
+    scratching: 'جاري الكشف...',
   },
   en: {
     appName: 'SOUQRATES SCRATCHY',
@@ -104,6 +105,7 @@ const T = {
     liveWinners: 'Live Winners',
     yourNumbers: 'Your Numbers',
     quickPick: 'Quick Pick',
+    scratching: 'Scratching...',
   },
 } as const;
 

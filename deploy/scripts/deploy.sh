@@ -57,19 +57,19 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
-    if [ \"\$slug\" = \"bot-demo\" ]; then BP=/; else BP=/\${slug}/; fi
+  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
     if [ \"\$slug\" = \"games-bot\" ]; then
-      VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+      VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
     else
-      PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+      PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
     fi
   done
 "
 
 log "rsync static assets"
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
-  src="${REPO_DIR}/artifacts/${slug}/dist/public"
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
+  artifact_dir="$slug"; [[ "$slug" == "scratchy-bot-web" ]] && artifact_dir="bot-demo"
+  src="${REPO_DIR}/artifacts/${artifact_dir}/dist/public"
   dst="${WWW_DIR}/${slug}"
   [[ -d "$src" ]] || continue
   install -d -o "${APP_USER}" -g "${APP_USER}" "${dst}"
