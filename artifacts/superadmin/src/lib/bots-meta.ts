@@ -1,4 +1,4 @@
-// Display metadata for the 7 bots in the SOUQRATES ecosystem.
+// Display metadata for the 8 bots in the SOUQRATES ecosystem.
 // `slug` matches the bots table in the database. Bots that haven't been
 // seeded yet still appear in the sidebar but their settings page will
 // indicate they aren't registered yet.
@@ -11,6 +11,7 @@
 //   voice-bot      → SOUQRATES STREAM     (الغرف الصوتية)
 //   subagents-bot  → SOUQRATES SUB-AGENTS (برنامج الشركاء / الموزّعين)
 //   contests-bot   → SOUQRATES STAGE      (المسابقات والتصويت)
+//   scratchy-bot   → SOUQRATES SCRATCHY   (ألعاب الحظ والحك واربح)
 export interface BotMeta {
   slug: string;
   brand: string;
@@ -27,6 +28,7 @@ export const BOTS: BotMeta[] = [
   { slug: "voice-bot",     brand: "SOUQRATES STREAM",     arName: "الغرف الصوتية",        color: "#8b5cf6", icon: "◉" },
   { slug: "subagents-bot", brand: "SOUQRATES SUB-AGENTS", arName: "برنامج الشركاء",       color: "#D4AF37", icon: "♛" },
   { slug: "contests-bot",  brand: "SOUQRATES STAGE",      arName: "المسابقات والتصويت",   color: "#eab308", icon: "★" },
+  { slug: "scratchy-bot",  brand: "SOUQRATES SCRATCHY",   arName: "الحك واربح",            color: "#22c55e", icon: "◈" },
 ];
 
 export function botMeta(slug: string): BotMeta | undefined {

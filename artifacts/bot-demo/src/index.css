@@ -1,360 +1,140 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Orbitron", "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: "Orbitron", sans-serif;
-
-  /* Core palette */
-  --color-base: #060a14;
-  --color-surface: #0c1220;
-  --color-surface-2: #111827;
-  --color-surface-3: #1a2234;
-
-  /* SKZ — brand purple */
-  --color-skz: #a855f7;
-  --color-skz-light: #c084fc;
-  --color-skz-dark: #7e22ce;
-  --color-skz-glow: rgba(168, 85, 247, 0.35);
-
-  /* Accent cyan */
-  --color-accent: #22d3ee;
-  --color-accent-dark: #0891b2;
-
-  /* Currency colors */
-  --color-usdt: #26d0a0;
-  --color-stars: #f59e0b;
-  --color-ton: #0098ea;
-
-  /* Semantic */
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warn: #f59e0b;
-
-  /* Glass */
-  --color-glass: rgba(255, 255, 255, 0.04);
-  --color-glass-hover: rgba(255, 255, 255, 0.07);
-  --color-glass-border: rgba(255, 255, 255, 0.07);
-  --color-glass-border-strong: rgba(255, 255, 255, 0.12);
+  --color-bg:         #030a05;
+  --color-surface:    #071209;
+  --color-card:       #0c1d10;
+  --color-card2:      #112515;
+  --color-green:      #22c55e;
+  --color-green2:     #16a34a;
+  --color-greenbright:#4ade80;
+  --color-gold:       #f59e0b;
+  --color-goldbright: #fbbf24;
+  --color-cyan:       #06b6d4;
+  --color-red:        #ef4444;
+  --color-silver:     #94a3b8;
+  --color-bronze:     #cd7f32;
+  --color-diamond:    #818cf8;
+  --color-text:       #e2e8f0;
+  --color-muted:      #64748b;
 }
 
-/* ─── Orbitron display font ─── */
-.font-orbitron {
-  font-family: 'Orbitron', sans-serif;
-  letter-spacing: 0.04em;
-}
-
-/* ─── Reset & Base ─── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { height: 100%; overflow: hidden; }
-
-body {
-  background-color: var(--color-base);
-  color: #ffffff;
-  font-family: var(--font-sans);
-  -webkit-tap-highlight-color: transparent;
+html, body {
+  margin: 0; padding: 0;
+  background: #030a05;
+  color: #e2e8f0;
+  font-family: "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  user-select: none;
+  height: 100%; overflow: hidden;
+}
+
+#root {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #030a05;
 }
 
-#root { height: 100%; }
-
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar { display: none; }
-* { scrollbar-width: none; }
-
-/* ─── Glassmorphism cards ─── */
-.glass {
-  background: var(--color-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-glass-border);
+.scrch-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #030a05;
+  overflow: hidden;
 }
 
-.glass-card {
-  background: var(--color-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-glass-border);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+.scrch-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding-bottom: 8px;
+}
+.scrch-scroll::-webkit-scrollbar { display: none; }
+
+/* Glass card */
+.scrch-card {
+  background: #0c1d10;
+  border: 1px solid rgba(34,197,94,0.12);
+  border-radius: 14px;
+}
+.scrch-card-hover {
+  transition: all .18s ease;
+}
+.scrch-card-hover:hover {
+  border-color: rgba(34,197,94,0.28);
+  background: #112515;
 }
 
-.glass-card-skz {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(34, 211, 238, 0.06) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(168, 85, 247, 0.25);
-  box-shadow: 0 8px 40px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+/* Glow rings */
+.ring-green-glow  { box-shadow: 0 0 0 1px rgba(34,197,94,.18), 0 4px 24px rgba(34,197,94,.12); }
+.ring-gold-glow   { box-shadow: 0 0 0 1px rgba(245,158,11,.22), 0 4px 24px rgba(245,158,11,.14); }
+.ring-cyan-glow   { box-shadow: 0 0 0 1px rgba(6,182,212,.22), 0 4px 24px rgba(6,182,212,.14); }
+.ring-indigo-glow { box-shadow: 0 0 0 1px rgba(129,140,248,.22), 0 4px 24px rgba(129,140,248,.14); }
+
+/* Gradient text */
+.text-grad-green {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 60%, #16a34a 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.text-grad-gold {
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 55%, #f59e0b 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 
-.surface {
-  background: var(--color-surface);
-  border: 1px solid var(--color-glass-border);
+/* Metallic covers */
+.cover-bronze  { background: linear-gradient(135deg,#5a2d0c 0%,#cd7f32 30%,#e8a44a 50%,#cd7f32 70%,#5a2d0c 100%); }
+.cover-silver  { background: linear-gradient(135deg,#334155 0%,#94a3b8 30%,#e2e8f0 50%,#94a3b8 70%,#334155 100%); }
+.cover-gold    { background: linear-gradient(135deg,#78350f 0%,#f59e0b 30%,#fde68a 50%,#f59e0b 70%,#78350f 100%); }
+.cover-diamond { background: linear-gradient(135deg,#1e1b4b 0%,#818cf8 30%,#c7d2fe 50%,#818cf8 70%,#1e1b4b 100%); }
+
+/* Shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer-anim {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.18) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
 }
 
-.surface-2 {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-glass-border);
+/* Pulse glow */
+@keyframes pulse-green {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  50%      { box-shadow: 0 0 0 8px rgba(34,197,94,0.18); }
 }
+.pulse-green { animation: pulse-green 2.2s ease infinite; }
 
-/* ─── Gradient text ─── */
-.gradient-text {
-  background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Marquee */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
+.marquee-wrap { overflow: hidden; }
+.marquee-track { display: flex; animation: marquee 28s linear infinite; white-space: nowrap; }
 
-.gradient-text-gold {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Lotto ball */
+.lotto-ball {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; user-select: none;
+  transition: all .14s ease;
+  border: 2px solid transparent;
 }
+.lb-idle  { background: #0c1d10; border-color: rgba(34,197,94,0.14); color: #64748b; }
+.lb-idle:hover  { border-color: rgba(34,197,94,0.45); color: #22c55e; }
+.lb-pick  { background: linear-gradient(135deg,#16a34a,#22c55e); border-color: #4ade80; color:#fff; box-shadow:0 0 12px rgba(34,197,94,0.5); transform:scale(1.1); }
 
-.gradient-text-emerald {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Prize windows */
+.prize-win  { background: linear-gradient(135deg,#14532d,#166534); border:1px solid rgba(34,197,94,0.35); }
+.prize-lose { background: rgba(100,116,139,0.12); border:1px solid rgba(100,116,139,0.2); }
 
-/* ─── Glows ─── */
-.skz-glow {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 60px rgba(168, 85, 247, 0.2);
-}
-
-.skz-glow-sm {
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
-}
-
-.accent-glow {
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.4), 0 0 60px rgba(34, 211, 238, 0.15);
-}
-
-/* ─── Buttons ─── */
-.btn-primary {
-  background: linear-gradient(135deg, #9333ea, #7c3aed);
-  color: white;
-  font-weight: 700;
-  border-radius: 1rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.4);
-}
-
-.btn-primary:active {
-  transform: scale(0.97);
-  box-shadow: 0 2px 10px rgba(147, 51, 234, 0.3);
-}
-
-.btn-ghost {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
-  border-radius: 1rem;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.btn-ghost:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* ─── Hero card (holographic) ─── */
-@keyframes hero-shimmer {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.hero-card {
-  background: linear-gradient(
-    135deg,
-    #0d0b1e 0%,
-    #150a2e 20%,
-    #0a1428 40%,
-    #0b1a2e 60%,
-    #14082e 80%,
-    #0d0b1e 100%
-  );
-  background-size: 400% 400%;
-  animation: hero-shimmer 8s ease infinite;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  box-shadow:
-    0 0 0 1px rgba(168, 85, 247, 0.15),
-    0 20px 60px rgba(0, 0, 0, 0.6),
-    0 8px 32px rgba(168, 85, 247, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-/* ─── SKZ coin pulse ─── */
-@keyframes skz-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); }
-  50%       { box-shadow: 0 0 20px rgba(168, 85, 247, 0.9), 0 0 40px rgba(168, 85, 247, 0.4); }
-}
-
-.skz-coin {
-  animation: skz-pulse 2.5s ease-in-out infinite;
-}
-
-/* ─── Floating orbs ─── */
-@keyframes float-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(20px, -15px) scale(1.05); }
-  66%       { transform: translate(-10px, 10px) scale(0.98); }
-}
-
-@keyframes float-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-20px, -20px) scale(1.08); }
-}
-
-.orb-1 { animation: float-1 7s ease-in-out infinite; }
-.orb-2 { animation: float-2 9s ease-in-out infinite; }
-
-/* ─── App shell (iOS-safe viewport height) ───
-   100dvh recalculates as Safari's URL bar shows/hides, which causes the
-   entire layout to JUMP every time the user scrolls. 100svh (small viewport)
-   is stable. Fallbacks chain: vh → -webkit-fill-available → svh. */
-.app-shell {
-  height: 100vh;
-  height: -webkit-fill-available;
-  height: 100svh;
-}
-
-/* ─── Navigation ─── */
-.nav-bar {
-  background: rgba(8, 12, 26, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  /* Promote to its own GPU layer so it never repaints on scroll (iOS Safari
-     otherwise flickers the blur every frame while the body is scrolling). */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* ─── Safe area ─── */
-.safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
-}
-
-/* ─── iOS / reduced-motion: kill expensive infinite animations ───
-   On iOS Safari, an 8s shimmer on a 400%-sized gradient + two floating orbs
-   + a constantly pulsing box-shadow cause compositor thrashing that the user
-   sees as flicker. Disable them on touch devices that flag reduced-motion
-   AND keep them off on any device where the user has opted in. */
-@media (prefers-reduced-motion: reduce) {
-  .hero-card,
-  .orb-1,
-  .orb-2,
-  .skz-coin {
-    animation: none !important;
-  }
-}
-
-/* iOS Safari: detect via @supports for -webkit-touch-callout (iOS-only) */
-@supports (-webkit-touch-callout: none) {
-  .hero-card {
-    /* Static gradient — no shimmer animation that forces a 400% bg repaint
-       every frame. The card already looks rich from its box-shadows. */
-    animation: none !important;
-    background-size: 100% 100% !important;
-  }
-  .orb-1,
-  .orb-2 {
-    animation: none !important;
-  }
-  .skz-coin {
-    animation: none !important;
-  }
-  /* Reduce backdrop-filter blur radius — iOS struggles above ~12px,
-     especially when stacked with translucent backgrounds. */
-  .glass,
-  .glass-card,
-  .glass-card-skz {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-}
-
-/* ─── Noise texture overlay ─── */
-.noise::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-/* ─── Section labels ─── */
-.section-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-/* ─── Input ─── */
-.premium-input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
-  color: white;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.premium-input:focus {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.08);
-}
-.premium-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-}
-
-/* ─── Stat badge ─── */
-.stat-up   { color: #34d399; }
-.stat-down { color: #f87171; }
-
-/* ─── Chip / pill ─── */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.chip-skz {
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #c084fc;
-}
-
-/* ─── Divider ─── */
-.divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* ─── Press feedback ─── */
-.pressable {
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  cursor: pointer;
-}
-.pressable:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
+/* Bottom nav */
+html.ios .scrch-nav { padding-bottom: max(env(safe-area-inset-bottom,12px), 12px); }

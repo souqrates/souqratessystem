@@ -1,6 +1,6 @@
 kind = "web"
-previewPath = "/"
-title = "محاكاة البوت - عرض المستخدم"
+previewPath = "/scratchy-bot-web/"
+title = "SOUQRATES SCRATCHY — ألعاب الحظ والحك واربح"
 version = "1.0.0"
 id = "artifacts/bot-demo"
 router = "path"
@@ -11,14 +11,14 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/scratchy-bot-web/" ]
 localPort = 21905
 
 [services.development]
-run = "pnpm --filter @workspace/bot-demo run dev"
+run = "pnpm --filter @workspace/scratchy-bot-web run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/bot-demo", "run", "build" ]
+build = [ "pnpm", "--filter", "@workspace/scratchy-bot-web", "run", "build" ]
 publicDir = "artifacts/bot-demo/dist/public"
 serve = "static"
 
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "21905"
-BASE_PATH = "/"
+BASE_PATH = "/scratchy-bot-web/"

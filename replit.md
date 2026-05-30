@@ -66,6 +66,7 @@
 | voice-bot    | SOUQRATES STREAM   | الغرف الصوتية               |
 | ai-bot       | SOUQRATES SIGNAL   | الذكاء الاصطناعي           |
 | contests-bot | SOUQRATES STAGE    | المسابقات والتصويت         |
+| scratchy-bot | SOUQRATES SCRATCHY | ألعاب الحظ والحك واربح     |
 
 > **Single source of truth**: `artifacts/superadmin/src/lib/bots-meta.ts`. لا تنشئ تسميات بديلة. كل عرض UI/نص بوت/وثيقة يجب أن يستخدم الاسم الكامل بالأحرف الكبيرة `SOUQRATES XXXX`.
 
