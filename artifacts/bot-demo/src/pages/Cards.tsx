@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, X } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
 import { GAMES, TIERS, type GameDef, type TierDef } from '../lib/games-data';
+import GameIcon from '../components/GameIcon';
 import ScratchCanvas from '../components/ScratchReveal';
 
 interface Props {
@@ -99,7 +100,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
                 {t('scratchWin')}
               </h2>
               <p style={{ margin: '3px 0 0', fontSize: 11, color: '#475569' }}>
-                {t('selectGame')} — 15 {isRtl ? 'لعبة مختلفة' : 'unique games'}
+                {t('selectGame')} — 30 {isRtl ? 'لعبة مختلفة' : 'unique games'}
               </p>
             </div>
 
@@ -137,7 +138,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
                     background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%)',
                     pointerEvents: 'none',
                   }} />
-                  <span style={{ fontSize: 26, lineHeight: 1 }}>{g.emoji}</span>
+                  <GameIcon game={g} size={26} />
                   <div style={{
                     fontSize: 9.5,
                     fontWeight: 800,
@@ -184,13 +185,13 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
                 {t('backToGames')}
               </motion.button>
               <div style={{
-                fontSize: 20,
                 background: `linear-gradient(135deg, ${game.color1}, ${game.color2})`,
                 borderRadius: 8, width: 36, height: 36,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: `1px solid ${game.accent}44`,
+                flexShrink: 0,
               }}>
-                {game.emoji}
+                <GameIcon game={game} size={20} />
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: game.accent }}>
@@ -294,7 +295,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
               >
                 <ArrowRight size={12} style={{ transform: isRtl ? 'none' : 'rotate(180deg)' }} />
               </motion.button>
-              <span style={{ fontSize: 16 }}>{game.emoji}</span>
+              <GameIcon game={game} size={16} />
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: game.accent }}>
                   {isRtl ? game.nameAr : game.nameEn}
@@ -426,7 +427,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
               borderBottom: '1px solid rgba(34,197,94,0.08)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 22 }}>{game.emoji}</span>
+                <GameIcon game={game} size={22} />
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: game.accent }}>
                     {isRtl ? game.nameAr : game.nameEn}

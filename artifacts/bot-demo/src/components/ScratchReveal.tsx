@@ -2,12 +2,21 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { GameDef, TierDef } from '../lib/games-data';
 import type { Lang } from '../lib/i18n';
+import GameIcon from './GameIcon';
 
 import { ClassicMatch, LuckyLines, SlotScratch } from './games/MatchGames';
 import { YourNumber, TripleDice, BingoGame } from './games/NumberGames';
 import { BeatDealer, PokerGame, SuperSevens } from './games/CardGames';
 import { CashBags, Envelopes, SymbolMatch } from './games/CollectGames';
 import { Multiplier, TreasureHunt, Pyramid } from './games/SpecialGames';
+import {
+  SafeCracker, GoldRush, FortuneWheel, CrystalMatch, NeonVault,
+  DragonCoins, StormStrike, KatanaChain,
+} from './games/ScratchGames2';
+import {
+  RuneCombo, PirateMap, GemLadder, NeonJackpot,
+  ShadowReveal, TimeScratch, VolcanoRush,
+} from './games/ScratchGames3';
 
 interface Props {
   game: GameDef;
@@ -36,6 +45,21 @@ const MECHANIC_MAP: Record<string, GameComp> = {
   'multiplier':     Multiplier,
   'treasure-hunt':  TreasureHunt,
   'pyramid':        Pyramid,
+  'safe-cracker':   SafeCracker,
+  'gold-rush':      GoldRush,
+  'fortune-wheel':  FortuneWheel,
+  'crystal-match':  CrystalMatch,
+  'neon-vault':     NeonVault,
+  'dragon-coins':   DragonCoins,
+  'storm-strike':   StormStrike,
+  'katana-chain':   KatanaChain,
+  'rune-combo':     RuneCombo,
+  'pirate-map':     PirateMap,
+  'gem-ladder':     GemLadder,
+  'neon-jackpot':   NeonJackpot,
+  'shadow-reveal':  ShadowReveal,
+  'time-scratch':   TimeScratch,
+  'volcano-rush':   VolcanoRush,
 };
 
 export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onPlayAgain }: Props) {
@@ -68,23 +92,17 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         flexShrink: 0,
       }}>
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-        }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20 }}>{game.emoji}</span>
-            <span style={{
-              fontSize: 14, fontWeight: 800, color: '#f1f5f9',
-              letterSpacing: '0.01em',
-            }}>
+            <GameIcon game={game} size={20} />
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9', letterSpacing: '0.01em' }}>
               {isRtl ? game.nameAr : game.nameEn}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
             <span style={{
               fontSize: 10, color: game.accent, fontWeight: 700,
-              background: `${game.accent}18`, borderRadius: 6,
-              padding: '2px 7px',
+              background: `${game.accent}18`, borderRadius: 6, padding: '2px 7px',
             }}>
               {tier.icon} {tier.label}
             </span>
@@ -93,15 +111,13 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
             </span>
             <span style={{
               fontSize: 10, color: '#64748b',
-              background: 'rgba(255,255,255,0.04)', borderRadius: 6,
-              padding: '2px 7px',
+              background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '2px 7px',
             }}>
               {isRtl ? `حتى ${tier.maxPrize.toLocaleString()} SKZ` : `Up to ${tier.maxPrize.toLocaleString()} SKZ`}
             </span>
           </div>
         </div>
 
-        {/* Win badge */}
         {result !== null && result > 0 && (
           <motion.div
             initial={{ scale: 0, rotate: -15 }}
@@ -126,7 +142,6 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-start',
         padding: '16px 0 24px',
-        gap: 0,
       }}>
         {GameComponent ? (
           <GameComponent

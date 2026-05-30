@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import type { GameDef, TierDef } from '../../lib/games-data';
 import type { Lang } from '../../lib/i18n';
 import ScratchZone from '../ScratchZone';
@@ -37,10 +37,8 @@ export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) 
     const sh = shuffle(allCards);
     let yc = sh[0], dc = sh[1];
     if (p > 0) {
-      // Your card beats dealer
       while (yc.val <= dc.val) { const s2 = shuffle(allCards); yc=s2[0]; dc=s2[1]; }
     } else {
-      // Dealer beats your card
       while (dc.val <= yc.val) { const s2 = shuffle(allCards); yc=s2[0]; dc=s2[1]; }
     }
     return [p, yc, dc];
@@ -71,8 +69,7 @@ export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) 
       <p style={{ margin:0, fontSize:11, color:'#64748b', textAlign:'center' }}>{isRtl ? game.mechanicDescAr : game.mechanicDescEn}</p>
 
       <div style={{ display:'flex', gap:16, alignItems:'center', justifyContent:'center' }}>
-        {/* Your card */}
-        <ScratchZone width={90} height={120} c1={game.color1} c2={game.color2} emoji="🃏" label={isRtl?'احك':'Scratch'} onScratched={() => { setYourR(true); bothRevealed(true, dealerR); }}>
+        <ScratchZone width={90} height={120} c1={game.color1} c2={game.color2} label={isRtl?'احك':'Scratch'} onScratched={() => { setYourR(true); bothRevealed(true, dealerR); }}>
           <CardFace card={yourCard} label={isRtl ? 'بطاقتك' : 'Your Card'} />
         </ScratchZone>
 
@@ -85,8 +82,7 @@ export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) 
           )}
         </div>
 
-        {/* Dealer card */}
-        <ScratchZone width={90} height={120} c1={game.color1} c2={game.color2} emoji="🂠" label={isRtl?'احك':'Scratch'} onScratched={() => { setDealerR(true); bothRevealed(yourR, true); }}>
+        <ScratchZone width={90} height={120} c1={game.color1} c2={game.color2} label={isRtl?'احك':'Scratch'} onScratched={() => { setDealerR(true); bothRevealed(yourR, true); }}>
           <CardFace card={dealerCard} label={isRtl ? 'الخصم' : 'Dealer'} />
         </ScratchZone>
       </div>
@@ -96,7 +92,7 @@ export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) 
   );
 }
 
-// ── GAME 8: POKER SCRATCH ────────────────────────────────────────────────────
+// ── GAME 8: POKER SCRATCH (scratch to reveal all 5 cards) ────────────────────
 const HAND_NAMES_AR = ['', 'زوج واحد', 'زوجان', 'ثلاثة متطابقة', 'ستريت', 'فلاش', 'فول هاوس', 'أربعة متطابقة', 'فلاش ملكي'];
 const HAND_NAMES_EN = ['', 'One Pair', 'Two Pair', 'Three of a Kind', 'Straight', 'Flush', 'Full House', 'Four of a Kind', 'Royal Flush'];
 type PCard = { rank: string; suit: string };
@@ -104,24 +100,12 @@ type PCard = { rank: string; suit: string };
 function pregenHand(prize: number, tier: TierDef): PCard[] {
   const top = tier.prizes[tier.prizes.length-1];
   const ratio = prize / top;
-  if (prize === 0) return [
-    {rank:'K',suit:'♠'},{rank:'J',suit:'♥'},{rank:'9',suit:'♦'},{rank:'7',suit:'♣'},{rank:'5',suit:'♠'}
-  ];
-  if (ratio >= 0.9) return [
-    {rank:'A',suit:'♠'},{rank:'K',suit:'♠'},{rank:'Q',suit:'♠'},{rank:'J',suit:'♠'},{rank:'10',suit:'♠'}
-  ];
-  if (ratio >= 0.6) return [
-    {rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'A',suit:'♣'},{rank:'K',suit:'♠'}
-  ];
-  if (ratio >= 0.4) return [
-    {rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'K',suit:'♣'},{rank:'K',suit:'♠'}
-  ];
-  if (ratio >= 0.2) return [
-    {rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'Q',suit:'♣'},{rank:'J',suit:'♠'}
-  ];
-  return [
-    {rank:'K',suit:'♠'},{rank:'K',suit:'♥'},{rank:'J',suit:'♦'},{rank:'J',suit:'♣'},{rank:'A',suit:'♠'}
-  ];
+  if (prize === 0) return [{rank:'K',suit:'♠'},{rank:'J',suit:'♥'},{rank:'9',suit:'♦'},{rank:'7',suit:'♣'},{rank:'5',suit:'♠'}];
+  if (ratio >= 0.9) return [{rank:'A',suit:'♠'},{rank:'K',suit:'♠'},{rank:'Q',suit:'♠'},{rank:'J',suit:'♠'},{rank:'10',suit:'♠'}];
+  if (ratio >= 0.6) return [{rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'A',suit:'♣'},{rank:'K',suit:'♠'}];
+  if (ratio >= 0.4) return [{rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'K',suit:'♣'},{rank:'K',suit:'♠'}];
+  if (ratio >= 0.2) return [{rank:'A',suit:'♠'},{rank:'A',suit:'♥'},{rank:'A',suit:'♦'},{rank:'Q',suit:'♣'},{rank:'J',suit:'♠'}];
+  return [{rank:'K',suit:'♠'},{rank:'K',suit:'♥'},{rank:'J',suit:'♦'},{rank:'J',suit:'♣'},{rank:'A',suit:'♠'}];
 }
 
 function handName(prize: number, tier: TierDef, lang: Lang): string {
@@ -146,8 +130,7 @@ export function PokerGame({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const [revealed, setRevealed] = useState<boolean[]>(Array(5).fill(false));
   const [done, setDone] = useState(false);
 
-  function tap(i: number) {
-    if (revealed[i] || done) return;
+  function scratch(i: number) {
     const n=[...revealed]; n[i]=true; setRevealed(n);
     if (n.every(Boolean) && !called.current) { called.current=true; onResult(prize); setDone(true); }
   }
@@ -158,22 +141,20 @@ export function PokerGame({ game, tier, lang, onResult, onPlayAgain }: GProps) {
     <div style={{ width:'100%', padding:'0 12px', display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
       <p style={{ margin:0, fontSize:11, color:'#64748b', textAlign:'center' }}>{isRtl ? game.mechanicDescAr : game.mechanicDescEn}</p>
 
-      {/* Table felt */}
       <div style={{ background:'#0c2212', border:`1px solid ${game.accent}33`, borderRadius:18, padding:'14px 10px', width:'100%', maxWidth:300 }}>
         <div style={{ fontSize:9, color:game.accent, textAlign:'center', letterSpacing:'0.1em', marginBottom:10, fontFamily:'"Orbitron",sans-serif' }}>POKER SCRATCH</div>
         <div style={{ display:'flex', gap:6, justifyContent:'center' }}>
           {hand.map((card,i) => (
-            <motion.button key={i} whileTap={{ scale:0.93 }} onClick={() => tap(i)} style={{ width:48, height:70, borderRadius:8, border: revealed[i] ? '1px solid rgba(255,255,255,0.15)' : `1px solid ${game.accent}44`, background: revealed[i] ? '#f8fafc' : `linear-gradient(135deg,${game.color1}cc,${game.color2})`, cursor: revealed[i]?'default':'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1 }}>
-              <AnimatePresence mode="wait">
-                {!revealed[i]
-                  ? <motion.div key="h" exit={{ rotateY:90 }} style={{ fontSize:20 }}>🂠</motion.div>
-                  : <motion.div key="v" initial={{ rotateY:90 }} animate={{ rotateY:0 }} style={{ textAlign:'center' }}>
-                      <div style={{ fontSize:15, fontWeight:900, color:SUIT_COLORS[card.suit], lineHeight:1 }}>{card.rank}</div>
-                      <div style={{ fontSize:14, color:SUIT_COLORS[card.suit] }}>{card.suit}</div>
-                    </motion.div>
-                }
-              </AnimatePresence>
-            </motion.button>
+            <ScratchZone key={i} width={50} height={74} c1={game.color1} c2={game.color2} label="?" onScratched={() => scratch(i)}>
+              <div style={{ width:50, height:74, borderRadius:8, background: revealed[i] ? '#f8fafc' : '#0a1014', border: revealed[i] ? '1px solid rgba(255,255,255,0.15)' : `1px solid ${game.accent}44`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1 }}>
+                {revealed[i] && (
+                  <>
+                    <div style={{ fontSize:15, fontWeight:900, color:SUIT_COLORS[card.suit], lineHeight:1 }}>{card.rank}</div>
+                    <div style={{ fontSize:14, color:SUIT_COLORS[card.suit] }}>{card.suit}</div>
+                  </>
+                )}
+              </div>
+            </ScratchZone>
           ))}
         </div>
         {hn && (
@@ -248,7 +229,7 @@ export function SuperSevens({ game, tier, lang, onResult, onPlayAgain }: GProps)
                   ZONE {i+1} • {zoneBase[i].toLocaleString()} SKZ
                 </div>
                 <ScratchZone width={82} height={82} c1={game.color1} c2={game.color2}
-                  emoji={isLocked ? '🔒' : '?'} label={isActive ? (isRtl?'احك':'Scratch') : undefined}
+                  label={isActive ? (isRtl?'احك':'Scratch') : (isLocked ? '🔒' : undefined)}
                   disabled={isLocked || done || (i>0 && !revealed[i-1])}
                   onScratched={() => scratch(i)}
                 >
