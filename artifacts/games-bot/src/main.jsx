@@ -58,8 +58,26 @@ window.addEventListener('unhandledrejection', (event) => {
 window.addEventListener('error', (event) => {
   // Only handle network-style resource errors, not generic JS exceptions.
   const target = event?.target;
-  if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+  if (target && target.tagName === 'SCRIPT') {
+    // Script load failure → likely stale chunk → reload.
     if (shouldAutoReload()) {
+      markReload();
+      try { window.location.reload(); } catch { /* ignore */ }
+    }
+  } else if (target && target.tagName === 'LINK') {
+    // Only reload for CSS stylesheets or JS module preloads.
+    // Image preloads (<link rel="preload" as="image">) and icon links
+    // (<link rel="apple-touch-icon">) must NOT trigger a reload — a missing
+    // image is not a stale-chunk error and would cause an infinite reload
+    // loop on every fresh Mini App session where sessionStorage is empty.
+    const rel = (target.rel || '').toLowerCase();
+    const asAttr = (target.getAttribute?.('as') || '').toLowerCase();
+    const isJsOrCss =
+      rel === 'stylesheet' ||
+      rel === 'modulepreload' ||
+      asAttr === 'script' ||
+      asAttr === 'style';
+    if (isJsOrCss && shouldAutoReload()) {
       markReload();
       try { window.location.reload(); } catch { /* ignore */ }
     }
