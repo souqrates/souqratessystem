@@ -153,9 +153,19 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bo
     continue
   fi
 
-  ok "${slug}: HTML=200, JS=200 (${js_path##*/})"
+  # CSS asset (same approach as JS)
+  css_path=$(echo "$html_body" | grep -o "${path}assets/[^\"']*\.css" | head -1)
+  [[ -z "$css_path" ]] && css_path=$(echo "$html_body" | grep -o '/assets/[^"'\'']*\.css' | head -1)
+  css_status="(no CSS ref)"
+  if [[ -n "$css_path" ]]; then
+    css_code=$(http_code "${BASE_URL}${css_path}")
+    [[ "$css_code" == "200" ]] && css_status="CSS=200 (${css_path##*/})" \
+      || { fail "${slug}: JS=200 but CSS=${css_code} (${css_path##*/})"; continue; }
+  fi
 
-  # Origin check (bypass Cloudflare) — server only
+  ok "${slug}: HTML=200, JS=200 (${js_path##*/}), ${css_status}"
+
+  # Origin check (bypass Cloudflare via --resolve) — server only
   if [[ $ON_SERVER -eq 1 ]]; then
     o_html=$(origin_code "$url")
     o_js=$(origin_code "${BASE_URL}${js_path}")
@@ -184,11 +194,12 @@ hc_status=$(echo "$hc_body" | python3 -c "import sys,json; d=json.load(sys.stdin
   && ok "GET /api/healthz → {status:ok}" \
   || fail "GET /api/healthz → unexpected: ${hc_body:0:80}"
 
-# Auth gate: internal without key → 401
-code=$(http_code "${BASE_URL}/api/internal/users/upsert")
+# Auth gate: internal GET without key → 401
+# Use GET /internal/balance/:id — always exists and always requires X-Bot-Api-Key
+code=$(http_code "${BASE_URL}/api/internal/balance/0")
 [[ "$code" == "401" ]] \
-  && ok "Auth gate (internal, no key) → 401" \
-  || fail "Auth gate (internal, no key) → ${code} (expected 401)"
+  && ok "Auth gate (GET /internal/balance, no key) → 401" \
+  || fail "Auth gate (GET /internal/balance, no key) → ${code} (expected 401)"
 
 # Auth gate: superadmin without token → 401
 code=$(http_code "${BASE_URL}/api/superadmin/users")
@@ -225,6 +236,16 @@ for bot in mother-bot books-bot contests-bot subagents-bot; do
     ok "${bot}: systemd=${svc_status}, /healthz=200 (\"${hc_body}\")"
   else
     fail "${bot}: systemd=${svc_status}, /healthz=${hc_code}"
+  fi
+
+  # Direct per-port check (on-server only, bypasses nginx + Cloudflare)
+  if [[ $ON_SERVER -eq 1 ]]; then
+    port="${BOT_PORTS[$bot]}"
+    d_code=$(curl -sk -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}/telegram-webhook/${bot}/healthz" 2>/dev/null || echo "000")
+    d_body=$(curl -sk "http://127.0.0.1:${port}/telegram-webhook/${bot}/healthz" 2>/dev/null || true)
+    [[ "$d_code" == "200" ]] \
+      && ok "${bot} [direct :${port}]: /healthz=200 (\"${d_body}\")" \
+      || fail "${bot} [direct :${port}]: /healthz=${d_code} — aiohttp process may be down"
   fi
 done
 
