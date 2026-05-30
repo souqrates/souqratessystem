@@ -1,3 +1,4 @@
+- [nginx subpath static](nginx-subpath-static.md) — subpath SPAs need `root` not `alias` (alias doubles prefix → asset 404s); purge Cloudflare 404 cache after origin fix.
 - [Stale custom-domain build](custom-domain-stale-build.md) — mother-bot MINI_APP_URL resolution must prefer REPLIT_DOMAINS over a custom-domain env var that may be DNS-pinned to an old host.
 - [WebApp URL stability](webapp-url-stability.md) — never append cache-busters to Telegram WebApp URLs; Telegram blacklists per-URL on validation hiccups → "Cannot open game" for minutes.
 - [Two-tier cache layer](cache-layer.md) — `cached()` wraps slow-changing config reads (rates/tiers/bot rows); writers MUST call the matching `invalidateXxxCache()` in the same handler.
