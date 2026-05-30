@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = Number(process.env.PORT || 17321);
-const BASE = (process.env.BASE_PATH || '/mother-bot-web/').replace(/\/$/, '');
 const PUBLIC = path.join(__dirname, 'dist/public');
 
 const MIME = {
@@ -15,6 +14,7 @@ const MIME = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
@@ -31,14 +31,9 @@ function serveIndex(res) {
 }
 
 http.createServer((req, res) => {
-  let url = (req.url || '/').split('?')[0];
+  const url = (req.url || '/').split('?')[0];
 
-  if (url === BASE || url === BASE + '/') {
-    serveIndex(res); return;
-  }
-  if (url.startsWith(BASE + '/')) {
-    url = url.slice(BASE.length);
-  }
+  if (url === '/' || url === '') { serveIndex(res); return; }
 
   const filePath = path.join(PUBLIC, url);
 
@@ -58,5 +53,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`mother-bot-web listening on port ${PORT} (base: ${BASE})`);
+  console.log(`mother-bot-web serving on port ${PORT} (root mode)`);
 });

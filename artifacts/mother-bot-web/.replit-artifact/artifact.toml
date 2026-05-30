@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/mother-bot-web/" ]
+paths = [ "/" ]
 localPort = 17321
 
 [services.development]
@@ -27,4 +27,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "17321"
-BASE_PATH = "/mother-bot-web/"
+BASE_PATH = "/"
