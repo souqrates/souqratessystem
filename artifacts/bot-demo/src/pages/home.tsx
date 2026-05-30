@@ -22,7 +22,7 @@ const fadeUp = {
 
 const BOTS: { name: string; brand: string; short: string; live?: boolean; url?: string }[] = [
   { name: "Skillz",    brand: "SOUQRATES SKILLZ",     short: "SKILLZ",     live: true,  url: "https://t.me/Souqrates_skillz_bot/souqratesskillz" },
-  { name: "Souq",      brand: "SOUQRATES SOUQ",        short: "SOUQ",       live: true,  url: "https://t.me/souqrates_souq_bot/app" },
+  { name: "Souq",      brand: "SOUQRATES SOUQ",        short: "SOUQ",       live: true,  url: "https://t.me/souqrates_souq_bot/souqratessouq" },
   { name: "Scene",     brand: "SOUQRATES SCENE",       short: "SCENE" },
   { name: "Stream",    brand: "SOUQRATES STREAM",      short: "STREAM" },
   { name: "SubAgents", brand: "SOUQRATES SUB-AGENTS",  short: "SUB-AGENTS", live: true,  url: "/subagents" },
