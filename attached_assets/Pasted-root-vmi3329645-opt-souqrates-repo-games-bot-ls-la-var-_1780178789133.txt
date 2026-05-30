@@ -1,0 +1,60 @@
+root@vmi3329645:/opt/souqrates/repo# # هل games-bot مبني وموجود؟
+ls -la /var/www/souqrates/games-bot/
+ls -la /var/www/souqrates/games-bot/assets/ | head -5
+
+# هل البوت يعمل؟
+systemctl status souqrates-games-bot --no-pager | tail -10
+total 948
+drwxrwxr-x  3 souqrates souqrates   4096 May 30 13:38 .
+drwxr-xr-x 10 souqrates souqrates   4096 May 30 03:18 ..
+-rw-rw-r--  1 souqrates souqrates 286972 May 30 13:38 WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg
+-rw-rw-r--  1 souqrates souqrates   1276 May 30 13:38 _headers
+-rw-rw-r--  1 souqrates souqrates    120 May 30 13:38 _redirects
+drwxrwxr-x  2 souqrates souqrates  57344 May 30 13:38 assets
+-rw-rw-r--  1 souqrates souqrates   4157 May 30 13:38 index.html
+-rw-rw-r--  1 souqrates souqrates   1224 May 30 13:38 index.html.br
+-rw-rw-r--  1 souqrates souqrates   1619 May 30 13:38 index.html.gz
+-rw-rw-r--  1 souqrates souqrates    649 May 30 13:38 manifest.webmanifest
+-rw-rw-r--  1 souqrates souqrates     66 May 30 13:38 robots.txt
+-rw-rw-r--  1 souqrates souqrates 573486 May 30 13:38 souqrates-logo.webp
+total 3076
+drwxrwxr-x 2 souqrates souqrates  57344 May 30 13:38 .
+drwxrwxr-x 3 souqrates souqrates   4096 May 30 13:38 ..
+-rw-rw-r-- 1 souqrates souqrates   9321 May 30 13:38 Achievements-CuqNgjwz.js
+-rw-rw-r-- 1 souqrates souqrates   2612 May 30 13:38 Achievements-CuqNgjwz.js.br
+Unit souqrates-games-bot.service could not be found.
+root@vmi3329645:/opt/souqrates/repo# # ما هي خدمات souqrates الموجودة؟
+systemctl list-units 'souqrates*' --no-pager
+
+# ما العمليات التي تعمل حالياً للبوتات؟
+ps aux | grep -E 'python|bot' | grep -v grep
+
+# هل ملف الخدمة موجود؟
+ls /etc/systemd/system/souqrates*.service
+  UNIT      LOAD   ACTIVE    SUB       DESCRIPTI…
+  souqrate… loaded active    running   SOUQRATES…
+  souqrate… loaded active    running   SOUQRATES…
+  souqrate… loaded active    running   SOUQRATES…
+  souqrate… loaded active    running   SOUQRATES…
+  souqrate… loaded active    running   SOUQRATES…
+  souqrate… loaded activati… auto-res… SOUQRATES…
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+6 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+root         851  0.9  0.3 604644 44164 ?        Ssl  13:39   0:14 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+root         853  0.0  0.1 110048 22844 ?        Ssl  13:39   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+souqrat+     891  0.4  1.2 244616 158044 ?       Ssl  13:39   0:07 /opt/souqrates/venvs/books-bot/bin/python -u bot.py
+souqrat+     893  0.3  1.2 238468 152264 ?       Ssl  13:39   0:06 /opt/souqrates/venvs/contests-bot/bin/python -u bot.py
+souqrat+     896  0.4  1.3 246736 160180 ?       Ssl  13:39   0:06 /opt/souqrates/venvs/mother-bot/bin/python -u bot.py
+souqrat+     905  0.3  1.2 237312 150952 ?       Ssl  13:39   0:06 /opt/souqrates/venvs/subagents-bot/bin/python -u bot.py
+/etc/systemd/system/souqrates-api.service
+/etc/systemd/system/souqrates-books-bot.service
+/etc/systemd/system/souqrates-contests-bot.service
+/etc/systemd/system/souqrates-mother-bot.service
+/etc/systemd/system/souqrates-subagents-bot.service
+/etc/systemd/system/souqrates-sweep-bot.service
+root@vmi3329645:/opt/souqrates/repo# 
