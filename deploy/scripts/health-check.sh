@@ -125,10 +125,11 @@ declare -A SPA_PATHS=(
   [contests-bot-web]="/contests-bot-web/"
   [subagents-bot-web]="/subagents-bot-web/"
   [games-bot]="/games-bot/"
+  [scratchy-bot-web]="/scratchy-bot-web/"
   [bot-demo]="/"
 )
 
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bot bot-demo; do
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bot scratchy-bot-web bot-demo; do
   path="${SPA_PATHS[$slug]}"
   url="${BASE_URL}${path}"
 

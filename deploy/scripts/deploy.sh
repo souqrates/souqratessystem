@@ -86,7 +86,7 @@ if [[ -f "$CF_ENV" ]]; then
   CF_ZONE=$(grep  '^CLOUDFLARE_ZONE_ID='    "$CF_ENV" | cut -d= -f2- | tr -d '"' || true)
 fi
 if [[ -n "$CF_TOKEN" && -n "$CF_ZONE" ]]; then
-  PURGE_FILES='["https://souqrates.com/","https://souqrates.com/superadmin/","https://souqrates.com/books-bot-web/","https://souqrates.com/contests-bot-web/","https://souqrates.com/subagents-bot-web/","https://souqrates.com/games-bot/"]'
+  PURGE_FILES='["https://souqrates.com/","https://souqrates.com/superadmin/","https://souqrates.com/books-bot-web/","https://souqrates.com/contests-bot-web/","https://souqrates.com/subagents-bot-web/","https://souqrates.com/games-bot/","https://souqrates.com/scratchy-bot-web/"]'
   RESULT=$(curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
     -H "Authorization: Bearer ${CF_TOKEN}" \
     -H "Content-Type: application/json" \
