@@ -58,26 +58,47 @@ API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 
 def _resolve_api_key() -> str:
     """
-    Resolve the scratchy-bot API key from SCRATCHY_BOT_API_KEY env var.
+    Resolve the scratchy-bot internal API key.
 
-    A Telegram bot token looks like "1234567890:AAG..." (contains a colon).
-    A valid API key never contains a colon and is at least 20 chars.
-    If the env var looks like a token (mis-paste), log a warning and return
-    empty string so the bot fails loudly at startup rather than silently
-    authenticating with a wrong key.
+    Priority:
+    1. SCRATCHY_BOT_API_KEY env var — accepted only if it contains no colon
+       (a Telegram token always has "1234567890:AAG..." format).
+    2. HTTP fallback via GET /api/bots + ADMIN_TOKEN — pure-Python urllib,
+       no external driver needed.  Works in Replit and on Contabo alike.
     """
     env_key = os.getenv("SCRATCHY_BOT_API_KEY", "").strip()
-    if not env_key:
-        logger.warning("SCRATCHY_BOT_API_KEY not set — internal API calls will fail")
-        return ""
-    if ":" in env_key:
-        logger.error(
-            "SCRATCHY_BOT_API_KEY looks like a Telegram bot token (contains ':') — "
-            "set it to the API key from the platform DB, not the bot token"
+    if env_key and ":" not in env_key and len(env_key) >= 20:
+        return env_key
+
+    if env_key and ":" in env_key:
+        logger.warning(
+            "SCRATCHY_BOT_API_KEY looks like a Telegram bot token — "
+            "falling back to /api/bots lookup"
         )
-        return ""
-    if len(env_key) < 20:
-        logger.warning("SCRATCHY_BOT_API_KEY is suspiciously short — check the value")
+
+    # HTTP fallback — GET /api/bots/scratchy-bot/api-key (admin-only endpoint)
+    admin_token = os.getenv("ADMIN_TOKEN", "").strip()
+    api_url = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
+    if admin_token:
+        try:
+            import urllib.request as _req
+            import json as _json
+            req = _req.Request(
+                f"{api_url}/bots/scratchy-bot/api-key",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            with _req.urlopen(req, timeout=5) as resp:
+                data = _json.loads(resp.read())
+            key = data.get("apiKey", "")
+            if key:
+                logger.info("scratchy-bot: API key loaded from /api/bots/scratchy-bot/api-key")
+                return key
+            logger.warning("scratchy-bot: /api/bots/scratchy-bot/api-key returned empty key")
+        except Exception as exc:
+            logger.warning(f"scratchy-bot: api-key endpoint fallback failed: {exc}")
+
+    if not env_key:
+        logger.warning("SCRATCHY_BOT_API_KEY not set — API calls will fail auth")
     return env_key
 
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
