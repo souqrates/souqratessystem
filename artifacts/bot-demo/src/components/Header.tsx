@@ -1,16 +1,17 @@
-import { Ticket } from 'lucide-react';
+import { Ticket, RefreshCw } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
 import type { Page } from '../App';
 
 interface Props {
   balance: number;
+  balanceLoading?: boolean;
   lang: Lang;
   onToggleLang: () => void;
   onNavigate: (p: Page) => void;
   onTopUp: () => void;
 }
 
-export default function Header({ balance, lang, onToggleLang, onTopUp }: Props) {
+export default function Header({ balance, balanceLoading, lang, onToggleLang, onTopUp }: Props) {
   return (
     <header
       style={{
@@ -46,10 +47,10 @@ export default function Header({ balance, lang, onToggleLang, onTopUp }: Props) 
         </span>
       </div>
 
-      {/* Balance — tap to add +1000 SKZ for testing */}
+      {/* Balance — tap to refresh */}
       <button
         onClick={onTopUp}
-        title="+1000 SKZ"
+        title="refresh balance"
         style={{
           background: 'rgba(34,197,94,0.08)',
           border: '1px solid rgba(34,197,94,0.2)',
@@ -61,11 +62,15 @@ export default function Header({ balance, lang, onToggleLang, onTopUp }: Props) 
           cursor: 'pointer',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>
-          {balance.toLocaleString('en', { maximumFractionDigits: 1 })}
-        </span>
+        {balanceLoading ? (
+          <RefreshCw size={13} color="#4ade80" style={{ animation: 'spin 1s linear infinite' }} />
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>
+            {balance.toLocaleString('en', { maximumFractionDigits: 1 })}
+          </span>
+        )}
         <span style={{ fontSize: 10, fontWeight: 600, color: '#22c55e', opacity: .8 }}>
-          {t('skz')} +
+          {t('skz')}
         </span>
       </button>
 

@@ -18,6 +18,9 @@ import asyncio
 import logging
 import os
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger("scratchy-bot")
+
 from sentry_init import init_sentry
 init_sentry("scratchy-bot")
 
@@ -51,8 +54,41 @@ from i18n import (
 
 # ── Configuration ──────────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv("SCRATCHY_BOT_TOKEN")
-API_KEY   = os.getenv("SCRATCHY_BOT_API_KEY", "")
 API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
+
+def _resolve_api_key() -> str:
+    """
+    Resolve the scratchy-bot API key.
+    Priority: SCRATCHY_BOT_API_KEY env var → DB lookup via pg.
+    Falls back to DB so the bot works even if the secret was set wrong.
+    """
+    env_key = os.getenv("SCRATCHY_BOT_API_KEY", "").strip()
+    # A valid API key is a 64-char hex string or similar — NOT a Telegram token
+    # (Telegram tokens look like "1234567890:AAG...").
+    if env_key and ":" not in env_key and len(env_key) >= 20:
+        return env_key
+    # Fall back: read from DB directly
+    try:
+        import subprocess, json as _json
+        result = subprocess.run(
+            ["node", "-e", """
+const {Pool}=require('./node_modules/.pnpm/pg@8.20.0/node_modules/pg');
+const p=new Pool({connectionString:process.env.DATABASE_URL});
+p.query('SELECT api_key FROM bots WHERE slug=$1',['scratchy-bot'])
+ .then(r=>{console.log(r.rows[0]?.api_key||'');p.end()})
+ .catch(e=>{console.error(e.message);p.end()});
+"""],
+            capture_output=True, text=True, timeout=10,
+            cwd="/home/runner/workspace"
+        )
+        key = result.stdout.strip()
+        if key and len(key) >= 20:
+            logger.info("scratchy-bot: API key loaded from DB fallback")
+            return key
+    except Exception as e:
+        logger.warning(f"DB api_key fallback failed: {e}")
+    return env_key
+
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
 
 
@@ -91,10 +127,7 @@ COMMANDS_EN: list[BotCommand] = [
     BotCommand(command="help",   description="❓ Help & game rules"),
 ]
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("scratchy-bot")
-
-api = ScratchyBotClient(api_key=API_KEY, base_url=API_URL)
+api = ScratchyBotClient(api_key=_resolve_api_key(), base_url=API_URL)
 router = Router()
 
 

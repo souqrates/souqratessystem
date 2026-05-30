@@ -1271,6 +1271,34 @@ def _spawn_subagents_bot():
         logger.warning(f"failed to spawn subagents-bot: {e}")
 
 
+def _spawn_scratchy_bot():
+    """Spawn SOUQRATES SCRATCHY as a sibling process (same workflow-slot trick)."""
+    import subprocess, sys, atexit
+    if os.getenv("DISABLE_SCRATCHY_SPAWN", "").strip().lower() in ("1", "true", "yes"):
+        logger.info("DISABLE_SCRATCHY_SPAWN set — scratchy-bot managed externally")
+        return
+    if not os.getenv("SCRATCHY_BOT_TOKEN"):
+        logger.warning("SCRATCHY_BOT_TOKEN not set — scratchy-bot not spawned")
+        return
+    bot_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "scratchy-bot", "src", "bot.py",
+    )
+    if not os.path.exists(bot_path):
+        logger.warning(f"scratchy-bot entrypoint missing at {bot_path}")
+        return
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, "-u", bot_path],
+            stdout=sys.stdout, stderr=sys.stderr,
+        )
+        logger.info(f"spawned scratchy-bot pid={proc.pid}")
+        atexit.register(lambda: proc.terminate() if proc.poll() is None else None)
+    except Exception as e:
+        logger.warning(f"failed to spawn scratchy-bot: {e}")
+
+
 if __name__ == "__main__":
     _spawn_subagents_bot()
+    _spawn_scratchy_bot()
     asyncio.run(main())

@@ -138,3 +138,9 @@ html, body {
 
 /* Bottom nav */
 html.ios .scrch-nav { padding-bottom: max(env(safe-area-inset-bottom,12px), 12px); }
+
+/* Spin animation for loading indicator */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
