@@ -303,8 +303,9 @@ export default function DrawHistory({ initData }: Props) {
     try {
       setLoading(true);
       setError(null);
+<<<<<<< HEAD
       const [drawsRes, entriesRes] = await Promise.allSettled([
-        fetch("/api/sweep/draws/history?limit=30&detail=true").then(async (r) => {
+        fetch("/api/sweep/draws/history?limit=30").then(async (r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json() as Promise<{ data: PastDraw[] }>;
         }),
@@ -328,6 +329,12 @@ export default function DrawHistory({ initData }: Props) {
             }))
         );
       }
+=======
+      const res = await fetch("/api/sweep/draws/history?limit=30&detail=true");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json() as { data: PastDraw[] };
+      setDraws(json.data ?? []);
+>>>>>>> 1f9c860 (feat: show prize tier breakdown table for each completed draw (Task #48))
     } catch (e) {
       setError("تعذّر تحميل سجل السحبات");
     } finally {

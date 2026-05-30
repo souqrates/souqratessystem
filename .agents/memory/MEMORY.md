@@ -1,7 +1,5 @@
 - [Stale custom-domain build](custom-domain-stale-build.md) — mother-bot MINI_APP_URL resolution must prefer REPLIT_DOMAINS over a custom-domain env var that may be DNS-pinned to an old host.
 - [WebApp URL stability](webapp-url-stability.md) — never append cache-busters to Telegram WebApp URLs; Telegram blacklists per-URL on validation hiccups → "Cannot open game" for minutes.
-- [nginx alias+try_files 404](nginx-alias-tryfiles-404.md) — Mini App black screen = assets 404 while HTML 200; cause is nginx `alias`+`try_files`; fix = use `root /var/www/souqrates;` in every static block.
-- [SOUQRATES root hub](souqrates-root-hub.md) — souqrates.com/ serves the unified hub (mother-bot-web, a NON-artifact pkg) from /var/www/souqrates/hub; not the SWEEP app, no redirect; deploy is user's manual server step.
 - [Two-tier cache layer](cache-layer.md) — `cached()` wraps slow-changing config reads (rates/tiers/bot rows); writers MUST call the matching `invalidateXxxCache()` in the same handler.
 - [Per-user rate limit](per-user-rate-limit.md) — row-creating money routes need `perUserCreateLimiter` keyed by telegramId; bot-API-key bucketing alone lets one user starve the bot.
 - [Bot webhook runtime](bot-webhook-runtime.md) — all 4 Python bots toggle polling↔webhook via `webhook_runtime.run_bot(...)`; edit the file in every bot dir (kept byte-identical).

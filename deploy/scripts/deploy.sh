@@ -57,74 +57,39 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot mother-bot-web; do
+  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
+    if [ \"\$slug\" = \"bot-demo\" ]; then BP=/; else BP=/\${slug}/; fi
     if [ \"\$slug\" = \"games-bot\" ]; then
-      BP=/\${slug}/
       VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
-    elif [ \"\$slug\" = \"bot-demo\" ]; then
-      BP=/sweep-bot-web/
-      PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
-    elif [ \"\$slug\" = \"mother-bot-web\" ]; then
-      # SOUQRATES SYSTEM hub — served at the site root (/)
-      BP=/
-      PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
     else
-      BP=/\${slug}/
       PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
     fi
   done
 "
 
 log "rsync static assets"
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot mother-bot-web; do
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
   src="${REPO_DIR}/artifacts/${slug}/dist/public"
-  # bot-demo is the SWEEP Mini App — deploy to sweep-bot-web/ so nginx finds it.
-  # mother-bot-web is the SOUQRATES SYSTEM hub — deploy to hub/ (served at site root).
-  if [[ "$slug" == "bot-demo" ]]; then dst="${WWW_DIR}/sweep-bot-web";
-  elif [[ "$slug" == "mother-bot-web" ]]; then dst="${WWW_DIR}/hub";
-  else dst="${WWW_DIR}/${slug}"; fi
+  dst="${WWW_DIR}/${slug}"
   [[ -d "$src" ]] || continue
   install -d -o "${APP_USER}" -g "${APP_USER}" "${dst}"
   rsync -a --delete "${src}/" "${dst}/"
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
 
-log "Seed new env files (first deploy of a new bot)"
-ENV_DIR="/etc/souqrates"
-for f in sweep-bot; do
-  src="${REPO_DIR}/deploy/env/${f}.env.example"
-  dst="${ENV_DIR}/${f}.env"
-  if [[ ! -f "$dst" && -f "$src" ]]; then
-    install -m 0640 -o root -g "${APP_USER}" "$src" "$dst"
-    echo "  → seeded ${dst}  ← EDIT before the service restarts"
-  fi
-done
-
-log "Ensure Python venvs exist + refresh deps if requirements.txt changed"
+log "Refresh Python deps if requirements.txt changed"
 for bot in mother-bot books-bot contests-bot subagents-bot sweep-bot; do
-  venv="${VENVS_DIR}/${bot}"
-  req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
-  if [[ ! -f "$req" ]]; then echo "  skip ${bot}: no requirements.txt"; continue; fi
-  if [[ ! -d "$venv" ]]; then
-    echo "  creating venv for ${bot} (first deploy)"
-    sudo -u "${APP_USER}" python3.12 -m venv "$venv"
-    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet --upgrade pip
-    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
-  elif echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
+  if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
     echo "  reinstalling ${bot} deps"
-    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
+    sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
   fi
 done
 
-log "Reinstall systemd units (always — ensures new services are registered)"
-install -m 0644 "${REPO_DIR}/deploy/systemd/"*.service /etc/systemd/system/
-systemctl daemon-reload
-# Enable any service that isn't yet enabled (new bots added after initial install)
-for svc in souqrates-api souqrates-mother-bot souqrates-books-bot \
-            souqrates-contests-bot souqrates-subagents-bot souqrates-sweep-bot; do
-  systemctl is-enabled --quiet "${svc}.service" || systemctl enable "${svc}.service"
-done
-
+log "Reinstall systemd units / nginx config if changed"
+if echo "$CHANGED" | grep -q '^deploy/systemd/'; then
+  install -m 0644 "${REPO_DIR}/deploy/systemd/"*.service /etc/systemd/system/
+  systemctl daemon-reload
+fi
 if echo "$CHANGED" | grep -q '^deploy/nginx/'; then
   install -m 0644 "${REPO_DIR}/deploy/nginx/souqrates.conf" /etc/nginx/sites-available/souqrates.conf
   nginx -t && systemctl reload nginx
@@ -141,7 +106,7 @@ systemctl restart \
   souqrates-sweep-bot.service
 
 log "Health check"
-sleep 8
+sleep 3
 curl -sfS http://127.0.0.1:8080/api/healthz && echo "  api ok"
 for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot 8105:sweep-bot; do
   port="${p%:*}"; slug="${p#*:}"
