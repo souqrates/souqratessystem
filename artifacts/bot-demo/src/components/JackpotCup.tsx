@@ -1,13 +1,59 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Lang } from '../lib/i18n';
 
-interface FallingCoin {
+/* ─── constants ─────────────────────────────────────── */
+const VB_W = 300;
+const VB_H = 380;
+
+// Cup interior clip region (approximate trapezoidal-ish shape)
+const ITOP_Y = 54;   // y at cup rim interior
+const IBOT_Y = 250;  // y at cup bottom interior
+
+const COIN_R = 8;
+const COIN_HSTEP = 19;   // horizontal center-to-center
+const COIN_VSTEP = 14;   // vertical step (hex packing gives overlap)
+
+/** Approximate interior x-bounds at a given y (linear interpolation) */
+function iBoundsAt(y: number): [number, number] {
+  const t = (y - ITOP_Y) / (IBOT_Y - ITOP_Y); // 0 = rim, 1 = bottom
+  const xL = 42  + t * (118 - 42);
+  const xR = 258 - t * (258 - 182);
+  return [xL, xR];
+}
+
+interface CoinDot { cx: number; cy: number }
+
+/** Generate static hex-packed coin grid filling the whole cup interior */
+function buildGrid(): CoinDot[] {
+  const dots: CoinDot[] = [];
+  let row = 0;
+  for (let cy = IBOT_Y - COIN_R - 1; cy > ITOP_Y + COIN_R; cy -= COIN_VSTEP) {
+    const [rawL, rawR] = iBoundsAt(cy);
+    const xL = rawL + COIN_R + 1;
+    const xR = rawR - COIN_R - 1;
+    if (xR - xL < COIN_R * 2) { row++; continue; }
+    const nCoins = Math.floor((xR - xL) / COIN_HSTEP) + 1;
+    const totalW  = (nCoins - 1) * COIN_HSTEP;
+    const startX  = (xL + xR) / 2 - totalW / 2 + (row % 2 === 0 ? 0 : COIN_HSTEP / 2);
+    for (let i = 0; i < nCoins; i++) {
+      const cx = startX + i * COIN_HSTEP;
+      if (cx >= xL && cx <= xR) dots.push({ cx, cy });
+    }
+    row++;
+  }
+  return dots;
+}
+
+const COIN_GRID = buildGrid();
+
+/* ─── types ─────────────────────────────────────────── */
+interface DroppingCoin {
   id: number;
-  left: number;
+  cx: number;
+  landCy: number;
+  r: number;
   delay: number;
-  size: number;
-  spin: number;
 }
 
 interface Props {
@@ -23,365 +69,443 @@ const AUTO_NAMES = [
   'Fatima A.', 'محمد ع.', 'Ali H.', 'سارة ع.', 'Yousef K.',
 ];
 
+/* ─── component ─────────────────────────────────────── */
 export default function JackpotCup({ jackpot, coinTrigger, lang, participants, onClick }: Props) {
-  const [coins, setCoins] = useState<FallingCoin[]>([]);
+  const [dropping, setDropping] = useState<DroppingCoin[]>([]);
   const [autoName, setAutoName] = useState<string | null>(null);
-  const [autoAmount, setAutoAmount] = useState(0);
+  const [autoAmt, setAutoAmt]   = useState(0);
   const nextId = useRef(0);
   const isRtl = lang === 'ar';
 
-  // fill 0–1 : 5 000 SKZ → 25%, 25 000 SKZ → 100%
-  const fill = Math.min(1, 0.25 + Math.max(0, (jackpot - 5000) / 20000) * 0.75);
+  // fill 0–1 : 5 000 → 40 %, 25 000 → 100 %
+  const fill     = Math.min(1, 0.40 + Math.max(0, (jackpot - 5000) / 20000) * 0.60);
+  const surfaceY = IBOT_Y - fill * (IBOT_Y - ITOP_Y);
 
-  // SVG cup interior: rim at y=56, bottom at y=250  (194 units tall)
-  const INTERIOR_TOP = 60;
-  const INTERIOR_BOT = 248;
-  const FILL_HEIGHT = INTERIOR_BOT - INTERIOR_TOP; // 188
-  const surfaceY = INTERIOR_BOT - fill * FILL_HEIGHT;
+  // Dark-cover height: covers everything above surfaceY (coin pile hidden above it)
+  const coverH   = Math.max(0, surfaceY - ITOP_Y + 2);
 
   function spawnCoins(count: number) {
-    const batch: FallingCoin[] = Array.from({ length: count }, (_, i) => ({
+    const batch: DroppingCoin[] = Array.from({ length: count }, (_, i) => ({
       id: ++nextId.current,
-      left: 20 + Math.random() * 60,
-      delay: i * 0.09 + Math.random() * 0.04,
-      size: 11 + Math.floor(Math.random() * 9),
-      spin: Math.random() > 0.5 ? 1 : -1,
+      cx: 70 + Math.random() * 160,        // random x in wide part of cup
+      landCy: surfaceY - COIN_R * 0.6,     // land at current surface
+      r: 6 + Math.random() * 5,
+      delay: i * 0.08,
     }));
-    setCoins(c => [...c, ...batch]);
+    setDropping(d => [...d, ...batch]);
     setTimeout(() => {
       const ids = new Set(batch.map(c => c.id));
-      setCoins(c => c.filter(coin => !ids.has(coin.id)));
-    }, 2400);
+      setDropping(d => d.filter(c => !ids.has(c.id)));
+    }, 2200);
   }
 
-  useEffect(() => { if (coinTrigger > 0) spawnCoins(9); }, [coinTrigger]);
+  useEffect(() => { if (coinTrigger > 0) spawnCoins(10); }, [coinTrigger]);
 
-  // Auto-demo: random users every ~4 s
+  // Auto-demo
   useEffect(() => {
     const id = setInterval(() => {
       const name = AUTO_NAMES[Math.floor(Math.random() * AUTO_NAMES.length)];
-      const amt = [5, 10, 15, 20][Math.floor(Math.random() * 4)];
+      const amt  = [5, 10, 15, 20][Math.floor(Math.random() * 4)];
       setAutoName(name);
-      setAutoAmount(amt);
+      setAutoAmt(amt);
       spawnCoins(4 + Math.floor(Math.random() * 4));
       setTimeout(() => setAutoName(null), 2500);
-    }, 3800 + Math.random() * 2000);
+    }, 3600 + Math.random() * 2000);
     return () => clearInterval(id);
   }, []);
 
-  // Coin positions inside the cup pile
-  const coinDots: Array<[number, number]> = [
-    [75, 0], [118, 2], [162, 0], [205, 3],
-    [90, 18], [145, 20], [195, 17],
-    [108, 36], [158, 38], [80, 50], [185, 48], [132, 54],
-  ];
+  // Depth gradient: bottom coins are darker
+  const DEPTH_STOPS = useMemo(() => {
+    const full = fill;
+    return [
+      { offset: '0%',   color: '#fde047', opacity: 0.92 },
+      { offset: `${Math.min(60, full * 100 * 0.6)}%`, color: '#fbbf24', opacity: 0.75 },
+      { offset: '100%', color: '#92400e', opacity: 0.55 },
+    ];
+  }, [fill]);
 
   return (
     <div
       onClick={onClick}
       style={{ position: 'relative', width: '100%', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
     >
-      {/* Ambient glow background */}
+      {/* Soft ambient pulse behind cup */}
       <motion.div
-        animate={{ opacity: [0.18, 0.42, 0.18], scale: [1, 1.07, 1] }}
-        transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ position: 'absolute', top: '6%', left: '50%', transform: 'translateX(-50%)', width: '85%', height: '60%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, #f59e0b40 0%, #d9770618 45%, transparent 70%)', pointerEvents: 'none' }}
+        animate={{ opacity: [0.14, 0.36, 0.14] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ position: 'absolute', top: '8%', left: '50%', transform: 'translateX(-50%)', width: '78%', height: '58%', borderRadius: '50%', background: 'radial-gradient(ellipse, #f59e0b38 0%, transparent 70%)', pointerEvents: 'none' }}
       />
 
-      {/* Live-buy notification */}
+      {/* Live-buy toast */}
       <AnimatePresence>
         {autoName && (
           <motion.div
-            key={`${autoName}-${autoAmount}`}
+            key={`${autoName}-${autoAmt}`}
             initial={{ opacity: 0, y: 10, scale: 0.88 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.9 }}
-            style={{ position: 'absolute', top: 48, zIndex: 20, background: 'rgba(8,18,8,0.93)', border: '1px solid rgba(251,191,36,0.38)', borderRadius: 20, padding: '4px 14px', fontSize: 11, color: '#fde047', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 16px rgba(251,191,36,0.22)', backdropFilter: 'blur(6px)', whiteSpace: 'nowrap' }}
+            style={{ position: 'absolute', top: 46, zIndex: 30, background: 'rgba(6,14,6,0.94)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 22, padding: '4px 14px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 18px rgba(251,191,36,0.22)', backdropFilter: 'blur(8px)', whiteSpace: 'nowrap', color: '#fde047' }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e', display: 'inline-block' }} />
             <span style={{ color: '#e2e8f0' }}>{autoName}</span>
-            <span>{isRtl ? `اشترى تذكرة · +${autoAmount}` : `bought ticket · +${autoAmount}`} SKZ</span>
+            <span>{isRtl ? `اشترى · +${autoAmt}` : `bought · +${autoAmt}`} SKZ</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Jackpot label + amount */}
+      {/* Jackpot amount */}
       <motion.div
-        animate={{ scale: [1, 1.022, 1] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ textAlign: 'center', marginBottom: 4, zIndex: 2, position: 'relative' }}
+        animate={{ scale: [1, 1.018, 1] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ textAlign: 'center', marginBottom: 2, zIndex: 2, position: 'relative' }}
       >
-        <div style={{ fontSize: 11, letterSpacing: '0.14em', color: '#f59e0b', fontFamily: '"Orbitron", sans-serif', fontWeight: 700, textShadow: '0 0 14px #f59e0baa', marginBottom: 2 }}>
-          {isRtl ? '🏆 الجائزة الكبرى' : '🏆 JACKPOT'}
+        <div style={{ fontSize: 11, letterSpacing: '0.14em', color: '#f59e0b', fontFamily: '"Orbitron", sans-serif', fontWeight: 700, textShadow: '0 0 12px #f59e0baa', marginBottom: 3 }}>
+          {isRtl ? '🏆 الجائزة الكبرى' : '🏆 JACKPOT PRIZE'}
         </div>
         <motion.div
           key={jackpot}
-          initial={{ scale: 1.14, opacity: 0.7 }}
+          initial={{ scale: 1.12, opacity: 0.7 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          style={{ fontFamily: '"Orbitron", sans-serif', fontSize: 34, fontWeight: 900, background: 'linear-gradient(90deg,#fbbf24 0%,#fde047 42%,#f59e0b 72%,#fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.05, filter: 'drop-shadow(0 0 14px #f59e0b88)' }}
+          transition={{ duration: 0.48, ease: 'easeOut' }}
+          style={{ fontFamily: '"Orbitron", sans-serif', fontSize: 34, fontWeight: 900, background: 'linear-gradient(90deg,#fbbf24 0%,#fde047 40%,#f59e0b 72%,#fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.05, filter: 'drop-shadow(0 0 14px #f59e0b88)' }}
         >
           {jackpot.toLocaleString()}
         </motion.div>
-        <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700, opacity: 0.82, marginTop: -1 }}>SKZ</div>
+        <div style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700, opacity: 0.82, marginTop: -1 }}>SKZ</div>
       </motion.div>
 
-      {/* SVG cup + falling coins */}
-      <div style={{ position: 'relative', width: '94%', maxWidth: 320 }}>
+      {/* ─── SVG CUP ─── */}
+      <div style={{ position: 'relative', width: '94%', maxWidth: 310 }}>
         <motion.div
           animate={{ y: [0, -5, 0] }}
-          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          {/*
-            Cup shape (proper goblet / trophy):
-            - Rim: x 28–272 (244px wide) at y=46
-            - Walls bulge slightly outward to y≈90, then curve inward to y=250
-            - Stem: narrow y=250–300
-            - Base: wide y=300–324
-          */}
-          <svg viewBox="0 0 300 380" style={{ width: '100%', overflow: 'visible' }}>
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            style={{ width: '100%', overflow: 'visible' }}
+          >
             <defs>
-              {/* Gold liquid fill */}
-              <linearGradient id="jcFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor="#fde047" stopOpacity="1" />
-                <stop offset="30%"  stopColor="#fbbf24" stopOpacity="0.95" />
-                <stop offset="70%"  stopColor="#d97706" stopOpacity="0.92" />
-                <stop offset="100%" stopColor="#92400e" stopOpacity="1" />
+              {/* ── Coin face gradient (radial, 3D effect) ── */}
+              <radialGradient id="jcCoin" cx="36%" cy="34%" r="68%">
+                <stop offset="0%"   stopColor="#fef3c7" />
+                <stop offset="30%"  stopColor="#fde047" />
+                <stop offset="65%"  stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#92400e" />
+              </radialGradient>
+
+              {/* Top-layer coin (brighter, recently dropped) */}
+              <radialGradient id="jcCoinTop" cx="34%" cy="32%" r="68%">
+                <stop offset="0%"   stopColor="#fffbeb" />
+                <stop offset="25%"  stopColor="#fef9c3" />
+                <stop offset="55%"  stopColor="#fde047" />
+                <stop offset="100%" stopColor="#d97706" />
+              </radialGradient>
+
+              {/* Depth gradient applied over the pile (top bright → bottom dark) */}
+              <linearGradient id="jcDepth" x1="0" y1="0" x2="0" y2="1">
+                {DEPTH_STOPS.map((s, i) => (
+                  <stop key={i} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
+                ))}
               </linearGradient>
 
-              {/* Glass wall — left-to-right gradient */}
+              {/* Warm glow overlay at surface level */}
+              <radialGradient id="jcSurface" cx="50%" cy="100%" r="60%">
+                <stop offset="0%"   stopColor="#fef9c3" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#fde047" stopOpacity="0" />
+              </radialGradient>
+
+              {/* Cup wall gradient — very subtle, clean */}
               <linearGradient id="jcWall" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stopColor="#f59e0b" stopOpacity="0.72" />
-                <stop offset="10%"  stopColor="#fffbeb" stopOpacity="0.24" />
-                <stop offset="50%"  stopColor="#fffbeb" stopOpacity="0.05" />
-                <stop offset="88%"  stopColor="#fffbeb" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.66" />
+                <stop offset="0%"   stopColor="#f59e0b" stopOpacity="0.55" />
+                <stop offset="6%"   stopColor="#fde047" stopOpacity="0.14" />
+                <stop offset="50%"  stopColor="#fffbeb" stopOpacity="0.03" />
+                <stop offset="94%"  stopColor="#fde047" stopOpacity="0.10" />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.50" />
               </linearGradient>
 
               {/* Base */}
               <linearGradient id="jcBase" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stopColor="#92400e" stopOpacity="0.85" />
-                <stop offset="35%"  stopColor="#fbbf24" stopOpacity="0.95" />
-                <stop offset="65%"  stopColor="#fde047" stopOpacity="1" />
-                <stop offset="100%" stopColor="#92400e" stopOpacity="0.85" />
+                <stop offset="0%"   stopColor="#78350f" stopOpacity="0.9" />
+                <stop offset="30%"  stopColor="#fbbf24" stopOpacity="0.95" />
+                <stop offset="70%"  stopColor="#fde047" stopOpacity="1" />
+                <stop offset="100%" stopColor="#78350f" stopOpacity="0.9" />
               </linearGradient>
 
-              <filter id="jcGlow" x="-15%" y="-15%" width="130%" height="130%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              {/* Glow / shadow filters */}
+              <filter id="jcGlow" x="-18%" y="-18%" width="136%" height="136%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
-              <filter id="jcDeepGlow" x="-30%" y="-30%" width="160%" height="160%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              <filter id="jcRimGlow" x="-25%" y="-100%" width="150%" height="300%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <filter id="jcBaseGlow" x="-20%" y="-60%" width="140%" height="220%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
 
-              {/* Interior clip — matches the inside of the cup walls */}
+              {/*
+                Interior clip path — inside of the cup body.
+                This clips ALL coin fill, falling coins, and surface effects.
+                Cup narrows from wide rim to narrow stem area.
+              */}
               <clipPath id="jcClip">
                 <path d="
                   M 42 54
-                  C 52 60, 66 84, 70 110
-                  C 76 140, 90 186, 116 248
-                  L 184 248
-                  C 210 186, 224 140, 230 110
-                  C 234 84, 248 60, 258 54
+                  C 52 62, 66 88, 70 114
+                  C 78 146, 96 194, 122 250
+                  L 178 250
+                  C 204 194, 222 146, 230 114
+                  C 234 88, 248 62, 258 54
                   Z
                 " />
               </clipPath>
 
-              <radialGradient id="jcRimGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%"   stopColor="#fde047" stopOpacity="0.85" />
+              {/* Rim radial glow */}
+              <radialGradient id="jcRimRad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%"   stopColor="#fde047" stopOpacity="0.9" />
                 <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
               </radialGradient>
             </defs>
 
-            {/* ── COIN FILL (clipped inside cup) ── */}
+            {/* ───────────────────────────────────── */}
+            {/* STEP 1: CUP INTERIOR — COIN FILL      */}
+            {/* ───────────────────────────────────── */}
             <g clipPath="url(#jcClip)">
-              {/* Dark empty interior */}
-              <rect x="0" y="0" width="300" height="380" fill="#0d0800" />
 
-              {/* Gold liquid — animate y position */}
+              {/* Deep dark interior (empty top portion) */}
+              <rect x="0" y="0" width={VB_W} height={VB_H} fill="#070400" />
+
+              {/* ── Coin grid: ALL positions, always rendered ── */}
+              {COIN_GRID.map((dot, i) => (
+                <g key={i}>
+                  <circle cx={dot.cx} cy={dot.cy} r={COIN_R}     fill="url(#jcCoin)" />
+                  <circle cx={dot.cx} cy={dot.cy} r={COIN_R}     fill="none" stroke="#fde047" strokeWidth="1" opacity="0.45" />
+                  {/* Tiny shine on each coin */}
+                  <ellipse
+                    cx={dot.cx - 2.5} cy={dot.cy - 2.8}
+                    rx={2.5} ry={1.5}
+                    fill="#fef9c3" opacity="0.55"
+                  />
+                </g>
+              ))}
+
+              {/* Depth overlay — makes bottom coins darker/richer */}
+              <rect x="0" y={ITOP_Y} width={VB_W} height={IBOT_Y - ITOP_Y} fill="url(#jcDepth)" style={{ mixBlendMode: 'multiply' }} />
+
+              {/*
+                ── DARK COVER ──
+                A dark rectangle from y=ITOP_Y whose height = coverH.
+                It hides the TOP portion of the coin grid (above the fill level).
+                As fill increases → coverH decreases → more coins revealed.
+              */}
               <motion.rect
                 x={0}
-                y={surfaceY}
-                width={300}
-                height={380}
-                fill="url(#jcFill)"
-                initial={{ y: INTERIOR_BOT }}
-                animate={{ y: surfaceY }}
-                transition={{ type: 'spring', stiffness: 28, damping: 11 }}
+                y={ITOP_Y}
+                width={VB_W}
+                fill="#070400"
+                initial={{ height: IBOT_Y - ITOP_Y }}
+                animate={{ height: Math.max(0, coverH) }}
+                transition={{ type: 'spring', stiffness: 26, damping: 11 }}
               />
 
-              {/* Liquid surface wave */}
+              {/* ── Coin pile surface shine (amber, not white) ── */}
               <motion.ellipse
                 cx={150}
                 cy={surfaceY}
-                rx={80}
-                ry={10}
-                fill="#fde047"
-                opacity={0.9}
-                initial={{ cy: surfaceY, rx: 80, ry: 10 }}
-                animate={{ cy: [surfaceY, surfaceY - 6, surfaceY], rx: [80, 88, 80], ry: [10, 14, 10] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                rx={64}
+                ry={7}
+                fill="#fbbf24"
+                opacity={0.65}
+                initial={{ cy: IBOT_Y, rx: 38, ry: 6 }}
+                animate={{ cy: [surfaceY, surfaceY - 4, surfaceY], rx: [64, 70, 64], ry: [7, 10, 7] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              {/* Top shimmer line */}
+              <motion.ellipse
+                cx={150}
+                cy={surfaceY - 2}
+                rx={42}
+                ry={3}
+                fill="#fef9c3"
+                opacity={0.35}
+                initial={{ cy: IBOT_Y - 2, rx: 28, ry: 2 }}
+                animate={{ cy: [surfaceY - 2, surfaceY - 5, surfaceY - 2], rx: [42, 48, 42] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
               />
 
-              {/* Coin circles in pile */}
-              {coinDots.map(([dotCx, dotRelY], i) => (
-                <motion.circle
-                  key={i}
-                  cx={dotCx}
-                  cy={surfaceY + 10 + dotRelY}
-                  r={7 + (i % 3) * 3}
-                  fill="#fbbf24"
-                  stroke="#fde047"
-                  strokeWidth="1.2"
-                  opacity={0.42 + (i % 4) * 0.13}
-                  initial={{ cy: surfaceY + 10 + dotRelY }}
-                  animate={{ cy: surfaceY + 10 + dotRelY }}
-                  transition={{ type: 'spring', stiffness: 22, damping: 10, delay: i * 0.04 }}
-                />
-              ))}
+              {/* ── Falling / dropping coins ── */}
+              <AnimatePresence>
+                {dropping.map(dc => (
+                  <motion.g key={dc.id}>
+                    <motion.circle
+                      cx={dc.cx}
+                      cy={ITOP_Y + 5}
+                      r={dc.r}
+                      fill="url(#jcCoinTop)"
+                      stroke="#fde047"
+                      strokeWidth="1.3"
+                      initial={{ cy: ITOP_Y + 5, opacity: 1, scaleX: 1, scaleY: 1 }}
+                      animate={{ cy: dc.landCy, opacity: [1, 1, 1, 0.8, 0], scaleY: [1, 1.2, 0.8, 0.7] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5, delay: dc.delay, ease: [0.25, 0.05, 0.75, 1] }}
+                    />
+                    {/* Motion blur streak on each coin */}
+                    <motion.line
+                      x1={dc.cx} y1={ITOP_Y + 5 - dc.r}
+                      x2={dc.cx} y2={ITOP_Y + 5 - dc.r - 12}
+                      stroke="#fde047"
+                      strokeWidth={dc.r * 0.6}
+                      strokeOpacity={0.25}
+                      strokeLinecap="round"
+                      initial={{ x1: dc.cx, y1: ITOP_Y + 5 - dc.r, x2: dc.cx, y2: ITOP_Y + 5 - dc.r - 12, opacity: 0.4 }}
+                      animate={{ y1: dc.landCy - dc.r, y2: dc.landCy - dc.r - 12, opacity: [0.4, 0.3, 0.1, 0] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5, delay: dc.delay, ease: [0.25, 0.05, 0.75, 1] }}
+                    />
+                  </motion.g>
+                ))}
+              </AnimatePresence>
 
-              {/* Surface sparkles */}
-              {([100, 154, 206] as const).map((spCx, i) => (
-                <motion.circle
-                  key={spCx}
-                  cx={spCx}
-                  cy={surfaceY + 10}
-                  r={2.5}
-                  fill="#fffbeb"
-                  initial={{ opacity: 0, cy: surfaceY + 10 }}
-                  animate={{ cy: [surfaceY + 10, surfaceY + 5, surfaceY + 10], opacity: [0, 0.9, 0], scale: [0.5, 1.5, 0.5] }}
-                  transition={{ duration: 1.7, repeat: Infinity, delay: i * 0.58 }}
-                />
-              ))}
-            </g>
+              {/* ── Coin land splash ── */}
+              <AnimatePresence>
+                {dropping.length > 0 && (
+                  <motion.g key={`splash-${dropping[0]?.id}`}>
+                    {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
+                      const rad = (deg * Math.PI) / 180;
+                      const dist = 14;
+                      return (
+                        <motion.circle
+                          key={deg}
+                          cx={150}
+                          cy={surfaceY}
+                          r={2.5}
+                          fill="#fde047"
+                          initial={{ cx: 150, cy: surfaceY, opacity: 1, r: 2.5 }}
+                          animate={{
+                            cx: 150 + Math.cos(rad) * dist,
+                            cy: surfaceY + Math.sin(rad) * dist * 0.5,
+                            opacity: 0,
+                            r: 1,
+                          }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4, delay: 0.45 + i * 0.02, ease: 'easeOut' }}
+                        />
+                      );
+                    })}
+                  </motion.g>
+                )}
+              </AnimatePresence>
 
-            {/* ── GOBLET GLASS WALLS ──
-                Proper trophy shape:
-                - Rim wide (28–272) at y=46
-                - Slight outward belly near top
-                - Curves inward by y=250
-                - Stem y=250–302
-                - Base y=302–324
+            </g>{/* end clipPath */}
+
+            {/* ───────────────────────────────────── */}
+            {/* STEP 2: CUP GLASS WALLS               */}
+            {/* ───────────────────────────────────── */}
+
+            {/*
+              Goblet / trophy shape:
+              - Rim: x 24–276 (252 wide) at y=44
+              - Slight outward belly near top (classic chalice shape)
+              - Narrows to stem by y=252
+              - Stem: y 252–306
+              - Base: y 306–328
             */}
             <path
               d="
-                M 28 46
-                L 272 46
-                C 284 56, 284 84, 272 112
-                C 258 144, 228 188, 196 250
-                L 172 250
-                L 168 302
-                L 226 302
-                L 226 324
-                L 74 324
-                L 74 302
-                L 132 302
-                L 128 250
-                L 104 250
-                C 72 188, 42 144, 28 112
-                C 16 84, 16 56, 28 46
+                M 24 44
+                L 276 44
+                C 290 56, 292 86, 280 118
+                C 265 152, 234 196, 202 252
+                L 174 252
+                L 170 306
+                L 230 306
+                L 230 328
+                L 70 328
+                L 70 306
+                L 130 306
+                L 126 252
+                L 98 252
+                C 66 196, 35 152, 20 118
+                C 8 86, 10 56, 24 44
                 Z
               "
               fill="url(#jcWall)"
               stroke="#f59e0b"
-              strokeWidth="2.5"
-              strokeOpacity="0.88"
+              strokeWidth="2.2"
+              strokeOpacity="0.9"
               filter="url(#jcGlow)"
             />
 
-            {/* Left glass reflection — bright streak */}
-            <path d="M 42 64 C 50 96, 60 148, 68 210" fill="none" stroke="#fffbeb" strokeWidth="5" strokeOpacity="0.2" strokeLinecap="round" />
-            <path d="M 50 72 C 57 100, 66 148, 74 205" fill="none" stroke="#fffbeb" strokeWidth="2" strokeOpacity="0.1" strokeLinecap="round" />
-
-            {/* Right glass reflection */}
-            <path d="M 258 64 C 250 96, 240 148, 232 210" fill="none" stroke="#fffbeb" strokeWidth="3" strokeOpacity="0.1" strokeLinecap="round" />
-
-            {/* Rim highlight — thick glowing bar */}
-            <path d="M 22 43 Q 150 30 278 43" fill="none" stroke="#fbbf24" strokeWidth="8" strokeLinecap="round" filter="url(#jcGlow)" strokeOpacity="0.95" />
-            <path d="M 30 43 Q 150 32 270 43" fill="none" stroke="#fde047" strokeWidth="3" strokeLinecap="round" strokeOpacity="0.7" />
+            {/* ── Rim bar ── */}
+            <path
+              d="M 18 41 Q 150 28 282 41"
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth="9"
+              strokeLinecap="round"
+              filter="url(#jcRimGlow)"
+              strokeOpacity="0.95"
+            />
+            {/* Rim inner bright line */}
+            <path
+              d="M 26 41 Q 150 30 274 41"
+              fill="none"
+              stroke="#fef9c3"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeOpacity="0.7"
+            />
             {/* Rim glow ellipse */}
-            <ellipse cx="150" cy="40" rx="112" ry="8" fill="url(#jcRimGlow)" opacity="0.5" />
+            <ellipse cx="150" cy="38" rx="115" ry="9" fill="url(#jcRimRad)" opacity="0.5" />
 
-            {/* Stem side lines */}
-            <line x1="128" y1="250" x2="132" y2="302" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.35" />
-            <line x1="172" y1="250" x2="168" y2="302" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.35" />
+            {/* ── Thin accent on left & right edges only (no thick stripe) ── */}
+            <path d="M 36 60 C 40 90, 46 148, 54 214" fill="none" stroke="#fde047" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round" />
+            <path d="M 264 60 C 260 90, 254 148, 246 214" fill="none" stroke="#fde047" strokeWidth="1.5" strokeOpacity="0.1" strokeLinecap="round" />
 
-            {/* Base body */}
-            <rect x="74" y="302" width="152" height="22" rx="5" fill="url(#jcBase)" />
-            <rect x="74" y="302" width="152" height="22" rx="5" fill="none" stroke="#fbbf24" strokeWidth="2" strokeOpacity="0.88" filter="url(#jcGlow)" />
-            {/* Base highlight */}
-            <rect x="92" y="306" width="116" height="5" rx="2.5" fill="#fffbeb" opacity="0.28" />
-            {/* Base glow shadow */}
-            <ellipse cx="150" cy="326" rx="80" ry="6" fill="#f59e0b" opacity="0.2" filter="url(#jcDeepGlow)" />
+            {/* ── Stem ── */}
+            <line x1="126" y1="252" x2="130" y2="306" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.3" />
+            <line x1="174" y1="252" x2="170" y2="306" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.3" />
 
-            {/* ── Stars / sparkles floating outside cup ── */}
-            {([
-              { cx: 36, cy: 120, r: 3, delay: 0 },
-              { cx: 264, cy: 140, r: 2.5, delay: 0.7 },
-              { cx: 25, cy: 200, r: 2, delay: 1.3 },
-              { cx: 275, cy: 90, r: 2, delay: 0.4 },
-            ]).map((s, i) => (
+            {/* ── Base ── */}
+            <rect x="70" y="306" width="160" height="22" rx="5" fill="url(#jcBase)" />
+            <rect x="70" y="306" width="160" height="22" rx="5" fill="none" stroke="#fbbf24" strokeWidth="2" strokeOpacity="0.88" filter="url(#jcGlow)" />
+            {/* Base highlight line */}
+            <rect x="88" y="310" width="124" height="5" rx="2.5" fill="#fffbeb" opacity="0.24" />
+            {/* Base glow puddle */}
+            <ellipse cx="150" cy="330" rx="84" ry="7" fill="#f59e0b" opacity="0.18" filter="url(#jcBaseGlow)" />
+
+            {/* ── Ambient coin sparkles ── */}
+            {[
+              { cx: 32,  cy: 130, delay: 0.0,  r: 2.8 },
+              { cx: 268, cy: 110, delay: 0.7,  r: 2.2 },
+              { cx: 22,  cy: 210, delay: 1.4,  r: 1.8 },
+              { cx: 278, cy: 190, delay: 0.4,  r: 2.5 },
+              { cx: 26,  cy: 80,  delay: 1.0,  r: 1.6 },
+            ].map((s, i) => (
               <motion.circle
                 key={i}
-                cx={s.cx}
-                cy={s.cy}
-                r={s.r}
+                cx={s.cx} cy={s.cy} r={s.r}
                 fill="#fde047"
                 initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: [0, 0.8, 0], scale: [0, 1.2, 0] }}
-                transition={{ duration: 2, repeat: Infinity, delay: s.delay, repeatDelay: 1.5 }}
+                animate={{ opacity: [0, 0.85, 0], scale: [0, 1.3, 0] }}
+                transition={{ duration: 2.2, repeat: Infinity, delay: s.delay, repeatDelay: 2 }}
               />
             ))}
           </svg>
         </motion.div>
-
-        {/* ── FALLING COINS (HTML overlay) ── */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          <AnimatePresence>
-            {coins.map(coin => (
-              <motion.div
-                key={coin.id}
-                initial={{ top: '2%', left: `${coin.left}%`, opacity: 1, rotate: 0, scale: 1 }}
-                animate={{ top: '68%', opacity: [1, 1, 1, 0.6, 0], rotate: coin.spin * 200, scale: [1, 1.1, 0.95, 0.75] }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6, delay: coin.delay, ease: [0.22, 0.05, 0.82, 1] }}
-                style={{ position: 'absolute', width: coin.size, height: coin.size, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #fde047 0%, #fbbf24 45%, #d97706 80%, #92400e 100%)', boxShadow: '0 0 8px #fbbf2499, 0 2px 4px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.4)', transform: 'translateX(-50%)', zIndex: 20 }}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {/* Splash particles when coins land */}
-        <AnimatePresence>
-          {coins.length > 0 && (
-            <motion.div
-              key="splash-burst"
-              style={{ position: 'absolute', top: '64%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 22 }}
-            >
-              {[0, 60, 120, 180, 240, 300].map((deg, i) => (
-                <motion.div
-                  key={deg}
-                  initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                  animate={{ x: Math.cos(deg * Math.PI / 180) * 22, y: Math.sin(deg * Math.PI / 180) * 16, opacity: 0, scale: 0.4 }}
-                  transition={{ duration: 0.45, delay: 0.52 + i * 0.03, ease: 'easeOut' }}
-                  style={{ position: 'absolute', width: 5, height: 5, borderRadius: '50%', background: '#fde047', boxShadow: '0 0 4px #fbbf24' }}
-                />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Participants + hint */}
-      <div style={{ textAlign: 'center', marginTop: -6, paddingBottom: 2 }}>
+      <div style={{ textAlign: 'center', marginTop: -4 }}>
         <span style={{ fontSize: 11, color: '#78716c' }}>
           <span style={{ color: '#fbbf24', fontWeight: 700 }}>{participants.toLocaleString()}</span>
           {isRtl ? ' مشترك ' : ' participants '}
         </span>
         <motion.span
-          animate={{ opacity: [0.55, 1, 0.55] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2.2, repeat: Infinity }}
           style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}
         >
           {isRtl ? '· اضغط لشراء تذكرة ←' : '· tap to buy ticket →'}
