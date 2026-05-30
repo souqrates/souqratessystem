@@ -45,8 +45,19 @@ disk: test `https://127.0.0.1/... -H "Host: souqrates.com"` first. 200 at origin
 
 ## Sync gotcha
 
-Replit checkpoint commits do NOT auto-push to the git remote Contabo pulls from
-(`git pull` on Contabo said "already up to date"). The live `/etc/nginx` fix was
-applied by direct `sed` on Contabo; the Replit `deploy/nginx/souqrates.conf` is
-also fixed. Push Replit → remote so a future `git pull` on Contabo keeps the fix.
-`deploy.sh` does NOT copy nginx config, so a redeploy won't clobber live nginx.
+Replit checkpoint commits do NOT auto-push to the git remote Contabo pulls from.
+The live `/etc/nginx` fix was applied by direct `sed` on Contabo; the Replit
+`deploy/nginx/souqrates.conf` also uses `root` (never `alias`).
+
+`deploy.sh` DOES overwrite `/etc/nginx/sites-available/souqrates.conf` — but
+only when `deploy/nginx/` appears in the diff between the previous HEAD and the
+new HEAD. If the nginx config has not changed in git since the last pull, it is
+left untouched. Consequence: a manual sed fix on Contabo survives future deploys
+as long as the Replit-side config remains identical or is never committed.
+
+## Cloudflare does NOT cache 4xx by default
+
+Cloudflare only caches 2xx/3xx. When nginx had the alias bug, every asset
+request went all the way to origin and got 404 — Cloudflare was transparent.
+After fixing nginx (origin → 200) no extra CF purge is needed; the next request
+immediately gets the correct file.
