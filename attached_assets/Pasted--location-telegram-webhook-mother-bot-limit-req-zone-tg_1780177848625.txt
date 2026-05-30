@@ -1,0 +1,61 @@
+
+    location = /telegram-webhook/mother-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8101;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/books-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8102;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/contests-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8103;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Telegram-Bot-Api-Secret-Token $http_x_telegram_bot_api_secret_token;
+        proxy_read_timeout 75s;
+    }
+    location = /telegram-webhook/subagents-bot {
+        limit_req zone=tg_webhook burst=60 nodelay;
+        proxy_pass http://127.0.0.1:8104;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#   /                            → static (bot-demo, the mother-bot Mini App root)
+# All static roots are served out of /var/www/souqrates/<slug>/ — deploy.sh
+        root /var/www/certbot;
+    # are immutable, so we cache them aggressively. index.html stays at 1h.
+    # locations and try to serve /superadmin/main-abc.js from the wrong root.
+        try_files $uri $uri/ /superadmin/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /books-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /contests-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /subagents-bot-web/index.html;
+            try_files $uri =404;
+        try_files $uri $uri/ /games-bot/index.html;
+            try_files $uri =404;
+        root /var/www/souqrates/bot-demo;
+        try_files $uri $uri/ /index.html;
+            root /var/www/souqrates/bot-demo;
+            try_files $uri =404;
+root@vmi3329645:/opt/souqrates/repo# 
