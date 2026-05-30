@@ -1,0 +1,32 @@
+═══ 2) كتلة books-bot-web (الناجحة) للمقارنة ═══
+    location /books-bot-web/ {
+        root /var/www/souqrates;
+        try_files $uri $uri/ /books-bot-web/index.html;
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600";
+        location ~* \.(?:js|css|woff2?|ttf|otf|eot|ico|png|jpg|jpeg|webp|svg|gif|map)$ {
+            root /var/www/souqrates;
+            try_files $uri =404;
+            expires 30d;
+            add_header Cache-Control "public, max-age=2592000, immutable";
+
+═══ 3) هل الملفات موجودة فعلاً على القرص؟ ═══
+-rw-rw-r-- 1 souqrates souqrates 203492 May 30 04:49 /var/www/souqrates/games-bot/assets/main-tl1wUHPR.js
+-rw-rw-r-- 1 souqrates souqrates 213593 May 30 04:48 /var/www/souqrates/contests-bot-web/assets/index-BGquP4bl.js
+-rw-rw-r-- 1 souqrates souqrates 527795 May 30 04:48 /var/www/souqrates/subagents-bot-web/assets/index-B3JH3MRG.js
+-rw-rw-r-- 1 souqrates souqrates 1462246 May 30 04:48 /var/www/souqrates/superadmin/assets/index-BLtnj3jT.js
+-rw-rw-r-- 1 souqrates souqrates 277356 May 30 04:48 /var/www/souqrates/books-bot-web/assets/index-DYYEt2Ht.js
+
+═══ 4) آخر أخطاء nginx (المسار الذي حاول فتحه) ═══
+2026/05/30 00:45:26 [error] 4626#4626: *117 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 103.247.13.142, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/1.1", host: "194.163.155.52", referrer: "https://194.163.155.52/"
+2026/05/30 00:45:27 [error] 4628#4628: *118 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 103.247.13.142, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/1.1", host: "194.163.155.52", referrer: "https://194.163.155.52"
+2026/05/30 00:46:19 [error] 4629#4629: *122 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 159.195.52.136, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/1.1", host: "194.163.155.52", referrer: "https://194.163.155.52/"
+2026/05/30 00:46:19 [error] 4625#4625: *123 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 159.195.52.136, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/1.1", host: "194.163.155.52", referrer: "https://194.163.155.52"
+2026/05/30 00:46:50 [error] 4625#4625: *125 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 172.70.108.201, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/2.0", host: "souqrates.com"
+2026/05/30 00:47:19 [error] 4625#4625: *124 rewrite or internal redirection cycle while internally redirecting to "/sweep-bot-web/index.html", client: 172.70.108.166, server: souqrates.com, request: "GET /sweep-bot-web/ HTTP/2.0", host: "souqrates.com"
+2026/05/30 02:57:04 [error] 16156#16156: *422 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.68.234.114, server: souqrates.com, request: "GET / HTTP/2.0", host: "souqrates.com"
+2026/05/30 03:07:05 [error] 16155#16155: *424 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 66.132.172.140, server: souqrates.com, request: "GET / HTTP/1.1", host: "194.163.155.52"
+2026/05/30 03:07:42 [error] 16157#16157: *430 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 66.132.172.140, server: souqrates.com, request: "GET /login HTTP/1.1", host: "194.163.155.52"
+2026/05/30 03:17:34 [error] 16157#16157: *433 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 172.71.190.79, server: souqrates.com, request: "GET / HTTP/2.0", host: "www.souqrates.com", referrer: "http://www.souqrates.com"
+2026/05/30 03:18:28 [error] 16157#16157: *435 rewrite or internal redirection cycle while internally redirecting to "/index.html", client: 162.158.79.246, server: souqrates.com, request: "GET / HTTP/2.0", host: "souqrates.com", referrer: "http://souqrates.com"
+root@vmi3329645:/opt/souqrates/repo# 
