@@ -58,35 +58,26 @@ API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 
 def _resolve_api_key() -> str:
     """
-    Resolve the scratchy-bot API key.
-    Priority: SCRATCHY_BOT_API_KEY env var → DB lookup via pg.
-    Falls back to DB so the bot works even if the secret was set wrong.
+    Resolve the scratchy-bot API key from SCRATCHY_BOT_API_KEY env var.
+
+    A Telegram bot token looks like "1234567890:AAG..." (contains a colon).
+    A valid API key never contains a colon and is at least 20 chars.
+    If the env var looks like a token (mis-paste), log a warning and return
+    empty string so the bot fails loudly at startup rather than silently
+    authenticating with a wrong key.
     """
     env_key = os.getenv("SCRATCHY_BOT_API_KEY", "").strip()
-    # A valid API key is a 64-char hex string or similar — NOT a Telegram token
-    # (Telegram tokens look like "1234567890:AAG...").
-    if env_key and ":" not in env_key and len(env_key) >= 20:
-        return env_key
-    # Fall back: read from DB directly
-    try:
-        import subprocess, json as _json
-        result = subprocess.run(
-            ["node", "-e", """
-const {Pool}=require('./node_modules/.pnpm/pg@8.20.0/node_modules/pg');
-const p=new Pool({connectionString:process.env.DATABASE_URL});
-p.query('SELECT api_key FROM bots WHERE slug=$1',['scratchy-bot'])
- .then(r=>{console.log(r.rows[0]?.api_key||'');p.end()})
- .catch(e=>{console.error(e.message);p.end()});
-"""],
-            capture_output=True, text=True, timeout=10,
-            cwd="/home/runner/workspace"
+    if not env_key:
+        logger.warning("SCRATCHY_BOT_API_KEY not set — internal API calls will fail")
+        return ""
+    if ":" in env_key:
+        logger.error(
+            "SCRATCHY_BOT_API_KEY looks like a Telegram bot token (contains ':') — "
+            "set it to the API key from the platform DB, not the bot token"
         )
-        key = result.stdout.strip()
-        if key and len(key) >= 20:
-            logger.info("scratchy-bot: API key loaded from DB fallback")
-            return key
-    except Exception as e:
-        logger.warning(f"DB api_key fallback failed: {e}")
+        return ""
+    if len(env_key) < 20:
+        logger.warning("SCRATCHY_BOT_API_KEY is suspiciously short — check the value")
     return env_key
 
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
