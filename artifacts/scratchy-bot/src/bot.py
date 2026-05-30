@@ -76,26 +76,10 @@ def _resolve_api_key() -> str:
             "falling back to /api/bots lookup"
         )
 
-    # HTTP fallback — GET /api/bots/scratchy-bot/api-key (admin-only endpoint)
-    admin_token = os.getenv("ADMIN_TOKEN", "").strip()
-    api_url = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
-    if admin_token:
-        try:
-            import urllib.request as _req
-            import json as _json
-            req = _req.Request(
-                f"{api_url}/bots/scratchy-bot/api-key",
-                headers={"Authorization": f"Bearer {admin_token}"},
-            )
-            with _req.urlopen(req, timeout=5) as resp:
-                data = _json.loads(resp.read())
-            key = data.get("apiKey", "")
-            if key:
-                logger.info("scratchy-bot: API key loaded from /api/bots/scratchy-bot/api-key")
-                return key
-            logger.warning("scratchy-bot: /api/bots/scratchy-bot/api-key returned empty key")
-        except Exception as exc:
-            logger.warning(f"scratchy-bot: api-key endpoint fallback failed: {exc}")
+    # No further fallback — SCRATCHY_BOT_API_KEY must be set correctly.
+    # If it was mis-set to the Telegram token, the warning above tells the
+    # operator exactly what to fix.  The bot will start but API calls will
+    # fail auth until the secret is corrected in Replit Secrets.
 
     if not env_key:
         logger.warning("SCRATCHY_BOT_API_KEY not set — API calls will fail auth")

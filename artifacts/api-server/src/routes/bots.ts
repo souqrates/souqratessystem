@@ -141,29 +141,4 @@ router.patch("/bots/:slug", requireAdmin, async (req, res): Promise<void> => {
   res.json(safeBot);
 });
 
-/**
- * GET /api/bots/:slug/api-key — return the raw api_key for a bot (admin-only).
- *
- * This endpoint exists specifically so sibling bot processes spawned by the
- * mother-bot can self-heal when SCRATCHY_BOT_API_KEY (or similar secrets) are
- * mis-set.  It is protected by requireAdmin and must NEVER be reachable without
- * a valid ADMIN_TOKEN.
- */
-router.get("/bots/:slug/api-key", requireAdmin, async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
-
-  const [bot] = await db
-    .select({ apiKey: botsTable.apiKey })
-    .from(botsTable)
-    .where(eq(botsTable.slug, raw));
-
-  if (!bot) {
-    res.status(404).json({ error: "Bot not found" });
-    return;
-  }
-
-  req.log.info({ slug: raw }, "api-key revealed to admin");
-  res.json({ slug: raw, apiKey: bot.apiKey });
-});
-
 export default router;
