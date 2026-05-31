@@ -62,6 +62,15 @@ export async function getTiers() {
 }
 
 /**
+ * Fetch live SKZ conversion rates from platform_settings.
+ * Returns { skzPerTon, skzPerUsdt, skzPerStar, tonPerSkz, usdtPerSkz }.
+ * No auth required — safe to call before user is loaded.
+ */
+export async function getRates() {
+  return call('GET', '/api/games/rates');
+}
+
+/**
  * Deduct entry fee for a solo game.
  * Returns { success, transactionId, entryFee, expectedPrize, newSkzBalance }.
  * Amount is validated server-side against configured tier fees.

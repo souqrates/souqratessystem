@@ -28,6 +28,7 @@ import {
   platformSettingsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { getSkzRates } from "../lib/finance";
 
 const router: IRouter = Router();
 
@@ -396,6 +397,27 @@ router.get("/games/tiers", async (_req: Request, res: Response): Promise<void> =
     res.json({ tiers });
   } catch (err) {
     logger.error({ err }, "games: tiers failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/games/rates
+ * Return live SKZ conversion rates from platform_settings (no auth required).
+ * The frontend uses these for deposit/withdrawal UI — never hardcode these values.
+ */
+router.get("/games/rates", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rates = await getSkzRates();
+    res.json({
+      skzPerTon:          rates.perTon,
+      skzPerUsdt:         rates.perUsdt,
+      skzPerStar:         rates.perStar,
+      tonPerSkz:          rates.perTon  > 0 ? parseFloat((1 / rates.perTon).toFixed(8))  : 0,
+      usdtPerSkz:         rates.perUsdt > 0 ? parseFloat((1 / rates.perUsdt).toFixed(8)) : 0,
+    });
+  } catch (err) {
+    logger.error({ err }, "games: rates failed");
     res.status(500).json({ error: "Internal server error" });
   }
 });

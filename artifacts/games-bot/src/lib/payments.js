@@ -7,6 +7,7 @@ import {
   refundEntry as mbRefundEntry,
   requestWithdrawal as mbRequestWithdrawal,
   getTiers as mbGetTiers,
+  getRates as mbGetRates,
   createStarsInvoice as mbCreateStarsInvoice,
   createTonDepositIntent as mbCreateTonDepositIntent,
 } from './motherBot';
@@ -126,17 +127,42 @@ export async function getSoloFeeTiers() {
   }
 }
 
+/** Fetch live economy rates from platform_settings.
+ *  Falls back to safe defaults if the API is unreachable so the UI
+ *  can still render — server always recomputes actual amounts server-side.
+ */
 export async function getEconomySettings() {
-  return {
-    currency_symbol:     'SKZ',
-    currency_name:       'SKZ',
-    sc_per_ton:          500,
-    sc_per_usdt:         100,
-    ton_per_sc_withdraw: 0.002,
-    withdraw_min_sc:     100,
-    withdraw_fee_percent: 1,
-    withdraw_fee_min_sc: 0,
-  };
+  try {
+    const rates = await mbGetRates();
+    const skzPerTon  = Number(rates.skzPerTon)  || 500;
+    const skzPerUsdt = Number(rates.skzPerUsdt) || 100;
+    const tonPerSkz  = Number(rates.tonPerSkz)  || (1 / skzPerTon);
+    return {
+      currency_symbol:      'SKZ',
+      currency_name:        'SKZ',
+      sc_per_ton:           skzPerTon,
+      sc_per_usdt:          skzPerUsdt,
+      sc_per_star:          Number(rates.skzPerStar)  || 1,
+      ton_per_sc_withdraw:  tonPerSkz,
+      usdt_per_sc_withdraw: Number(rates.usdtPerSkz) || (1 / skzPerUsdt),
+      withdraw_min_sc:      100,
+      withdraw_fee_percent: 0,
+      withdraw_fee_min_sc:  0,
+    };
+  } catch {
+    return {
+      currency_symbol:      'SKZ',
+      currency_name:        'SKZ',
+      sc_per_ton:           500,
+      sc_per_usdt:          100,
+      sc_per_star:          1,
+      ton_per_sc_withdraw:  0.002,
+      usdt_per_sc_withdraw: 0.01,
+      withdraw_min_sc:      100,
+      withdraw_fee_percent: 0,
+      withdraw_fee_min_sc:  0,
+    };
+  }
 }
 
 // Deposit/withdraw flows live in the Mother Bot. The games-bot only reads

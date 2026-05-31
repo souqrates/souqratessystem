@@ -919,6 +919,17 @@ router.get("/superadmin/withdrawals", requireSuperAdmin, async (req, res): Promi
   res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
 });
 
+/** Thrown inside a DB transaction to signal insufficient balance at approval
+ *  time.  The throw rolls back the status update; the outer catch returns 422
+ *  (not 500) and notifies the affected user.  */
+class InsufficientFundsAtApprovalError extends Error {
+  readonly code = "insufficient_funds_at_approval" as const;
+  constructor() {
+    super("Insufficient wallet balance at approval time");
+    this.name = "InsufficientFundsAtApprovalError";
+  }
+}
+
 router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -974,7 +985,28 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
         throw new Error(`Unsupported currency: ${updated.currency}`);
       }
 
-      if (!walletUpdated) throw new Error("Insufficient wallet balance at approval time");
+      if (!walletUpdated) throw new InsufficientFundsAtApprovalError();
+
+      // Audit trail: record the withdrawal deduction in the transactions ledger
+      // so the book of record is complete without querying the withdrawals table.
+      await tx.insert(transactionsTable).values({
+        userId:      updated.userId,
+        type:        "withdrawal",
+        currency:    updated.currency,
+        amount:      String((parseFloat(updated.amount) * -1).toFixed(2)),
+        status:      "completed",
+        sourceBot:   updated.sourceBot ?? "superadmin",
+        referenceId: `withdrawal_${updated.id}`,
+        description: `سحب #${updated.id} عبر ${updated.method}`,
+        metadata:    JSON.stringify({
+          withdrawalId: updated.id,
+          method:       updated.method,
+          address:      updated.address,
+          txHash:       txHash ?? null,
+          approvedBy:   "superadmin",
+        }),
+      });
+
       return { error: null, row: updated };
     });
 
@@ -1016,6 +1048,42 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
     })();
     res.json(result.row);
   } catch (err) {
+    if (err instanceof InsufficientFundsAtApprovalError) {
+      await logAdminAction(req, "superadmin", {
+        action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
+        payload: { txHash }, success: false, errorMessage: err.code,
+      });
+      req.log.warn({ id }, "withdrawal approval: insufficient funds — withdrawal stays pending");
+      // Notify the user so they know to top up before the admin retries.
+      void (async () => {
+        try {
+          const [wd] = await db
+            .select({ userId: withdrawalsTable.userId, amount: withdrawalsTable.amount, currency: withdrawalsTable.currency })
+            .from(withdrawalsTable).where(eq(withdrawalsTable.id, id)).limit(1);
+          if (wd) {
+            const [u] = await db
+              .select({ tid: usersTable.telegramId })
+              .from(usersTable).where(eq(usersTable.id, wd.userId)).limit(1);
+            if (u) {
+              await notifyUser(
+                String(u.tid),
+                `⚠️ تعذّر تنفيذ طلب السحب #${id}\n` +
+                `المبلغ: ${wd.amount} ${wd.currency.toUpperCase()}\n` +
+                `السبب: رصيدك الحالي أقل من مبلغ الطلب.\n` +
+                `يُرجى شحن رصيدك ثم تواصل مع الدعم لإعادة المحاولة.`,
+              );
+            }
+          }
+        } catch (notifyErr) {
+          req.log.warn({ notifyErr, id }, "post-insufficientfunds notify failed");
+        }
+      })();
+      res.status(422).json({
+        error: err.code,
+        message: "رصيد المستخدم أقل من مبلغ السحب عند الموافقة — تم إخطاره. يمكنك إعادة المحاولة بعد شحن رصيده أو رفض الطلب.",
+      });
+      return;
+    }
     await logAdminAction(req, "superadmin", {
       action: "withdrawal.approve", targetType: "withdrawal", targetId: id,
       payload: { txHash }, success: false,

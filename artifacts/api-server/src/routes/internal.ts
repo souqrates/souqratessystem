@@ -355,6 +355,17 @@ router.get("/internal/balance/:telegramId", async (req, res): Promise<void> => {
     return;
   }
 
+  // Sum of pending withdrawals so clients can show "available" vs "locked" balance.
+  const [pendingWd] = await db
+    .select({ total: sql<string>`coalesce(sum(${withdrawalsTable.amount}::numeric), 0)` })
+    .from(withdrawalsTable)
+    .where(and(
+      eq(withdrawalsTable.userId, user.id),
+      eq(withdrawalsTable.status, "pending"),
+    ));
+  const pendingWithdrawalSkz = pendingWd?.total ?? "0";
+  const available = Math.max(0, parseFloat(wallet.balanceSkz) - parseFloat(pendingWithdrawalSkz));
+
   res.json({
     telegramId: String(user.telegramId),
     userId: user.id,
@@ -364,6 +375,8 @@ router.get("/internal/balance/:telegramId", async (req, res): Promise<void> => {
     balanceUsdt: wallet.balanceUsdt,
     totalEarnedSkz: wallet.totalEarnedSkz,
     totalWithdrawnSkz: wallet.totalWithdrawnSkz,
+    pendingWithdrawalSkz,
+    availableSkz: available.toFixed(2),
   });
 });
 
@@ -1984,8 +1997,45 @@ router.post("/internal/withdraw", perUserCreateLimiter, async (req, res): Promis
   }
 
   const currentSkz = parseFloat(wallet.balanceSkz);
-  if (currentSkz < amountNum) {
-    res.status(400).json({ error: "Insufficient SKZ balance" });
+
+  // ── Pending-withdrawal lock: count existing pending requests and sum their
+  //    amounts.  We never allow the user to exceed their *available* balance
+  //    (= actual balance − already-pending withdrawals) so that an admin
+  //    approval can never fail due to the user spending the same funds twice.
+  //    Cap at 3 concurrent pending withdrawals to prevent queue-flooding.
+  const [pendingInfo] = await db
+    .select({
+      total: sql<string>`coalesce(sum(${withdrawalsTable.amount}::numeric), 0)`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(withdrawalsTable)
+    .where(and(
+      eq(withdrawalsTable.userId, user.id),
+      eq(withdrawalsTable.status, "pending"),
+    ));
+
+  const pendingSkz   = parseFloat(pendingInfo?.total ?? "0");
+  const pendingCount = pendingInfo?.count ?? 0;
+
+  if (pendingCount >= 3) {
+    res.status(429).json({
+      error: "too_many_pending_withdrawals",
+      message: "لديك 3 طلبات سحب معلّقة كحد أقصى — انتظر موافقة الإدارة أو تواصل معنا",
+      maxPending: 3,
+      currentPending: pendingCount,
+    });
+    return;
+  }
+
+  const availableSkz = currentSkz - pendingSkz;
+  if (availableSkz < amountNum) {
+    res.status(400).json({
+      error: "insufficient_available_balance",
+      message: "رصيدك المتاح للسحب غير كافٍ — جزء من رصيدك محجوز في طلبات سحب معلّقة",
+      available: availableSkz.toFixed(2),
+      pending:   pendingSkz.toFixed(2),
+      balance:   currentSkz.toFixed(2),
+    });
     return;
   }
 

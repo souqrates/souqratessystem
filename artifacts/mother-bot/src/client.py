@@ -234,22 +234,37 @@ class MotherBotClient:
             except (TypeError, ValueError):
                 return 0.0
 
-        skz   = _num("balanceSkz")
-        usdt  = _num("balanceUsdt")
-        stars = _num("balanceStars")
-        ton   = _num("balanceTon")
-        earned = _num("totalEarnedSkz")
-        withdrawn = _num("totalWithdrawnSkz")
+        skz        = _num("balanceSkz")
+        usdt       = _num("balanceUsdt")
+        stars      = _num("balanceStars")
+        ton        = _num("balanceTon")
+        earned     = _num("totalEarnedSkz")
+        withdrawn  = _num("totalWithdrawnSkz")
+        # New fields — present when the caller fetches from /internal/balance/:id
+        pending_wd = _num("pendingWithdrawalSkz")
+        available  = _num("availableSkz") if "availableSkz" in wallet else skz
 
         lines = [
             f"🏦 <b>{title}</b>",
             "",
             "<b>الأرصدة الحالية</b>",
-            f"⚡ SKZ: <code>{skz:,.2f}</code>",
+        ]
+
+        if pending_wd > 0:
+            lines += [
+                f"⚡ SKZ الإجمالي:   <code>{skz:,.2f}</code>",
+                f"🔒 SKZ محجوز (سحب معلّق): <code>{pending_wd:,.2f}</code>",
+                f"✅ SKZ المتاح:    <code>{available:,.2f}</code>",
+            ]
+        else:
+            lines.append(f"⚡ SKZ: <code>{skz:,.2f}</code>")
+
+        lines += [
             f"💵 USDT: <code>{usdt:,.2f}</code>",
             f"⭐ Stars: <code>{int(stars):,}</code>",
             f"💎 TON: <code>{ton:,.4f}</code>",
         ]
+
         if show_pending and (earned or withdrawn):
             lines += [
                 "",

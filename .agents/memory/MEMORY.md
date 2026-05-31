@@ -12,3 +12,4 @@
 - [SubAgents DB activation](subagents-db-activation.md) — system was pre-scaffolded; only SQL migration + tier seed updates needed to activate.
 - [Drizzle push clean state](drizzle-push-clean.md) — 3 issues fixed to get "No changes detected": wallets missing createdAt, platform_settings constraint rename, 4 unmanaged sequences need pgSequence stubs (policies, platform_links, xp_events, xp_rules) in unmanagedSequences.ts.
 - [Dev bot overwrites prod menu button](dev-menu-button-guard.md) — Replit polling bots must NOT call set_chat_menu_button; gate on USE_WEBHOOK env var in all bot startups.
+- [Withdrawal double-spend guard](withdrawal-double-spend.md) — available balance = balanceSkz − SUM(pending withdrawals); check this before creating AND approving; cap at 3 concurrent pending per user (429).
