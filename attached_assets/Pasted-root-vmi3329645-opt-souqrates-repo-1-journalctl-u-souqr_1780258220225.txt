@@ -1,0 +1,23 @@
+root@vmi3329645:/opt/souqrates/repo# # 1. اطّلع على السجل لتأكيد السبب
+journalctl -u souqrates-scratchy-bot.service -n 20 --no-pager
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]: Traceback (most recent call last):
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/opt/souqrates/repo/artifacts/scratchy-bot/src/bot.py", line 344, in <module>
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     asyncio.run(main())
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     return runner.run(main)
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:            ^^^^^^^^^^^^^^^^
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     return self._loop.run_until_complete(task)
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     return future.result()
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:            ^^^^^^^^^^^^^^^
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/opt/souqrates/repo/artifacts/scratchy-bot/src/bot.py", line 315, in main
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/opt/souqrates/venvs/scratchy-bot/lib/python3.12/site-packages/aiogram/client/bot.py", line 294, in __init__
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     validate_token(token)
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:   File "/opt/souqrates/venvs/scratchy-bot/lib/python3.12/site-packages/aiogram/utils/token.py", line 27, in validate_token
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]:     raise TokenValidationError(msg)
+May 31 12:09:17 vmi3329645 souqrates-scratchy-bot[60178]: aiogram.utils.token.TokenValidationError: Token is invalid!
+root@vmi3329645:/opt/souqrates/repo# 
