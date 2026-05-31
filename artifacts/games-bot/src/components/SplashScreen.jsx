@@ -9,16 +9,16 @@ export default function SplashScreen({ onDone }) {
   const onDoneRef = useRef(onDone);
   useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
 
-  // Phase: in → count after 500ms
+  // Phase: in → count after 80ms (near-instant)
   useEffect(() => {
-    const t = setTimeout(() => setPhase('count'), 500);
+    const t = setTimeout(() => setPhase('count'), 80);
     return () => clearTimeout(t);
   }, []);
 
-  // Phase: count → progress 0→100 over ~2s (eased)
+  // Phase: count → progress 0→100 over ~1.2s (eased)
   useEffect(() => {
     if (phase !== 'count') return;
-    const duration = 2000;
+    const duration = 1200;
     const steps    = 100;
     const interval = duration / steps;
     let current    = 0;
@@ -30,8 +30,8 @@ export default function SplashScreen({ onDone }) {
         clearInterval(timer);
         setTimeout(() => {
           setPhase('out');
-          setTimeout(() => onDoneRef.current?.(), 500);
-        }, 300);
+          setTimeout(() => onDoneRef.current?.(), 350);
+        }, 80);
       }
     }, interval);
     // Hard safety valve
@@ -46,10 +46,10 @@ export default function SplashScreen({ onDone }) {
       {phase !== 'out' && (
         <motion.div
           key="splash"
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          transition={{ duration: 0.4, ease: 'easeInOut' }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
           style={{
             background: 'radial-gradient(ellipse at 50% 38%, #0d0a1e 0%, #060412 55%, #020208 100%)',
