@@ -101,11 +101,24 @@ else
   echo "  ⚠ CLOUDFLARE_API_TOKEN / CLOUDFLARE_ZONE_ID not in ${CF_ENV} — skipping"
 fi
 
-log "Refresh Python deps if requirements.txt changed"
+log "Ensure each bot venv exists + deps current"
 for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
-  if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
-    echo "  reinstalling ${bot} deps"
-    sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
+  venv="${VENVS_DIR}/${bot}"
+  req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
+  if [[ ! -f "$req" ]]; then
+    echo "  ⚠ ${bot}: no requirements.txt — skipping"
+    continue
+  fi
+  if [[ ! -x "${venv}/bin/python" ]]; then
+    # Brand-new bot that install.sh never bootstrapped: create the venv now
+    # so its systemd ExecStart has a python to run.
+    echo "  creating venv for ${bot} (was missing)"
+    sudo -u "${APP_USER}" python3.12 -m venv "$venv"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet --upgrade pip
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
+  elif echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
+    echo "  reinstalling ${bot} deps (requirements changed)"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "$req"
   fi
 done
 
