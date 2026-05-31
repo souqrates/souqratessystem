@@ -118,6 +118,31 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
   const isBig = result !== null && result >= 100;
   const particles = useConfetti(result !== null && result > 0, isBig);
 
+  /* Lock page scroll + disable Telegram vertical swipe while game is open */
+  useEffect(() => {
+    const savedOverflow = document.body.style.overflow;
+    const savedPos      = document.body.style.position;
+    const savedTop      = document.body.style.top;
+    const savedWidth    = document.body.style.width;
+    const scrollY       = window.scrollY;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top      = `-${scrollY}px`;
+    document.body.style.width    = '100%';
+
+    try { (window as any).Telegram?.WebApp?.disableVerticalSwipes?.(); } catch {}
+
+    return () => {
+      document.body.style.overflow = savedOverflow;
+      document.body.style.position = savedPos;
+      document.body.style.top      = savedTop;
+      document.body.style.width    = savedWidth;
+      window.scrollTo(0, scrollY);
+      try { (window as any).Telegram?.WebApp?.enableVerticalSwipes?.(); } catch {}
+    };
+  }, []);
+
   function handleResult(prize: number) {
     if (fired.current) return;
     fired.current = true;

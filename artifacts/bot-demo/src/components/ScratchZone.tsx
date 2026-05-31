@@ -24,6 +24,19 @@ export default function ScratchZone({
   const down = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
 
+  /* Prevent page scroll / Telegram swipe while finger is on canvas */
+  useEffect(() => {
+    const canvas = cvs.current;
+    if (!canvas) return;
+    const prevent = (e: TouchEvent) => { e.preventDefault(); };
+    canvas.addEventListener('touchstart', prevent, { passive: false });
+    canvas.addEventListener('touchmove',  prevent, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', prevent);
+      canvas.removeEventListener('touchmove',  prevent);
+    };
+  }, []);
+
   useEffect(() => {
     const canvas = cvs.current;
     if (!canvas) return;
