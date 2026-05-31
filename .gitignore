@@ -3,6 +3,12 @@
 # compiled output
 dist
 tmp
+
+# Exception: mother-bot-web pre-built static files must ship to Contabo via git
+# (no build script — dist/public is the source of truth for this artifact)
+!artifacts/mother-bot-web/dist/
+!artifacts/mother-bot-web/dist/public/
+!artifacts/mother-bot-web/dist/public/**
 out-tsc
 *.tsbuildinfo
 .expo

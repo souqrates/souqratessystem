@@ -57,8 +57,8 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  # mother-bot-web: served at domain root (BASE_PATH=/)
-  PORT=1 BASE_PATH=/ pnpm --filter @workspace/mother-bot-web run build
+  # mother-bot-web: pre-built static files shipped via git (no build script)
+  # dist/public is tracked in git — no build step needed here.
   # subpath SPAs: each built with its own BASE_PATH
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
     if [ \"\$slug\" = \"games-bot\" ]; then
