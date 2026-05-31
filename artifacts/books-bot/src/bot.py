@@ -874,6 +874,7 @@ async def main():
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
 
+    logger.info(f"Mini App WEB_URL = {WEB_URL}")
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "books-bot")
 
