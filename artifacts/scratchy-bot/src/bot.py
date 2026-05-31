@@ -324,7 +324,9 @@ async def main():
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
 
-    if WEB_APP_URL.startswith("https://"):
+    # Only set in production (USE_WEBHOOK=1). Polling / dev mode must NOT touch
+    # the global menu button — it would overwrite Contabo's production URL.
+    if WEB_APP_URL.startswith("https://") and os.getenv("USE_WEBHOOK"):
         try:
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(

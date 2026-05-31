@@ -233,12 +233,15 @@ async def main() -> None:
         await bot.set_my_commands(COMMANDS)
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
-    try:
-        await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="♛ Sub-Agents", web_app=WebAppInfo(url=LANDING_URL)),
-        )
-    except Exception as e:
-        logger.warning(f"set_chat_menu_button failed: {e}")
+    # Only set in production (USE_WEBHOOK=1). Polling / dev mode must NOT touch
+    # the global menu button — it would overwrite Contabo's production URL.
+    if os.getenv("USE_WEBHOOK"):
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="♛ Sub-Agents", web_app=WebAppInfo(url=LANDING_URL)),
+            )
+        except Exception as e:
+            logger.warning(f"set_chat_menu_button failed: {e}")
 
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "subagents-bot")

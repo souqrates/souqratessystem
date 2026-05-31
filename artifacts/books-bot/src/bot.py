@@ -895,8 +895,10 @@ async def main():
         logger.warning(f"set_my_commands failed: {e}")
 
     # Wire the chat menu button to the books-bot-web mini-app.
-    # Telegram requires HTTPS; silently skip on http://localhost (Replit dev without domain).
-    if WEB_APP_URL.startswith("https://"):
+    # Only set in production (USE_WEBHOOK=1). In dev / polling mode the Replit
+    # instance would overwrite the production menu button set by Contabo with a
+    # temporary replit.dev URL, breaking the button for all users globally.
+    if WEB_APP_URL.startswith("https://") and os.getenv("USE_WEBHOOK"):
         try:
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(
@@ -908,7 +910,7 @@ async def main():
         except Exception as e:
             logger.warning(f"set_chat_menu_button failed: {e}")
     else:
-        logger.info("WEB_APP_URL not HTTPS; skipping chat menu button setup")
+        logger.info("WEB_APP_URL not HTTPS or not in webhook mode; skipping chat menu button setup")
 
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "books-bot")
