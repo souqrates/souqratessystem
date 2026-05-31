@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, Users, Zap, BarChart3 } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
 import type { Page } from '../App';
-import JackpotCup from '../components/JackpotCup';
+import JackpotCounter from '../components/JackpotCounter';
 
 interface Props {
   lang: Lang;
@@ -50,7 +50,7 @@ export default function Home({ lang, balance, jackpot, lottoTrigger, participant
           paddingBottom: 4,
         }}
       >
-        <JackpotCup
+        <JackpotCounter
           jackpot={jackpot}
           coinTrigger={lottoTrigger}
           lang={lang}

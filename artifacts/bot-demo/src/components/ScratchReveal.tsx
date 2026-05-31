@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { GameDef, TierDef } from '../lib/games-data';
 import type { Lang } from '../lib/i18n';
 import GameIcon from './GameIcon';
+import { playReveal, playWin } from '../lib/useSound';
 
 import { ClassicMatch, LuckyLines, SlotScratch } from './games/MatchGames';
 import { YourNumber, TripleDice, BingoGame } from './games/NumberGames';
@@ -62,16 +63,81 @@ const MECHANIC_MAP: Record<string, GameComp> = {
   'volcano-rush':   VolcanoRush,
 };
 
+interface Particle {
+  id: number; x: number; y: number;
+  vx: number; vy: number;
+  color: string; size: number; rot: number;
+}
+
+const CONFETTI_COLORS = ['#f59e0b','#22c55e','#818cf8','#06b6d4','#f43f5e','#fbbf24','#a3e635'];
+
+function useConfetti(active: boolean, big: boolean) {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const raf = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!active) return;
+    const count = big ? 60 : 32;
+    const ps: Particle[] = Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: 30 + Math.random() * 40,
+      y: 30 + Math.random() * 20,
+      vx: (Math.random() - 0.5) * 8,
+      vy: -6 - Math.random() * 8,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      size: big ? 7 + Math.random() * 6 : 5 + Math.random() * 5,
+      rot: Math.random() * 360,
+    }));
+    setParticles(ps);
+    let tick = 0;
+    const animate = () => {
+      tick++;
+      setParticles(prev => prev.map(p => ({
+        ...p,
+        x: p.x + p.vx * 0.6,
+        y: p.y + p.vy * 0.6 + tick * 0.3,
+        vy: p.vy + 0.5,
+        vx: p.vx * 0.96,
+        rot: p.rot + 6,
+      })).filter(p => p.y < 120));
+      if (tick < 80) raf.current = requestAnimationFrame(animate);
+      else setParticles([]);
+    };
+    raf.current = requestAnimationFrame(animate);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, [active]);
+
+  return particles;
+}
+
 export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onPlayAgain }: Props) {
   const isRtl = lang === 'ar';
   const [result, setResult] = useState<number | null>(null);
+  const [flash, setFlash]   = useState(false);
   const fired = useRef(false);
+  const isBig = result !== null && result >= 100;
+  const particles = useConfetti(result !== null && result > 0, isBig);
 
   function handleResult(prize: number) {
     if (fired.current) return;
     fired.current = true;
     setResult(prize);
     onResult(prize);
+    playReveal();
+    if (prize > 0) {
+      setTimeout(() => {
+        playWin(prize >= 100);
+        setFlash(true);
+        setTimeout(() => setFlash(false), 500);
+        try {
+          const tg = (window as any).Telegram?.WebApp;
+          if (tg?.HapticFeedback) {
+            if (prize >= 100) tg.HapticFeedback.notificationOccurred('success');
+            else tg.HapticFeedback.impactOccurred('medium');
+          }
+        } catch {}
+      }, 180);
+    }
   }
 
   const GameComponent = MECHANIC_MAP[game.mechanic];
@@ -85,6 +151,47 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
       direction: isRtl ? 'rtl' : 'ltr',
       overflowY: 'auto',
     }}>
+
+      {/* Screen flash on win */}
+      <AnimatePresence>
+        {flash && (
+          <motion.div
+            key="flash"
+            initial={{ opacity: 0.6 }}
+            animate={{ opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none',
+              background: isBig
+                ? 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.55) 0%, transparent 70%)'
+                : 'radial-gradient(ellipse at 50% 40%, rgba(34,197,94,0.4) 0%, transparent 70%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Confetti particles */}
+      {particles.length > 0 && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 998, overflow: 'hidden' }}>
+          {particles.map(p => (
+            <div
+              key={p.id}
+              style={{
+                position: 'absolute',
+                left: `${p.x}%`, top: `${p.y}%`,
+                width: p.size, height: p.size,
+                background: p.color,
+                borderRadius: Math.random() > 0.5 ? '50%' : 2,
+                transform: `rotate(${p.rot}deg)`,
+                opacity: Math.max(0, 1 - p.y / 110),
+                boxShadow: `0 0 ${p.size}px ${p.color}88`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -122,16 +229,23 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
           <motion.div
             initial={{ scale: 0, rotate: -15 }}
             animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 14 }}
             style={{
               padding: '6px 10px', borderRadius: 10,
               background: `linear-gradient(135deg,${game.color1}cc,${game.color2})`,
               border: `1px solid ${game.accent}66`,
               fontSize: 11, fontWeight: 900,
               color: game.accent, textAlign: 'center',
-              boxShadow: `0 0 16px ${game.accent}44`,
+              boxShadow: `0 0 20px ${game.accent}66`,
             }}
           >
-            <div style={{ fontFamily: '"Orbitron",sans-serif', fontSize: 14 }}>WIN</div>
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.8, repeat: 3 }}
+              style={{ fontFamily: '"Orbitron",sans-serif', fontSize: 14 }}
+            >
+              WIN!
+            </motion.div>
             <div style={{ fontSize: 9 }}>+{result.toLocaleString()} SKZ</div>
           </motion.div>
         )}

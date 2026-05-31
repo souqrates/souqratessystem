@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { playScratch } from '../lib/useSound';
 
 interface Props {
   width: number;
@@ -142,6 +143,7 @@ export default function ScratchZone({
           if (done.current || disabled) return;
           e.currentTarget.setPointerCapture(e.pointerId);
           down.current = true;
+          playScratch();
           const p = getXY(e); last.current = p; scratch(p.x, p.y);
         }}
         onPointerMove={e => {
@@ -149,6 +151,7 @@ export default function ScratchZone({
           const p = getXY(e);
           scratch(p.x, p.y, last.current?.x, last.current?.y);
           last.current = p;
+          if (Math.random() < 0.18) playScratch();
         }}
         onPointerUp={() => { down.current = false; last.current = null; }}
         onPointerLeave={() => { down.current = false; last.current = null; }}
