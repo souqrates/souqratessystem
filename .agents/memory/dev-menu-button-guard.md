@@ -23,7 +23,6 @@ if WEB_APP_URL.startswith("https://"):
 
 ## How to apply
 
-- All 4 bots fixed: `books-bot`, `contests-bot`, `scratchy-bot`, `subagents-bot`
 - Search for `set_chat_menu_button` in any new bot and add the `USE_WEBHOOK` guard
 - Same principle applies to `set_my_description`, `set_my_short_description` if used — anything that mutates global bot state visible to all users
 

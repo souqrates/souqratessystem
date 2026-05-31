@@ -41,9 +41,19 @@ def _truthy(v: str | None) -> bool:
 async def _keep_webhook_deleted(bot: Any, slug: str) -> None:
     """Background task: re-delete webhook every 45 s in polling mode.
 
-    When a production server (e.g. Contabo) is running the same bot in webhook
-    mode, it calls setWebhook and kicks the Replit polling instance.  This task
-    detects that and immediately re-deletes the webhook so polling resumes.
+    **IMPORTANT — dev-only guard.**
+    This coroutine is only ever started from the ``not USE_WEBHOOK`` branch of
+    ``run_bot``, so it never runs in production (where ``USE_WEBHOOK=1``).
+
+    Purpose: when a production server sets a webhook for this token while
+    Replit is polling, aiogram gets a TelegramConflictError every 5 s.  This
+    task detects the re-set webhook and deletes it so polling can resume.
+
+    Intentional trade-off: if both dev (Replit) and prod (Contabo) are running
+    the same bot simultaneously, this task will race against prod's setWebhook
+    calls.  The correct resolution is to stop one side.  This task is a
+    development-convenience measure only, not a substitute for stopping the
+    production bot.
     """
     while True:
         await asyncio.sleep(45)
