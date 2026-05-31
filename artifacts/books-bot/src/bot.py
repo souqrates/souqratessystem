@@ -33,7 +33,6 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
-    WebAppInfo,
 )
 from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
@@ -104,12 +103,7 @@ logger = logging.getLogger("books-bot")
 BOT_TOKEN = os.getenv("BOOKS_BOT_TOKEN", "")
 MOTHER_API_URL = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 BOOKS_BOT_API_KEY = os.getenv("BOOKS_BOT_API_KEY", "")
-_public = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
-if not _public:
-    import os as _os
-    _rd = (_os.getenv("REPLIT_DOMAINS","") or "").split(",")[0].strip()
-    _public = f"https://{_rd}" if _rd else "https://souqrates.com"
-WEB_URL = os.getenv("BOOKS_WEB_URL", f"{_public}/books-bot-web/")
+WEB_URL = os.getenv("BOOKS_WEB_URL", "https://souqrates.com/books-bot/")
 
 api = BooksBotClient(api_key=BOOKS_BOT_API_KEY, base_url=MOTHER_API_URL)
 texts = api.texts("books-bot", ttl_seconds=60)
@@ -134,7 +128,7 @@ def main_kb(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text=t(lang, "btn_publish"), callback_data="pub_start"),
          InlineKeyboardButton(text=t(lang, "btn_library"), callback_data="my_lib")],
         [InlineKeyboardButton(text=t(lang, "btn_wallet"),  callback_data="wallet"),
-         InlineKeyboardButton(text="🌐 SOUQ Web", web_app=WebAppInfo(url=WEB_URL))],
+         InlineKeyboardButton(text="🌐 SOUQ Web", url=WEB_URL)],
         [InlineKeyboardButton(text="🌐 Language / اللغة", callback_data="lang_menu")],
     ])
 
@@ -874,7 +868,6 @@ async def main():
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
 
-    logger.info(f"Mini App WEB_URL = {WEB_URL}")
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "books-bot")
 

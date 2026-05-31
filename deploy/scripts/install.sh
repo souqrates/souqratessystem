@@ -70,8 +70,6 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  # mother-bot-web is the root Mini App (BASE_PATH=/ — no slug prefix)
-  PORT=1 BASE_PATH=/ pnpm --filter @workspace/mother-bot-web run build
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
     if [ \"\$slug\" = \"games-bot\" ]; then
       VITE_SUPABASE_URL='' VITE_SUPABASE_ANON_KEY='' PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
@@ -82,8 +80,8 @@ sudo -u "${APP_USER}" -H bash -lc "
 "
 
 log "6/9  Copy built static assets into ${WWW_DIR}"
-# Slug-based apps → each subdirectory
 for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
+  # scratchy-bot-web lives in artifacts/bot-demo on disk
   artifact_dir="$slug"; [[ "$slug" == "scratchy-bot-web" ]] && artifact_dir="bot-demo"
   src="${REPO_DIR}/artifacts/${artifact_dir}/dist/public"
   dst="${WWW_DIR}/${slug}"
@@ -92,16 +90,6 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy
   rsync -a --delete "${src}/" "${dst}/"
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
-# mother-bot-web → WWW root (BASE_PATH=/) — exclude slug subdirs
-src="${REPO_DIR}/artifacts/mother-bot-web/dist/public"
-if [[ -d "$src" ]]; then
-  rsync -a \
-    --exclude 'superadmin' --exclude 'books-bot-web' --exclude 'contests-bot-web' \
-    --exclude 'subagents-bot-web' --exclude 'games-bot' --exclude 'scratchy-bot-web' \
-    "${src}/" "${WWW_DIR}/"
-  chown -R "${APP_USER}:${APP_USER}" "${WWW_DIR}/index.html" "${WWW_DIR}/assets" 2>/dev/null || true
-  echo "  ✓ mother-bot-web synced to WWW root"
-fi
 
 log "7/9  Python venvs for the 5 bots"
 for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do

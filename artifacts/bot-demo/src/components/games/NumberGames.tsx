@@ -34,7 +34,7 @@ export function YourNumber({ game, tier, lang, onResult, onPlayAgain }: GProps) 
       const n = Math.floor(Math.random()*30)+1;
       if (n !== yourN && !nums.includes(n)) nums.push(n);
     }
-    if (p > 0) nums.push(yourN); // insert match
+    if (p > 0) nums.push(yourNum); // insert match
     const shuffled = shuffle(nums);
     const prizes = shuffle([...tier.prizes.slice(1), 0, 0, 0, 0]).slice(0,8);
     return [p, yourN, shuffled.map((n,i) => ({ num:n, prize: n===yourN ? p : prizes[i] ?? 0 }))];

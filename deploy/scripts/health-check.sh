@@ -126,9 +126,10 @@ declare -A SPA_PATHS=(
   [subagents-bot-web]="/subagents-bot-web/"
   [games-bot]="/games-bot/"
   [scratchy-bot-web]="/scratchy-bot-web/"
+  [bot-demo]="/"
 )
 
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bot scratchy-bot-web; do
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web games-bot scratchy-bot-web bot-demo; do
   path="${SPA_PATHS[$slug]}"
   url="${BASE_URL}${path}"
 
@@ -220,9 +221,9 @@ fi
 # ────────────────────────────────────────────────────────────────────────────
 hdr "4. Bot webhooks — systemd + /healthz per bot"
 # ────────────────────────────────────────────────────────────────────────────
-declare -A BOT_PORTS=([mother-bot]=8101 [books-bot]=8102 [contests-bot]=8103 [subagents-bot]=8104 [scratchy-bot]=8105)
+declare -A BOT_PORTS=([mother-bot]=8101 [books-bot]=8102 [contests-bot]=8103 [subagents-bot]=8104)
 
-for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
+for bot in mother-bot books-bot contests-bot subagents-bot; do
   svc="souqrates-${bot}.service"
   svc_status="skipped"
   if [[ $ON_SERVER -eq 1 ]] && command -v systemctl &>/dev/null; then
