@@ -32,7 +32,9 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
+    WebAppInfo,
 )
 from aiogram.exceptions import TelegramBadRequest
 from dotenv import load_dotenv
@@ -103,7 +105,27 @@ logger = logging.getLogger("books-bot")
 BOT_TOKEN = os.getenv("BOOKS_BOT_TOKEN", "")
 MOTHER_API_URL = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 BOOKS_BOT_API_KEY = os.getenv("BOOKS_BOT_API_KEY", "")
-WEB_URL = os.getenv("BOOKS_WEB_URL", "https://souqrates.com/books-bot/")
+# Public URL of the books-bot-web mini-app (used for the chat menu button).
+# Resolution order (same logic as contests-bot so the bot runs on Replit dev AND Contabo):
+#   1) BOOKS_WEB_APP_URL   — explicit override
+#   2) PUBLIC_BASE_URL     — production base for Contabo / souqrates.com
+#   3) REPLIT_DOMAINS      — Replit published deploy
+#   4) REPLIT_DEV_DOMAIN   — Replit dev preview
+def _resolve_books_web_app_url() -> str:
+    explicit = (os.getenv("BOOKS_WEB_APP_URL") or "").strip()
+    if explicit:
+        return explicit
+    public = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public:
+        return f"{public}/books-bot-web/"
+    rds = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
+    if rds:
+        return f"https://{rds}/books-bot-web/"
+    dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
+    if dev:
+        return f"https://{dev}/books-bot-web/"
+    return ""
+WEB_APP_URL = _resolve_books_web_app_url()
 
 api = BooksBotClient(api_key=BOOKS_BOT_API_KEY, base_url=MOTHER_API_URL)
 texts = api.texts("books-bot", ttl_seconds=60)
@@ -128,7 +150,11 @@ def main_kb(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text=t(lang, "btn_publish"), callback_data="pub_start"),
          InlineKeyboardButton(text=t(lang, "btn_library"), callback_data="my_lib")],
         [InlineKeyboardButton(text=t(lang, "btn_wallet"),  callback_data="wallet"),
-         InlineKeyboardButton(text="🌐 SOUQ Web", url=WEB_URL)],
+         *(
+             [InlineKeyboardButton(text="🛍 SOUQ Web", web_app=WebAppInfo(url=WEB_APP_URL))]
+             if WEB_APP_URL.startswith("https://")
+             else []
+         )],
         [InlineKeyboardButton(text="🌐 Language / اللغة", callback_data="lang_menu")],
     ])
 
@@ -867,6 +893,22 @@ async def main():
                 logger.warning(f"set_my_commands(language={lang_code}) failed: {e}")
     except Exception as e:
         logger.warning(f"set_my_commands failed: {e}")
+
+    # Wire the chat menu button to the books-bot-web mini-app.
+    # Telegram requires HTTPS; silently skip on http://localhost (Replit dev without domain).
+    if WEB_APP_URL.startswith("https://"):
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="🛍 SOUQ",
+                    web_app=WebAppInfo(url=WEB_APP_URL),
+                ),
+            )
+            logger.info(f"menu button → web app: {WEB_APP_URL}")
+        except Exception as e:
+            logger.warning(f"set_chat_menu_button failed: {e}")
+    else:
+        logger.info("WEB_APP_URL not HTTPS; skipping chat menu button setup")
 
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "books-bot")
