@@ -44,6 +44,12 @@ BOTS = [
         "description": "مسابقات وتصويت وجوائز",
         "commissionRate": "0.0800",
     },
+    {
+        "slug": "scratchy-bot",
+        "name": "SOUQRATES SCRATCHY",
+        "description": "ألعاب الحظ والحك واربح",
+        "commissionRate": "0.1000",
+    },
 ]
 
 
