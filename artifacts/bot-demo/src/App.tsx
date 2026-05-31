@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getLang, setLang, type Lang } from './lib/i18n';
 import { useBalance } from './lib/useBalance';
+import { useJackpotStats } from './lib/useJackpotStats';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
@@ -13,11 +14,10 @@ export type Page = 'home' | 'cards' | 'lotto' | 'tickets';
 export default function App() {
   const [page, setPage] = useState<Page>('home');
   const [lang, setLangState] = useState<Lang>(getLang());
-  const [jackpot, setJackpot] = useState(5000);
   const [lottoTrigger, setLottoTrigger] = useState(0);
-  const [participants, setParticipants] = useState(1247);
 
   const { skz: balance, loading: balanceLoading, refresh: refreshBalance, applyDeduct, applyCredit } = useBalance();
+  const { stats, recordLottoTicket } = useJackpotStats(12_000);
 
   // Initialise Telegram WebApp
   useEffect(() => {
@@ -44,12 +44,12 @@ export default function App() {
     applyCredit(amount);
   }, [applyCredit]);
 
-  const buyLottoTicket = useCallback((ticketPrice: number) => {
+  const buyLottoTicket = useCallback((ticketPrice: number, picks: number[]) => {
     applyDeduct(ticketPrice);
-    setJackpot(j => j + ticketPrice * 3);
-    setParticipants(p => p + 1);
     setLottoTrigger(t => t + 1);
-  }, [applyDeduct]);
+    // Record in DB + update jackpot counter (optimistic + real sync)
+    void recordLottoTicket(picks);
+  }, [applyDeduct, recordLottoTicket]);
 
   // Refresh balance when user navigates back to home
   const handleNavigate = useCallback((p: Page) => {
@@ -72,14 +72,18 @@ export default function App() {
           <Home
             lang={lang}
             balance={balance}
-            jackpot={jackpot}
+            jackpot={stats.jackpot}
             lottoTrigger={lottoTrigger}
-            participants={participants}
+            participants={stats.participants}
+            totalScratched={stats.totalScratched}
+            totalWins={stats.totalWins}
+            winRate={stats.winRate}
+            biggestWin={stats.biggestWin}
             onNavigate={handleNavigate}
           />
         )}
         {page === 'cards'   && <Cards   lang={lang} balance={balance} onDeduct={deduct} onCredit={credit} />}
-        {page === 'lotto'   && <Lotto   lang={lang} balance={balance} onBuyTicket={buyLottoTicket} />}
+        {page === 'lotto'   && <Lotto   lang={lang} balance={balance} jackpot={stats.jackpot} participants={stats.participants} onBuyTicket={buyLottoTicket} />}
         {page === 'tickets' && <Tickets lang={lang} onNavigate={handleNavigate} />}
       </div>
       <BottomNav current={page} lang={lang} onChange={handleNavigate} />

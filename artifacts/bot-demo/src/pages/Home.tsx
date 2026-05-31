@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, Zap, BarChart3 } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
@@ -11,6 +10,10 @@ interface Props {
   jackpot: number;
   lottoTrigger: number;
   participants: number;
+  totalScratched: number;
+  totalWins: number;
+  winRate: string;
+  biggestWin: number;
   onNavigate: (p: Page) => void;
 }
 
@@ -24,21 +27,30 @@ const WINNERS = [
   { name: 'نورة س.', amount: 30, tier: 'silver' },
 ];
 
-const STATS = [
-  { key: 'totalScratched' as const, value: '1,284', icon: BarChart3, color: '#22c55e' },
-  { key: 'totalWins'     as const, value: '316',   icon: TrendingUp, color: '#f59e0b' },
-  { key: 'winRate'       as const, value: '24.6%', icon: Zap,        color: '#818cf8' },
-  { key: 'biggestWin'    as const, value: '1000',  icon: Users,      color: '#06b6d4' },
-];
+interface StatItem {
+  key: 'totalScratched' | 'totalWins' | 'winRate' | 'biggestWin';
+  value: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; strokeWidth?: number }>;
+  color: string;
+}
 
-export default function Home({ lang, balance, jackpot, lottoTrigger, participants, onNavigate }: Props) {
-  const [countdown] = useState({ h: 18, m: 42, s: 17 });
+export default function Home({ lang, balance, jackpot, lottoTrigger, participants, totalScratched, totalWins, winRate, biggestWin, onNavigate }: Props) {
   const isRtl = lang === 'ar';
+
+  const STATS: StatItem[] = [
+    { key: 'totalScratched', value: totalScratched.toLocaleString(),                      icon: BarChart3,  color: '#22c55e' },
+    { key: 'totalWins',      value: totalWins.toLocaleString(),                           icon: TrendingUp, color: '#f59e0b' },
+    { key: 'winRate',        value: `${winRate}%`,                                        icon: Zap,        color: '#818cf8' },
+    { key: 'biggestWin',     value: biggestWin > 0 ? biggestWin.toLocaleString() : '—',  icon: Users,      color: '#06b6d4' },
+  ];
+
+  // Countdown is static UI — real draw schedule handled server-side
+  const countdown = { h: 18, m: 42, s: 17 };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-      {/* ── JACKPOT CUP (hero, full width) ── */}
+      {/* ── JACKPOT COUNTER (hero, full width) ── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -128,7 +140,7 @@ export default function Home({ lang, balance, jackpot, lottoTrigger, participant
           </div>
         </motion.div>
 
-        {/* ── STATS ── */}
+        {/* ── LIVE STATS ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
           {STATS.map(({ key, value, icon: Icon, color }, i) => (
             <motion.div
@@ -145,7 +157,7 @@ export default function Home({ lang, balance, jackpot, lottoTrigger, participant
                 </div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: '#e2e8f0', lineHeight: 1.1 }}>
-                    {key === 'biggestWin' ? `${value} SKZ` : value}
+                    {key === 'biggestWin' && biggestWin > 0 ? `${value} SKZ` : value}
                   </div>
                   <div style={{ fontSize: 10, color: '#475569', fontWeight: 500 }}>{t(key)}</div>
                 </div>

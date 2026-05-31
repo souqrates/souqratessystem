@@ -6,16 +6,18 @@ import { t, type Lang } from '../lib/i18n';
 interface Props {
   lang: Lang;
   balance: number;
-  onBuyTicket: (ticketPrice: number) => void;
+  jackpot: number;
+  participants: number;
+  onBuyTicket: (ticketPrice: number, picks: number[]) => void;
 }
 
 const TICKET_PRICE = 5;
-const POOL_SIZE = 49;
-const PICK_COUNT = 6;
+const POOL_SIZE    = 49;
+const PICK_COUNT   = 6;
 
 const RECENT_DRAWS = [
   { date: '2026-05-29', numbers: [4, 12, 19, 27, 33, 48], bonus: 7 },
-  { date: '2026-05-22', numbers: [2, 9, 14, 31, 39, 45], bonus: 22 },
+  { date: '2026-05-22', numbers: [2,  9, 14, 31, 39, 45], bonus: 22 },
   { date: '2026-05-15', numbers: [6, 18, 24, 30, 37, 42], bonus: 11 },
 ];
 
@@ -29,10 +31,10 @@ function quickPick(): number[] {
   return picked.sort((a, b) => a - b);
 }
 
-export default function Lotto({ lang, balance, onBuyTicket }: Props) {
-  const [picks, setPicks] = useState<Set<number>>(new Set());
+export default function Lotto({ lang, balance, jackpot, participants, onBuyTicket }: Props) {
+  const [picks, setPicks]       = useState<Set<number>>(new Set());
   const [confirmed, setConfirmed] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast]       = useState<string | null>(null);
   const isRtl = lang === 'ar';
 
   const toggle = useCallback((n: number) => {
@@ -60,7 +62,8 @@ export default function Lotto({ lang, balance, onBuyTicket }: Props) {
       setTimeout(() => setToast(null), 2200);
       return;
     }
-    onBuyTicket(TICKET_PRICE);
+    const picksArr = Array.from(picks).sort((a, b) => a - b);
+    onBuyTicket(TICKET_PRICE, picksArr);
     setConfirmed(true);
     setToast(t('confirmTicket'));
     setTimeout(() => setToast(null), 3000);
@@ -75,18 +78,28 @@ export default function Lotto({ lang, balance, onBuyTicket }: Props) {
         <p style={{ margin: '2px 0 0', fontSize: 12, color: '#475569' }}>{t('tagline')}</p>
       </div>
 
-      {/* Prize pool card */}
+      {/* Prize pool — real live jackpot */}
       <div className="scrch-card ring-gold-glow" style={{ padding: '14px 16px', marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 10, color: '#78716c', marginBottom: 2, letterSpacing: '0.05em' }}>
               {t('todayPool').toUpperCase()}
             </div>
-            <div style={{ fontSize: 24, fontWeight: 900, fontFamily: '"Orbitron", sans-serif' }} className="text-grad-gold">
-              {(balance >= 0 ? 5000 : 5000).toLocaleString()} SKZ
-            </div>
+            <motion.div
+              key={jackpot}
+              initial={{ scale: 1.06, color: '#fef9c3' }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.4 }}
+              style={{ fontSize: 24, fontWeight: 900, fontFamily: '"Orbitron", sans-serif' }}
+              className="text-grad-gold"
+            >
+              {jackpot.toLocaleString()} SKZ
+            </motion.div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-              1,247 {t('participants')}
+              <motion.span key={participants} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {participants.toLocaleString()}
+              </motion.span>
+              {' '}{t('participants')}
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
