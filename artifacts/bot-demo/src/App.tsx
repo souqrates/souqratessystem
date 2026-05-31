@@ -47,8 +47,8 @@ export default function App() {
   const buyLottoTicket = useCallback((ticketPrice: number, picks: number[]) => {
     applyDeduct(ticketPrice);
     setLottoTrigger(t => t + 1);
-    // Record in DB + update jackpot counter (optimistic + real sync)
-    void recordLottoTicket(picks);
+    // Optimistic local jump; real data syncs on next poll from /api/scratchy/stats
+    recordLottoTicket(picks);
   }, [applyDeduct, recordLottoTicket]);
 
   // Refresh balance when user navigates back to home

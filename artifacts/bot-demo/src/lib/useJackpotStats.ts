@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTelegramUserId } from './useBalance';
 
 const BASE     = import.meta.env.BASE_URL?.replace(/\/$/, '') || '/scratchy-bot-web';
 const API_BASE = BASE.replace('/scratchy-bot-web', '') || '';
@@ -51,30 +50,16 @@ export function useJackpotStats(pollMs = 12_000) {
   }, [fetchStats, pollMs]);
 
   // Called when user buys a lotto ticket in the web app.
-  // Applies an optimistic +15 SKZ jump immediately, then syncs with real DB.
-  const recordLottoTicket = useCallback(async (picks: number[]): Promise<void> => {
-    const telegramId = getTelegramUserId();
-
-    // Optimistic update so counter animates right away
+  // Applies a local optimistic jump (+15 SKZ per ticket) that gets corrected
+  // on the next poll. Real jackpot growth only comes from scratchy-bot
+  // Telegram purchases recorded through the internal API.
+  const recordLottoTicket = useCallback((_picks: number[]): void => {
     setStats(prev => ({
       ...prev,
-      jackpot:      prev.jackpot + 15,       // 5 SKZ ticket × 3 multiplier
+      jackpot:      prev.jackpot + 15,   // 5 SKZ ticket × 3 multiplier
       ticketsSold:  prev.ticketsSold + 1,
       participants: prev.participants + 1,
     }));
-
-    try {
-      const res = await fetch(`${API_BASE}/api/scratchy/lotto-ticket`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body:    JSON.stringify({ telegramId, picks }),
-      });
-      if (!res.ok) return;
-      const data = await res.json() as JackpotStats;
-      setStats(data); // sync with authoritative DB value
-    } catch {
-      // keep the optimistic increment
-    }
   }, []);
 
   return { stats, ready, fetchStats, recordLottoTicket };

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { transactionsTable, usersTable } from "@workspace/db";
+import { transactionsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -48,48 +48,6 @@ router.get("/scratchy/stats", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "scratchy/stats failed");
     res.status(500).json({ error: "stats unavailable" });
-  }
-});
-
-// POST /api/scratchy/lotto-ticket
-// Records a web-app lotto ticket purchase for jackpot tracking.
-// Does NOT deduct balance (handled client-side / via Telegram bot).
-// Requires the user to exist in the DB (registered via Telegram); guests get
-// the current stats without recording.
-router.post("/scratchy/lotto-ticket", async (req, res): Promise<void> => {
-  const { telegramId, picks } = req.body as {
-    telegramId?: string;
-    picks?: number[];
-  };
-
-  if (!telegramId || !Array.isArray(picks) || picks.length !== 6) {
-    res.status(400).json({ error: "telegramId and exactly 6 picks are required" });
-    return;
-  }
-
-  try {
-    const [user] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(eq(usersTable.telegramId, BigInt(telegramId)));
-
-    if (user) {
-      await db.insert(transactionsTable).values({
-        userId:      user.id,
-        type:        "lotto_ticket",
-        currency:    "SKZ",
-        amount:      "5",
-        status:      "completed",
-        sourceBot:   "scratchy-bot",
-        description: "Lotto ticket — web app",
-        metadata:    JSON.stringify({ picks, source: "web" }),
-      });
-    }
-
-    res.json(await queryStats());
-  } catch (err) {
-    req.log.error({ err }, "scratchy/lotto-ticket failed");
-    res.status(500).json({ error: "ticket recording failed" });
   }
 });
 
