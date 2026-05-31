@@ -10,6 +10,7 @@
     <style>
       html,body,#root{background:#04030a !important;margin:0;padding:0;color-scheme:dark;}
       html{overflow:hidden;}
+      @keyframes skz-bar{0%,100%{width:22%}50%{width:72%}}
     </style>
     <!--
       CRITICAL: Telegram WebApp SDK must load SYNCHRONOUSLY before the inline
@@ -41,14 +42,14 @@
         }catch(_){}
       })();
     </script>
-    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="%BASE_URL%WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
-    <link rel="preload" as="image" href="%BASE_URL%WhatsApp_Image_2026-05-11_at_5.53.33_PM_(1).jpeg" fetchpriority="high" />
-    <link rel="preload" as="image" href="%BASE_URL%WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg" fetchpriority="high" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
+    <link rel="preload" as="image" href="./WhatsApp_Image_2026-05-11_at_5.53.33_PM_(1).jpeg" fetchpriority="high" />
+    <link rel="preload" as="image" href="./WhatsApp_Image_2026-05-20_at_4.16.36_AM.jpeg" fetchpriority="high" />
     <meta property="og:title" content="Skill Games" />
     <meta property="og:description" content="Compete in skill-based mini-games on Telegram and win real rewards." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="%BASE_URL%WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
+    <meta property="og:image" content="./WhatsApp_Image_2026-05-11_at_5.53.33_PM.jpeg" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -58,7 +59,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=block" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        Pure-HTML/CSS pre-render splash shown immediately while JS evaluates.
+        React's createRoot().render() replaces all #root content on first paint.
+        This eliminates the black-screen gap between page load and React mount.
+      -->
+      <div id="skz-pre" aria-hidden="true" style="
+        position:fixed;inset:0;z-index:9999;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:radial-gradient(ellipse at 50% 38%,#0d0a1e 0%,#060412 55%,#020208 100%);
+        pointer-events:none;user-select:none;gap:0;
+      ">
+        <img
+          src="./souqrates-logo.webp"
+          alt=""
+          aria-hidden="true"
+          style="display:block;width:min(72vw,260px);height:auto;margin-bottom:28px;
+            filter:drop-shadow(0 8px 32px rgba(201,162,39,0.4)) drop-shadow(0 2px 10px rgba(34,211,238,0.2));"
+        />
+        <div style="
+          font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(16px,5vw,22px);
+          letter-spacing:0.13em;margin-bottom:6px;
+          background:linear-gradient(180deg,#fff8d6 0%,#ffd86b 50%,#c9a227 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        ">SOUQRATES SKILLZ</div>
+        <div style="
+          font-size:9px;letter-spacing:0.36em;
+          color:rgba(34,211,238,0.55);text-transform:uppercase;margin-bottom:32px;
+        ">Compete &amp; Earn</div>
+        <div style="
+          width:200px;height:4px;border-radius:999px;
+          background:rgba(255,255,255,0.06);border:1px solid rgba(34,211,238,0.15);
+          overflow:hidden;
+        ">
+          <div style="
+            height:100%;border-radius:999px;
+            background:linear-gradient(90deg,#0891b2,#22d3ee 40%,#c9a227 70%,#ffd700 100%);
+            box-shadow:0 0 10px rgba(34,211,238,0.5);
+            animation:skz-bar 1.4s ease-in-out infinite;
+          "></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

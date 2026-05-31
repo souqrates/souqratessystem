@@ -5,6 +5,14 @@ const path = require('path');
 const PORT = Number(process.env.PORT || 17321);
 const PUBLIC = path.join(__dirname, 'dist/public');
 
+// The Replit reverse proxy routes /mother-bot-web/* → this server WITHOUT rewriting paths.
+// Strip the prefix so /mother-bot-web/assets/foo.js → dist/public/assets/foo.js.
+// Falls back to no-strip if SERVE_BASE is explicitly set to empty string.
+const SERVE_BASE = (process.env.SERVE_BASE !== undefined
+  ? process.env.SERVE_BASE
+  : '/mother-bot-web'
+).replace(/\/$/, '');
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript',
@@ -31,7 +39,15 @@ function serveIndex(res) {
 }
 
 http.createServer((req, res) => {
-  const url = (req.url || '/').split('?')[0];
+  let url = (req.url || '/').split('?')[0];
+
+  // Strip the proxy prefix (e.g. /mother-bot-web) from the URL.
+  // Replit path-based routing sends the full path to the service.
+  if (SERVE_BASE && url.startsWith(SERVE_BASE + '/')) {
+    url = url.slice(SERVE_BASE.length);
+  } else if (SERVE_BASE && url === SERVE_BASE) {
+    url = '/';
+  }
 
   if (url === '/' || url === '') { serveIndex(res); return; }
 
@@ -53,5 +69,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`mother-bot-web serving on port ${PORT} (root mode)`);
+  console.log(`mother-bot-web serving on port ${PORT} — stripping base "${SERVE_BASE}"`);
 });
