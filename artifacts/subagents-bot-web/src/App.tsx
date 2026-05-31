@@ -52,14 +52,18 @@ function DevBanner() {
   );
 }
 
+const SPLASH_KEY = "souq:splash:v1";
+
 function App() {
   const [colorScheme, setColorScheme] = useState<"light" | "dark">("light");
-  const [splashDone, setSplashDone] = useState(false);
+  const [splashDone, setSplashDone] = useState(() => {
+    try { return sessionStorage.getItem(SPLASH_KEY) === "1"; } catch { return false; }
+  });
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready?.();
-      window.Telegram.WebApp.expand?.();
+      // ready() + expand() are called synchronously in main.tsx before React mounts
+      // Only handle theme here
       const theme = window.Telegram.WebApp.colorScheme;
       if (theme) {
         setColorScheme(theme);
@@ -72,12 +76,17 @@ function App() {
     }
   }, []);
 
+  const finishSplash = () => {
+    try { sessionStorage.setItem(SPLASH_KEY, "1"); } catch {}
+    setSplashDone(true);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AnimatePresence>
           {!splashDone && (
-            <SplashScreen key="splash" onDone={() => setSplashDone(true)} />
+            <SplashScreen key="splash" onDone={finishSplash} />
           )}
         </AnimatePresence>
         {splashDone && (

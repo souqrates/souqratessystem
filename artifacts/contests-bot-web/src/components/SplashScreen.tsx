@@ -75,7 +75,7 @@ export function SplashScreen({ onDone }: Props) {
       }}>
         <img
           src={logoSrc}
-          alt="SOUQRATES SUB-AGENTS"
+          alt="SOUQRATES STAGE"
           draggable={false}
           style={{ display: "block", width: "min(72vw, 260px)", height: "auto", userSelect: "none" }}
         />
@@ -88,14 +88,14 @@ export function SplashScreen({ onDone }: Props) {
           background: "linear-gradient(180deg,#fff8d6 0%,#ffd86b 50%,#c9a227 100%)",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
         }}>
-          SOUQRATES SUB-AGENTS
+          SOUQRATES STAGE
         </div>
         <div style={{
           marginTop: 6, fontFamily: "'Space Grotesk','Inter',sans-serif",
           fontWeight: 600, fontSize: 9, letterSpacing: "0.36em",
           color: "rgba(34,211,238,0.55)", textTransform: "uppercase",
         }}>
-          برنامج الشركاء
+          مسرح المسابقات
         </div>
       </div>
 

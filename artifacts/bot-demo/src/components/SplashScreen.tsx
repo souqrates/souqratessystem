@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-const LOGO_SRC = import.meta.env.BASE_URL + 'souqrates-logo.webp';
+interface Props { onDone: () => void; }
 
-export default function SplashScreen({ onDone }) {
+export function SplashScreen({ onDone }: Props) {
   const [progress, setProgress] = useState(0);
   const [leaving,  setLeaving]  = useState(false);
   const onDoneRef = useRef(onDone);
@@ -22,7 +22,7 @@ export default function SplashScreen({ onDone }) {
       setTimeout(() => onDoneRef.current?.(), 380);
     };
 
-    const tick = (now) => {
+    const tick = (now: number) => {
       const t     = Math.min(1, (now - start) / dur);
       const eased = Math.round((1 - Math.pow(1 - t, 2)) * 100);
       setProgress(eased);
@@ -37,6 +37,8 @@ export default function SplashScreen({ onDone }) {
   const skip = () => {
     if (!leaving) { setLeaving(true); setTimeout(() => onDoneRef.current?.(), 350); }
   };
+
+  const logoSrc = (import.meta as any).env.BASE_URL + 'souqrates-logo.webp';
 
   return (
     <div
@@ -72,8 +74,8 @@ export default function SplashScreen({ onDone }) {
         animation: 'sqLogoIn 0.65s cubic-bezier(0.22,1,0.36,1) both',
       }}>
         <img
-          src={LOGO_SRC}
-          alt="SOUQRATES SKILLZ"
+          src={logoSrc}
+          alt="SOUQRATES SCRATCHY"
           draggable={false}
           style={{ display: 'block', width: 'min(72vw, 260px)', height: 'auto', userSelect: 'none' }}
         />
@@ -86,14 +88,14 @@ export default function SplashScreen({ onDone }) {
           background: 'linear-gradient(180deg,#fff8d6 0%,#ffd86b 50%,#c9a227 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
-          SOUQRATES SKILLZ
+          SOUQRATES SCRATCHY
         </div>
         <div style={{
           marginTop: 6, fontFamily: "'Space Grotesk','Inter',sans-serif",
           fontWeight: 600, fontSize: 9, letterSpacing: '0.36em',
           color: 'rgba(34,211,238,0.55)', textTransform: 'uppercase',
         }}>
-          Compete &amp; Earn
+          ألعاب الحظ والحك واربح
         </div>
       </div>
 

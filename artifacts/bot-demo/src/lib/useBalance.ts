@@ -8,6 +8,7 @@ declare global {
           user?: { id?: number };
         };
         ready?: () => void;
+        expand?: () => void;
         close?: () => void;
         openTelegramLink?: (url: string) => void;
       };

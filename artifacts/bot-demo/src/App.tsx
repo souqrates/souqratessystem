@@ -8,10 +8,16 @@ import Home from './pages/Home';
 import Cards from './pages/Cards';
 import Lotto from './pages/Lotto';
 import Tickets from './pages/Tickets';
+import { SplashScreen } from './components/SplashScreen';
 
 export type Page = 'home' | 'cards' | 'lotto' | 'tickets';
 
+const SPLASH_KEY = 'souq:splash:v1';
+
 export default function App() {
+  const [splashDone, setSplashDone] = useState(() => {
+    try { return sessionStorage.getItem(SPLASH_KEY) === '1'; } catch { return false; }
+  });
   const [page, setPage] = useState<Page>('home');
   const [lang, setLangState] = useState<Lang>(getLang());
   const [lottoTrigger, setLottoTrigger] = useState(0);
@@ -19,10 +25,10 @@ export default function App() {
   const { skz: balance, loading: balanceLoading, refresh: refreshBalance, applyDeduct, applyCredit } = useBalance();
   const { stats, recordLottoTicket } = useJackpotStats(12_000);
 
-  // Initialise Telegram WebApp
+  // Expand to full screen when loaded (ready() is called in main.tsx)
   useEffect(() => {
     try {
-      window.Telegram?.WebApp?.ready?.();
+      window.Telegram?.WebApp?.expand?.();
     } catch {
       // not in Telegram — dev mode
     }
@@ -56,6 +62,13 @@ export default function App() {
     setPage(p);
     if (p === 'home') refreshBalance();
   }, [refreshBalance]);
+
+  const finishSplash = useCallback(() => {
+    try { sessionStorage.setItem(SPLASH_KEY, '1'); } catch {}
+    setSplashDone(true);
+  }, []);
+
+  if (!splashDone) return <SplashScreen onDone={finishSplash} />;
 
   return (
     <div className="scrch-shell" dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang}>
