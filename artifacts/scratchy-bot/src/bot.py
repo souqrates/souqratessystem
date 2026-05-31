@@ -76,8 +76,8 @@ def _resolve_api_key() -> str:
             "trying HTTP fallback via /api/bots"
         )
 
-    # HTTP fallback: look up our API key from the central bot registry.
-    # Requires ADMIN_TOKEN (always present in production).
+    # HTTP fallback: fetch the raw API key from the superadmin reveal endpoint.
+    # Requires ADMIN_TOKEN (always present in production and Replit).
     admin_token = os.getenv("ADMIN_TOKEN", "").strip()
     api_url = os.getenv("MOTHER_API_URL", "http://localhost:80/api").rstrip("/")
     if admin_token:
@@ -85,17 +85,15 @@ def _resolve_api_key() -> str:
             import urllib.request as _ureq
             import json as _json
             _request = _ureq.Request(
-                f"{api_url}/bots",
+                f"{api_url}/superadmin/bots/scratchy-bot/api-key",
                 headers={"Authorization": f"Bearer {admin_token}"},
             )
             with _ureq.urlopen(_request, timeout=5) as _resp:
-                _bots = _json.loads(_resp.read())
-                for _bot in (_bots if isinstance(_bots, list) else []):
-                    _slug = _bot.get("slug") or ""
-                    _key = _bot.get("apiKey") or _bot.get("api_key") or ""
-                    if _slug == "scratchy-bot" and _key and ":" not in _key:
-                        logger.info("SCRATCHY_BOT_API_KEY resolved via /api/bots HTTP fallback")
-                        return _key
+                _data = _json.loads(_resp.read())
+                _key = _data.get("apiKey") or ""
+                if _key and ":" not in _key and len(_key) >= 20:
+                    logger.info("SCRATCHY_BOT_API_KEY resolved via superadmin HTTP fallback")
+                    return _key
         except Exception as _exc:
             logger.warning("HTTP fallback for SCRATCHY_BOT_API_KEY failed: %s", _exc)
 

@@ -97,6 +97,30 @@ router.patch("/superadmin/bots/:slug", requireSuperAdmin, async (req, res): Prom
   res.json(safe);
 });
 
+// ── Bot API-key management ────────────────────────────────────────────────
+// Reveal the raw API key for a bot (admin only — never exposed in GET /bots).
+router.get("/superadmin/bots/:slug/api-key", requireSuperAdmin, async (req, res): Promise<void> => {
+  const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+  const [bot] = await db.select({ apiKey: botsTable.apiKey }).from(botsTable).where(eq(botsTable.slug, slug));
+  if (!bot) { res.status(404).json({ error: "Bot not found" }); return; }
+  req.log.info({ slug }, "superadmin: api-key revealed");
+  res.json({ apiKey: bot.apiKey });
+});
+
+// Rotate (regenerate) the API key for a bot and return the new key once.
+router.post("/superadmin/bots/:slug/rotate-key", requireSuperAdmin, async (req, res): Promise<void> => {
+  const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+  const [existing] = await db.select({ id: botsTable.id }).from(botsTable).where(eq(botsTable.slug, slug));
+  if (!existing) { res.status(404).json({ error: "Bot not found" }); return; }
+  const newKey = crypto.randomBytes(32).toString("hex");
+  await db.update(botsTable).set({ apiKey: newKey }).where(eq(botsTable.slug, slug));
+  await logAdminAction(req, "superadmin", {
+    action: "bot.rotate-key", targetType: "bot", targetId: slug, payload: {},
+  });
+  req.log.info({ slug }, "superadmin: bot api-key rotated");
+  res.json({ apiKey: newKey });
+});
+
 // ── Commission Overrides (per-user exception rates) ──────────────────────
 router.get("/superadmin/commission-overrides", requireSuperAdmin, async (req, res): Promise<void> => {
   const { botSlug, telegramId } = req.query as { botSlug?: string; telegramId?: string };
