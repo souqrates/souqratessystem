@@ -10,3 +10,4 @@
 - [Gamification central migration](gamification-central.md) — streak columns need lib rebuild after schema change; DB migration applied via executeSql not drizzle push.
 - [SubAgents DB activation](subagents-db-activation.md) — system was pre-scaffolded; only SQL migration + tier seed updates needed to activate.
 - [Drizzle push clean state](drizzle-push-clean.md) — 3 issues fixed to get "No changes detected": wallets missing createdAt, platform_settings constraint rename, 4 unmanaged sequences need pgSequence stubs (policies, platform_links, xp_events, xp_rules) in unmanagedSequences.ts.
+- [Mini App static serving](mini-app-static-serving.md) — Vite dev server fails in Telegram webview; all Mini App artifacts must use node server.js + production build; rebuild with BASE_PATH=/<slug>/ for correct asset paths.
