@@ -61,6 +61,7 @@ APPLY_URL     = f"{BASE}/subagents-bot-web/apply"
 DASHBOARD_URL = f"{BASE}/subagents-bot-web/dashboard"
 STATUS_URL    = f"{BASE}/subagents-bot-web/pending"
 LANDING_URL   = f"{BASE}/subagents-bot-web/"
+MOTHER_APP_URL = f"{BASE}/"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("subagents-bot")
@@ -103,7 +104,7 @@ def kb_apply() -> InlineKeyboardMarkup:
 def kb_dashboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="♛ افتح لوحة الشريك", web_app=WebAppInfo(url=DASHBOARD_URL))],
-        [InlineKeyboardButton(text="💰 محفظتي", url=f"https://t.me/{MOTHER_BOT_USERNAME}" if MOTHER_BOT_USERNAME else BASE)],
+        [InlineKeyboardButton(text="💰 محفظتي", web_app=WebAppInfo(url=MOTHER_APP_URL))],
     ])
 
 

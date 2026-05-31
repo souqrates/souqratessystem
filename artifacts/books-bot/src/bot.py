@@ -127,6 +127,22 @@ def _resolve_books_web_app_url() -> str:
     return ""
 WEB_APP_URL = _resolve_books_web_app_url()
 
+def _resolve_mother_app_url() -> str:
+    explicit = (os.getenv("MOTHER_APP_URL") or "").strip()
+    if explicit:
+        return explicit
+    public = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public:
+        return f"{public}/"
+    rds = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
+    if rds:
+        return f"https://{rds}/"
+    dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
+    if dev:
+        return f"https://{dev}/"
+    return ""
+MOTHER_APP_URL = _resolve_mother_app_url()
+
 api = BooksBotClient(api_key=BOOKS_BOT_API_KEY, base_url=MOTHER_API_URL)
 texts = api.texts("books-bot", ttl_seconds=60)
 router = Router()
@@ -541,7 +557,7 @@ async def cb_buy(cb: CallbackQuery):
         if "غير كافٍ" in msg or "insufficient" in msg.lower():
             mother = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
             topup_kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=t(lang, "btn_topup_wallet"), url=f"https://t.me/{mother}?start=deposit")],
+                [InlineKeyboardButton(text=t(lang, "btn_topup_wallet"), **{"web_app": WebAppInfo(url=MOTHER_APP_URL)} if MOTHER_APP_URL else {"url": f"https://t.me/{mother}?start=deposit"})],
                 [InlineKeyboardButton(text=t(lang, "btn_back_arrow"), callback_data="menu")],
             ])
             await cb.message.edit_text(

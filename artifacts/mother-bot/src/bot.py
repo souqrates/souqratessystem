@@ -80,6 +80,7 @@ _DEFAULT_BASE = _resolve_default_base()
 # single supported override is PUBLIC_BASE_URL (set as a Replit secret).
 _BASE_MINI_APP_URL       = f"{_DEFAULT_BASE}/"
 _BASE_GAMES_APP_URL      = f"{_DEFAULT_BASE}/games-bot/"
+_BASE_BOOKS_APP_URL      = f"{_DEFAULT_BASE}/books-bot-web/"
 _BASE_CONTESTS_APP_URL   = f"{_DEFAULT_BASE}/contests-bot-web/"
 _BASE_SUBAGENTS_APP_URL  = f"{_DEFAULT_BASE}/subagents-bot-web/"
 _BASE_SCRATCHY_APP_URL   = f"{_DEFAULT_BASE}/scratchy-bot-web/"
@@ -102,6 +103,7 @@ CONTESTS_BOT_USERNAME = os.getenv("CONTESTS_BOT_USERNAME", "Souqrates_stage_bot"
 # So URLs MUST stay byte-identical across bot restarts.
 MINI_APP_URL      = _BASE_MINI_APP_URL
 GAMES_APP_URL     = _BASE_GAMES_APP_URL
+BOOKS_APP_URL     = _BASE_BOOKS_APP_URL
 CONTESTS_APP_URL  = _BASE_CONTESTS_APP_URL
 SUBAGENTS_APP_URL = _BASE_SUBAGENTS_APP_URL
 SCRATCHY_APP_URL  = _BASE_SCRATCHY_APP_URL
@@ -228,9 +230,9 @@ def main_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         # ② Launch Games
         [InlineKeyboardButton(text=t(lang, "btn_play_games"),
                               web_app=WebAppInfo(url=GAMES_APP_URL))],
-        # ②.5 Launch Books (jumps user into the books child bot via deep-link)
+        # ②.5 Launch Books Mini App inline
         [InlineKeyboardButton(text="❖ SOUQRATES SOUQ",
-                              url=f"https://t.me/{BOOKS_BOT_USERNAME}?start=from_mother")],
+                              web_app=WebAppInfo(url=BOOKS_APP_URL))],
         # ②.6 Launch Contests / Voting Mini App inline
         [InlineKeyboardButton(text="★ SOUQRATES STAGE",
                               web_app=WebAppInfo(url=CONTESTS_APP_URL))],

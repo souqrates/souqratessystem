@@ -106,6 +106,22 @@ def _resolve_web_app_url() -> str:
 
 WEB_APP_URL = _resolve_web_app_url()
 
+def _resolve_mother_app_url() -> str:
+    explicit = (os.getenv("MOTHER_APP_URL") or "").strip()
+    if explicit:
+        return explicit
+    public = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if public:
+        return f"{public}/"
+    rds = (os.getenv("REPLIT_DOMAINS") or "").split(",")[0].strip()
+    if rds:
+        return f"https://{rds}/"
+    dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
+    if dev:
+        return f"https://{dev}/"
+    return ""
+MOTHER_APP_URL = _resolve_mother_app_url()
+
 # ── Commands menu ──────────────────────────────────────────────────────────
 COMMANDS: list[BotCommand] = [
     BotCommand(command="start",  description="🎰 ابدأ وافتح القائمة الرئيسية"),
@@ -140,10 +156,10 @@ def main_kb(lang: str) -> InlineKeyboardMarkup:
         InlineKeyboardButton(text=t(lang, "btn_help"), callback_data="help"),
         InlineKeyboardButton(text=t(lang, "btn_lang"), callback_data="lang_menu"),
     ])
-    if MOTHER_BOT_USERNAME:
+    if MOTHER_APP_URL:
         rows.append([InlineKeyboardButton(
             text="◆ SOUQRATES SYSTEM",
-            url=f"https://t.me/{MOTHER_BOT_USERNAME}",
+            web_app=WebAppInfo(url=MOTHER_APP_URL),
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -247,10 +263,10 @@ async def _show_wallet(tg_id: str, lang: str, msg: Message, send_new: bool = Fal
         skz = "—"
 
     rows = []
-    if MOTHER_BOT_USERNAME:
+    if MOTHER_APP_URL:
         rows.append([InlineKeyboardButton(
             text=t(lang, "btn_topup"),
-            url=f"https://t.me/{MOTHER_BOT_USERNAME}",
+            web_app=WebAppInfo(url=MOTHER_APP_URL),
         )])
     rows.append([InlineKeyboardButton(text=t(lang, "btn_home"), callback_data="home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
