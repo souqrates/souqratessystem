@@ -53,3 +53,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Diagnostic paste logs — may contain sensitive output; never commit raw
+attached_assets/*.txt
