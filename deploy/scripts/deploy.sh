@@ -114,11 +114,18 @@ else
   echo "  ⚠ CLOUDFLARE_API_TOKEN / CLOUDFLARE_ZONE_ID not in ${CF_ENV} — skipping"
 fi
 
-log "Refresh Python deps if requirements.txt changed"
+log "Ensure Python venvs exist + refresh deps if requirements.txt changed"
 for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
-  if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
+  venv="${VENVS_DIR}/${bot}"
+  req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
+  if [[ ! -x "${venv}/bin/python" ]]; then
+    echo "  creating venv for ${bot} (first time)"
+    python3 -m venv "${venv}"
+    chown -R "${APP_USER}:${APP_USER}" "${venv}"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "${req}"
+  elif echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
     echo "  reinstalling ${bot} deps"
-    sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
+    sudo -u "${APP_USER}" "${venv}/bin/pip" install --quiet -r "${req}"
   fi
 done
 
