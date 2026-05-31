@@ -9,6 +9,11 @@ User=souqrates
 Group=souqrates
 WorkingDirectory=/opt/souqrates/repo/artifacts/mother-bot/src
 EnvironmentFile=/etc/souqrates/mother-bot.env
+# On VPS each bot runs as its own systemd service.
+# These flags prevent the mother-bot from also spawning them as subprocesses
+# (the subprocess launch is a Replit-only workaround for the workflow cap).
+Environment=DISABLE_SUBAGENTS_SPAWN=1
+Environment=DISABLE_SCRATCHY_SPAWN=1
 ExecStart=/opt/souqrates/venvs/mother-bot/bin/python -u bot.py
 Restart=always
 RestartSec=3

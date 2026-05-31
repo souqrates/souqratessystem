@@ -31,12 +31,15 @@ WEBHOOK_PORT=<see table>
 | books-bot     | 8102         | /telegram-webhook/books-bot         |
 | contests-bot  | 8103         | /telegram-webhook/contests-bot      |
 | subagents-bot | 8104         | /telegram-webhook/subagents-bot     |
+| scratchy-bot  | 8105         | /telegram-webhook/scratchy-bot      |
 
-**On VPS set `DISABLE_SUBAGENTS_SPAWN=1` in the mother-bot's systemd unit.**
-Otherwise the mother-bot process will also fork-launch subagents-bot via
-`subprocess.Popen` (Replit-only workaround for the 10-workflow cap), and you'd
-end up with two `subagents-bot` processes competing for the same Telegram
-webhook. Each bot must be its own systemd service on Contabo.
+**On VPS set `DISABLE_SUBAGENTS_SPAWN=1` and `DISABLE_SCRATCHY_SPAWN=1` in
+the mother-bot's systemd unit.**
+Otherwise the mother-bot process will also fork-launch subagents-bot and
+scratchy-bot via `subprocess.Popen` (Replit-only workaround for the
+10-workflow cap), and you'd end up with duplicate processes competing for
+the same Telegram webhook. Each bot must be its own systemd service on
+Contabo.
 
 Health probe per bot: `GET /telegram-webhook/<slug>/healthz` → `ok <slug>`.
 
@@ -48,6 +51,7 @@ location /telegram-webhook/mother-bot    { proxy_pass http://127.0.0.1:8101; inc
 location /telegram-webhook/books-bot     { proxy_pass http://127.0.0.1:8102; include /etc/nginx/snippets/tg-proxy.conf; }
 location /telegram-webhook/contests-bot  { proxy_pass http://127.0.0.1:8103; include /etc/nginx/snippets/tg-proxy.conf; }
 location /telegram-webhook/subagents-bot { proxy_pass http://127.0.0.1:8104; include /etc/nginx/snippets/tg-proxy.conf; }
+location /telegram-webhook/scratchy-bot  { proxy_pass http://127.0.0.1:8105; include /etc/nginx/snippets/tg-proxy.conf; }
 ```
 
 `/etc/nginx/snippets/tg-proxy.conf`:
@@ -135,7 +139,7 @@ PUBLIC_OBJECT_SEARCH_PATHS=/<R2_BUCKET>/public
 ## Step 3 — DNS cutover + final E2E
 
 Pre-flight on VPS (before flipping DNS):
-1. All 4 bot systemd services are active, healthcheck returns ok.
+1. All 5 bot systemd services are active, healthcheck returns ok.
 2. `curl -sf http://127.0.0.1:8101/telegram-webhook/mother-bot/healthz` etc.
 3. `nginx -t && systemctl reload nginx`
 4. Hit `https://souqrates.com/api/healthz` via the VPS's own IP through a

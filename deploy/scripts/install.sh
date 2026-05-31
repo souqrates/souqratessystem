@@ -70,17 +70,20 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
-  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
-    # bot-demo is served from / on the VPS (matches its artifact.toml).
-    # Every other artifact lives under its own path prefix.
-    if [ \"\$slug\" = \"bot-demo\" ]; then BP=/; else BP=/\${slug}/; fi
-    PORT=1 BASE_PATH=\$BP pnpm --filter @workspace/\${slug} run build
+  for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
+    if [ \"\$slug\" = \"games-bot\" ]; then
+      VITE_SUPABASE_URL='' VITE_SUPABASE_ANON_KEY='' PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
+    else
+      PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
+    fi
   done
 "
 
 log "6/9  Copy built static assets into ${WWW_DIR}"
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo games-bot; do
-  src="${REPO_DIR}/artifacts/${slug}/dist/public"
+for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
+  # scratchy-bot-web lives in artifacts/bot-demo on disk
+  artifact_dir="$slug"; [[ "$slug" == "scratchy-bot-web" ]] && artifact_dir="bot-demo"
+  src="${REPO_DIR}/artifacts/${artifact_dir}/dist/public"
   dst="${WWW_DIR}/${slug}"
   [[ -d "$src" ]] || { echo "  skip ${slug}: ${src} missing"; continue; }
   install -d -o "${APP_USER}" -g "${APP_USER}" "${dst}"
@@ -88,8 +91,8 @@ for slug in superadmin books-bot-web contests-bot-web subagents-bot-web bot-demo
   chown -R "${APP_USER}:${APP_USER}" "${dst}"
 done
 
-log "7/9  Python venvs for the 4 bots"
-for bot in mother-bot books-bot contests-bot subagents-bot; do
+log "7/9  Python venvs for the 5 bots"
+for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
   venv="${VENVS_DIR}/${bot}"
   req="${REPO_DIR}/artifacts/${bot}/requirements.txt"
   if [[ ! -f "$req" ]]; then echo "  skip ${bot}: no requirements.txt"; continue; fi
@@ -109,7 +112,7 @@ mkdir -p /var/www/certbot
 systemctl daemon-reload
 
 log "9/9  Seed example env files (if not already present)"
-for f in api-server mother-bot books-bot contests-bot subagents-bot; do
+for f in api-server mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
   src="${REPO_DIR}/deploy/env/${f}.env.example"
   dst="${ENV_DIR}/${f}.env"
   if [[ ! -f "$dst" ]]; then
@@ -126,12 +129,13 @@ cat <<EOF
   Install finished. Next steps (in order):
 ============================================================
 
-1. Fill the 5 env files in ${ENV_DIR}/   (chmod is already 0640)
+1. Fill the 6 env files in ${ENV_DIR}/   (chmod is already 0640)
        \$EDITOR ${ENV_DIR}/api-server.env
        \$EDITOR ${ENV_DIR}/mother-bot.env
        \$EDITOR ${ENV_DIR}/books-bot.env
        \$EDITOR ${ENV_DIR}/contests-bot.env
        \$EDITOR ${ENV_DIR}/subagents-bot.env
+       \$EDITOR ${ENV_DIR}/scratchy-bot.env
 
 2. Push DB schema to Neon (one-time, from the repo):
        cd ${REPO_DIR}
@@ -149,15 +153,17 @@ cat <<EOF
        systemctl enable --now souqrates-mother-bot.service \\
                               souqrates-books-bot.service \\
                               souqrates-contests-bot.service \\
-                              souqrates-subagents-bot.service
+                              souqrates-subagents-bot.service \\
+                              souqrates-scratchy-bot.service
        systemctl reload nginx
 
 5. Smoke-test:
        curl -sf https://souqrates.com/api/healthz
-       for p in 8101 8102 8103 8104; do
+       for p in 8101 8102 8103 8104 8105; do
          curl -sf http://127.0.0.1:\$p/telegram-webhook/\$(case \$p in
            8101) echo mother-bot;; 8102) echo books-bot;;
-           8103) echo contests-bot;; 8104) echo subagents-bot;; esac)/healthz
+           8103) echo contests-bot;; 8104) echo subagents-bot;;
+           8105) echo scratchy-bot;; esac)/healthz
        done
 
 6. UFW (firewall):

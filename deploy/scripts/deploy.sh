@@ -102,7 +102,7 @@ else
 fi
 
 log "Refresh Python deps if requirements.txt changed"
-for bot in mother-bot books-bot contests-bot subagents-bot; do
+for bot in mother-bot books-bot contests-bot subagents-bot scratchy-bot; do
   if echo "$CHANGED" | grep -q "^artifacts/${bot}/requirements.txt$"; then
     echo "  reinstalling ${bot} deps"
     sudo -u "${APP_USER}" "${VENVS_DIR}/${bot}/bin/pip" install --quiet -r "${REPO_DIR}/artifacts/${bot}/requirements.txt"
@@ -126,7 +126,8 @@ systemctl restart \
   souqrates-mother-bot.service \
   souqrates-books-bot.service \
   souqrates-contests-bot.service \
-  souqrates-subagents-bot.service
+  souqrates-subagents-bot.service \
+  souqrates-scratchy-bot.service
 
 log "Health check (waiting 35s for bots to initialise…)"
 sleep 35
@@ -140,7 +141,7 @@ for i in 1 2 3 4 5; do
 done
 [[ $api_ok -eq 0 ]] && echo "  ⚠ api did not respond — check: journalctl -u souqrates-api.service -n 30"
 # Bots
-for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot; do
+for p in 8101:mother-bot 8102:books-bot 8103:contests-bot 8104:subagents-bot 8105:scratchy-bot; do
   port="${p%:*}"; slug="${p#*:}"
   if curl -sfS "http://127.0.0.1:${port}/telegram-webhook/${slug}/healthz" 2>/dev/null; then
     echo "  ${slug} ok"
