@@ -4,9 +4,13 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
+// POSTGRES_URL takes priority over DATABASE_URL so an external Supabase /
+// Neon DB can be wired in without fighting Replit's managed DATABASE_URL.
+const resolvedDbUrl = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
+
+if (!resolvedDbUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "Neither POSTGRES_URL nor DATABASE_URL is set. Did you forget to provision a database?",
   );
 }
 
@@ -18,7 +22,7 @@ const DB_CONNECTION_TIMEOUT  = Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 5_
 const DB_STATEMENT_TIMEOUT   = Number(process.env.DB_STATEMENT_TIMEOUT_MS ?? 15_000);
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: resolvedDbUrl,
   max: DB_POOL_MAX,
   idleTimeoutMillis: DB_IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: DB_CONNECTION_TIMEOUT,
