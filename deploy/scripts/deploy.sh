@@ -57,6 +57,9 @@ sudo -u "${APP_USER}" -H bash -lc "
   pnpm install --frozen-lockfile
   pnpm run typecheck
   pnpm --filter @workspace/api-server run build
+  # mother-bot-web: served at domain root (BASE_PATH=/)
+  PORT=1 BASE_PATH=/ pnpm --filter @workspace/mother-bot-web run build
+  # subpath SPAs: each built with its own BASE_PATH
   for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
     if [ \"\$slug\" = \"games-bot\" ]; then
       VITE_SUPABASE_URL='${VITE_SB_URL}' VITE_SUPABASE_ANON_KEY='${VITE_SB_ANON}' PORT=1 BASE_PATH=/\${slug}/ pnpm --filter @workspace/\${slug} run build
@@ -67,8 +70,10 @@ sudo -u "${APP_USER}" -H bash -lc "
 "
 
 log "rsync static assets"
-for slug in superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
-  artifact_dir="$slug"; [[ "$slug" == "scratchy-bot-web" ]] && artifact_dir="bot-demo"
+# mother-bot-web → served at root (BASE_PATH=/), dest: mother-bot-web/
+for slug in mother-bot-web superadmin books-bot-web contests-bot-web subagents-bot-web scratchy-bot-web games-bot; do
+  artifact_dir="$slug"
+  [[ "$slug" == "scratchy-bot-web" ]] && artifact_dir="bot-demo"
   src="${REPO_DIR}/artifacts/${artifact_dir}/dist/public"
   dst="${WWW_DIR}/${slug}"
   [[ -d "$src" ]] || continue
