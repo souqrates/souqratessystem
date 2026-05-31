@@ -73,16 +73,40 @@ def _resolve_api_key() -> str:
     if env_key and ":" in env_key:
         logger.warning(
             "SCRATCHY_BOT_API_KEY looks like a Telegram bot token — "
-            "falling back to /api/bots lookup"
+            "trying HTTP fallback via /api/bots"
         )
 
-    # No further fallback — SCRATCHY_BOT_API_KEY must be set correctly.
-    # If it was mis-set to the Telegram token, the warning above tells the
-    # operator exactly what to fix.  The bot will start but API calls will
-    # fail auth until the secret is corrected in Replit Secrets.
+    # HTTP fallback: look up our API key from the central bot registry.
+    # Requires ADMIN_TOKEN (always present in production).
+    admin_token = os.getenv("ADMIN_TOKEN", "").strip()
+    api_url = os.getenv("MOTHER_API_URL", "http://localhost:80/api").rstrip("/")
+    if admin_token:
+        try:
+            import urllib.request as _ureq
+            import json as _json
+            _request = _ureq.Request(
+                f"{api_url}/bots",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+            with _ureq.urlopen(_request, timeout=5) as _resp:
+                _bots = _json.loads(_resp.read())
+                for _bot in (_bots if isinstance(_bots, list) else []):
+                    _slug = _bot.get("slug") or ""
+                    _key = _bot.get("apiKey") or _bot.get("api_key") or ""
+                    if _slug == "scratchy-bot" and _key and ":" not in _key:
+                        logger.info("SCRATCHY_BOT_API_KEY resolved via /api/bots HTTP fallback")
+                        return _key
+        except Exception as _exc:
+            logger.warning("HTTP fallback for SCRATCHY_BOT_API_KEY failed: %s", _exc)
 
     if not env_key:
         logger.warning("SCRATCHY_BOT_API_KEY not set — API calls will fail auth")
+    else:
+        logger.error(
+            "SCRATCHY_BOT_API_KEY contains ':' (looks like a bot token) and "
+            "HTTP fallback also failed. Fix: set SCRATCHY_BOT_API_KEY to the "
+            "api_key from the bots table, not to the Telegram bot token."
+        )
     return env_key
 
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")

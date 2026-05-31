@@ -38,6 +38,27 @@ def _truthy(v: str | None) -> bool:
     return (v or "").strip().lower() in ("1", "true", "yes", "on")
 
 
+async def _keep_webhook_deleted(bot: Any, slug: str) -> None:
+    """Background task: re-delete webhook every 45 s in polling mode.
+
+    When a production server (e.g. Contabo) is running the same bot in webhook
+    mode, it calls setWebhook and kicks the Replit polling instance.  This task
+    detects that and immediately re-deletes the webhook so polling resumes.
+    """
+    while True:
+        await asyncio.sleep(45)
+        try:
+            info = await bot.get_webhook_info()
+            if info.url:
+                logger.warning(
+                    "%s: foreign webhook detected (%r) — re-deleting to restore polling",
+                    slug, info.url,
+                )
+                await bot.delete_webhook(drop_pending_updates=False)
+        except Exception as exc:
+            logger.debug("%s: keep_webhook_deleted check error: %s", slug, exc)
+
+
 async def run_bot(bot: Any, dp: Any, slug: str) -> None:
     """Run `bot` under `dp` either as polling or webhook.
 
@@ -52,6 +73,8 @@ async def run_bot(bot: Any, dp: Any, slug: str) -> None:
             await bot.delete_webhook(drop_pending_updates=False)
         except Exception as e:
             logger.warning(f"{slug}: delete_webhook before polling failed: {e}")
+        # Keep re-deleting any webhook set by external processes (e.g. Contabo).
+        asyncio.ensure_future(_keep_webhook_deleted(bot, slug))
         await dp.start_polling(bot, allowed_updates=allowed)
         return
 

@@ -560,7 +560,7 @@ router.post("/internal/deposit", perUserCreateLimiter, async (req, res): Promise
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/credit — credit SKZ with commission + referral bonuses
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/credit", async (req, res): Promise<void> => {
+router.post("/internal/credit", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -738,7 +738,7 @@ router.post("/internal/credit", async (req, res): Promise<void> => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /internal/debit — debit SKZ from user wallet
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/debit", async (req, res): Promise<void> => {
+router.post("/internal/debit", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
@@ -1589,7 +1589,7 @@ router.post("/internal/stars-invoice", perUserCreateLimiter, async (req, res): P
 // re-deriving from the current rate: this guarantees the user is credited
 // exactly what they were shown when they paid, even if rates moved mid-flight.
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/internal/stars-confirm", async (req, res): Promise<void> => {
+router.post("/internal/stars-confirm", perUserCreateLimiter, async (req, res): Promise<void> => {
   const bot = await requireBot(req, res);
   if (!bot) return;
 
