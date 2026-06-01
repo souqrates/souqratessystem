@@ -50,6 +50,27 @@ class ScratchyBotClient:
     def texts(self, bot_slug: str = "scratchy-bot", ttl_seconds: int = 60) -> BotTexts:
         return BotTexts(self, bot_slug=bot_slug, ttl_seconds=ttl_seconds)
 
+    async def heartbeat(self, version: Optional[str] = None, status: str = "online") -> None:
+        """POST /internal/heartbeat — non-fatal; keeps SystemHealth up-to-date."""
+        try:
+            async with httpx.AsyncClient() as http:
+                await http.post(
+                    f"{self.base_url}/internal/heartbeat",
+                    json={"status": status, "version": version},
+                    headers=self.headers,
+                    timeout=5.0,
+                )
+        except Exception:
+            pass
+
+    def start_heartbeat(self, interval_seconds: int = 30, version: Optional[str] = None) -> "asyncio.Task":
+        """Spawn a background asyncio task that sends a heartbeat every `interval_seconds`."""
+        async def _loop() -> None:
+            while True:
+                await self.heartbeat(version=version)
+                await asyncio.sleep(interval_seconds)
+        return asyncio.create_task(_loop())
+
     async def upsert_user(self, user) -> dict:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
