@@ -49,6 +49,7 @@ import {
 import { requireSuperAdmin } from "../lib/super-admin-auth";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { getSkzRates, getEffectiveCommissionRate } from "../lib/finance";
+import { shopProductsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 const BOT_SLUG = "books-bot";
@@ -859,6 +860,150 @@ router.get("/superadmin/books/stats", requireSuperAdmin, async (_req, res): Prom
     commissionSkz: purchaseRow.commissionSkz,
     topPublishers: (top as any).rows ?? [],
   });
+});
+
+// ─── SHOP PRODUCTS (physical: books + cups / كوسات) ─────────────────────────
+
+router.get("/books/shop", async (req, res): Promise<void> => {
+  const { category } = req.query as { category?: string };
+  const limit = Math.min(parseInt((req.query.limit as string) ?? "20", 10) || 20, 100);
+  const offset = parseInt((req.query.offset as string) ?? "0", 10) || 0;
+
+  const conds = [eq(shopProductsTable.isActive, true)];
+  if (category) conds.push(eq(shopProductsTable.categorySlug, category));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select().from(shopProductsTable)
+      .where(and(...conds))
+      .orderBy(asc(shopProductsTable.sortOrder), asc(shopProductsTable.id))
+      .limit(limit).offset(offset),
+    db.select({ total: count() }).from(shopProductsTable).where(and(...conds)),
+  ]);
+  res.json({ data: rows, total: Number(total), limit, offset });
+});
+
+router.get("/books/shop/:id", async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.select().from(shopProductsTable)
+    .where(and(eq(shopProductsTable.id, id), eq(shopProductsTable.isActive, true)));
+  if (!row) { res.status(404).json({ error: "Product not found" }); return; }
+  res.json(row);
+});
+
+router.post("/internal/books/shop/purchase", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const { telegramId, productId } = req.body as { telegramId?: string; productId?: unknown };
+  if (!telegramId || !productId) {
+    res.status(400).json({ error: "telegramId and productId are required" }); return;
+  }
+  const pid = parseInt(String(productId), 10);
+  if (!Number.isFinite(pid)) { res.status(400).json({ error: "Invalid productId" }); return; }
+  const tid = BigInt(String(telegramId));
+
+  const [product] = await db.select().from(shopProductsTable)
+    .where(and(eq(shopProductsTable.id, pid), eq(shopProductsTable.isActive, true)));
+  if (!product) { res.status(404).json({ error: "Product not found or inactive" }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.telegramId, tid));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.isBlocked) { res.status(403).json({ error: "Account is blocked" }); return; }
+
+  const priceSkz = parseFloat(product.priceSkz);
+  if (!Number.isFinite(priceSkz) || priceSkz <= 0) {
+    res.status(400).json({ error: "Invalid product price" }); return;
+  }
+
+  const referenceId = `shop-${pid}-${tid}-${Date.now()}`;
+
+  const updated = await db
+    .update(walletsTable)
+    .set({ balanceSkz: sql`balance_skz - ${priceSkz}` })
+    .where(and(eq(walletsTable.userId, user.id), sql`balance_skz >= ${priceSkz}`))
+    .returning();
+
+  if (!updated.length) { res.status(402).json({ error: "Insufficient SKZ balance" }); return; }
+
+  await db.insert(transactionsTable).values({
+    userId: user.id,
+    type: "debit",
+    currency: "SKZ",
+    amount: priceSkz.toFixed(6),
+    sourceBot: BOT_SLUG,
+    referenceId,
+    metadata: JSON.stringify({ productId: pid, productName: product.nameAr, categorySlug: product.categorySlug }),
+  });
+
+  res.json({ success: true, newBalance: parseFloat(updated[0].balanceSkz ?? "0"), referenceId });
+});
+
+router.get("/superadmin/books/shop", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { category } = req.query as { category?: string };
+  const limit = Math.min(parseInt((req.query.limit as string) ?? "50", 10) || 50, 200);
+  const offset = parseInt((req.query.offset as string) ?? "0", 10) || 0;
+  const conds = category ? [eq(shopProductsTable.categorySlug, category)] : [];
+  const [rows, [{ total }]] = await Promise.all([
+    db.select().from(shopProductsTable)
+      .where(conds.length ? and(...conds) : undefined)
+      .orderBy(asc(shopProductsTable.categorySlug), asc(shopProductsTable.sortOrder), asc(shopProductsTable.id))
+      .limit(limit).offset(offset),
+    db.select({ total: count() }).from(shopProductsTable).where(conds.length ? and(...conds) : undefined),
+  ]);
+  res.json({ data: rows, total: Number(total), limit, offset });
+});
+
+router.post("/superadmin/books/shop", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { categorySlug, nameAr, nameEn, descriptionAr, descriptionEn, priceSkz, coverUrl, isActive, sortOrder } = req.body;
+  if (!categorySlug || !nameAr || priceSkz === undefined) {
+    res.status(400).json({ error: "categorySlug, nameAr and priceSkz are required" }); return;
+  }
+  const price = parseFloat(String(priceSkz));
+  if (!Number.isFinite(price) || price < 0) { res.status(400).json({ error: "Invalid priceSkz" }); return; }
+  const [row] = await db.insert(shopProductsTable).values({
+    categorySlug: String(categorySlug),
+    nameAr: String(nameAr),
+    nameEn: nameEn ? String(nameEn) : "",
+    descriptionAr: descriptionAr ? String(descriptionAr) : "",
+    descriptionEn: descriptionEn ? String(descriptionEn) : "",
+    priceSkz: price.toFixed(6),
+    coverUrl: coverUrl ? String(coverUrl) : null,
+    isActive: isActive !== false,
+    sortOrder: Number(sortOrder ?? 0),
+  }).returning();
+  res.status(201).json(row);
+});
+
+router.patch("/superadmin/books/shop/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { categorySlug, nameAr, nameEn, descriptionAr, descriptionEn, priceSkz, coverUrl, isActive, sortOrder } = req.body;
+  const patch: Record<string, unknown> = {};
+  if (categorySlug !== undefined) patch.categorySlug = String(categorySlug);
+  if (nameAr !== undefined) patch.nameAr = String(nameAr);
+  if (nameEn !== undefined) patch.nameEn = String(nameEn);
+  if (descriptionAr !== undefined) patch.descriptionAr = String(descriptionAr);
+  if (descriptionEn !== undefined) patch.descriptionEn = String(descriptionEn);
+  if (priceSkz !== undefined) {
+    const p = parseFloat(String(priceSkz));
+    if (!Number.isFinite(p) || p < 0) { res.status(400).json({ error: "Invalid priceSkz" }); return; }
+    patch.priceSkz = p.toFixed(6);
+  }
+  if (coverUrl !== undefined) patch.coverUrl = coverUrl ? String(coverUrl) : null;
+  if (isActive !== undefined) patch.isActive = Boolean(isActive);
+  if (sortOrder !== undefined) patch.sortOrder = Number(sortOrder);
+  if (!Object.keys(patch).length) { res.status(400).json({ error: "No fields to update" }); return; }
+  const [updated] = await db.update(shopProductsTable).set(patch).where(eq(shopProductsTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Product not found" }); return; }
+  res.json(updated);
+});
+
+router.delete("/superadmin/books/shop/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(shopProductsTable).where(eq(shopProductsTable.id, id));
+  res.json({ success: true });
 });
 
 export default router;

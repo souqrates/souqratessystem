@@ -203,3 +203,33 @@ class BooksBotClient:
             )
             r.raise_for_status()
             return r.json()
+
+    # ── Shop products (physical: books + cups / كوسات) ──────────────────────
+    async def list_shop(self, category: Optional[str] = None,
+                        limit: int = 20, offset: int = 0) -> dict:
+        params: dict = {"limit": limit, "offset": offset}
+        if category:
+            params["category"] = category
+        async with httpx.AsyncClient() as c:
+            r = await c.get(f"{self.base_url}/books/shop", params=params, timeout=10.0)
+            r.raise_for_status()
+            return r.json()
+
+    async def get_shop_product(self, product_id: int) -> Optional[dict]:
+        async with httpx.AsyncClient() as c:
+            r = await c.get(f"{self.base_url}/books/shop/{product_id}", timeout=10.0)
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return r.json()
+
+    async def purchase_shop(self, telegram_id: str, product_id: int) -> dict:
+        async with httpx.AsyncClient() as c:
+            r = await c.post(
+                f"{self.base_url}/internal/books/shop/purchase",
+                json={"telegramId": telegram_id, "productId": product_id},
+                headers=self.headers,
+                timeout=15.0,
+            )
+            r.raise_for_status()
+            return r.json()

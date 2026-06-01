@@ -21,3 +21,4 @@ export * from "./subAgents";
 export * from "./botHeartbeats";
 export * from "./scratchCards";
 export * from "./unmanagedSequences";
+export * from "./shopProducts";
