@@ -1,31 +1,45 @@
 ---
 name: Replit+Contabo webhook conflict
-description: Why Python bots show TelegramConflictError and how to resolve it in dev.
+description: Running the same Telegram bot in polling (Replit) and webhook (Contabo) simultaneously; how to prevent Replit from destroying the production webhook.
 ---
 
 # Replit ↔ Contabo webhook conflict
 
-## The rule
-Running the same Telegram bot on Replit (polling) AND Contabo (webhook mode) simultaneously creates a permanent conflict loop: Contabo sets a webhook → Replit's polling fails → Replit deletes it → Contabo sets it again.
+## The problem
+Running the same Telegram bot on Replit (polling) AND Contabo (webhook mode) simultaneously breaks production in two ways:
+1. At startup, Replit calls `delete_webhook()` — instantly deletes the Contabo webhook.
+2. The 45-second watchdog (`_keep_webhook_deleted`) keeps re-deleting any webhook it finds — continuously wiping Contabo's webhook.
 
-**Why:** Telegram only allows ONE delivery method per bot token at a time.
+**Symptom:** `TelegramConflictError: can't use getUpdates while webhook is active` on Replit, AND Contabo bot stops responding because its webhook keeps getting deleted.
 
-## Symptoms
-`TelegramConflictError: Conflict: can't use getUpdates method while webhook is active`
+## The fix (now in all 5 `webhook_runtime.py` copies)
 
-Repeats every 5 seconds indefinitely even after manually calling `deleteWebhook`.
+Detection is automatic via `REPLIT_DEV_DOMAIN` (set automatically by Replit, e.g. `abc123-user.replit.dev`).
 
-## Fix in place (dev resilience)
-`webhook_runtime.py` now has:
-1. `await bot.delete_webhook()` at polling startup (always)
-2. `_keep_webhook_deleted()` background task — runs every 45s, calls `get_webhook_info()`, and re-deletes if Contabo set it back
+```python
+def _is_production_webhook(url, replit_domain) -> bool:
+    if not replit_domain:
+        return False
+    return not url.startswith(f"https://{replit_domain}")
+```
 
-This makes Replit self-healing but does NOT solve the root conflict.
+**At startup (polling mode):**
+- Active webhook + production URL → `return` immediately (ABORT POLLING, do NOT delete webhook)
+- Active webhook + Replit URL → delete it (normal cleanup)
 
-## Permanent fix (for production)
-Stop one side. Options:
-- Stop Contabo bots while doing Replit dev: `sudo systemctl stop souqrates-*`
-- Or use `DISABLE_BOOKS_SPAWN=1` env vars to only run specific bots on Replit
+**Watchdog every 45 s:**
+- Production webhook → log warning, skip deletion (protects Contabo)
+- Replit/stale webhook → delete as before
 
-## How to apply
-Any time this error appears: manually call `deleteWebhook` for all bots, then the 45s watchdog takes over.
+## Why this is safe on Contabo
+On Contabo, `USE_WEBHOOK=1` is set, so the polling branch is never entered. `_is_production_webhook` is never called. Zero behavioral change in production.
+
+## Permanent fix
+Stop the Python bot workflows on Replit entirely when Contabo production is running. The code fix is a safety net, not a substitute.
+
+## Keeping copies in sync
+All 5 copies must be byte-identical. Verify with:
+```bash
+md5sum artifacts/*/src/webhook_runtime.py
+```
+Edit `artifacts/books-bot/src/webhook_runtime.py` then `cp` to the other 4.

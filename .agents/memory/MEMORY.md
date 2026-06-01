@@ -4,7 +4,7 @@
 - [Two-tier cache layer](cache-layer.md) — `cached()` wraps slow-changing config reads (rates/tiers/bot rows); writers MUST call the matching `invalidateXxxCache()` in the same handler.
 - [Per-user rate limit](per-user-rate-limit.md) — row-creating money routes need `perUserCreateLimiter` keyed by telegramId; bot-API-key bucketing alone lets one user starve the bot.
 - [Bot webhook runtime](bot-webhook-runtime.md) — all 5 Python bots toggle polling↔webhook via `webhook_runtime.run_bot(...)`; keep the 4 copies byte-identical; 45s delete-webhook guard runs only in polling mode (gated on `not USE_WEBHOOK`).
-- [Replit+Contabo webhook conflict](replit-contabo-conflict.md) — running bots on both Replit (polling) AND Contabo (webhook) simultaneously causes TelegramConflictError; fix = deleteWebhook at startup + 45s watchdog in webhook_runtime.py; permanent fix = stop one side.
+- [Replit+Contabo webhook conflict](replit-contabo-conflict.md) — Replit polling bots now auto-detect Contabo webhook via REPLIT_DEV_DOMAIN; abort at startup + skip watchdog deletion if webhook URL is non-Replit.
 - [Supabase migration column gaps](supabase-migration-columns.md) — when migrating Neon→Supabase, columns added after initial create (display_name, avatar_url on users; created_at on wallets) are missing; ALTER TABLE before running pg_dump INSERTs.
 - [Contabo deploy path](contabo-deploy-path.md) — repo lives at /opt/souqrates/repo (NOT /opt/souqrates); run updates with: sudo bash /opt/souqrates/repo/deploy/scripts/deploy.sh
 - [Sub-agents feature complete](subagents-feature.md) — T001-T010 done; 3 Supabase tables (sub_agents, sub_agent_tiers, sub_agent_sales); tiers seeded via ON CONFLICT DO NOTHING — adjust rates from /subagents/tiers in superadmin.

@@ -38,33 +38,47 @@ def _truthy(v: str | None) -> bool:
     return (v or "").strip().lower() in ("1", "true", "yes", "on")
 
 
-async def _keep_webhook_deleted(bot: Any, slug: str) -> None:
+def _is_production_webhook(url: str, replit_domain: str) -> bool:
+    """Return True if *url* belongs to a production host, not this Replit dev instance.
+
+    On Replit, REPLIT_DEV_DOMAIN is set to the dev proxy host (e.g.
+    ``abc123-username.replit.dev``). Any webhook whose URL does NOT start with
+    ``https://<replit_domain>`` is considered a production/foreign webhook that
+    this polling instance must NOT touch.
+    """
+    if not replit_domain:
+        return False
+    return not url.startswith(f"https://{replit_domain}")
+
+
+async def _keep_webhook_deleted(bot: Any, slug: str, replit_domain: str) -> None:
     """Background task: re-delete webhook every 45 s in polling mode.
 
     **IMPORTANT — dev-only guard.**
     This coroutine is only ever started from the ``not USE_WEBHOOK`` branch of
     ``run_bot``, so it never runs in production (where ``USE_WEBHOOK=1``).
 
-    Purpose: when a production server sets a webhook for this token while
-    Replit is polling, aiogram gets a TelegramConflictError every 5 s.  This
-    task detects the re-set webhook and deletes it so polling can resume.
-
-    Intentional trade-off: if both dev (Replit) and prod (Contabo) are running
-    the same bot simultaneously, this task will race against prod's setWebhook
-    calls.  The correct resolution is to stop one side.  This task is a
-    development-convenience measure only, not a substitute for stopping the
-    production bot.
+    Production-safe: if the detected webhook URL points to a non-Replit host
+    (detected via REPLIT_DEV_DOMAIN), this task logs a warning and skips
+    deletion — it will NOT destroy the production webhook.
     """
     while True:
         await asyncio.sleep(45)
         try:
             info = await bot.get_webhook_info()
             if info.url:
-                logger.warning(
-                    "%s: foreign webhook detected (%r) — re-deleting to restore polling",
-                    slug, info.url,
-                )
-                await bot.delete_webhook(drop_pending_updates=False)
+                if _is_production_webhook(info.url, replit_domain):
+                    logger.warning(
+                        "%s: production webhook detected (%r) — skipping deletion "
+                        "to protect production. Stop this Replit workflow to end the conflict.",
+                        slug, info.url,
+                    )
+                else:
+                    logger.warning(
+                        "%s: stale dev webhook detected (%r) — re-deleting to restore polling",
+                        slug, info.url,
+                    )
+                    await bot.delete_webhook(drop_pending_updates=False)
         except Exception as exc:
             logger.debug("%s: keep_webhook_deleted check error: %s", slug, exc)
 
@@ -77,14 +91,27 @@ async def run_bot(bot: Any, dp: Any, slug: str) -> None:
     allowed = dp.resolve_used_update_types()
 
     if not _truthy(os.getenv("USE_WEBHOOK")):
+        replit_domain = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
         logger.info(f"{slug}: starting polling (USE_WEBHOOK not set)")
-        # Wipe any prior webhook so Telegram delivers via getUpdates again.
+
+        # Check for an active webhook BEFORE wiping it.
+        # If it points to a production host, abort polling so we don't break prod.
         try:
-            await bot.delete_webhook(drop_pending_updates=False)
+            info = await bot.get_webhook_info()
+            if info.url and _is_production_webhook(info.url, replit_domain):
+                logger.error(
+                    "%s: ABORT POLLING — production webhook is active (%r). "
+                    "Running polling alongside a live production webhook would destroy it. "
+                    "Stop this Replit workflow, or deploy with USE_WEBHOOK=1.",
+                    slug, info.url,
+                )
+                return
+            if info.url:
+                await bot.delete_webhook(drop_pending_updates=False)
         except Exception as e:
-            logger.warning(f"{slug}: delete_webhook before polling failed: {e}")
-        # Keep re-deleting any webhook set by external processes (e.g. Contabo).
-        asyncio.ensure_future(_keep_webhook_deleted(bot, slug))
+            logger.warning(f"{slug}: pre-poll webhook check failed: {e}")
+
+        asyncio.ensure_future(_keep_webhook_deleted(bot, slug, replit_domain))
         await dp.start_polling(bot, allowed_updates=allowed)
         return
 
