@@ -480,7 +480,7 @@ async def main() -> None:
     _client.start_heartbeat(interval_seconds=30, version="2.0-shop")
 
     from webhook_runtime import run_bot
-    await run_bot(bot, dp, bot_slug="books-bot")
+    await run_bot(bot, dp, "books-bot")
 
 
 if __name__ == "__main__":
