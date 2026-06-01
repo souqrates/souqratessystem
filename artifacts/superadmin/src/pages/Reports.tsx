@@ -18,15 +18,28 @@ function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
 }
 
-const PRESETS: { label: string; days: number }[] = [
-  { label: "7 أيام", days: 6 },
-  { label: "30 يوم", days: 29 },
-  { label: "90 يوم", days: 89 },
+type Period = "daily" | "weekly" | "monthly" | "quarterly" | "custom";
+
+const PERIODS: { id: Period; label: string; sublabel: string; days: number | null }[] = [
+  { id: "daily",     label: "يومي",     sublabel: "آخر 7 أيام",       days: 6 },
+  { id: "weekly",    label: "أسبوعي",   sublabel: "آخر 4 أسابيع",      days: 27 },
+  { id: "monthly",   label: "شهري",     sublabel: "آخر 30 يوم",        days: 29 },
+  { id: "quarterly", label: "ربع سنوي", sublabel: "آخر 90 يوم",        days: 89 },
+  { id: "custom",    label: "مخصص",     sublabel: "اختر نطاقاً يدوياً", days: null },
 ];
 
 export default function ReportsPage() {
+  const [activePeriod, setActivePeriod] = useState<Period>("monthly");
   const [from, setFrom] = useState(isoDaysAgo(29));
   const [to, setTo] = useState(isoDaysAgo(0));
+
+  function applyPeriod(p: typeof PERIODS[0]) {
+    setActivePeriod(p.id);
+    if (p.days !== null) {
+      setFrom(isoDaysAgo(p.days));
+      setTo(isoDaysAgo(0));
+    }
+  }
 
   const q = new URLSearchParams({ from, to });
   const { data, isLoading } = useQuery({
@@ -36,39 +49,58 @@ export default function ReportsPage() {
 
   const series = data?.series ?? [];
   const totals = data?.totals;
+  const activeMeta = PERIODS.find((p) => p.id === activePeriod);
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">التقارير المالية</h1>
         <p className="text-slate-500 mt-1">
-          سلاسل زمنية يومية للإيرادات، الإيداعات، السحوبات، والمستخدمين الجدد ضمن المدى المحدد.
+          سلاسل زمنية للإيرادات، الإيداعات، السحوبات، والمستخدمين الجدد — يومية / أسبوعية / شهرية / ربع سنوية.
         </p>
       </header>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm flex flex-wrap items-end gap-3">
-        <label className="block">
-          <span className="block text-xs font-medium text-slate-600 mb-1">من تاريخ</span>
-          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-300 text-sm" dir="ltr" />
-        </label>
-        <label className="block">
-          <span className="block text-xs font-medium text-slate-600 mb-1">إلى تاريخ</span>
-          <input type="date" value={to} min={from} max={isoDaysAgo(0)} onChange={(e) => setTo(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-300 text-sm" dir="ltr" />
-        </label>
-        <div className="flex gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.days}
-              onClick={() => { setFrom(isoDaysAgo(p.days)); setTo(isoDaysAgo(0)); }}
-              className="px-3 py-2 text-sm rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+      {/* Period tabs */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {PERIODS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => applyPeriod(p)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              activePeriod === p.id
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <span>{p.label}</span>
+            <span className={`block text-[10px] font-normal ${activePeriod === p.id ? "text-indigo-200" : "text-slate-400"}`}>
+              {p.sublabel}
+            </span>
+          </button>
+        ))}
       </div>
+
+      {/* Custom date picker (visible only when custom period selected) */}
+      {activePeriod === "custom" && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="block text-xs font-medium text-slate-600 mb-1">من تاريخ</span>
+            <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-slate-300 text-sm" dir="ltr" />
+          </label>
+          <label className="block">
+            <span className="block text-xs font-medium text-slate-600 mb-1">إلى تاريخ</span>
+            <input type="date" value={to} min={from} max={isoDaysAgo(0)} onChange={(e) => setTo(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-slate-300 text-sm" dir="ltr" />
+          </label>
+        </div>
+      )}
+
+      {/* Active range label */}
+      <p className="text-xs text-slate-500 mb-5">
+        النطاق الحالي: <span className="font-mono">{from}</span> → <span className="font-mono">{to}</span>
+        {activeMeta && activeMeta.id !== "custom" && ` (${activeMeta.sublabel})`}
+      </p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard label="إجمالي العمولة" value={fmt(totals?.revenue)} suffix="SKZ" accent="emerald" />

@@ -14,6 +14,7 @@ import {
   withdrawalsTable,
   platformSettingsTable,
   botHeartbeatsTable,
+  scratchCardsTable,
 } from "@workspace/db";
 import {
   requireSuperAdmin,
@@ -93,6 +94,8 @@ router.patch("/superadmin/bots/:slug", requireSuperAdmin, async (req, res): Prom
   if (typeof isActive === "boolean") updates.isActive = isActive;
   if (typeof botUsername === "string") updates.botUsername = botUsername.trim().replace(/^@/, "") || null;
   if (typeof miniAppName === "string") updates.miniAppName = miniAppName.trim() || null;
+  if (typeof (req.body as Record<string, unknown>).webhookUrl === "string")
+    updates.webhookUrl = ((req.body as Record<string, unknown>).webhookUrl as string).trim() || null;
 
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "No fields to update" });
@@ -407,8 +410,9 @@ router.delete("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): 
 });
 
 // ── Bot-texts convenience: path-based slug endpoints ─────────────────────
-// GET /superadmin/bot-texts/:slug  — returns all texts for a bot by slug
-// Mirrors the query-param variant for clients that prefer path params.
+// GET  /superadmin/bot-texts/:slug  — all texts for a bot by slug
+// PUT  /superadmin/bot-texts/:slug  — bulk-save + publish all texts for a bot
+
 router.get("/superadmin/bot-texts/:slug", requireSuperAdmin, async (req, res): Promise<void> => {
   const botSlug = String(req.params.slug ?? "").trim();
   if (!botSlug) { res.status(400).json({ error: "slug is required" }); return; }
@@ -419,6 +423,51 @@ router.get("/superadmin/bot-texts/:slug", requireSuperAdmin, async (req, res): P
     .where(eq(botTextsTable.botSlug, botSlug))
     .orderBy(botTextsTable.id);
   res.json({ data: rows });
+});
+
+// Bulk key-value save + publish for a bot slug.
+// Body: { entries: [{ key: string; value: string }] }
+// Each entry is upserted (key = unique per slug) and immediately published.
+router.put("/superadmin/bot-texts/:slug", requireSuperAdmin, async (req, res): Promise<void> => {
+  const botSlug = String(req.params.slug ?? "").trim();
+  if (!botSlug) { res.status(400).json({ error: "slug is required" }); return; }
+  const { entries } = req.body as { entries?: Array<{ key: string; value: string; label?: string }> };
+  if (!Array.isArray(entries) || entries.length === 0) {
+    res.status(400).json({ error: "entries array is required" });
+    return;
+  }
+  const now = new Date();
+  const saved: typeof botTextsTable.$inferSelect[] = [];
+  for (const entry of entries) {
+    if (!entry.key || typeof entry.value !== "string") continue;
+    const [row] = await db
+      .insert(botTextsTable)
+      .values({
+        botSlug,
+        key: entry.key,
+        label: entry.label ?? entry.key,
+        draftValue: entry.value,
+        publishedValue: entry.value,
+        publishedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [botTextsTable.botSlug, botTextsTable.key],
+        set: {
+          draftValue: entry.value,
+          publishedValue: entry.value,
+          publishedAt: now,
+          updatedAt: now,
+          ...(entry.label ? { label: entry.label } : {}),
+        },
+      })
+      .returning();
+    if (row) saved.push(row);
+  }
+  await logAdminAction(req, "superadmin", {
+    action: "bot_text.bulk_save", targetType: "bot_text", targetId: botSlug,
+    payload: { count: saved.length },
+  });
+  res.json({ data: saved, count: saved.length });
 });
 
 // ── Users (search, view, block, manual SKZ credit/debit) ─────────────────
@@ -1753,6 +1802,89 @@ router.post("/superadmin/withdrawals/bulk-reject", requireSuperAdmin, async (req
   })();
 
   res.json({ rejected: updated.length, ids: updated.map((u) => u.id) });
+});
+
+// ── Scratch Cards catalogue (CRUD) ───────────────────────────────────────
+// Admins manage the full catalogue of scratch-and-win card types here.
+// Each row has: slug, name, isActive, buyPriceSKZ, winRate, maxPrizeSKZ, jackpotValueSKZ.
+
+router.get("/superadmin/scratch-cards", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const cards = await db
+    .select()
+    .from(scratchCardsTable)
+    .orderBy(scratchCardsTable.displayOrder, scratchCardsTable.id);
+  res.json({ data: cards });
+});
+
+router.post("/superadmin/scratch-cards", requireSuperAdmin, async (req, res): Promise<void> => {
+  const b = req.body as Record<string, unknown>;
+  const slug = String(b.slug ?? "").trim().toLowerCase().replace(/\s+/g, "-");
+  const name = String(b.name ?? "").trim();
+  if (!slug || !name) { res.status(400).json({ error: "slug and name are required" }); return; }
+
+  const buyPrice = parseFloat(String(b.buyPriceSKZ ?? "10"));
+  const winRate  = parseFloat(String(b.winRate ?? "0.3"));
+  const maxPrize = parseFloat(String(b.maxPrizeSKZ ?? "100"));
+  const jackpot  = parseFloat(String(b.jackpotValueSKZ ?? "1000"));
+  if (!Number.isFinite(buyPrice) || buyPrice <= 0) { res.status(400).json({ error: "buyPriceSKZ must be > 0" }); return; }
+  if (!Number.isFinite(winRate) || winRate < 0 || winRate > 1) { res.status(400).json({ error: "winRate must be 0–1" }); return; }
+
+  const [card] = await db.insert(scratchCardsTable).values({
+    slug, name,
+    description: typeof b.description === "string" ? b.description : null,
+    isActive: b.isActive !== false,
+    buyPriceSKZ: buyPrice.toFixed(6),
+    winRate: winRate.toFixed(4),
+    maxPrizeSKZ: maxPrize.toFixed(6),
+    jackpotValueSKZ: jackpot.toFixed(6),
+    displayOrder: typeof b.displayOrder === "number" ? b.displayOrder : 0,
+  }).returning();
+  await logAdminAction(req, "superadmin", { action: "scratch_card.create", targetType: "scratch_card", targetId: card.id, payload: { slug } });
+  res.status(201).json(card);
+});
+
+router.patch("/superadmin/scratch-cards/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const b = req.body as Record<string, unknown>;
+  const updates: Partial<typeof scratchCardsTable.$inferInsert> = { updatedAt: new Date() };
+
+  if (typeof b.name === "string" && b.name.trim()) updates.name = b.name.trim();
+  if (typeof b.description === "string") updates.description = b.description.trim() || null;
+  if (typeof b.isActive === "boolean") updates.isActive = b.isActive;
+  if (b.displayOrder !== undefined) updates.displayOrder = Number(b.displayOrder);
+
+  for (const [field, col] of [
+    ["buyPriceSKZ", "buyPriceSKZ"] as const,
+    ["maxPrizeSKZ", "maxPrizeSKZ"] as const,
+    ["jackpotValueSKZ", "jackpotValueSKZ"] as const,
+  ] as Array<[string, "buyPriceSKZ" | "maxPrizeSKZ" | "jackpotValueSKZ"]>) {
+    if (b[field] !== undefined) {
+      const v = parseFloat(String(b[field]));
+      if (!Number.isFinite(v) || v < 0) { res.status(400).json({ error: `${field} must be >= 0` }); return; }
+      updates[col] = v.toFixed(6);
+    }
+  }
+  if (b.winRate !== undefined) {
+    const v = parseFloat(String(b.winRate));
+    if (!Number.isFinite(v) || v < 0 || v > 1) { res.status(400).json({ error: "winRate must be 0–1" }); return; }
+    updates.winRate = v.toFixed(4);
+  }
+
+  const [card] = await db.update(scratchCardsTable).set(updates).where(eq(scratchCardsTable.id, id)).returning();
+  if (!card) { res.status(404).json({ error: "Card not found" }); return; }
+  await logAdminAction(req, "superadmin", { action: "scratch_card.update", targetType: "scratch_card", targetId: id, payload: updates });
+  res.json(card);
+});
+
+router.delete("/superadmin/scratch-cards/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [deleted] = await db.delete(scratchCardsTable).where(eq(scratchCardsTable.id, id)).returning();
+  if (!deleted) { res.status(404).json({ error: "Card not found" }); return; }
+  await logAdminAction(req, "superadmin", { action: "scratch_card.delete", targetType: "scratch_card", targetId: id, payload: { slug: deleted.slug } });
+  res.json({ ok: true });
 });
 
 // ── Bot heartbeats (live up/down for the Python bots) ────────────────────

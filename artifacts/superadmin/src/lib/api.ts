@@ -59,6 +59,7 @@ export interface Bot {
   isActive: boolean;
   botUsername: string | null;
   miniAppName: string | null;
+  webhookUrl: string | null;
   totalVolumeUsdt: string;
   totalCommissionUsdt: string;
   createdAt: string;

@@ -22,6 +22,7 @@ export const botsTable = pgTable("bots", {
   totalCommissionUsdt: numeric("total_commission_usdt", { precision: 18, scale: 6 }).notNull().default("0"),
   botUsername: text("bot_username"),
   miniAppName: text("mini_app_name"),
+  webhookUrl: text("webhook_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

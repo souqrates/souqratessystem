@@ -112,17 +112,19 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
   const [name, setName] = useState(bot.name);
   const [description, setDescription] = useState(bot.description ?? "");
   const [isActive, setIsActive] = useState(bot.isActive);
-  const [botUsername, setBotUsername] = useState((bot as Bot & { botUsername?: string }).botUsername ?? "");
-  const [miniAppName, setMiniAppName] = useState((bot as Bot & { miniAppName?: string }).miniAppName ?? "");
+  const [botUsername, setBotUsername] = useState(bot.botUsername ?? "");
+  const [miniAppName, setMiniAppName] = useState(bot.miniAppName ?? "");
+  const [webhookUrl, setWebhookUrl] = useState(bot.webhookUrl ?? "");
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     setName(bot.name);
     setDescription(bot.description ?? "");
     setIsActive(bot.isActive);
-    setBotUsername((bot as Bot & { botUsername?: string }).botUsername ?? "");
-    setMiniAppName((bot as Bot & { miniAppName?: string }).miniAppName ?? "");
-  }, [bot.slug, bot.name, bot.description, bot.isActive]);
+    setBotUsername(bot.botUsername ?? "");
+    setMiniAppName(bot.miniAppName ?? "");
+    setWebhookUrl(bot.webhookUrl ?? "");
+  }, [bot.slug, bot.name, bot.description, bot.isActive, bot.botUsername, bot.miniAppName, bot.webhookUrl]);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -132,6 +134,7 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
         isActive,
         botUsername,
         miniAppName,
+        webhookUrl,
       }),
     onSuccess: () => {
       setMsg({ kind: "ok", text: "تم الحفظ" });
@@ -194,6 +197,22 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
         )}
         <p className="text-xs text-slate-400 mt-1">
           يُستخدم هذا الرابط في بوابة البوتات داخل تطبيق SOUQRATES SYSTEM ليفتح البوت مباشرة في تيليغرام.
+        </p>
+      </div>
+
+      <div className="mt-4 border-t border-slate-200 pt-4">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Webhook URL</p>
+        <Field label="رابط الـ Webhook (يُضبط تلقائياً في الإنتاج)">
+          <input
+            className={inputCls}
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="https://yourdomain.com/webhook/scratchy-bot"
+            dir="ltr"
+          />
+        </Field>
+        <p className="text-xs text-slate-400 mt-1">
+          اتركه فارغاً عند العمل بوضع polling. يُسجَّل هذا الرابط في تيليغرام عند تفعيل USE_WEBHOOK.
         </p>
       </div>
 

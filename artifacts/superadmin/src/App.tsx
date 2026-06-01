@@ -25,6 +25,7 @@ import AuditLogPage from "@/pages/AuditLog";
 import SystemHealthPage from "@/pages/SystemHealth";
 import ReportsPage from "@/pages/Reports";
 import BotsPage from "@/pages/Bots";
+import ScratchCardsPage from "@/pages/ScratchCards";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -56,6 +57,7 @@ function AuthedRoutes() {
         <Route path="/subagents/tiers" component={SubagentTiersPage} />
         <Route path="/audit-log" component={AuditLogPage} />
         <Route path="/bots" component={BotsPage} />
+        <Route path="/scratch-cards" component={ScratchCardsPage} />
         <Route path="/health" component={SystemHealthPage} />
         <Route path="/system-health" component={SystemHealthPage} />
         <Route>

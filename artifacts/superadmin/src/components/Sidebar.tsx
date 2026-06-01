@@ -158,6 +158,7 @@ export default function Sidebar() {
 
         {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
+        <SidebarLink href="/scratch-cards" active={location.startsWith("/scratch-cards")} icon={<Hexagon size={16} />} label="بطاقات الحك واربح" sub="كتالوج البطاقات وإعداداتها" />
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon={<Megaphone size={16} />} label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon={<Link2 size={16} />} label="الروابط/CDN" />
         <SidebarLink href="/integrations" active={location.startsWith("/integrations")} icon={<Plug size={16} />} label="التكاملات الخارجية" sub="Redis, Sentry, Resend…" />

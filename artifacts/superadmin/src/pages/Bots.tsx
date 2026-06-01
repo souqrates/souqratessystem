@@ -32,6 +32,7 @@ export default function BotsPage() {
                 <th className="px-4 py-3 font-semibold text-slate-700">البوت</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">اسم Telegram</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">Mini App</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">Webhook URL</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">رابط t.me</th>
                 <th className="px-4 py-3 font-semibold text-slate-700 text-center">الحالة</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">حجم المعاملات</th>
@@ -71,6 +72,14 @@ export default function BotsPage() {
                         <span dir="ltr">{bot.miniAppName}</span>
                       ) : (
                         <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3 text-xs max-w-[180px]">
+                      {bot.webhookUrl ? (
+                        <span className="font-mono text-slate-600 break-all" dir="ltr">{bot.webhookUrl}</span>
+                      ) : (
+                        <span className="text-slate-400">polling</span>
                       )}
                     </td>
 
