@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { transactionsTable, walletsTable, usersTable } from "@workspace/db";
@@ -82,7 +82,20 @@ function validateInitData(initData: string): string | null {
 
   const secretKey = createHmac("sha256", "WebAppData").update(token).digest();
   const expected  = createHmac("sha256", secretKey).update(checkString).digest("hex");
-  if (expected !== hash) return null;
+  // Constant-time comparison — avoids leaking the HMAC via timing side-channel.
+  const expectedBuf = Buffer.from(expected, "hex");
+  const hashBuf     = Buffer.from(hash, "hex");
+  if (expectedBuf.length !== hashBuf.length || !timingSafeEqual(expectedBuf, hashBuf)) {
+    return null;
+  }
+
+  // Freshness gate (1h TTL) — without this, a stolen initData string is
+  // replayable forever. Mirrors the TTL enforced in games/books/subagents.
+  const authDateStr = params.get("auth_date");
+  const authDate = authDateStr ? parseInt(authDateStr, 10) : NaN;
+  if (isNaN(authDate) || Date.now() / 1000 - authDate > 3600) {
+    return null;
+  }
 
   const userStr = params.get("user");
   if (!userStr) return null;

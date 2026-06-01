@@ -66,7 +66,7 @@ export function BookCard({ book }: { book: Book }) {
           <div className="flex items-center gap-1">
             <Star size={11} fill="#f59e0b" stroke="none" />
             <span className="text-xs" style={{ color: 'rgba(148,163,184,0.55)' }}>
-              {book.rating.toFixed(1)}
+              {(book.rating ?? 0).toFixed(1)}
             </span>
           </div>
         </div>

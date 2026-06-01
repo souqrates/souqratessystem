@@ -73,10 +73,12 @@ export function useBalance(): BalanceState {
   }, [fetchBalance]);
 
   const applyDeduct = useCallback((n: number) => {
+    if (!Number.isFinite(n)) return;
     setSkz(b => +(Math.max(0, b - n)).toFixed(2));
   }, []);
 
   const applyCredit = useCallback((n: number) => {
+    if (!Number.isFinite(n)) return;
     setSkz(b => +(b + n).toFixed(2));
   }, []);
 

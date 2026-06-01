@@ -53,3 +53,9 @@ id = "57-tV9ubPtJwRJGK-6woS"
 uri = "file://attached_assets/generated_images/souqrates_stage_logo.png"
 type = "image"
 title = "SOUQRATES STAGE — بوت المسابقات"
+
+[[outputs]]
+id = "G1Ig-Ar_iwsZYyXDA_CLZ"
+uri = "file://.local/AUDIT_REPORT.md"
+type = "text"
+title = "تقرير التدقيق الشامل قبل النشر — SOUQRATES"
