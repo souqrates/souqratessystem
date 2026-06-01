@@ -5,14 +5,14 @@ import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
 
-const RULES = 'Targets flash on a grid:\n🥇 GOLD = +3 points\n🔵 CYAN = +1 point\n🔴 RED = -2 points\nTap targets before they vanish! Each target stays for 600ms. Reach 40 points to win!';
+const RULES = 'Targets flash on a grid:\nGOLD ★ = +3 points\nCYAN ◆ = +1 point\nRED ✕ = -2 points\nTap targets before they vanish! Each target stays for 600ms. Reach 40 points to win!';
 const DEFAULT_GAME_TIME = 45;
 const TARGET_SCORE = 55;
 const GRID = 16;
 const TYPES = [
-  { type: 'gold',  emoji: '⭐', pts: 3, color: '#fbbf24' },
-  { type: 'cyan',  emoji: '💠', pts: 1, color: '#06b6d4' },
-  { type: 'red',   emoji: '🔴', pts: -2, color: '#ef4444' },
+  { type: 'gold', symbol: '★', pts: 3,  color: '#fbbf24' },
+  { type: 'cyan', symbol: '◆', pts: 1,  color: '#06b6d4' },
+  { type: 'red',  symbol: '✕', pts: -2, color: '#ef4444' },
 ];
 
 let _gid = 0;
@@ -45,7 +45,7 @@ export default function GridSnipe({ phase, setPhase, game, onScoreUpdate }) {
     setTimeout(() => setCells(c => c.filter(x => x.id !== id)), 650);
   }, []);
 
-  const tap = useCallback((id, pts, color, emoji) => {
+  const tap = useCallback((id, pts, color) => {
     if (!activeRef.current) return;
     setCells(c => c.filter(x => x.id !== id));
     const newScore = Math.max(0, scoreRef.current + pts);
@@ -104,7 +104,7 @@ export default function GridSnipe({ phase, setPhase, game, onScoreUpdate }) {
               <motion.div
                 key={idx}
                 whileTap={{ scale: c ? 0.85 : 0.98 }}
-                onPointerDown={() => c && tap(c.id, c.pts, c.color, c.emoji)}
+                onPointerDown={() => c && tap(c.id, c.pts, c.color)}
                 style={{
                   borderRadius: 14,
                   background: c ? `radial-gradient(circle at 40% 40%, ${c.color}33, ${c.color}11)` : 'rgba(255,255,255,0.025)',
@@ -119,8 +119,9 @@ export default function GridSnipe({ phase, setPhase, game, onScoreUpdate }) {
               >
                 <AnimatePresence>
                   {c && (
-                    <motion.span key={c.id} initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 22 }}>
-                      {c.emoji}
+                    <motion.span key={c.id} initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                      style={{ color: c.color, fontWeight: 900, fontFamily: 'Orbitron, sans-serif', fontSize: 22, lineHeight: 1 }}>
+                      {c.symbol}
                     </motion.span>
                   )}
                 </AnimatePresence>

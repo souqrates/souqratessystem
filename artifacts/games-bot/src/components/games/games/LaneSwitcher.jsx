@@ -148,7 +148,7 @@ export default function LaneSwitcher({ phase, setPhase, game, onScoreUpdate }) {
               fontSize: 24,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {it.type === 'star' ? '⭐' : '🚧'}
+              {it.type === 'star' ? '★' : '×'}
             </div>
           ))}
 
@@ -168,7 +168,7 @@ export default function LaneSwitcher({ phase, setPhase, game, onScoreUpdate }) {
               boxShadow: '0 0 16px rgba(34,197,94,0.5)',
             }}
           >
-            🚀
+            ▲
           </motion.div>
         </div>
 

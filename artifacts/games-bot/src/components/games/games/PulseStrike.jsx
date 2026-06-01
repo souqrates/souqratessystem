@@ -48,7 +48,7 @@ export default function PulseStrike({ phase, setPhase, game, onScoreUpdate }) {
     const v = ringRef.current;
     const dist = Math.abs(v - 0.9);
     let label, pts, color;
-    if (dist < 0.04) { label = '💎 PERFECT'; pts = 3; color = '#00f5a0'; chord([880, 1320, 1760], 0.06, 0.14, 'triangle'); triggerHaptic('success'); }
+    if (dist < 0.04) { label = '◆ PERFECT'; pts = 3; color = '#00f5a0'; chord([880, 1320, 1760], 0.06, 0.14, 'triangle'); triggerHaptic('success'); }
     else if (dist < 0.1) { label = '✓ GREAT'; pts = 2; color = '#fbbf24'; beep({ freq: 660, dur: 0.07, vol: 0.1 }); triggerHaptic('light'); }
     else if (dist < 0.18) { label = 'GOOD'; pts = 1; color = '#94a3b8'; beep({ freq: 440, dur: 0.06, vol: 0.08 }); triggerHaptic('light'); }
     else {

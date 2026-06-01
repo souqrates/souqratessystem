@@ -72,7 +72,7 @@ export default function LaneNotes({ phase, setPhase, game, onScoreUpdate }) {
 
       let label, color;
       if (distFromLine < 60) {
-        label = '💎 PERFECT';
+        label = '◆ PERFECT';
         color = '#10b981';
         chord([LANE_FREQS[lane] * 2, LANE_FREQS[lane] * 3], 0.06, 0.12, 'triangle');
         triggerHaptic('success');
@@ -88,7 +88,7 @@ export default function LaneNotes({ phase, setPhase, game, onScoreUpdate }) {
       scoreRef.current += 1 + bonusPts;
       setScore(scoreRef.current);
       setCombo(comboRef.current);
-      setFeedback({ label: comboRef.current >= 5 ? `${label} 🔥×${comboRef.current}` : label, color, id: Date.now() });
+      setFeedback({ label: comboRef.current >= 5 ? `${label} ×${comboRef.current}` : label, color, id: Date.now() });
       if (scoreRef.current >= (game.targetScore || TARGET)) endGame();
       return ns.filter(n => n.id !== hit.id);
     });
@@ -144,7 +144,7 @@ export default function LaneNotes({ phase, setPhase, game, onScoreUpdate }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <HudRow>
         <Hud label="HITS" v={score} c="#22d3ee" />
-        <Hud label="COMBO" v={combo >= 3 ? `${combo}🔥` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 3 ? `${combo}x` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
         <Hud label="MISSES" v={`${missesRef.current}/${MISS_LIMIT}`} c={missesRef.current >= 3 ? '#ef4444' : '#94a3b8'} />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || TARGET} label="TARGET TO WIN" />

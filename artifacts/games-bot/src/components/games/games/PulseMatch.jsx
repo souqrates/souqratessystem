@@ -56,7 +56,7 @@ export default function PulseMatch({ phase, setPhase, game, onScoreUpdate }) {
     if (dev < 60) {
       scoreRef.current++;
       setScore(scoreRef.current);
-      const label = dev < 25 ? '💎 PERFECT' : dev < 45 ? '✓ GREAT' : 'GOOD';
+      const label = dev < 25 ? '◆ PERFECT' : dev < 45 ? '✓ GREAT' : 'GOOD';
       const color = dev < 25 ? '#10b981' : dev < 45 ? '#22d3ee' : '#fbbf24';
       setFeedback({ label: `${label} (${Math.round(dev)}ms)`, color, id: Date.now() });
       chord([440, 660, 880], 0.05, 0.1, 'sine');

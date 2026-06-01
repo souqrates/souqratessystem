@@ -195,7 +195,7 @@ export default function PipeMaster({ phase, setPhase, game, onScoreUpdate }) {
                     transition: 'color 0.2s',
                   }}
                 >
-                  {cell.source ? '💧' : cell.drain ? '🚰' : PIPE_TYPES[cell.typeKey].symbol}
+                  {cell.source ? '●' : cell.drain ? '◎' : PIPE_TYPES[cell.typeKey].symbol}
                 </motion.div>
               );
             })

@@ -5,12 +5,12 @@ import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
 
-const RULES = 'React to the signal as fast as possible!\n🟢 GREEN — Tap ONCE immediately\n🔴 RED — Do NOT tap (penalty!)\n🟡 YELLOW — Tap TWICE fast\n\nBe quick but accurate! 25 correct signals to win!';
+const RULES = 'React to the signal as fast as possible!\nGREEN circle — Tap ONCE immediately\nRED circle — Do NOT tap (penalty!)\nYELLOW circle — Tap TWICE fast\n\nBe quick but accurate! 25 correct signals to win!';
 const TARGET = 25;
 const SIGNALS = [
-  { type: 'green',  emoji: '🟢', label: 'TAP!',       action: 1 },
-  { type: 'red',    emoji: '🔴', label: 'DON\'T TAP!', action: 0 },
-  { type: 'yellow', emoji: '🟡', label: 'DOUBLE TAP!', action: 2 },
+  { type: 'green',  color: '#22c55e', label: 'TAP!',        action: 1 },
+  { type: 'red',    color: '#ef4444', label: "DON'T TAP!",  action: 0 },
+  { type: 'yellow', color: '#eab308', label: 'DOUBLE TAP!', action: 2 },
 ];
 
 export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
@@ -83,7 +83,7 @@ export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
       waitingRef.current = true;
       scoreRef.current++;
       setScore(scoreRef.current);
-      const speed = rt < 350 ? '⚡ ' : rt < 600 ? '' : '';
+      const speed = rt < 350 ? '! ' : '';
       beep({ freq: 660, dur: 0.07, vol: 0.1 });
       triggerHaptic('success');
       setReactionTime(rt);
@@ -135,7 +135,7 @@ export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
     return <ResultOverlay won={phase === 'won'} earnings={phase === 'won' ? game.prize || 0 : 0} xpEarned={15 + scoreRef.current * 3} setPhase={setPhase} />;
   }
 
-  const sigColor = current?.type === 'green' ? '#10b981' : current?.type === 'red' ? '#ef4444' : '#f59e0b';
+  const sigColor = current?.color ?? '#64748b';
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -167,7 +167,7 @@ export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
               transition={{ type: 'spring', stiffness: 500, damping: 24 }}
               style={{ textAlign: 'center' }}
             >
-              <div style={{ fontSize: 80, lineHeight: 1 }}>{current.emoji}</div>
+              <div style={{ width: 100, height: 100, borderRadius: '50%', background: current.color, margin: '0 auto', boxShadow: `0 0 40px ${current.color}88, inset 0 3px 8px rgba(255,255,255,0.25)` }} />
               <p style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 22, color: sigColor, margin: '12px 0 0', textShadow: `0 0 20px ${sigColor}` }}>
                 {current.label}
               </p>

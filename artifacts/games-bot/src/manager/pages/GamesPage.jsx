@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToggleLeft, ToggleRight, LocationEdit as Edit3, Save, X, Search, ChartBar as BarChart2, RefreshCw, Zap, Plus, Trash2, Upload, Image } from 'lucide-react';
+import { GameIcon } from '../../lib/game-icons';
 import { GAMES } from '../../constants';
 import { getGameOverrides, getStagingGames, upsertGameOverride, getGameStats, syncAllGamesToLive, resetGame, getGameFeeTiers, upsertGameFeeTier, deleteGameFeeTier } from '../lib/managerDb';
 
@@ -83,7 +84,7 @@ export default function GamesPage({ adminId }) {
     const game = GAMES.find(g => g.id === gameId);
     const fields = {
       name_override:       editData.name,
-      emoji_override:      editData.emoji,
+      emoji_override:      null,
       difficulty_override: editData.difficulty,
       desc_override:       editData.desc,
       rules_override:      editData.rules,
@@ -223,7 +224,6 @@ export default function GamesPage({ adminId }) {
           const isEditing = editing === game.id;
           const isStats   = statsFor === game.id;
           const displayName   = ov.name_override   || game.name;
-          const displayEmoji  = ov.emoji_override  || game.emoji;
           const displayReward = ov.win_prize_skz != null
             ? `${ov.win_prize_skz} SKZ`
             : (ov.reward_override || game.reward);
@@ -236,7 +236,9 @@ export default function GamesPage({ adminId }) {
 
               {/* Main row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
-                <span style={{ fontSize: 26, flexShrink: 0, filter: isEnabled ? 'none' : 'grayscale(100%)' }}>{displayEmoji}</span>
+                <span style={{ flexShrink: 0, opacity: isEnabled ? 1 : 0.35 }}>
+                  <GameIcon id={game.id} size={26} color={isEnabled ? '#00d4ff' : '#94a3b8'} />
+                </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: isEnabled ? '#fff' : 'rgba(148,163,184,0.4)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</p>
@@ -301,9 +303,8 @@ export default function GamesPage({ adminId }) {
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                     style={{ overflow: 'hidden', borderTop: '1px solid rgba(245,158,11,0.15)', background: 'rgba(245,158,11,0.03)' }}>
                     <div style={{ padding: '18px 18px 14px', overflow: 'visible' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div style={{ marginBottom: 10 }}>
                         <Field label="Name" value={editData.name} onChange={v => setEditData(p => ({...p, name: v}))} />
-                        <Field label="Emoji" value={editData.emoji} onChange={v => setEditData(p => ({...p, emoji: v}))} />
                       </div>
 
                       <p style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', color: 'rgba(0,212,255,0.7)', margin: '14px 0 6px', textTransform: 'uppercase' }}>Economy (SKZ)</p>

@@ -35,7 +35,7 @@ export default function LaneSprint({ phase, setPhase, onScoreUpdate }) {
       <div style={{ background: 'linear-gradient(180deg,#062018,#020108)', borderRadius: 14, padding: 16, border: '1px solid rgba(0,245,160,0.2)' }}>
         <div style={{ height: 18, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
           <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg,#00f5a0,#ffcc00)', boxShadow: '0 0 18px #00f5a0', transition: 'width 0.08s' }} />
-          <div style={{ position: 'absolute', top: 0, left: `${progress}%`, transform: 'translate(-50%,-4px)', fontSize: 24 }}>🏃</div>
+          <div style={{ position: 'absolute', top: 0, left: `${progress}%`, transform: 'translate(-50%,-4px)', width: 14, height: 14, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'rgba(148,163,184,0.6)', marginTop: 6, fontFamily: 'Orbitron' }}><span>START</span><span>FINISH</span></div>
       </div>

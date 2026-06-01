@@ -10,11 +10,11 @@ const DEFAULT_GAME_TIME = 60;
 const TARGET = 1000;
 
 const GROUPS = [
-  { category: 'FRUITS', items: ['🍎','🍊','🍋','🍇','🍓','🍑','🥭','🍒'], odd: ['🥦','🥕','🌽','🧅'] },
-  { category: 'ANIMALS', items: ['🐶','🐱','🐭','🐰','🦊','🐻','🐼','🐨'], odd: ['🚗','✈️','🚀','🎸'] },
-  { category: 'VEHICLES', items: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑'], odd: ['🍕','🎂','🍦','🥗'] },
-  { category: 'SPORTS', items: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🥏'], odd: ['📚','🎵','🎨','🔬'] },
-  { category: 'MUSIC', items: ['🎸','🎹','🎺','🎻','🥁','🎷','🪗','🎵'], odd: ['🌸','🌊','⛰️','🌙'] },
+  { category: 'FRUITS',   items: ['Apple','Orange','Lemon','Grape','Cherry','Peach','Mango','Melon'],                 odd: ['Broccoli','Carrot','Corn','Onion'] },
+  { category: 'ANIMALS',  items: ['Dog','Cat','Mouse','Rabbit','Fox','Bear','Panda','Koala'],                          odd: ['Car','Plane','Rocket','Guitar'] },
+  { category: 'VEHICLES', items: ['Car','Taxi','Van','Bus','Truck','Jeep','Police','Ambulance'],                       odd: ['Pizza','Cake','Cookie','Salad'] },
+  { category: 'SPORTS',   items: ['Soccer','Basketball','Football','Baseball','Tennis','Volleyball','Rugby','Polo'],   odd: ['Book','Music','Paint','Science'] },
+  { category: 'MUSIC',    items: ['Guitar','Piano','Trumpet','Violin','Drums','Sax','Harp','Flute'],                   odd: ['Flower','Ocean','Mountain','Moon'] },
 ];
 
 function genRound(level) {
@@ -24,7 +24,7 @@ function genRound(level) {
   const odd = group.odd[Math.floor(Math.random() * group.odd.length)];
   const oddIdx = Math.floor(Math.random() * (count + 1));
   const all = [...regulars.slice(0, oddIdx), odd, ...regulars.slice(oddIdx)];
-  return { items: all.map((em, i) => ({ id: i, emoji: em })), oddId: oddIdx, category: group.category };
+  return { items: all.map((em, i) => ({ id: i, label: em })), oddId: oddIdx, category: group.category };
 }
 
 export default function OddOneOut({ phase, setPhase, game, onScoreUpdate }) {
@@ -147,14 +147,14 @@ export default function OddOneOut({ phase, setPhase, game, onScoreUpdate }) {
                   whileTap={{ scale: 0.85 }}
                   onPointerDown={() => tap(it.id)}
                   style={{
-                    width: 56, height: 56, borderRadius: 14,
+                    minWidth: 64, height: 48, borderRadius: 12, padding: '0 10px',
                     background: 'rgba(255,255,255,0.04)',
                     border: '2px solid rgba(255,255,255,0.08)',
-                    fontSize: 30, cursor: 'pointer',
+                    cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  {it.emoji}
+                  <span style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 10, color: '#e2e8f0', letterSpacing: '0.04em' }}>{it.label}</span>
                 </motion.button>
               ))}
             </div>

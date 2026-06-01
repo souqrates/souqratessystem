@@ -156,7 +156,7 @@ export default function LaserBounce({ phase, setPhase, game, onScoreUpdate }) {
                       boxShadow: inPath ? '0 0 8px #ef444433' : 'none',
                     }}
                   >
-                    {isSource ? '💥' : isTarget ? '🎯' : mirror ? (mirror.type === '/' ? '/' : '\\') : ''}
+                    {isSource ? '✦' : isTarget ? '◎' : mirror ? (mirror.type === '/' ? '/' : '\\') : ''}
                   </motion.div>
                 );
               })}

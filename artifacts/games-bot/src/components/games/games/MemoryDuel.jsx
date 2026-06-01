@@ -5,7 +5,7 @@ import { getAudioContext } from '../../../lib/audioPool';
 
 const RULES = 'MEMORY DUEL ONLINE — Cards are revealed briefly, then flipped face-down. Flip two matching cards to collect a pair! Speed bonus: the faster you match, the more points you earn. Your total pairs × speed score competes against your opponent!';
 
-const EMOJIS = ['🔥','⚡','🌊','🎯','💎','🏆','🚀','🌙','⭐','🎮','🎲','🎸','🦁','🐉','💫','🌺'];
+const GLYPHS = ['★','◆','▲','●','■','✦','⬟','⬡','✿','◉','◈','✪','✶','✷','♥','♣'];
 const GRID = 16; // 4×4
 const PEEK_TIME = 2200; // ms to show all cards at start
 
@@ -74,8 +74,8 @@ export default function MemoryDuel({ phase, setPhase, onScoreUpdate }) {
   const init = useCallback(() => {
     clearInterval(timerRef.current);
     gameOverRef.current = false;
-    const pairs = EMOJIS.slice(0, GRID / 2);
-    const arr = [...pairs, ...pairs].map((e, i) => ({ id: i, emoji: e }));
+    const pairs = GLYPHS.slice(0, GRID / 2);
+    const arr = [...pairs, ...pairs].map((g, i) => ({ id: i, glyph: g }));
     // Fisher-Yates proper shuffle
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -109,7 +109,7 @@ export default function MemoryDuel({ phase, setPhase, onScoreUpdate }) {
       setMoves(movesRef.current);
       const [a, b] = nf.map(i => cards[i]);
 
-      if (a.emoji === b.emoji) {
+      if (a.glyph === b.glyph) {
         matchSound(); triggerHaptic('success');
         const nm = new Set(matched);
         nm.add(nf[0]); nm.add(nf[1]);
@@ -171,7 +171,7 @@ export default function MemoryDuel({ phase, setPhase, onScoreUpdate }) {
                   width: '100%', height: '100%', position: 'relative',
                   transformStyle: 'preserve-3d',
                 }}>
-                {/* Front face (emoji) */}
+                {/* Front face (glyph) */}
                 <div style={{
                   position: 'absolute', inset: 0, borderRadius: 14,
                   background: isMatched
@@ -184,7 +184,7 @@ export default function MemoryDuel({ phase, setPhase, onScoreUpdate }) {
                   WebkitBackfaceVisibility: 'hidden',
                   backfaceVisibility: 'hidden',
                 }}>
-                  {card.emoji}
+                  {card.glyph}
                 </div>
                 {/* Back face (hidden) */}
                 <div style={{
