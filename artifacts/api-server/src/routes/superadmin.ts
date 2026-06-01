@@ -1241,22 +1241,27 @@ router.post("/superadmin/withdrawals/:id/reject", requireSuperAdmin, async (req,
   if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { reason } = req.body as { reason?: string };
 
+  // Allow rejecting both `pending` (normal reject) and `processing`
+  // (force-reject when a transfer failed on-chain). Balance is only
+  // debited on `approved`, so no refund is needed in either case.
   const [updated] = await db
     .update(withdrawalsTable)
     .set({ status: "rejected", rejectedReason: reason ?? null, processedAt: new Date() })
-    .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
+    .where(and(eq(withdrawalsTable.id, id), inArray(withdrawalsTable.status, ["pending", "processing"])))
     .returning();
   if (!updated) {
     await logAdminAction(req, "superadmin", {
       action: "withdrawal.reject", targetType: "withdrawal", targetId: id,
-      payload: { reason }, success: false, errorMessage: "not_pending",
+      payload: { reason }, success: false, errorMessage: "not_pending_or_processing",
     });
-    res.status(400).json({ error: "Only pending withdrawals can be rejected" });
+    res.status(400).json({ error: "Only pending or processing withdrawals can be rejected" });
     return;
   }
+  const wasForceReject = updated.status === "rejected" && (req.body as { force?: boolean }).force !== false;
+  void wasForceReject; // used for future audit distinction if needed
   await logAdminAction(req, "superadmin", {
     action: "withdrawal.reject", targetType: "withdrawal", targetId: id,
-    payload: { reason, amount: updated.amount, currency: updated.currency },
+    payload: { reason, amount: updated.amount, currency: updated.currency, forceReject: updated.status === "rejected" },
   });
   // See approve handler for rationale on the inner try/catch.
   void (async () => {
