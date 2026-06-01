@@ -11,7 +11,7 @@ export function Splash({ onDone }: SplashProps) {
 
   useEffect(() => {
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const dur = reduced ? 300 : 1400;
+    const dur = reduced ? 150 : 700;
     const start = performance.now();
     let raf = 0;
     let done = false;
@@ -20,7 +20,7 @@ export function Splash({ onDone }: SplashProps) {
       if (done) return;
       done = true;
       setLeaving(true);
-      window.setTimeout(() => onDoneRef.current?.(), 380);
+      window.setTimeout(() => onDoneRef.current?.(), 280);
     };
 
     const tick = (now: number) => {
@@ -28,10 +28,12 @@ export function Splash({ onDone }: SplashProps) {
       const eased = Math.round((1 - Math.pow(1 - t, 2)) * 100);
       setProgress(eased);
       if (t < 1) { raf = requestAnimationFrame(tick); }
-      else        { setTimeout(finish, 180); }
+      else        { setTimeout(finish, 80); }
     };
     raf = requestAnimationFrame(tick);
-    const safe = setTimeout(finish, dur + 1500);
+    // Absolute fallback: if rAF never fires (e.g. backgrounded tab in Telegram),
+    // force-complete after 900ms so the app is never permanently blocked.
+    const safe = setTimeout(finish, 900);
     return () => { cancelAnimationFrame(raf); clearTimeout(safe); };
   }, []);
 
