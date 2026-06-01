@@ -21,6 +21,12 @@ import { logAdminAction } from "../lib/audit-log";
 import { notifyUser } from "../lib/notify-user";
 import { capture } from "../lib/analytics";
 import { invalidateCommissionOverride } from "../lib/finance";
+import {
+  getScratchyConfig,
+  saveScratchyConfig,
+  scratchyConfigSchema,
+  DEFAULT_SCRATCHY_CONFIG,
+} from "../lib/scratchy-config";
 import { withdrawalAddressesTable, adminAuditLogTable } from "@workspace/db";
 // Cryptomus removed (content restrictions). The /auto-payout route below
 // is kept as a 410 Gone stub so any cached admin UI / external call gets a
@@ -1339,6 +1345,56 @@ router.get("/superadmin/overview", requireSuperAdmin, async (_req, res): Promise
       transactions: Number(r.transactions),
     })),
   });
+});
+
+// ── SCRATCHY economy config ────────────────────────────────────────────────
+// Full control over ticket prices, prize tables, win weights and the jackpot
+// formula for SOUQRATES SCRATCHY. Read live by /api/scratchy/play — changes
+// apply with no restart (cache is invalidated on save).
+
+// GET /superadmin/scratchy-config — current economy + canonical defaults.
+router.get("/superadmin/scratchy-config", requireSuperAdmin, async (req, res): Promise<void> => {
+  try {
+    const config = await getScratchyConfig();
+    res.json({ config, defaults: DEFAULT_SCRATCHY_CONFIG });
+  } catch (err) {
+    req.log.error({ err }, "superadmin: get scratchy-config failed");
+    res.status(500).json({ error: "Failed to load scratchy config" });
+  }
+});
+
+// PUT /superadmin/scratchy-config — validate + persist the full economy.
+router.put("/superadmin/scratchy-config", requireSuperAdmin, async (req, res): Promise<void> => {
+  const parsed = scratchyConfigSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "إعدادات غير صالحة",
+      details: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    });
+    return;
+  }
+
+  try {
+    await saveScratchyConfig(parsed.data);
+    await logAdminAction(req, "superadmin", {
+      action: "scratchy.config.update",
+      targetType: "platform_settings",
+      targetId: "scratchy_config",
+      payload: {
+        tierCount: parsed.data.tiers.length,
+        jackpotBase: parsed.data.jackpotBase,
+        jackpotMultiplier: parsed.data.jackpotMultiplier,
+      },
+    });
+    req.log.info(
+      { tiers: parsed.data.tiers.map((t) => ({ id: t.id, cost: t.cost })) },
+      "superadmin: scratchy config updated",
+    );
+    res.json({ config: parsed.data });
+  } catch (err) {
+    req.log.error({ err }, "superadmin: save scratchy-config failed");
+    res.status(500).json({ error: "Failed to save scratchy config" });
+  }
 });
 
 export default router;

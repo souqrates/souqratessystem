@@ -6,6 +6,7 @@ import { api, type Bot, type CommissionOverride, type SkzRates, ApiError } from 
 import { botMeta, BOTS } from "@/lib/bots-meta";
 
 import BotTextsEditor from "@/components/BotTextsEditor";
+import ScratchyConfigEditor from "@/components/ScratchyConfigEditor";
 
 const BOT_ICON_BS: Record<string, React.ReactNode> = {
   "mother-bot":    <Diamond size={32} />,
@@ -37,7 +38,13 @@ export default function BotSettingsPage() {
         </div>
       </header>
 
-      {slug === "mother-bot" ? <MotherBotPanel /> : <ChildBotPlaceholder slug={slug} brand={meta.brand} arName={meta.arName} />}
+      {slug === "mother-bot" ? (
+        <MotherBotPanel />
+      ) : slug === "scratchy-bot" ? (
+        <ScratchyConfigEditor />
+      ) : (
+        <ChildBotPlaceholder slug={slug} brand={meta.brand} arName={meta.arName} />
+      )}
 
       <BotTextsEditor botSlug={slug} />
     </div>

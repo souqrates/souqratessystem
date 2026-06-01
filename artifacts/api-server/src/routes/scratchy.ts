@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { transactionsTable, walletsTable, usersTable } from "@workspace/db";
+import { getScratchyConfig, type ScratchyTier } from "../lib/scratchy-config";
 
 interface TelegramUser {
   id: number;
@@ -15,21 +16,12 @@ interface TelegramUser {
 
 const router: IRouter = Router();
 
-const JACKPOT_BASE = 5_000;
-const JACKPOT_MULTIPLIER = 3; // each 5 SKZ ticket adds 15 SKZ to the jackpot pool
-
-// Tier data mirrored from bot-demo/src/lib/games-data.ts — keep in sync if client tiers change.
-const SCRATCH_TIERS = [
-  { id: 't1', cost: 1,   prizes: [0, 2, 3, 5, 10],           weights: [0.55, 0.22, 0.12, 0.08, 0.03] },
-  { id: 't2', cost: 5,   prizes: [0, 8, 15, 25, 50],         weights: [0.53, 0.23, 0.12, 0.08, 0.04] },
-  { id: 't3', cost: 20,  prizes: [0, 35, 80, 140, 200],      weights: [0.50, 0.25, 0.13, 0.08, 0.04] },
-  { id: 't4', cost: 100, prizes: [0, 175, 400, 700, 1000],   weights: [0.48, 0.26, 0.14, 0.08, 0.04] },
-  { id: 't5', cost: 500, prizes: [0, 900, 2000, 3500, 5000], weights: [0.45, 0.28, 0.14, 0.09, 0.04] },
-] as const;
-
-type ScratchTier = (typeof SCRATCH_TIERS)[number];
+// Economy (ticket prices, prizes, win weights, jackpot formula) is read live
+// from platform_settings via getScratchyConfig() — editable from the super
+// admin panel with no restart. See lib/scratchy-config.ts.
 
 async function queryStats() {
+  const { jackpotBase, jackpotMultiplier } = await getScratchyConfig();
   const [row] = await db
     .select({
       ticketsSold: sql<string>`COUNT(CASE WHEN ${transactionsTable.type} = 'lotto_ticket' THEN 1 END)`,
@@ -48,7 +40,7 @@ async function queryStats() {
   const biggestWin     = Number(row?.biggestWin     ?? 0);
 
   return {
-    jackpot:        Math.round(JACKPOT_BASE + jackpotContrib * JACKPOT_MULTIPLIER),
+    jackpot:        Math.round(jackpotBase + jackpotContrib * jackpotMultiplier),
     ticketsSold,
     participants:   ticketsSold,
     totalScratched,
@@ -182,7 +174,7 @@ async function getOrUpsertScratchyUser(telegramId: string, tgUser: TelegramUser)
 }
 
 // ── Server-side prize roll ────────────────────────────────────────────────────
-function rollPrize(tier: ScratchTier): number {
+function rollPrize(tier: ScratchyTier): number {
   const r = Math.random();
   let c = 0;
   for (let i = 0; i < tier.weights.length; i++) {
@@ -221,7 +213,8 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
   }
   const { telegramId, tgUser } = authResult;
 
-  const tier = SCRATCH_TIERS.find((t) => t.id === tierId);
+  const config = await getScratchyConfig();
+  const tier = config.tiers.find((t) => t.id === tierId);
   if (!tier) {
     res.status(400).json({ error: `Unknown tierId: ${tierId}` });
     return;
@@ -346,6 +339,20 @@ router.post("/scratchy/upsert-user", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "scratchy/upsert-user failed");
     res.status(500).json({ error: "Failed to register user" });
+  }
+});
+
+// GET /api/scratchy/config — public, no auth.
+// Exposes the live economy (tiers + jackpot formula) so the Mini App displays
+// exactly the prices/prizes the server will actually charge and pay. The
+// server remains authoritative — this is display data, not a trust boundary.
+router.get("/scratchy/config", async (req, res): Promise<void> => {
+  try {
+    const config = await getScratchyConfig();
+    res.json(config);
+  } catch (err) {
+    req.log.error({ err }, "scratchy/config failed");
+    res.status(500).json({ error: "config unavailable" });
   }
 });
 

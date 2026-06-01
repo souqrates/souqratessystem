@@ -188,3 +188,24 @@ export interface SkzRates {
   skzPerTon: string;
   updatedAt: string;
 }
+
+// ─── SCRATCHY economy config ───────────────────────────────────
+export interface ScratchyTier {
+  id: string;
+  label: string;
+  icon: string;
+  cost: number;
+  prizes: number[];
+  weights: number[];
+}
+
+export interface ScratchyConfig {
+  tiers: ScratchyTier[];
+  jackpotBase: number;
+  jackpotMultiplier: number;
+}
+
+export interface ScratchyConfigResponse {
+  config: ScratchyConfig;
+  defaults: ScratchyConfig;
+}

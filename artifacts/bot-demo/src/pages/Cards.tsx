@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, X } from 'lucide-react';
 import { t, type Lang } from '../lib/i18n';
-import { GAMES, TIERS, type GameDef, type TierDef } from '../lib/games-data';
+import { GAMES, type GameDef, type TierDef } from '../lib/games-data';
 import GameIcon from '../components/GameIcon';
 import ScratchCanvas from '../components/ScratchReveal';
 import { getTelegramUserId } from '../lib/useBalance';
+import { useScratchyConfig } from '../lib/useScratchyConfig';
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') || '/scratchy-bot-web';
 const API_BASE = BASE.replace('/scratchy-bot-web', '') || '';
@@ -19,6 +20,7 @@ interface Props {
 type Step = 'games' | 'tier' | 'picker' | 'scratch';
 
 export default function Cards({ lang, balance, onRefresh }: Props) {
+  const { tiers: TIERS } = useScratchyConfig();
   const [step, setStep] = useState<Step>('games');
   const [game, setGame] = useState<GameDef | null>(null);
   const [tier, setTier] = useState<TierDef | null>(null);
