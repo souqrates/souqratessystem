@@ -1,4 +1,4 @@
-import { ArrowLeft, Upload, Coins, ShieldCheck, TrendingUp } from "lucide-react";
+import { ArrowLeft, Upload, Coins, ShieldCheck, TrendingUp, Globe2, Zap, BarChart2 } from "lucide-react";
 import { Link } from "wouter";
 import { TELEGRAM_PUBLISH_URL } from "@/lib/constants";
 
@@ -34,10 +34,10 @@ const STEPS = [
 ];
 
 const WHY = [
-  { emoji: '🌐', t: 'وصول واسع',    d: 'آلاف المشتركين في منظومة SOUQRATES' },
-  { emoji: '⚡', t: 'تسليم تلقائي',  d: 'بدون تدخل يدوي — البوت يرسل الملف فوراً' },
-  { emoji: '💰', t: 'أرباح فورية',   d: 'SKZ يُضاف لمحفظتك بعد كل بيعة مباشرة' },
-  { emoji: '📊', t: 'إحصاءات مباشرة', d: 'تتابع مبيعاتك من لوحة تحكم خاصة' },
+  { icon: <Globe2 size={22} />,    t: 'وصول واسع',       d: 'آلاف المشتركين في منظومة SOUQRATES' },
+  { icon: <Zap size={22} />,       t: 'تسليم تلقائي',    d: 'بدون تدخل يدوي — البوت يرسل الملف فوراً' },
+  { icon: <Coins size={22} />,     t: 'أرباح فورية',     d: 'SKZ يُضاف لمحفظتك بعد كل بيعة مباشرة' },
+  { icon: <BarChart2 size={22} />, t: 'إحصاءات مباشرة', d: 'تتابع مبيعاتك من لوحة تحكم خاصة' },
 ];
 
 export default function Publish() {
@@ -125,7 +125,7 @@ export default function Publish() {
         <div className="grid grid-cols-2 gap-3">
           {WHY.map(w => (
             <div key={w.t} className="neon-card rounded-xl p-5">
-              <div className="text-2xl mb-3">{w.emoji}</div>
+              <div className="mb-3" style={{ color: 'rgba(34,211,238,0.75)' }}>{w.icon}</div>
               <div className="font-black text-sm text-white/85 mb-1">{w.t}</div>
               <div className="text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>{w.d}</div>
             </div>

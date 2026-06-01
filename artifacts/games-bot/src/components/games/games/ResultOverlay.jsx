@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Coins, Zap, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { RotateCcw, Coins, Zap, CheckCircle2, RefreshCw, AlertTriangle, Trophy, X } from 'lucide-react';
 import { triggerHaptic } from '../../../lib/telegram';
 
 export default function ResultOverlay({
@@ -57,9 +57,12 @@ export default function ResultOverlay({
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-        style={{ fontSize: 72, lineHeight: 1, zIndex: 1 }}
+        style={{ lineHeight: 1, zIndex: 1 }}
       >
-        {won ? '🏆' : '💀'}
+        {won
+          ? <Trophy size={72} color="#f59e0b" strokeWidth={1.4} style={{ filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.6))' }} />
+          : <X size={72} color="#ef4444" strokeWidth={1.4} style={{ filter: 'drop-shadow(0 0 20px rgba(239,68,68,0.5))' }} />
+        }
       </motion.div>
 
       <motion.div

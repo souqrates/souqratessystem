@@ -123,9 +123,17 @@ export default function Library() {
 
       {/* Grid */}
       {loading ? (
-        <div className="text-center py-24" data-testid="loading">
-          <BookOpen size={36} className="mx-auto mb-4" strokeWidth={1.5} style={{ color: 'rgba(34,211,238,0.45)' }} />
-          <div className="font-bold text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</div>
+        <div className="grid grid-cols-2 gap-3" data-testid="loading">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="skel-pulse" style={{ height: 160, background: 'rgba(34,211,238,0.06)', borderRadius: '16px 16px 0 0' }} />
+              <div className="p-3 flex flex-col gap-2">
+                <div className="skel-pulse rounded-lg" style={{ height: 11, width: '75%', background: 'rgba(255,255,255,0.08)' }} />
+                <div className="skel-pulse rounded-lg" style={{ height: 9, width: '50%', background: 'rgba(255,255,255,0.05)' }} />
+                <div className="skel-pulse rounded-xl" style={{ height: 30, background: 'rgba(34,211,238,0.08)' }} />
+              </div>
+            </div>
+          ))}
         </div>
       ) : list.length === 0 ? (
         <div className="text-center py-24" data-testid="empty-results">

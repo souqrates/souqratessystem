@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { BarChart2 } from 'lucide-react';
+import { GameIcon } from '../lib/game-icons';
 import { GAMES } from '../constants';
 
 const SAMPLE_GAMES = GAMES.slice(0, 6);
@@ -81,7 +82,7 @@ export default function GameStats({ gami, onOpenGame }) {
                   border: '1px solid rgba(255,255,255,0.07)',
                 }}
               >
-                <span className="text-xl">{g.emoji}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}><GameIcon id={g.id} size={18} color="rgba(34,211,238,0.75)" /></span>
                 <p className="text-[8px] font-black text-white leading-tight text-center truncate w-full">
                   {g.name.split(' ')[0]}
                 </p>

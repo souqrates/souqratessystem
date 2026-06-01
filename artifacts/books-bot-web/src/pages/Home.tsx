@@ -1,8 +1,17 @@
-import { ArrowLeft, BookOpen, Zap, ShieldCheck, Globe2, Wallet, Headphones, GraduationCap, ScrollText, Baby, Brain, BookMarked } from "lucide-react";
+import { ArrowLeft, BookOpen, Zap, ShieldCheck, Globe2, Wallet, Headphones, GraduationCap, ScrollText, Baby, Brain, BookMarked, Gamepad2, Smartphone, Users, CreditCard, Music2 } from "lucide-react";
 import { Link } from "wouter";
 import { CATEGORIES } from "@/lib/catalog";
 import { hotVouchers } from "@/lib/vouchers";
 import { TELEGRAM_BOT_URL, TELEGRAM_PUBLISH_URL } from "@/lib/constants";
+
+const VOUCHER_ICONS: Record<string, React.ReactNode> = {
+  gaming:        <Gamepad2 size={22} />,
+  apple:         <Smartphone size={22} />,
+  google:        <Globe2 size={22} />,
+  entertainment: <Music2 size={22} />,
+  social:        <Users size={22} />,
+  other:         <CreditCard size={22} />,
+};
 
 const CAT_ICONS: Record<string, React.ReactNode> = {
   religion:        <BookMarked size={22} />,
@@ -134,7 +143,7 @@ function DigitalPreview() {
             >
               {/* Card bg */}
               <div className="p-4 md:p-5" style={{ background: v.bgGradient }}>
-                <div className="text-3xl mb-2">{v.emoji}</div>
+                <div className="mb-2" style={{ color: v.color }}>{VOUCHER_ICONS[v.id] ?? <CreditCard size={22} />}</div>
                 <div className="font-black text-sm text-white/90 mb-0.5">{v.nameAr}</div>
                 <div className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{v.name}</div>
                 <div className="mt-3 flex items-center gap-1.5">

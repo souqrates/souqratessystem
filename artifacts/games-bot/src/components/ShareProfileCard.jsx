@@ -27,7 +27,7 @@ export default function ShareProfileCard({ xp, wins, totalGames, winRate, open, 
   const avatar = avatarUrlOf(user);
   const initial = initialOf(user);
 
-  const shareText = `🎮 ${name} — ${r.name} (Lv ${rp.level})\n⚡ ${Number(xp || 0).toLocaleString()} XP · ${wins} wins · ${winRate}% win rate\n\nJoin me on SkillGames!`;
+  const shareText = `${name} — ${r.name} (Lv ${rp.level})\n${Number(xp || 0).toLocaleString()} XP · ${wins} wins · ${winRate}% win rate\n\nJoin me on SkillGames!`;
 
   async function handleShare() {
     triggerHaptic('medium');

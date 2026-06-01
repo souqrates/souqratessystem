@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, ChevronRight } from 'lucide-react';
+import { GameIcon } from '../lib/game-icons';
 import { GAMES } from '../constants';
 
 const DIFFICULTY_COLOR = { Easy: '#10b981', Medium: '#f59e0b', Hard: '#ef4444' };
@@ -64,8 +65,8 @@ export default function GameCarousel({ onOpenGame, appConfig }) {
             <div className="p-5 relative z-10">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="text-4xl mb-2" style={{ filter: `drop-shadow(0 0 12px ${diffColor}80)` }}>
-                    {g.emoji}
+                  <div className="mb-2" style={{ filter: `drop-shadow(0 0 12px ${diffColor}80)` }}>
+                    <GameIcon id={g.id} size={36} color={diffColor} strokeWidth={1.6} />
                   </div>
                   <h3 className="font-orbitron text-lg font-black text-white leading-tight tracking-wide">
                     {g.name}

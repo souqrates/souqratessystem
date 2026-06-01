@@ -1,4 +1,5 @@
 import { Zap, Trophy, Shield, Info, Coins } from 'lucide-react';
+import { GameIcon } from '../../lib/game-icons';
 import { motion } from 'framer-motion';
 
 const container = { animate: { transition: { staggerChildren: 0.05, delayChildren: 0.02 } } };
@@ -27,8 +28,8 @@ export default function SoloGameIntro({ game, color, wallet, tiers, selectedTier
 
       {/* Hero */}
       <motion.div variants={item} style={{ textAlign: 'center', paddingTop: 10, paddingBottom: 6 }}>
-        <div style={{ fontSize: 60, lineHeight: 1, marginBottom: 10, filter: `drop-shadow(0 0 20px ${color}66)` }}>
-          {game.emoji}
+        <div style={{ marginBottom: 10, filter: `drop-shadow(0 0 20px ${color}66)` }}>
+          <GameIcon id={game.id} size={60} color={`${color}cc`} strokeWidth={1.4} />
         </div>
         <h2 style={{
           fontFamily: 'Orbitron, sans-serif',

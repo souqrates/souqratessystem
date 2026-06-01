@@ -119,6 +119,17 @@ a.refined:hover::after { transform: scaleX(1); transform-origin: left; }
   transform: translateY(-4px) scale(1.01);
 }
 
+/* Skeleton pulse */
+@keyframes skel-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skel-pulse {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.05) 75%);
+  background-size: 800px 100%;
+  animation: skel-shimmer 1.5s ease-in-out infinite;
+}
+
 /* Shimmer cyan */
 @keyframes shimmer {
   0%   { background-position: -300% center; }

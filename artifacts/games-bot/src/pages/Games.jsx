@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Gamepad2, Search, Zap, Trophy, Star } from 'lucide-react';
+import { GameIcon } from '../lib/game-icons';
 import useAppStore from '../store/appStore';
 import { t } from '../lib/i18n';
 import { triggerHaptic } from '../lib/telegram';
@@ -99,7 +100,7 @@ export default function Games({ onOpenGame }) {
               className="game-tile rounded-2xl p-3.5 text-left flex flex-col gap-2 relative overflow-hidden"
               style={{ cursor: 'pointer', minHeight: 120 }}
             >
-              <div className="text-3xl leading-none">{game.emoji}</div>
+              <div className="leading-none"><GameIcon id={game.id} size={28} color="rgba(34,211,238,0.85)" /></div>
               <div>
                 <p className="text-xs font-black text-white leading-tight line-clamp-1">{game.name}</p>
                 <p className="text-[9px] mt-0.5 leading-tight line-clamp-2" style={{ color: 'rgba(148,163,184,0.6)' }}>{game.desc}</p>

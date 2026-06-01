@@ -1,6 +1,7 @@
 import "./index.css";
 import { useEffect, useState } from "react";
 import { Router, Route, Switch, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLang, useT } from "@/lib/i18n";
 import { Splash } from "@/components/Splash";
 import { Page } from "@/components/Layout";
@@ -46,6 +47,32 @@ function FloatingLangToggle() {
   );
 }
 
+const PAGE_VARIANTS = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.15, ease: 'easeIn' as const } },
+};
+
+function AnimatedRoutes() {
+  const [location] = useLocation();
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div key={location} variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/library" component={Library} />
+          <Route path="/category/:slug" component={Category} />
+          <Route path="/book/:id" component={BookPage} />
+          <Route path="/publish" component={Publish} />
+          <Route path="/digital" component={DigitalServices} />
+          <Route path="/my-library" component={MyLibrary} />
+          <Route component={NotFound} />
+        </Switch>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
   const [splashDone, setSplashDone] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -67,16 +94,7 @@ export default function App() {
       <Router base={base}>
         <ScrollToTop />
         <Page>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/library" component={Library} />
-            <Route path="/category/:slug" component={Category} />
-            <Route path="/book/:id" component={BookPage} />
-            <Route path="/publish" component={Publish} />
-            <Route path="/digital" component={DigitalServices} />
-            <Route path="/my-library" component={MyLibrary} />
-            <Route component={NotFound} />
-          </Switch>
+          <AnimatedRoutes />
         </Page>
       </Router>
     </>

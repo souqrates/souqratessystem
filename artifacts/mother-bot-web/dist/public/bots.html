@@ -23,19 +23,28 @@
     .header-sub{font-size:12px;color:rgba(216,180,254,.6);letter-spacing:.08em;}
 
     /* ── Wallet card ─────────────────────────────────── */
+    @keyframes walletGlow{0%,100%{box-shadow:0 0 24px rgba(217,70,239,.18),0 2px 16px rgba(0,0,0,.4)}50%{box-shadow:0 0 36px rgba(217,70,239,.32),0 2px 20px rgba(0,0,0,.5)}}
+    @keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     .wallet-wrap{padding:8px 12px 4px;}
-    .wallet-card{border-radius:18px;padding:14px 18px;background:rgba(217,70,239,.07);
-      border:1px solid rgba(217,70,239,.22);position:relative;overflow:hidden;}
-    .wallet-card::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;
-      border-radius:50%;background:rgba(217,70,239,.15);filter:blur(30px);pointer-events:none;}
-    .wallet-label{font-size:11px;color:rgba(216,180,254,.55);letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase;}
-    .wallet-row{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;}
-    .wallet-item{}
+    .wallet-card{border-radius:18px;padding:16px 18px;
+      background:linear-gradient(135deg,rgba(217,70,239,.10) 0%,rgba(168,85,247,.06) 100%);
+      border:1px solid rgba(217,70,239,.28);position:relative;overflow:hidden;
+      animation:walletGlow 3s ease-in-out infinite;}
+    .wallet-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;
+      border-radius:50%;background:rgba(217,70,239,.2);filter:blur(36px);pointer-events:none;}
+    .wallet-card::after{content:'';position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;
+      border-radius:50%;background:rgba(168,85,247,.12);filter:blur(24px);pointer-events:none;}
+    .wallet-label{font-size:11px;color:rgba(216,180,254,.6);letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase;font-weight:700;}
+    .wallet-row{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;}
+    .wallet-item{position:relative;z-index:1;}
     .wallet-amount{font-family:'Orbitron',sans-serif;font-size:clamp(17px,5vw,22px);font-weight:900;
-      background:linear-gradient(135deg,#f5d0fe,#d946ef);-webkit-background-clip:text;
-      -webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
-    .wallet-curr{font-size:10px;color:rgba(216,180,254,.5);letter-spacing:.06em;margin-top:3px;}
-    .wallet-sep{width:1px;height:32px;background:rgba(217,70,239,.18);align-self:center;}
+      background:linear-gradient(135deg,#f5d0fe 0%,#e879f9 50%,#d946ef 100%);-webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;background-clip:text;line-height:1;
+      animation:countUp 0.5s ease-out both;}
+    .wallet-amount.delay1{animation-delay:.1s;}
+    .wallet-amount.delay2{animation-delay:.2s;}
+    .wallet-curr{font-size:10px;color:rgba(216,180,254,.55);letter-spacing:.08em;margin-top:4px;font-weight:600;}
+    .wallet-sep{width:1px;height:34px;background:linear-gradient(to bottom,transparent,rgba(217,70,239,.3),transparent);align-self:center;position:relative;z-index:1;}
 
     /* ── Skeleton ────────────────────────────────────── */
     @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
@@ -136,12 +145,12 @@
         '</div>' +
         '<div class="wallet-sep"></div>' +
         '<div class="wallet-item">' +
-          '<div class="wallet-amount" style="font-size:clamp(14px,4vw,18px);">' + fmt(w.balanceStars, 0) + '</div>' +
+          '<div class="wallet-amount delay1" style="font-size:clamp(14px,4vw,18px);">' + fmt(w.balanceStars, 0) + '</div>' +
           '<div class="wallet-curr">Stars</div>' +
         '</div>' +
         '<div class="wallet-sep"></div>' +
         '<div class="wallet-item">' +
-          '<div class="wallet-amount" style="font-size:clamp(13px,3.5vw,16px);">' + fmt(w.balanceTon, 4) + '</div>' +
+          '<div class="wallet-amount delay2" style="font-size:clamp(13px,3.5vw,16px);">' + fmt(w.balanceTon, 4) + '</div>' +
           '<div class="wallet-curr">TON</div>' +
         '</div>';
     }

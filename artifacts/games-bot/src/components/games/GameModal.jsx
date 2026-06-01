@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, RotateCcw, Zap, ChevronRight } from 'lucide-react';
+import { GameIcon } from '../../lib/game-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { triggerHaptic, exitFullscreen, refreshSession } from '../../lib/telegram';
 import GameEngine, { preloadGameChunk } from './GameEngine';
@@ -506,9 +507,9 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
             <div style={{
               width: 46, height: 46, borderRadius: 14, flexShrink: 0,
               background: `${color}12`, border: `1px solid ${color}28`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 0 16px ${color}18`,
-            }}>{game.emoji}</div>
+            }}><GameIcon id={game.id} size={22} color={color} strokeWidth={1.8} /></div>
             <div>
               <div style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, color: '#fff', fontSize: 13, letterSpacing: '0.04em' }}>{game.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
