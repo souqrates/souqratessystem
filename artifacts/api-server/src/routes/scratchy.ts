@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { createHmac } from "crypto";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { transactionsTable, walletsTable, usersTable } from "@workspace/db";
 
@@ -153,29 +153,44 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
     return;
   }
 
-  const [wallet] = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.userId, user.id));
-
-  const balance = parseFloat(wallet?.balanceSkz ?? "0");
-  if (balance < tier.cost) {
-    res.status(402).json({ error: "Insufficient balance", balance, required: tier.cost });
-    return;
-  }
-
-  // ── Server-side prize roll (before DB — rollback is trivial if DB fails) ──
+  // ── Server-side prize roll (before DB — trivially rolled back if TX fails) ──
   const prize    = rollPrize(tier);
   const ts       = Date.now();
   const gameSlug = String(gameId ?? "scratch").slice(0, 60);
   const baseRef  = `scratch_${ts}_${telegramId}_${tierId}`;
 
+  // Race-condition-safe debit: the WHERE clause includes `balance >= cost`
+  // so the check and debit are one atomic SQL statement. If two concurrent
+  // requests both pass the pre-read check, only one wins the conditional
+  // UPDATE (the other gets 0 rows updated and 402). This prevents overdraft.
+  let debited = false;
+  let currentBalance = 0;
+
   await db.transaction(async (tx) => {
-    // 1. Atomic debit
-    await tx
+    // 1. Conditional atomic debit — only succeeds when balance is sufficient.
+    const debitResult = await tx
       .update(walletsTable)
       .set({ balanceSkz: sql`${walletsTable.balanceSkz} - ${tier.cost}` })
-      .where(eq(walletsTable.userId, user.id));
+      .where(and(
+        eq(walletsTable.userId, user.id),
+        gte(walletsTable.balanceSkz, String(tier.cost)),
+      ))
+      .returning({ newBalance: walletsTable.balanceSkz });
+
+    if (debitResult.length === 0) {
+      // Balance was insufficient at write time — abort the transaction.
+      // We read the actual balance for a helpful error message.
+      const [w] = await tx
+        .select({ bal: walletsTable.balanceSkz })
+        .from(walletsTable)
+        .where(eq(walletsTable.userId, user.id));
+      currentBalance = parseFloat(w?.bal ?? "0");
+      // Throwing inside the transaction callback causes an automatic rollback.
+      throw Object.assign(new Error("INSUFFICIENT_BALANCE"), { isInsufficient: true });
+    }
+
+    debited = true;
+    currentBalance = parseFloat(debitResult[0]!.newBalance ?? "0");
 
     await tx.insert(transactionsTable).values({
       userId:      user.id,
@@ -187,7 +202,7 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
       metadata:    JSON.stringify({ tierId, gameId: gameSlug, action: "entry" }),
     });
 
-    // 2. Atomic credit (only if won)
+    // 2. Conditional credit — only when there is a non-zero prize.
     if (prize > 0) {
       await tx
         .update(walletsTable)
@@ -204,7 +219,17 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
         metadata:    JSON.stringify({ tierId, gameId: gameSlug, prize }),
       });
     }
+  }).catch((err: unknown) => {
+    if (err instanceof Error && (err as { isInsufficient?: boolean }).isInsufficient) {
+      return; // handled below — not a server error
+    }
+    throw err; // real DB error — re-throw so the outer catch logs it
   });
+
+  if (!debited) {
+    res.status(402).json({ error: "Insufficient balance", balance: currentBalance, required: tier.cost });
+    return;
+  }
 
   req.log.info(
     { telegramId, tierId, gameId: gameSlug, cost: tier.cost, prize, won: prize > 0 },
