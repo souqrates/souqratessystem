@@ -22,14 +22,6 @@ args = "mother-bot: SOUQRATES SYSTEM"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "books-bot: SOUQRATES SOUQ"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "contests-bot: SOUQRATES STAGE"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "artifacts/mother-bot-web: web"
 
 [[workflows.workflow]]
@@ -39,28 +31,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 artifacts/mother-bot/src/bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "books-bot: SOUQRATES SOUQ"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 artifacts/books-bot/src/bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "contests-bot: SOUQRATES STAGE"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 artifacts/contests-bot/src/bot.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
