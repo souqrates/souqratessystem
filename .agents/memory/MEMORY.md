@@ -14,3 +14,4 @@
 - [Dev bot overwrites prod menu button](dev-menu-button-guard.md) — Replit polling bots must NOT call set_chat_menu_button; gate on USE_WEBHOOK env var in all bot startups.
 - [Withdrawal double-spend guard](withdrawal-double-spend.md) — available balance = balanceSkz − SUM(pending withdrawals); check this before creating AND approving; cap at 3 concurrent pending per user (429).
 - [Replit DB override](replit-db-override.md) — Replit locks DATABASE_URL to its internal Helium DB; use POSTGRES_URL to override (checked first in lib/db/src/index.ts).
+- [Mother-bot-web cache headers](mother-bot-web-cache.md) — HTML must be no-store; hashed /assets/* are immutable; security headers on every response.

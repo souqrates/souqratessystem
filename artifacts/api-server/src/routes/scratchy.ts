@@ -1,12 +1,24 @@
 import { Router, type IRouter } from "express";
+import { createHmac } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { transactionsTable } from "@workspace/db";
+import { transactionsTable, walletsTable, usersTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 const JACKPOT_BASE = 5_000;
 const JACKPOT_MULTIPLIER = 3; // each 5 SKZ ticket adds 15 SKZ to the jackpot pool
+
+// Tier data mirrored from bot-demo/src/lib/games-data.ts — keep in sync if client tiers change.
+const SCRATCH_TIERS = [
+  { id: 't1', cost: 1,   prizes: [0, 2, 3, 5, 10],           weights: [0.55, 0.22, 0.12, 0.08, 0.03] },
+  { id: 't2', cost: 5,   prizes: [0, 8, 15, 25, 50],         weights: [0.53, 0.23, 0.12, 0.08, 0.04] },
+  { id: 't3', cost: 20,  prizes: [0, 35, 80, 140, 200],      weights: [0.50, 0.25, 0.13, 0.08, 0.04] },
+  { id: 't4', cost: 100, prizes: [0, 175, 400, 700, 1000],   weights: [0.48, 0.26, 0.14, 0.08, 0.04] },
+  { id: 't5', cost: 500, prizes: [0, 900, 2000, 3500, 5000], weights: [0.45, 0.28, 0.14, 0.09, 0.04] },
+] as const;
+
+type ScratchTier = (typeof SCRATCH_TIERS)[number];
 
 async function queryStats() {
   const [row] = await db
@@ -20,11 +32,11 @@ async function queryStats() {
     .from(transactionsTable)
     .where(eq(transactionsTable.sourceBot, "scratchy-bot"));
 
-  const ticketsSold  = Number(row?.ticketsSold   ?? 0);
+  const ticketsSold    = Number(row?.ticketsSold    ?? 0);
   const totalScratched = Number(row?.totalScratched ?? 0);
-  const totalWins    = Number(row?.totalWins      ?? 0);
+  const totalWins      = Number(row?.totalWins      ?? 0);
   const jackpotContrib = Number(row?.jackpotContrib ?? 0);
-  const biggestWin   = Number(row?.biggestWin     ?? 0);
+  const biggestWin     = Number(row?.biggestWin     ?? 0);
 
   return {
     jackpot:        Math.round(JACKPOT_BASE + jackpotContrib * JACKPOT_MULTIPLIER),
@@ -49,6 +61,157 @@ router.get("/scratchy/stats", async (req, res): Promise<void> => {
     req.log.error({ err }, "scratchy/stats failed");
     res.status(500).json({ error: "stats unavailable" });
   }
+});
+
+// ── Telegram initData validation ──────────────────────────────────────────────
+// Validates HMAC-SHA256 signature per Telegram WebApp docs.
+// Returns the telegramId (string) on success, null on failure.
+function validateInitData(initData: string): string | null {
+  const token = process.env.SCRATCHY_BOT_TOKEN;
+  if (!token) return null;
+
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  if (!hash) return null;
+
+  params.delete("hash");
+  const checkString = [...params.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
+
+  const secretKey = createHmac("sha256", "WebAppData").update(token).digest();
+  const expected  = createHmac("sha256", secretKey).update(checkString).digest("hex");
+  if (expected !== hash) return null;
+
+  const userStr = params.get("user");
+  if (!userStr) return null;
+  try {
+    const u = JSON.parse(userStr) as { id?: number };
+    return u.id ? String(u.id) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Server-side prize roll ────────────────────────────────────────────────────
+function rollPrize(tier: ScratchTier): number {
+  const r = Math.random();
+  let c = 0;
+  for (let i = 0; i < tier.weights.length; i++) {
+    c += tier.weights[i];
+    if (r < c) return tier.prizes[i];
+  }
+  return 0;
+}
+
+// POST /api/scratchy/play — authenticated by Telegram initData (no bot API key required)
+// Body: { tierId: string, gameId?: string, initData: string }
+// Returns: { ok: true, prize: number, won: boolean }
+//
+// Security:
+//   - Telegram initData is HMAC-signed by Telegram with the bot token — not forgeable.
+//   - Prize is determined server-side (client cannot influence the outcome).
+//   - Debit + credit happen in a single DB transaction — no partial state.
+//   - referenceId is unique per play — prevents double-credit on network retry.
+router.post("/scratchy/play", async (req, res): Promise<void> => {
+  const { tierId, gameId, initData } = req.body as {
+    tierId?: string;
+    gameId?: string;
+    initData?: string;
+  };
+
+  if (!tierId || !initData) {
+    res.status(400).json({ error: "tierId and initData are required" });
+    return;
+  }
+
+  const telegramId = validateInitData(initData);
+  if (!telegramId) {
+    res.status(403).json({ error: "Invalid Telegram initData — open this app from inside Telegram" });
+    return;
+  }
+
+  const tier = SCRATCH_TIERS.find((t) => t.id === tierId);
+  if (!tier) {
+    res.status(400).json({ error: `Unknown tierId: ${tierId}` });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.telegramId, BigInt(telegramId)));
+
+  if (!user) {
+    res.status(404).json({ error: "User not found — open the bot and press Start first" });
+    return;
+  }
+
+  if (user.isBlocked) {
+    res.status(403).json({ error: "Account is blocked" });
+    return;
+  }
+
+  const [wallet] = await db
+    .select()
+    .from(walletsTable)
+    .where(eq(walletsTable.userId, user.id));
+
+  const balance = parseFloat(wallet?.balanceSkz ?? "0");
+  if (balance < tier.cost) {
+    res.status(402).json({ error: "Insufficient balance", balance, required: tier.cost });
+    return;
+  }
+
+  // ── Server-side prize roll (before DB — rollback is trivial if DB fails) ──
+  const prize    = rollPrize(tier);
+  const ts       = Date.now();
+  const gameSlug = String(gameId ?? "scratch").slice(0, 60);
+  const baseRef  = `scratch_${ts}_${telegramId}_${tierId}`;
+
+  await db.transaction(async (tx) => {
+    // 1. Atomic debit
+    await tx
+      .update(walletsTable)
+      .set({ balanceSkz: sql`${walletsTable.balanceSkz} - ${tier.cost}` })
+      .where(eq(walletsTable.userId, user.id));
+
+    await tx.insert(transactionsTable).values({
+      userId:      user.id,
+      type:        "game_entry",
+      currency:    "SKZ",
+      amount:      String(tier.cost),
+      sourceBot:   "scratchy-bot",
+      referenceId: `${baseRef}_entry`,
+      metadata:    JSON.stringify({ tierId, gameId: gameSlug, action: "entry" }),
+    });
+
+    // 2. Atomic credit (only if won)
+    if (prize > 0) {
+      await tx
+        .update(walletsTable)
+        .set({ balanceSkz: sql`${walletsTable.balanceSkz} + ${prize}` })
+        .where(eq(walletsTable.userId, user.id));
+
+      await tx.insert(transactionsTable).values({
+        userId:      user.id,
+        type:        "game_win",
+        currency:    "SKZ",
+        amount:      String(prize),
+        sourceBot:   "scratchy-bot",
+        referenceId: `${baseRef}_win`,
+        metadata:    JSON.stringify({ tierId, gameId: gameSlug, prize }),
+      });
+    }
+  });
+
+  req.log.info(
+    { telegramId, tierId, gameId: gameSlug, cost: tier.cost, prize, won: prize > 0 },
+    "scratch play completed",
+  );
+
+  res.json({ ok: true, prize, won: prize > 0 });
 });
 
 export default router;

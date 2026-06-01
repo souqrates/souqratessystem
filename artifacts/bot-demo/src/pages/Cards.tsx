@@ -5,23 +5,29 @@ import { t, type Lang } from '../lib/i18n';
 import { GAMES, TIERS, type GameDef, type TierDef } from '../lib/games-data';
 import GameIcon from '../components/GameIcon';
 import ScratchCanvas from '../components/ScratchReveal';
+import { getTelegramUserId } from '../lib/useBalance';
+
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') || '/scratchy-bot-web';
+const API_BASE = BASE.replace('/scratchy-bot-web', '') || '';
 
 interface Props {
   lang: Lang;
   balance: number;
-  onDeduct: (n: number) => void;
-  onCredit: (n: number) => void;
+  onRefresh: () => Promise<void>;
 }
 
 type Step = 'games' | 'tier' | 'picker' | 'scratch';
 
-export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
+export default function Cards({ lang, balance, onRefresh }: Props) {
   const [step, setStep] = useState<Step>('games');
   const [game, setGame] = useState<GameDef | null>(null);
   const [tier, setTier] = useState<TierDef | null>(null);
   const [cardNum, setCardNum] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [notEnough, setNotEnough] = useState(false);
+  const [pendingPrize, setPendingPrize] = useState<number | null>(null);
+  const [playLoading, setPlayLoading] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
 
   const isRtl = lang === 'ar';
 
@@ -41,25 +47,57 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
     setCardNum(n);
   }
 
-  function confirmPlay() {
-    if (!tier || cardNum === null) return;
+  async function confirmPlay() {
+    if (!tier || cardNum === null || !game) return;
     if (balance < tier.cost) {
       setNotEnough(true);
       setTimeout(() => setNotEnough(false), 2200);
       return;
     }
-    onDeduct(tier.cost);
-    setStep('scratch');
+
+    const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } })
+      .Telegram?.WebApp?.initData ?? '';
+    const telegramId = getTelegramUserId();
+
+    if (!telegramId || !initData) {
+      setPlayError(isRtl ? 'يجب فتح التطبيق من داخل تيليغرام' : 'Open this app from inside Telegram');
+      setTimeout(() => setPlayError(null), 3500);
+      return;
+    }
+
+    setPlayLoading(true);
+    setPlayError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/scratchy/play`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tierId: tier.id, gameId: game.mechanic, initData }),
+      });
+      const data = await res.json() as { ok?: boolean; prize?: number; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? `Error ${res.status}`);
+      }
+      setPendingPrize(data.prize ?? 0);
+      setStep('scratch');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : (isRtl ? 'فشل الاتصال بالسيرفر' : 'Server error');
+      setPlayError(msg);
+      setTimeout(() => setPlayError(null), 4000);
+    } finally {
+      setPlayLoading(false);
+    }
   }
 
   function handleResult(prize: number) {
     if (prize > 0) {
-      onCredit(prize);
       setToast(`${t('winMsg')} ${prize} SKZ`);
     } else {
       setToast(t('loseMsg'));
     }
+    setPendingPrize(null);
     setTimeout(() => setToast(null), 3500);
+    void onRefresh();
   }
 
   function reset() {
@@ -67,6 +105,8 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
     setGame(null);
     setTier(null);
     setCardNum(null);
+    setPendingPrize(null);
+    setPlayError(null);
   }
 
   function backToTier() {
@@ -378,24 +418,30 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
                     </span>
                   </div>
                   <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={confirmPlay}
+                    whileTap={{ scale: playLoading ? 1 : 0.97 }}
+                    onClick={() => { void confirmPlay(); }}
+                    disabled={playLoading}
                     style={{
                       width: '100%',
                       padding: '15px 0',
                       borderRadius: 14,
                       border: `1px solid ${game.accent}44`,
-                      background: `linear-gradient(135deg, ${game.color1}, ${game.color2})`,
-                      color: game.accent,
+                      background: playLoading
+                        ? 'rgba(30,40,30,0.8)'
+                        : `linear-gradient(135deg, ${game.color1}, ${game.color2})`,
+                      color: playLoading ? '#475569' : game.accent,
                       fontSize: 15,
                       fontWeight: 800,
-                      cursor: 'pointer',
+                      cursor: playLoading ? 'not-allowed' : 'pointer',
                       fontFamily: '"Tajawal", sans-serif',
                       letterSpacing: '0.03em',
-                      boxShadow: `0 4px 20px ${game.color1}88`,
+                      boxShadow: playLoading ? 'none' : `0 4px 20px ${game.color1}88`,
+                      transition: 'all 0.2s',
                     }}
                   >
-                    {t('confirmPlay')} — {tier.cost} SKZ
+                    {playLoading
+                      ? (isRtl ? 'جاري التحقق...' : 'Processing...')
+                      : `${t('confirmPlay')} — ${tier.cost} SKZ`}
                   </motion.button>
                 </motion.div>
               )}
@@ -461,6 +507,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
                 lang={lang}
                 onResult={handleResult}
                 onPlayAgain={reset}
+                forcedPrize={pendingPrize ?? undefined}
               />
             </div>
           </motion.div>
@@ -507,6 +554,25 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
             }}
           >
             {isRtl ? 'رصيد غير كافٍ' : 'Insufficient balance'}
+          </motion.div>
+        )}
+        {playError && (
+          <motion.div
+            key="playerror"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', bottom: 88, left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#1a0505',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 14, padding: '11px 22px',
+              fontSize: 12, fontWeight: 700, color: '#f87171',
+              zIndex: 200, maxWidth: '80vw', textAlign: 'center',
+            }}
+          >
+            {playError}
           </motion.div>
         )}
       </AnimatePresence>

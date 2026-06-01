@@ -124,7 +124,7 @@ def _resolve_books_web_app_url() -> str:
     dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
     if dev:
         return f"https://{dev}/books-bot-web/"
-    return ""
+    return "https://souqrates.com/books-bot-web/"
 WEB_APP_URL = _resolve_books_web_app_url()
 
 def _resolve_mother_app_url() -> str:
@@ -140,7 +140,7 @@ def _resolve_mother_app_url() -> str:
     dev = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()
     if dev:
         return f"https://{dev}/"
-    return ""
+    return "https://souqrates.com/"
 MOTHER_APP_URL = _resolve_mother_app_url()
 
 api = BooksBotClient(api_key=BOOKS_BOT_API_KEY, base_url=MOTHER_API_URL)

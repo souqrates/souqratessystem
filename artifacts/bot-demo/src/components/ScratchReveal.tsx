@@ -26,6 +26,17 @@ interface Props {
   lang: Lang;
   onResult: (prize: number) => void;
   onPlayAgain: () => void;
+  forcedPrize?: number;
+}
+
+// Build a synthetic tier whose weights guarantee a specific prize is rolled.
+// Used when the server has already determined the outcome — the client just
+// animates it without touching Math.random() for the win/lose decision.
+function buildForcedTier(tier: TierDef, prize: number): TierDef {
+  const idx = tier.prizes.indexOf(prize);
+  const weights = Array(tier.prizes.length).fill(0) as number[];
+  weights[idx !== -1 ? idx : 0] = 1;
+  return { ...tier, weights };
 }
 
 type GameComp = (p: { game: GameDef; tier: TierDef; lang: Lang; onResult: (n: number) => void; onPlayAgain: () => void }) => React.ReactNode;
@@ -110,7 +121,8 @@ function useConfetti(active: boolean, big: boolean) {
   return particles;
 }
 
-export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onPlayAgain }: Props) {
+export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onPlayAgain, forcedPrize }: Props) {
+  const activeTier = forcedPrize !== undefined ? buildForcedTier(tier, forcedPrize) : tier;
   const isRtl = lang === 'ar';
   const [result, setResult] = useState<number | null>(null);
   const [flash, setFlash]   = useState(false);
@@ -285,7 +297,7 @@ export default function ScratchReveal({ game, tier, cardNum, lang, onResult, onP
         {GameComponent ? (
           <GameComponent
             game={game}
-            tier={tier}
+            tier={activeTier}
             lang={lang}
             onResult={handleResult}
             onPlayAgain={onPlayAgain}

@@ -30,10 +30,23 @@ const MIME = {
   '.ttf': 'font/ttf',
 };
 
+// Security headers applied to every response.
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+};
+
 function serveIndex(res) {
   fs.readFile(path.join(PUBLIC, 'index.html'), (err, data) => {
-    if (err) { res.writeHead(404); res.end('Not found'); return; }
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+    if (err) { res.writeHead(404, SECURITY_HEADERS); res.end('Not found'); return; }
+    res.writeHead(200, {
+      ...SECURITY_HEADERS,
+      'Content-Type': 'text/html; charset=utf-8',
+      // no-store: never cache HTML — always fetch fresh copy from server.
+      // Prevents stale shell from loading after a deploy.
+      'Cache-Control': 'no-store',
+    });
     res.end(data);
   });
 }
@@ -54,8 +67,12 @@ http.createServer((req, res) => {
   // Serve bots hub page at /bots
   if (url === '/bots' || url === '/bots/') {
     fs.readFile(path.join(PUBLIC, 'bots.html'), (err, data) => {
-      if (err) { res.writeHead(404); res.end('Not found'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      if (err) { res.writeHead(404, SECURITY_HEADERS); res.end('Not found'); return; }
+      res.writeHead(200, {
+        ...SECURITY_HEADERS,
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
       res.end(data);
     });
     return;
@@ -64,17 +81,22 @@ http.createServer((req, res) => {
   const filePath = path.join(PUBLIC, url);
 
   if (!filePath.startsWith(PUBLIC)) {
-    res.writeHead(403); res.end('Forbidden'); return;
+    res.writeHead(403, SECURITY_HEADERS); res.end('Forbidden'); return;
   }
 
   fs.readFile(filePath, (err, data) => {
     if (err) { serveIndex(res); return; }
     const ext = path.extname(filePath).toLowerCase();
     const ct = MIME[ext] || 'application/octet-stream';
-    const isAsset = url.startsWith('/assets/');
+    // Vite hashes all files under /assets/ — safe to cache forever.
+    // Everything else (favicon, manifest, robots.txt, etc.) uses no-store.
+    const isHashedAsset = url.startsWith('/assets/');
     res.writeHead(200, {
+      ...SECURITY_HEADERS,
       'Content-Type': ct,
-      'Cache-Control': isAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'Cache-Control': isHashedAsset
+        ? 'public, max-age=31536000, immutable'
+        : 'no-store',
     });
     res.end(data);
   });

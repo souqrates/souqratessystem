@@ -42,14 +42,6 @@ export default function App() {
     document.documentElement.setAttribute('dir', next === 'ar' ? 'rtl' : 'ltr');
   }, [lang]);
 
-  const deduct = useCallback((amount: number) => {
-    applyDeduct(amount);
-  }, [applyDeduct]);
-
-  const credit = useCallback((amount: number) => {
-    applyCredit(amount);
-  }, [applyCredit]);
-
   const buyLottoTicket = useCallback((ticketPrice: number, picks: number[]) => {
     applyDeduct(ticketPrice);
     setLottoTrigger(t => t + 1);
@@ -95,7 +87,7 @@ export default function App() {
             onNavigate={handleNavigate}
           />
         )}
-        {page === 'cards'   && <Cards   lang={lang} balance={balance} onDeduct={deduct} onCredit={credit} />}
+        {page === 'cards'   && <Cards   lang={lang} balance={balance} onRefresh={refreshBalance} />}
         {page === 'lotto'   && <Lotto   lang={lang} balance={balance} jackpot={stats.jackpot} participants={stats.participants} onBuyTicket={buyLottoTicket} />}
         {page === 'tickets' && <Tickets lang={lang} onNavigate={handleNavigate} />}
       </div>
