@@ -16,7 +16,7 @@ export default function WithdrawalsPage() {
   const [tgQuery, setTgQuery] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkReason, setBulkReason] = useState("");
-  const [bulkMsg, setBulkMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [bulkMsg, setBulkMsg] = useState<{ kind: "ok" | "warn" | "err"; text: string } | null>(null);
   const limit = 50;
 
   const q = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -38,6 +38,24 @@ export default function WithdrawalsPage() {
   const selectedCount = selected.size;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["superadmin", "withdrawals"] });
+
+  const bulkApproveMut = useMutation({
+    mutationFn: () =>
+      api.post<{ approved: number; failed: number; errors: { id: number; error: string }[] }>(
+        "/superadmin/withdrawals/bulk-approve",
+        { ids: Array.from(selected) },
+      ),
+    onSuccess: (res) => {
+      const msg = res.failed > 0
+        ? `تمت الموافقة على ${res.approved} طلب — فشل ${res.failed} (رصيد غير كافٍ أو حالة خاطئة)`
+        : `تمت الموافقة على ${res.approved} طلب`;
+      setBulkMsg({ kind: res.failed > 0 ? "warn" : "ok", text: msg });
+      setSelected(new Set());
+      invalidate();
+      setTimeout(() => setBulkMsg(null), 5000);
+    },
+    onError: (e) => setBulkMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل القبول الجماعي" }),
+  });
 
   const bulkRejectMut = useMutation({
     mutationFn: () =>
@@ -138,28 +156,42 @@ export default function WithdrawalsPage() {
 
       {/* Bulk action bar — pending tab only */}
       {status === "pending" && selectedCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-semibold text-red-800">{selectedCount} محدد</span>
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-semibold text-slate-700">{selectedCount} محدد</span>
+          <button
+            onClick={() => {
+              if (!window.confirm(`الموافقة على ${selectedCount} طلب سحب؟ سيُخصم الرصيد فوراً.`)) return;
+              bulkApproveMut.mutate();
+            }}
+            disabled={bulkApproveMut.isPending || bulkRejectMut.isPending}
+            className="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold disabled:opacity-40"
+          >
+            {bulkApproveMut.isPending ? "…" : `✅ قبول ${selectedCount} طلب`}
+          </button>
           <input
             value={bulkReason}
             onChange={(e) => setBulkReason(e.target.value)}
             placeholder="سبب الرفض الجماعي (اختياري)"
-            className="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-red-200 text-sm"
+            className="flex-1 min-w-[160px] px-3 py-2 rounded-lg border border-slate-200 text-sm"
           />
           <button
             onClick={() => bulkRejectMut.mutate()}
-            disabled={bulkRejectMut.isPending}
+            disabled={bulkRejectMut.isPending || bulkApproveMut.isPending}
             className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold disabled:opacity-40"
           >
             {bulkRejectMut.isPending ? "…" : `رفض ${selectedCount} طلب`}
           </button>
-          <button onClick={() => setSelected(new Set())} className="px-3 py-2 text-sm rounded-lg bg-white border border-red-200 text-red-700">
-            إلغاء التحديد
+          <button onClick={() => setSelected(new Set())} className="px-3 py-2 text-sm rounded-lg bg-white border border-slate-200 text-slate-600">
+            إلغاء
           </button>
         </div>
       )}
       {bulkMsg && (
-        <div className={`mb-4 text-sm px-4 py-2 rounded-lg ${bulkMsg.kind === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+        <div className={`mb-4 text-sm px-4 py-2 rounded-lg ${
+          bulkMsg.kind === "ok"   ? "bg-emerald-50 text-emerald-700" :
+          bulkMsg.kind === "warn" ? "bg-amber-50 text-amber-700" :
+                                    "bg-red-50 text-red-700"
+        }`}>
           {bulkMsg.text}
         </div>
       )}

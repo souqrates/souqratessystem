@@ -1606,9 +1606,98 @@ router.get("/superadmin/reports/daily", requireSuperAdmin, async (req, res): Pro
 });
 
 // ── Bulk withdrawal actions ──────────────────────────────────────────────
-// Bulk REJECT only — bulk approve is intentionally not offered because each
-// approval deducts a real balance and needs a per-item on-chain txHash. Bulk
-// reject moves no money (balances were never deducted for pending rows).
+// POST /superadmin/withdrawals/bulk-approve
+// Approves multiple pending withdrawals in one call. Each withdrawal is
+// processed in its own DB transaction (no shared lock). txHash is omitted
+// (it is optional in the single-approve route too). Results are returned
+// per-item so the UI can report partial success.
+// Cap at 50 IDs to bound the sequential processing window.
+router.post("/superadmin/withdrawals/bulk-approve", requireSuperAdmin, async (req, res): Promise<void> => {
+  const body = req.body as { ids?: unknown };
+  const ids = Array.isArray(body.ids)
+    ? body.ids.map((x) => parseInt(String(x), 10)).filter((n) => Number.isFinite(n))
+    : [];
+  if (ids.length === 0) { res.status(400).json({ error: "لا توجد طلبات محددة" }); return; }
+  if (ids.length > 50) { res.status(400).json({ error: "حد أقصى 50 طلب في المرة الواحدة للقبول الجماعي" }); return; }
+
+  const results: { id: number; ok: boolean; error?: string }[] = [];
+
+  for (const id of ids) {
+    try {
+      await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(withdrawalsTable)
+          .set({ status: "approved", txHash: null, processedAt: new Date() })
+          .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
+          .returning();
+        if (!updated) throw new Error("ليس في حالة انتظار");
+
+        const amt = parseFloat(updated.amount);
+        let walletUpdated: typeof walletsTable.$inferSelect | undefined;
+        if (updated.currency === "stars") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceStars:   sql`${walletsTable.balanceStars}   - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceStars} >= ${amt}`)).returning();
+        } else if (updated.currency === "usdt") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceUsdt:    sql`${walletsTable.balanceUsdt}    - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceUsdt} >= ${amt}`)).returning();
+        } else if (updated.currency === "ton") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceTon:     sql`${walletsTable.balanceTon}     - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceTon} >= ${amt}`)).returning();
+        } else if (updated.currency === "skz") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceSkz:        sql`${walletsTable.balanceSkz}        - ${amt}`,
+            totalWithdrawnSkz: sql`${walletsTable.totalWithdrawnSkz} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceSkz} >= ${amt}`)).returning();
+        } else {
+          throw new Error(`عملة غير مدعومة: ${updated.currency}`);
+        }
+        if (!walletUpdated) throw new Error("رصيد غير كافٍ");
+
+        await tx.insert(transactionsTable).values({
+          userId:      updated.userId,
+          type:        "withdrawal",
+          currency:    updated.currency,
+          amount:      String((parseFloat(updated.amount) * -1).toFixed(2)),
+          status:      "completed",
+          sourceBot:   updated.sourceBot ?? "superadmin",
+          referenceId: `withdrawal_${updated.id}`,
+          description: `سحب #${updated.id} عبر ${updated.method}`,
+          metadata:    JSON.stringify({
+            withdrawalId: updated.id,
+            method: updated.method,
+            address: updated.address,
+            txHash: null,
+            approvedBy: "superadmin-bulk",
+          }),
+        });
+      });
+      results.push({ id, ok: true });
+    } catch (err) {
+      results.push({ id, ok: false, error: err instanceof Error ? err.message : "فشل" });
+    }
+  }
+
+  const approved = results.filter((r) => r.ok).length;
+  const failed   = results.filter((r) => !r.ok).length;
+
+  await logAdminAction(req, "superadmin", {
+    action: "withdrawal.bulk_approve", targetType: "withdrawal", targetId: 0,
+    payload: { ids, approved, failed }, success: approved > 0,
+  });
+
+  res.json({
+    approved,
+    failed,
+    errors: results.filter((r) => !r.ok).map((r) => ({ id: r.id, error: r.error })),
+  });
+});
+
 router.post("/superadmin/withdrawals/bulk-reject", requireSuperAdmin, async (req, res): Promise<void> => {
   const body = req.body as { ids?: unknown; reason?: unknown };
   const ids = Array.isArray(body.ids)
