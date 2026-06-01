@@ -63,7 +63,7 @@ export default function Decryptor({ phase, setPhase, game }) {
 
       {show && (
         <motion.div className="bg-[#00d4ff]/20 border border-[#00d4ff]/40 rounded-xl py-3" animate={{ opacity:[1,0.5,1] }} transition={{ duration:0.3, repeat:Infinity }}>
-          <p className="text-[#00d4ff] font-black">MEMORIZE! 👀</p>
+          <p className="text-[#00d4ff] font-black tracking-widest">MEMORIZE</p>
         </motion.div>
       )}
 

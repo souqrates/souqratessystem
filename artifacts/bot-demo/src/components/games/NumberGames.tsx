@@ -80,7 +80,7 @@ export function YourNumber({ game, tier, lang, onResult, onPlayAgain }: GProps) 
         {yourRevealed && (
           <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} style={{ width:'100%' }}>
             <div style={{ fontSize:10, color:'#64748b', textAlign:'center', marginBottom:6 }}>
-              {isRtl ? 'ابحث عن رقمك في الأرقام الثمانية 👇' : 'Find your number in the 8 prizes 👇'}
+              {isRtl ? 'ابحث عن رقمك في الأرقام الثمانية:' : 'Find your number in the 8 prizes:'}
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
               {pool.map((item,i) => (

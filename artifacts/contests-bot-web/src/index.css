@@ -13,6 +13,9 @@
   --color-stage-gold-dim: #a47b09;
   --color-stage-cyan: #22d3ee;
   --color-stage-pink: #ec4899;
+  /* design-system tokens: purple primary + pink accent */
+  --color-stage-primary: #a855f7;
+  --color-stage-accent:  #ec4899;
   --color-stage-green: #34d399;
   --color-stage-red: #f87171;
 }
