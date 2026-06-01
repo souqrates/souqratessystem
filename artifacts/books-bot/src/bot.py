@@ -148,6 +148,22 @@ texts = api.texts("books-bot", ttl_seconds=60)
 router = Router()
 
 
+# ── Safe edit helper ─────────────────────────────────────────────────────────
+async def _safe_edit(msg, text: str, reply_markup=None, **kw) -> None:
+    """Wrapper for edit_text that falls back to answer() when the message was
+    deleted or is too old to edit (TelegramBadRequest).  Any other exception is
+    swallowed to keep callback handlers from crashing the dispatcher."""
+    try:
+        await msg.edit_text(text, reply_markup=reply_markup, **kw)
+    except TelegramBadRequest:
+        try:
+            await msg.answer(text, reply_markup=reply_markup, **kw)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 # ── FSM for publishing ──────────────────────────────────────────────────────
 class Publish(StatesGroup):
     title = State()
@@ -193,6 +209,7 @@ COMMANDS: list[BotCommand] = [
     BotCommand(command="library", description="مكتبتي (مشترياتي وإصداراتي)"),
     BotCommand(command="wallet",  description="رصيد محفظتي بـ SKZ"),
     BotCommand(command="lang",    description="🌐 تغيير اللغة (عربي / إنجليزي)"),
+    BotCommand(command="cancel",  description="إلغاء العملية الجارية والعودة للقائمة"),
     BotCommand(command="help",    description="عرض قائمة الأوامر والمساعدة"),
 ]
 
@@ -211,6 +228,7 @@ COMMANDS_BY_LANG: dict[str, list[BotCommand]] = {
         BotCommand(command="library", description="My library (purchases & publications)"),
         BotCommand(command="wallet",  description="My SKZ wallet balance"),
         BotCommand(command="lang",    description="🌐 Change language (Arabic / English)"),
+        BotCommand(command="cancel",  description="Cancel current operation and return to menu"),
         BotCommand(command="help",    description="Show commands list and help"),
     ],
     "ru": [
@@ -374,6 +392,26 @@ async def cmd_help(message: Message, state: FSMContext):
     await message.answer(t(lang, "help_body"), parse_mode="HTML", reply_markup=main_kb(lang))
 
 
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message, state: FSMContext):
+    """Cancel any active FSM operation (e.g. mid-publish flow) and return to main menu."""
+    lang = await _get_lang(message.from_user.id)
+    current_state = await state.get_state()
+    if current_state is None:
+        await message.answer(
+            "لا توجد عملية جارية حالياً.\n<i>No active operation.</i>",
+            parse_mode="HTML",
+            reply_markup=main_kb(lang),
+        )
+        return
+    await state.clear()
+    await message.answer(
+        "✅ تم إلغاء العملية.\n<i>Operation cancelled.</i>",
+        parse_mode="HTML",
+        reply_markup=main_kb(lang),
+    )
+
+
 @router.message(Command("browse"))
 async def cmd_browse(message: Message, state: FSMContext):
     await state.clear()
@@ -493,12 +531,16 @@ async def cb_cat(cb: CallbackQuery):
     except (ValueError, IndexError):
         await cb.answer()
         return
-    resp = await api.list_products(category_id=cid, limit=PAGE_SIZE, offset=page * PAGE_SIZE)
+    try:
+        resp = await api.list_products(category_id=cid, limit=PAGE_SIZE, offset=page * PAGE_SIZE)
+    except Exception:
+        await cb.answer("⚠️ خطأ في الاتصال بالخادم، حاول مجدداً", show_alert=True)
+        return
     rows = resp.get("data", [])
     total = resp.get("total", 0)
 
     if not rows:
-        await cb.message.edit_text(t(lang, "browse_empty"), reply_markup=back_kb("browse", lang))
+        await _safe_edit(cb.message, t(lang, "browse_empty"), reply_markup=back_kb("browse", lang))
         await cb.answer(); return
 
     lines = [t(lang, "books_header", total=total)]
@@ -517,16 +559,24 @@ async def cb_cat(cb: CallbackQuery):
         btns.append(nav)
     btns.append([InlineKeyboardButton(text=t(lang, "browse_btn_back_cats"), callback_data="browse")])
 
-    await cb.message.edit_text("\n".join(lines), parse_mode="HTML",
-                                reply_markup=InlineKeyboardMarkup(inline_keyboard=btns))
+    await _safe_edit(cb.message, "\n".join(lines), parse_mode="HTML",
+                     reply_markup=InlineKeyboardMarkup(inline_keyboard=btns))
     await cb.answer()
 
 
 @router.callback_query(F.data.startswith("prd:"))
 async def cb_product(cb: CallbackQuery):
     lang = await _get_lang(cb.from_user.id)
-    pid = int(cb.data.split(":")[1])
-    p = await api.get_product(pid)
+    try:
+        pid = int(cb.data.split(":")[1])
+    except (ValueError, IndexError):
+        await cb.answer()
+        return
+    try:
+        p = await api.get_product(pid)
+    except Exception:
+        await cb.answer("⚠️ خطأ في الاتصال بالخادم، حاول مجدداً", show_alert=True)
+        return
     if not p:
         await cb.answer(t(lang, "product_not_found"), show_alert=True); return
 
@@ -539,7 +589,7 @@ async def cb_product(cb: CallbackQuery):
         [InlineKeyboardButton(text=t(lang, "btn_buy", price=f"{price:.2f}"), callback_data=f"buy:{pid}")],
         [InlineKeyboardButton(text=t(lang, "btn_back_browse"), callback_data="browse")],
     ])
-    await cb.message.edit_text(txt, parse_mode="HTML", reply_markup=kb)
+    await _safe_edit(cb.message, txt, parse_mode="HTML", reply_markup=kb)
     await cb.answer()
 
 

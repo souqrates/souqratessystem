@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
 import { useGetSubAgentMe, useGetSubAgentTiers } from "@workspace/api-client-react";
-import { Wallet, TrendingUp, Users, ArrowUpRight, Award, History } from "lucide-react";
+import { Wallet, TrendingUp, ArrowUpRight, Award, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import TierBadge from "@/components/TierBadge";
 import { useT, useLang, setLang } from "@/lib/i18n";
 
@@ -25,7 +26,34 @@ export default function DashboardPage() {
   const { data: me, isLoading: meLoading } = useGetSubAgentMe();
   const { data: tiersData } = useGetSubAgentTiers();
 
-  if (meLoading || !me) return null;
+  if (meLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-24 text-foreground flex flex-col">
+        <div className="bg-primary/60 p-6 pt-10 pb-8 rounded-b-3xl shadow-sm">
+          <div className="flex justify-between items-start mb-6">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-36 bg-white/20" />
+              <Skeleton className="h-4 w-24 bg-white/20" />
+            </div>
+            <Skeleton className="h-8 w-16 bg-white/20 rounded-full" />
+          </div>
+          <div className="bg-white/10 rounded-2xl p-5 border border-white/10">
+            <Skeleton className="h-4 w-28 bg-white/20 mb-3" />
+            <Skeleton className="h-10 w-48 bg-white/20" />
+          </div>
+        </div>
+        <div className="px-4 mt-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-14 rounded-xl" />
+            <Skeleton className="h-14 rounded-xl" />
+          </div>
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+  if (!me) return null;
 
   const agent = me.agent;
   const wallet = me.wallet;

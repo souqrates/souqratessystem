@@ -40,7 +40,11 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+// Hold a reference to stopDepositWatcher so the shutdown handler can call it
+// even though the watcher is loaded lazily after the server is up.
+let _stopDepositWatcher: (() => void) | null = null;
+
+const server = app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -51,9 +55,31 @@ app.listen(port, (err) => {
   // Start the on-chain deposit watcher AFTER the HTTP server is up so a
   // tonapi outage at boot can't block readiness. The watcher is a no-op
   // if TON_WALLET_ADDRESS is unset (dev/local).
-  import("./lib/deposit-watcher").then(({ startDepositWatcher }) => {
+  import("./lib/deposit-watcher").then(({ startDepositWatcher, stopDepositWatcher }) => {
     startDepositWatcher();
+    _stopDepositWatcher = stopDepositWatcher;
   }).catch((e: unknown) => {
     logger.error({ err: e }, "failed to start deposit watcher");
   });
 });
+
+// ── Graceful shutdown ────────────────────────────────────────────────────────
+// Handles SIGTERM (sent by Docker/K8s/systemd on deploy) and SIGINT (Ctrl-C).
+// Stops accepting new connections, drains the deposit watcher, then exits.
+// Falls back to a forced exit after 10 s so a hung keep-alive never blocks.
+function shutdown(signal: string): void {
+  logger.info({ signal }, "shutdown signal received — closing gracefully");
+  _stopDepositWatcher?.();
+  server.close(() => {
+    logger.info("HTTP server closed cleanly");
+    process.exit(0);
+  });
+  // Force-exit if connections don't drain within 10 s.
+  setTimeout(() => {
+    logger.warn("graceful shutdown timed out — forcing exit");
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));

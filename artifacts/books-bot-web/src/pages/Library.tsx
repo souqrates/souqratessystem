@@ -27,7 +27,7 @@ const CAT_COLORS: Record<string, string> = {
 export default function Library() {
   const [q, setQ] = useState("");
   const [active, setActive] = useState<CategorySlug | "all">("all");
-  const { books, loading } = useBooks();
+  const { books, loading, apiError } = useBooks();
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -39,6 +39,12 @@ export default function Library() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
+      {apiError && (
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <span>⚠️</span>
+          <span>تعذّر الاتصال بالخادم — يتم عرض الكتالوج المحلي. / Could not reach server — showing local catalog.</span>
+        </div>
+      )}
       {/* Header */}
       <div className="mb-8 rise">
         <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(148,163,184,0.5)' }}>

@@ -47,7 +47,7 @@ import {
   walletsTable,
   usersTable,
 } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { notifyUser } from "./notify-user";
 
@@ -62,8 +62,10 @@ const USDT_JETTON_MASTERS = new Set<string>([
 
 const WATCHER_INTERVAL_MS = 30_000;
 const TONAPI_BASE = "https://tonapi.io/v2";
-const EVENTS_PAGE_SIZE = 50;
+const EVENTS_PAGE_SIZE = 100;      // bumped from 50 — handles ~2 min backlog at peak
 const FETCH_TIMEOUT_MS = 10_000;
+const INTENT_EXPIRY_HOURS = 24;    // abandon unpaid intents after 24 h
+const CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // run cleanup every 30 min
 
 const NANO_TON = 1_000_000_000n;          // 1 TON  = 10^9 nanoton
 const USDT_DECIMALS_DIV = 1_000_000n;     // USDT-Jetton uses 6 decimals
@@ -72,6 +74,7 @@ const log = logger.child({ component: "deposit-watcher" });
 
 let started = false;
 let intervalHandle: NodeJS.Timeout | null = null;
+let cleanupHandle: NodeJS.Timeout | null = null;
 const seenEventIds = new Set<string>();
 const SEEN_CAP = 500;
 
@@ -420,6 +423,35 @@ async function tick(address: string): Promise<void> {
   }
 }
 
+/**
+ * Cancel unpaid deposit intents older than INTENT_EXPIRY_HOURS.
+ * Prevents table bloat from abandoned invoices (user opened intent, never paid).
+ * Safe to run alongside the credit watcher — atomic UPDATE WHERE status='pending'
+ * means a concurrent credit event always wins (its UPDATE lands first, leaving
+ * status='completed', so this cleanup skips it on next run).
+ */
+async function expireOldPendingIntents(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - INTENT_EXPIRY_HOURS * 3600 * 1000);
+    const expired = await db
+      .update(transactionsTable)
+      .set({ status: "cancelled" })
+      .where(
+        and(
+          eq(transactionsTable.status, "pending"),
+          eq(transactionsTable.type, "deposit"),
+          lt(transactionsTable.createdAt, cutoff),
+        ),
+      )
+      .returning({ id: transactionsTable.id });
+    if (expired.length > 0) {
+      log.info({ count: expired.length }, "expired old pending deposit intents");
+    }
+  } catch (err) {
+    log.error({ err: (err as Error).message }, "intent expiry job failed");
+  }
+}
+
 export function startDepositWatcher(): void {
   if (started) return;
   const address = getDepositAddress();
@@ -443,11 +475,21 @@ export function startDepositWatcher(): void {
     void tick(a).catch((err) => log.error({ err }, "tick failed"));
   }, WATCHER_INTERVAL_MS);
   intervalHandle.unref?.();
+
+  // Kick the expiry cleanup immediately (clears any backlog from downtime),
+  // then run on a 30-minute schedule.
+  void expireOldPendingIntents();
+  cleanupHandle = setInterval(() => {
+    void expireOldPendingIntents();
+  }, CLEANUP_INTERVAL_MS);
+  cleanupHandle.unref?.();
 }
 
 export function stopDepositWatcher(): void {
   if (intervalHandle) clearInterval(intervalHandle);
+  if (cleanupHandle)  clearInterval(cleanupHandle);
   intervalHandle = null;
+  cleanupHandle  = null;
   started = false;
   myAddressAliases.clear();
   seenEventIds.clear();

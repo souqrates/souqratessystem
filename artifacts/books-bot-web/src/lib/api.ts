@@ -73,6 +73,10 @@ export type BooksResult = {
   books: Book[];
   loading: boolean;
   source: "api" | "static";
+  /** true when the live API call failed (network error or non-OK response).
+   *  false when data came from the API or when the API returned an empty list
+   *  (which falls back to static silently — no error to surface). */
+  apiError: boolean;
 };
 
 export function useBooks(): BooksResult {
@@ -80,6 +84,7 @@ export function useBooks(): BooksResult {
     books: STATIC_BOOKS,
     loading: true,
     source: "static",
+    apiError: false,
   });
 
   useEffect(() => {
@@ -92,14 +97,14 @@ export function useBooks(): BooksResult {
         const { data } = (await r.json()) as { data: ApiProduct[] };
         if (cancelled) return;
         if (!data || data.length === 0) {
-          setState({ books: STATIC_BOOKS, loading: false, source: "static" });
+          setState({ books: STATIC_BOOKS, loading: false, source: "static", apiError: false });
           return;
         }
         const mapped = data.map((p) => mapProduct(p, STATIC_BY_TITLE.get(p.title)));
-        setState({ books: mapped, loading: false, source: "api" });
+        setState({ books: mapped, loading: false, source: "api", apiError: false });
       } catch {
         if (!cancelled) {
-          setState({ books: STATIC_BOOKS, loading: false, source: "static" });
+          setState({ books: STATIC_BOOKS, loading: false, source: "static", apiError: true });
         }
       }
     })();
