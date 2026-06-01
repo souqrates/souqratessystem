@@ -918,25 +918,38 @@ router.post("/internal/books/shop/purchase", async (req, res): Promise<void> => 
 
   const referenceId = `shop-${pid}-${tid}-${Date.now()}`;
 
-  const updated = await db
-    .update(walletsTable)
-    .set({ balanceSkz: sql`balance_skz - ${priceSkz}` })
-    .where(and(eq(walletsTable.userId, user.id), sql`balance_skz >= ${priceSkz}`))
-    .returning();
+  // Debit + ledger insert run inside one db.transaction so a partial failure
+  // cannot reduce the balance without an auditable transaction record.
+  let newBalance = 0;
+  try {
+    await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(walletsTable)
+        .set({ balanceSkz: sql`balance_skz - ${priceSkz}` })
+        .where(and(eq(walletsTable.userId, user.id), sql`balance_skz >= ${priceSkz}`))
+        .returning();
 
-  if (!updated.length) { res.status(402).json({ error: "Insufficient SKZ balance" }); return; }
+      if (!updated.length) throw Object.assign(new Error("Insufficient SKZ balance"), { status: 402 });
 
-  await db.insert(transactionsTable).values({
-    userId: user.id,
-    type: "debit",
-    currency: "SKZ",
-    amount: priceSkz.toFixed(6),
-    sourceBot: BOT_SLUG,
-    referenceId,
-    metadata: JSON.stringify({ productId: pid, productName: product.nameAr, categorySlug: product.categorySlug }),
-  });
+      await tx.insert(transactionsTable).values({
+        userId: user.id,
+        type: "debit",
+        currency: "skz",
+        amount: priceSkz.toFixed(6),
+        sourceBot: BOT_SLUG,
+        referenceId,
+        metadata: JSON.stringify({ productId: pid, productName: product.nameAr, categorySlug: product.categorySlug }),
+      });
 
-  res.json({ success: true, newBalance: parseFloat(updated[0].balanceSkz ?? "0"), referenceId });
+      newBalance = parseFloat(updated[0].balanceSkz ?? "0");
+    });
+  } catch (err: unknown) {
+    const e = err as Error & { status?: number };
+    if (e.status === 402) { res.status(402).json({ error: "Insufficient SKZ balance" }); return; }
+    throw err;
+  }
+
+  res.json({ success: true, newBalance, referenceId });
 });
 
 router.get("/superadmin/books/shop", requireSuperAdmin, async (req, res): Promise<void> => {
