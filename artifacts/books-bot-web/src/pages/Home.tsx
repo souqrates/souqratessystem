@@ -143,7 +143,7 @@ function DigitalPreview() {
             >
               {/* Card bg */}
               <div className="p-4 md:p-5" style={{ background: v.bgGradient }}>
-                <div className="mb-2" style={{ color: v.color }}>{VOUCHER_ICONS[v.id] ?? <CreditCard size={22} />}</div>
+                <div className="mb-2" style={{ color: v.color }}>{VOUCHER_ICONS[v.category] ?? <CreditCard size={22} />}</div>
                 <div className="font-black text-sm text-white/90 mb-0.5">{v.nameAr}</div>
                 <div className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{v.name}</div>
                 <div className="mt-3 flex items-center gap-1.5">

@@ -36,7 +36,7 @@ function MaintenanceScreen({ appConfig }) {
   const title = appConfig?.app_title || 'Skill Games';
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#04030a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center', gap: 20 }}>
-      <div style={{ fontSize: 56 }}>🔧</div>
+      <div style={{ fontSize: 56 }}>■</div>
       <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>{title}</h1>
       <p style={{ fontSize: 14, color: 'rgba(148,163,184,0.75)', lineHeight: 1.6, maxWidth: 280 }}>
         We are performing scheduled maintenance. We will be back shortly!

@@ -547,7 +547,7 @@ export default function AsteroidField({ phase, setPhase, onScoreUpdate, game}) {
           onPointerLeave={stopThrust}
           whileTap={{ scale: 0.88 }}
           style={ctrlBtnStyle('#10b981')}>
-          <span style={{ fontSize: 20 }}>🚀</span>
+          <span style={{ fontSize: 20 }}>▲</span>
           <span style={{ fontSize: 9, color: 'rgba(16,185,129,0.7)' }}>THRUST</span>
         </motion.button>
 
@@ -562,7 +562,7 @@ export default function AsteroidField({ phase, setPhase, onScoreUpdate, game}) {
           onPointerLeave={() => clearInterval(thrustIntervalRef.current)}
           whileTap={{ scale: 0.88 }}
           style={ctrlBtnStyle('#f43f5e')}>
-          <span style={{ fontSize: 20 }}>⚡</span>
+          <span style={{ fontSize: 20 }}>★</span>
           <span style={{ fontSize: 9, color: 'rgba(244,63,94,0.7)' }}>FIRE</span>
         </motion.button>
 

@@ -216,7 +216,7 @@ export default function PerfectCut({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'box-shadow 0.1s ease',
           }}
         >
-          <span style={{ fontSize: 22, lineHeight: 1 }}>⚔</span>
+          <span style={{ fontSize: 22, lineHeight: 1 }}>×</span>
           STRIKE
         </motion.button>
 

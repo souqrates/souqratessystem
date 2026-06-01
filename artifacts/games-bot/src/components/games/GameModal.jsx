@@ -325,7 +325,7 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
               setSettleStatus('credited');
               try { triggerHaptic('success'); } catch { /* ignore */ }
             } else if (refunded) {
-              // 💸 Entry fee given back — user is whole, just no prize.
+              // Entry fee given back — user is whole, just no prize.
               setSettleStatus('refunded');
               try { triggerHaptic('warning'); } catch { /* ignore */ }
               setEntryError(validateError?.message

@@ -63,7 +63,7 @@ export default function ColorRush({ phase, setPhase, game, onScoreUpdate }) {
       setCombo(comboRef.current);
       beep({ freq: 660 + comboRef.current * 30, dur: 0.07, vol: 0.1 });
       triggerHaptic('success');
-      const label = comboRef.current >= 5 ? `🔥×${comboRef.current} +${bonus}` : '✓ CORRECT';
+      const label = comboRef.current >= 5 ? `★×${comboRef.current} +${bonus}` : '✓ CORRECT';
       setFeedback({ label, color: '#10b981', id: Date.now() });
       setTimeout(nextRound, 380);
     } else {
@@ -97,7 +97,7 @@ export default function ColorRush({ phase, setPhase, game, onScoreUpdate }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <HudRow>
         <Hud label="SCORE" v={score} c="#fbbf24" />
-        <Hud label="COMBO" v={combo >= 4 ? `${combo}🔥` : combo} c={combo >= 4 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 4 ? `${combo}x` : combo} c={combo >= 4 ? '#f97316' : '#94a3b8'} />
         <Hud label="TIME" v={timeLeft} c="#f97316" />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || TARGET} label="TARGET TO WIN" />

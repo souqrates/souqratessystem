@@ -155,7 +155,7 @@ export default function DriftRacer({ phase, setPhase, game, onScoreUpdate }) {
               fontSize: o.type === 'enemy' ? 32 : 28,
               filter: o.type === 'enemy' ? 'drop-shadow(0 0 8px rgba(239,68,68,0.8))' : 'drop-shadow(0 0 8px rgba(16,185,129,0.8))',
             }}>
-              {o.type === 'enemy' ? '🚗' : '💚'}
+              {o.type === 'enemy' ? '■' : '★'}
             </div>
           ))}
         </AnimatePresence>
@@ -171,7 +171,7 @@ export default function DriftRacer({ phase, setPhase, game, onScoreUpdate }) {
             filter: crashed ? 'drop-shadow(0 0 16px rgba(239,68,68,1))' : 'drop-shadow(0 0 10px rgba(16,185,129,0.6))',
           }}
         >
-          🏎️
+          ▲
         </motion.div>
 
         {/* Swipe hint */}

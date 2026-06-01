@@ -66,7 +66,7 @@ export default function BeatForge({ phase, setPhase, game, onScoreUpdate }) {
       const yPct = progress * HIT_Y;
       const dist = Math.abs(yPct - HIT_Y);
       let pts, label, color;
-      if (dist < 4) { pts = 3; label = '💎 PERFECT'; color = '#10b981'; chord([440 * 2, 660 * 2], 0.06, 0.12, 'triangle'); triggerHaptic('success'); }
+      if (dist < 4) { pts = 3; label = '◆ PERFECT'; color = '#10b981'; chord([440 * 2, 660 * 2], 0.06, 0.12, 'triangle'); triggerHaptic('success'); }
       else if (dist < 8) { pts = 2; label = '✓ GREAT'; color = '#fbbf24'; beep({ freq: 660, dur: 0.07, vol: 0.1 }); triggerHaptic('light'); }
       else { pts = 1; label = 'GOOD'; color = '#94a3b8'; beep({ freq: 440, dur: 0.06, vol: 0.08 }); triggerHaptic('light'); }
       comboRef.current++;
@@ -123,7 +123,7 @@ export default function BeatForge({ phase, setPhase, game, onScoreUpdate }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <HudRow>
         <Hud label="SCORE" v={score} c="#f59e0b" />
-        <Hud label="COMBO" v={combo >= 5 ? `${combo}🔥` : combo} c={combo >= 5 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 5 ? `${combo}x` : combo} c={combo >= 5 ? '#f97316' : '#94a3b8'} />
         <Hud label="MISSES" v={`${missesRef.current}/${MISS_LIMIT}`} c={missesRef.current >= 3 ? '#ef4444' : '#94a3b8'} />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || TARGET} label="TARGET TO WIN" />
@@ -167,7 +167,7 @@ export default function BeatForge({ phase, setPhase, game, onScoreUpdate }) {
               boxShadow: `0 0 14px ${col}66`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
             }}>
-              🥁
+              ♪
             </div>
           );
         })}

@@ -135,7 +135,7 @@ export default function ChronoStack({ phase, setPhase, game, onScoreUpdate }) {
       <canvas ref={cvRef} width={W} height={H} onPointerDown={drop}
         style={{ width: '100%', borderRadius: 14, border: '1px solid rgba(0,245,160,0.2)', touchAction: 'none', background: '#03020a' }} />
       <p style={{ textAlign: 'center', fontSize: 10, color: warn ? '#ff3355' : 'rgba(148,163,184,0.5)', letterSpacing: '0.25em', margin: 0, fontWeight: 700 }}>
-        {warn ? `⚠ REWIND IN ${warn}s` : 'TAP TO DROP — PERFECT STACKS SURVIVE THE REWIND'}
+        {warn ? `! REWIND IN ${warn}s` : 'TAP TO DROP — PERFECT STACKS SURVIVE THE REWIND'}
       </p>
     </div>
   );

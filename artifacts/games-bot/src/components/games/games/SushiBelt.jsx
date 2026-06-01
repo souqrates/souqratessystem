@@ -6,7 +6,7 @@ import { getFrameInterval } from '../../../lib/canvasQuality';
 
 const RULES = 'SUSHI BELT — A target sushi is shown. Tap only the matching one on the belt. Wrong tap = penalty. 60 seconds.';
 const W = 320, H = 380;
-const SUSHI = ['🍣', '🍤', '🍙', '🥢', '🐙', '🦐'];
+const SUSHI = ['Tuna', 'Shrimp', 'Rice', 'Noodle', 'Octo', 'Ebi'];
 
 export default function SushiBelt({ phase, setPhase, onScoreUpdate }) {
   const cvRef = useRef(null);

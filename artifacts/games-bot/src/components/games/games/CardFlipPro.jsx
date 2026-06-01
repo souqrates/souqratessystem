@@ -12,7 +12,7 @@ const RULES = 'ARCANE TAROT — Reveal two cards. Matching pair = +100. Wrong pa
 const DEFAULT_GAME_TIME = 180;
 const TARGET = 1200;
 // Mystic rune / tarot glyph set — replaces generic emoji
-const EMOJIS = ['☽','☀','♆','♇','✶','⚝','☥','✦','⚚','⟁'];
+const EMOJIS = ['○','◈','⬡','⬟','✶','◇','✿','✦','◉','⟁'];
 
 function buildDeck(pairs) {
   const em = EMOJIS.slice(0, pairs);

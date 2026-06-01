@@ -167,7 +167,7 @@ export default function ForgeMaster({ phase, setPhase, onScoreUpdate, game }) {
 
       <div style={{ textAlign: 'center', position: 'relative' }}>
         <p style={{ fontSize: 10, color: `${EMBER}aa`, letterSpacing: '0.25em', margin: 0, fontFamily: 'Orbitron, sans-serif' }}>
-          {stage === 'show' ? '⚒ STUDY THE RUNE' : stage === 'input' ? '⚒ STRIKE THE ANVIL' : '⚒'}
+          {stage === 'show' ? 'STUDY THE RUNE' : stage === 'input' ? 'STRIKE THE ANVIL' : 'FORGE'}
         </p>
       </div>
 
@@ -269,7 +269,7 @@ export default function ForgeMaster({ phase, setPhase, onScoreUpdate, game }) {
               textShadow: `0 0 26px currentColor, 0 0 8px #fff8`,
               letterSpacing: '0.1em',
             }}>
-            {flash.perfect ? <>⚒ MASTERWORK ⚒<br /><span style={{ fontSize: 18 }}>+{flash.pts}</span></> : <>+{flash.pts}<br /><span style={{ fontSize: 12 }}>HEAT {flash.acc}%</span></>}
+            {flash.perfect ? <>◆ MASTERWORK ◆<br /><span style={{ fontSize: 18 }}>+{flash.pts}</span></> : <>+{flash.pts}<br /><span style={{ fontSize: 12 }}>HEAT {flash.acc}%</span></>}
           </motion.div>
         )}
       </AnimatePresence>

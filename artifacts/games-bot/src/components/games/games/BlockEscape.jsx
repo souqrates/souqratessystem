@@ -250,7 +250,7 @@ export default function BlockEscape({ phase, setPhase, game, onScoreUpdate }) {
                 touchAction: 'none',
               }}
             >
-              {b.id === 'red' && <span style={{ fontSize: 18 }}>🚗</span>}
+              {b.id === 'red' && <span style={{ fontSize: 18, fontWeight: 900, color: '#ef4444' }}>▶</span>}
             </motion.div>
           ))}
         </div>

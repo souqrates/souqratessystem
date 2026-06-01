@@ -135,7 +135,7 @@ export default function TrafficControl({ phase, setPhase, game, onScoreUpdate })
                 boxShadow: i === 0 ? `0 0 16px ${car.color}55` : 'none',
               }}
             >
-              <span style={{ fontSize: 22 }}>🚗</span>
+              <span style={{ fontSize: 16, fontWeight: 900 }}>▶</span>
               <span style={{ fontSize: 14, color: car.color }}>{car.dir}</span>
             </motion.button>
           ))}

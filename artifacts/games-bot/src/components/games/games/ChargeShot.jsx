@@ -193,7 +193,7 @@ export default function ChargeShot({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'background 0.08s, border-color 0.08s, box-shadow 0.08s',
           }}
         >
-          <span style={{ fontSize: 42 }}>🔋</span>
+          <span style={{ fontSize: 42 }}>■</span>
           <span style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 10, color: isCharging ? barColor : 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>
             {isCharging ? 'CHARGING…' : 'HOLD'}
           </span>

@@ -164,7 +164,7 @@ export default function RhythmHold({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'background 0.08s, border-color 0.08s',
           }}
         >
-          <span style={{ fontSize: 40 }}>{holding ? '🎵' : '🎶'}</span>
+          <span style={{ fontSize: 40 }}>♪</span>
           <span style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 12, color: holding ? color : 'rgba(148,163,184,0.4)', letterSpacing: '0.12em' }}>
             {holding ? '— HOLDING —' : 'HOLD ON BEAT'}
           </span>

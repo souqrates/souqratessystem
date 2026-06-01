@@ -117,7 +117,7 @@ export default function SlashBlitz({ phase, setPhase, game, onScoreUpdate }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <HudRow>
         <Hud label="SCORE" v={score} c="#f43f5e" />
-        <Hud label="COMBO" v={combo >= 3 ? `${combo}🔥` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 3 ? `${combo}x` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
         <Hud label="LIVES" v={'♥'.repeat(lives)} c="#ef4444" />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || TARGET} label="TARGET TO WIN" />
@@ -166,7 +166,7 @@ export default function SlashBlitz({ phase, setPhase, game, onScoreUpdate }) {
                 userSelect: 'none',
               }}
             >
-              {o.type === 'bomb' ? '💣' : o.type === 'green' ? '💚' : '💠'}
+              {o.type === 'bomb' ? '✦' : o.type === 'green' ? '★' : '◆'}
             </motion.div>
           ))}
         </AnimatePresence>

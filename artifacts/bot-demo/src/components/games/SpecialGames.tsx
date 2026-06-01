@@ -53,7 +53,7 @@ export function Multiplier({ game, tier, lang, onResult, onPlayAgain }: GProps) 
         {/* Base prize zone */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
           <div style={{ fontSize:10, color:'#64748b', fontWeight:700 }}>{isRtl ? 'الجائزة الأساسية' : 'BASE PRIZE'}</div>
-          <ScratchZone width={100} height={90} c1={game.color1} c2={game.color2} emoji="💰" label={isRtl?'احك':'Scratch'} onScratched={() => { setBaseR(true); check(true, multR); }}>
+          <ScratchZone width={100} height={90} c1={game.color1} c2={game.color2} emoji="●" label={isRtl?'احك':'Scratch'} onScratched={() => { setBaseR(true); check(true, multR); }}>
             <div style={{ width:100, height:90, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#0a1014', borderRadius:14, gap:2 }}>
               {prize > 0 ? (
                 <div style={{ fontFamily:'"Orbitron",sans-serif', fontSize:20, fontWeight:900, color:game.accent }}>{basePrize}</div>
@@ -97,10 +97,11 @@ export function Multiplier({ game, tier, lang, onResult, onPlayAgain }: GProps) 
 }
 
 // ── GAME 14: TREASURE HUNT (3×3 grid, 5 digs) ────────────────────────────────
-const ITEMS = ['💀','💀','💀','💀','🪙','🪙','💎','💎','🏆'] as const;
-const ITEM_VALS: Record<string,number> = { '💀':0, '🪙':0.05, '💎':0.2, '🏆':1.0 };
-const ITEM_NAMES_AR: Record<string,string> = { '💀':'فراغ', '🪙':'عملة', '💎':'جوهرة', '🏆':'كنز!' };
-const ITEM_NAMES_EN: Record<string,string> = { '💀':'Empty', '🪙':'Coin', '💎':'Gem', '🏆':'Treasure!' };
+const ITEMS = ['X','X','X','X','C','C','G','G','T'] as const;
+const ITEM_GLYPHS: Record<string,string> = { 'X':'✗', 'C':'●', 'G':'◆', 'T':'✦' };
+const ITEM_VALS: Record<string,number> = { 'X':0, 'C':0.05, 'G':0.2, 'T':1.0 };
+const ITEM_NAMES_AR: Record<string,string> = { 'X':'فراغ', 'C':'عملة', 'G':'جوهرة', 'T':'كنز!' };
+const ITEM_NAMES_EN: Record<string,string> = { 'X':'Empty', 'C':'Coin', 'G':'Gem', 'T':'Treasure!' };
 
 export function TreasureHunt({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';
@@ -111,9 +112,9 @@ export function TreasureHunt({ game, tier, lang, onResult, onPlayAgain }: GProps
     if (p === 0) return [p, shuffle([...ITEMS]) as string[]];
     const top = tier.prizes[tier.prizes.length-1];
     const ratio = p / top;
-    if (ratio >= 0.9) return [p, shuffle(['🏆','💎','💎','💎','🪙','🪙','💀','💀','💀']) as string[]];
-    if (ratio >= 0.5) return [p, shuffle(['💎','💎','🪙','🪙','🪙','💀','💀','💀','💀']) as string[]];
-    return [p, shuffle(['🪙','🪙','🪙','💀','💀','💀','💀','💀','💀']) as string[]];
+    if (ratio >= 0.9) return [p, shuffle(['T','G','G','G','C','C','X','X','X']) as string[]];
+    if (ratio >= 0.5) return [p, shuffle(['G','G','C','C','C','X','X','X','X']) as string[]];
+    return [p, shuffle(['C','C','C','X','X','X','X','X','X']) as string[]];
   });
 
   const called = useRef(false);
@@ -144,7 +145,7 @@ export function TreasureHunt({ game, tier, lang, onResult, onPlayAgain }: GProps
       {/* Digs left + total */}
       <div style={{ display:'flex', gap:8 }}>
         <div style={{ padding:'5px 12px', borderRadius:8, background:`${game.color1}44`, border:`1px solid ${game.accent}33`, fontSize:11, color:game.accent, fontWeight:700 }}>
-          {isRtl ? `⛏ ${digsLeft} حفريات` : `⛏ ${digsLeft} digs left`}
+          {isRtl ? `${digsLeft} حفريات` : `${digsLeft} digs left`}
         </div>
         <div style={{ padding:'5px 12px', borderRadius:8, background:'rgba(15,25,15,0.5)', border:`1px solid ${game.accent}33`, fontFamily:'"Orbitron",sans-serif', fontSize:11, fontWeight:900, color:game.accent }}>
           {total > 0 ? `+${total}` : '0'} SKZ
@@ -154,13 +155,13 @@ export function TreasureHunt({ game, tier, lang, onResult, onPlayAgain }: GProps
       {/* 3×3 map grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, width:264 }}>
         {grid.map((item,i) => (
-          <motion.button key={i} whileTap={{ scale:0.9 }} onClick={() => dig(i)} style={{ height:76, borderRadius:12, border: revealed[i] ? `1px solid ${item!=='💀'?game.accent+'55':'rgba(255,255,255,0.06)'}` : `1px solid ${game.accent}44`, background: revealed[i] ? (item!=='💀' ? `${game.color1}66` : '#0a1014') : `${game.color1}44`, cursor: (revealed[i]||digsLeft<=0) ? 'default' : 'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, opacity: !revealed[i]&&digsLeft<=0 ? 0.3 : 1 }}>
+          <motion.button key={i} whileTap={{ scale:0.9 }} onClick={() => dig(i)} style={{ height:76, borderRadius:12, border: revealed[i] ? `1px solid ${item!=='X'?game.accent+'55':'rgba(255,255,255,0.06)'}` : `1px solid ${game.accent}44`, background: revealed[i] ? (item!=='X' ? `${game.color1}66` : '#0a1014') : `${game.color1}44`, cursor: (revealed[i]||digsLeft<=0) ? 'default' : 'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, opacity: !revealed[i]&&digsLeft<=0 ? 0.3 : 1 }}>
             <AnimatePresence mode="wait">
               {!revealed[i]
-                ? <motion.div key="h" exit={{ scale:0 }} style={{ fontSize:22 }}>🗺</motion.div>
+                ? <motion.div key="h" exit={{ scale:0 }} style={{ fontSize:22 }}>◈</motion.div>
                 : <motion.div key="v" initial={{ scale:0, rotate:15 }} animate={{ scale:1, rotate:0 }} style={{ textAlign:'center' }}>
-                    <div style={{ fontSize:26 }}>{item}</div>
-                    <div style={{ fontSize:8, fontWeight:700, color: item!=='💀' ? game.accent : '#475569' }}>
+                    <div style={{ fontSize:26 }}>{ITEM_GLYPHS[item] ?? item}</div>
+                    <div style={{ fontSize:8, fontWeight:700, color: item!=='X' ? game.accent : '#475569' }}>
                       {isRtl ? ITEM_NAMES_AR[item] : ITEM_NAMES_EN[item]}
                     </div>
                   </motion.div>

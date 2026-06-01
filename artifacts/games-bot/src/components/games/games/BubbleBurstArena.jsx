@@ -168,7 +168,7 @@ export default function BubbleBurstArena({ phase, setPhase, onScoreUpdate, game 
 
   if (phase === 'rules') return (
     <div style={{ padding: 24, color: '#cbd5e1', fontFamily: 'Orbitron,sans-serif', textAlign: 'center' }}>
-      <div style={{ fontSize: 44, marginBottom: 10 }}>🫧</div>
+      <div style={{ fontSize: 44, marginBottom: 10 }}>●</div>
       <h2 style={{ color: '#22d3ee', fontSize: 22, margin: '8px 0 14px', textShadow: '0 0 18px #22d3ee' }}>BUBBLE BURST ARENA</h2>
       <p style={{ fontSize: 14, lineHeight: 1.7 }}>{RULES}</p>
     </div>

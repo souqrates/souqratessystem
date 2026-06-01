@@ -81,7 +81,7 @@ export default function CountBurst({ phase, setPhase, game, onScoreUpdate }) {
       setCombo(comboRef.current);
       chord([523, 659], 0.06, 0.1, 'triangle');
       triggerHaptic('success');
-      setFeedback({ label: comboRef.current >= 3 ? `🔥×${comboRef.current} CORRECT!` : '✓ CORRECT', color: '#10b981', id: Date.now() });
+      setFeedback({ label: comboRef.current >= 3 ? `★×${comboRef.current} CORRECT!` : '✓ CORRECT', color: '#10b981', id: Date.now() });
       setTimeout(nextRound, 500);
     } else {
       comboRef.current = 0;
@@ -112,7 +112,7 @@ export default function CountBurst({ phase, setPhase, game, onScoreUpdate }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <HudRow>
         <Hud label="SCORE" v={score} c="#10b981" />
-        <Hud label="COMBO" v={combo >= 3 ? `${combo}🔥` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 3 ? `${combo}x` : combo} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
         <Hud label="TIME" v={`${timeLeft}s`} c={timeLeft <= 15 ? '#ef4444' : '#94a3b8'} />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || TARGET} label="TARGET TO WIN" />

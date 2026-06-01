@@ -116,7 +116,7 @@ export default function Wallet() {
             width: 36, height: 36, borderRadius: 12, flexShrink: 0,
             background: 'linear-gradient(135deg, rgba(34,211,238,0.18), rgba(14,165,233,0.18))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-          }}>🏦</div>
+          }}>■</div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-black text-white mb-1">Deposit & Withdraw via Mother Bot</p>
             <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(148,163,184,0.85)' }}>

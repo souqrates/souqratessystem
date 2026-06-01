@@ -146,7 +146,7 @@ export default function CannonMerge({ phase, setPhase, game, onScoreUpdate }) {
                 fontSize: 18,
               }}
             >
-              {cannonX === c ? '🎯' : '▼'}
+              {cannonX === c ? '◎' : '▼'}
             </motion.button>
           ))}
         </div>

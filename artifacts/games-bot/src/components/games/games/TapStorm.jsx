@@ -11,7 +11,7 @@ const TARGET = 50;
 const BASE_WINDOW = 420;
 const MIN_WINDOW = 150;
 const ZONE_COLORS = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#a855f7'];
-const ZONE_LABELS = ['🔴', '🟡', '🟢', '🔵', '🟣'];
+const ZONE_COLORS_ACCENT = ['#ef4444', '#eab308', '#22c55e', '#3b82f6', '#a855f7'];
 
 export default function TapStorm({ phase, setPhase, game, onScoreUpdate }) {
   const GAME_TIME = game?.durationSeconds || DEFAULT_GAME_TIME;
@@ -160,7 +160,7 @@ export default function TapStorm({ phase, setPhase, game, onScoreUpdate }) {
                   />
                 )}
               </AnimatePresence>
-              {isActive ? ZONE_LABELS[z] : <span style={{ opacity: 0.2, fontSize: 14, fontFamily: 'Orbitron, sans-serif', color }}>{z + 1}</span>}
+              {isActive ? <span style={{ width: 20, height: 20, borderRadius: '50%', background: ZONE_COLORS_ACCENT[z], display: 'inline-block', boxShadow: `0 0 8px ${ZONE_COLORS_ACCENT[z]}` }} /> : <span style={{ opacity: 0.2, fontSize: 14, fontFamily: 'Orbitron, sans-serif', color }}>{z + 1}</span>}
             </motion.button>
           );
         })}

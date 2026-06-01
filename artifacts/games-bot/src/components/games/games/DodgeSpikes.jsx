@@ -138,7 +138,7 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
       <TimeBar totalTime={GAME_TIME} timeLeft={timeLeft} color={VOLT_YELLOW} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 8 }}>
-        <MomentumFlash msg={flash?.type === 'good' ? '⚡ DODGED!' : '⚡ ZAPPED!'} color={flash?.type === 'good' ? VOLT_CYAN : '#ef4444'} trigger={flash?.id} />
+        <MomentumFlash msg={flash?.type === 'good' ? 'DODGED!' : 'ZAPPED!'} color={flash?.type === 'good' ? VOLT_CYAN : '#ef4444'} trigger={flash?.id} />
 
         <div style={{
           position: 'relative', width: W, height: H,
@@ -178,7 +178,7 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
               pointerEvents: 'none',
             }}>
-              ⚡
+              ▼
             </div>
           ))}
 
@@ -200,7 +200,7 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
               color: '#fff',
               textShadow: `0 0 6px ${VOLT_CYAN}`,
             }}>
-            ⚡
+            ●
           </motion.div>
         </div>
 

@@ -159,7 +159,7 @@ export default function BeatTap({ phase, setPhase, game, onScoreUpdate }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 24,
           }}>
-            🥁
+            ♪
           </div>
         </div>
 

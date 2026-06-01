@@ -154,7 +154,7 @@ export default function EchoChamber({ phase, setPhase, onScoreUpdate }) {
             : '0 0 18px #00f5a088, inset 0 1px 0 rgba(255,255,255,0.25)',
           transition: 'all 0.2s',
         }}>
-          <span style={{ fontSize: 15 }}>{stage === 'show' ? '👂' : '🎯'}</span>
+          <span style={{ fontSize: 15 }}>{stage === 'show' ? '◉' : '◎'}</span>
           <span style={{
             fontFamily: 'Orbitron, sans-serif',
             fontWeight: 900,

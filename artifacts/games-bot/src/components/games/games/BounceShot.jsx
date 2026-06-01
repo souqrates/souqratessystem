@@ -71,7 +71,7 @@ export default function BounceShot({ phase, setPhase, game, onScoreUpdate }) {
       setScore(scoreRef.current); setRemaining(remainingRef.current); setCombo(comboRef.current);
       chord([660, 990, 1320], 0.06, 0.12, 'triangle');
       triggerHaptic('success');
-      setFeedback({ label: comboRef.current >= 3 ? '🔥 COMBO ×3' : comboRef.current >= 2 ? '×2 GREAT' : '✓ HIT', color: '#10b981', id: Date.now() });
+      setFeedback({ label: comboRef.current >= 3 ? '★ COMBO ×3' : comboRef.current >= 2 ? '×2 GREAT' : '✓ HIT', color: '#10b981', id: Date.now() });
       posRef.current = { x: W / 2, y: H - 40 };
       setBallPos({ x: W / 2, y: H - 40 });
       if (remainingRef.current <= 0) { targetRef.current = null; setTarget(null); endGame(); return; }
@@ -144,7 +144,7 @@ export default function BounceShot({ phase, setPhase, game, onScoreUpdate }) {
       <HudRow>
         <Hud label="SCORE" v={score} c="#3b82f6" />
         <Hud label="LEFT" v={remaining} c="#94a3b8" />
-        <Hud label="COMBO" v={combo >= 2 ? `×${combo}🔥` : combo} c={combo >= 2 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 2 ? `×${combo}` : combo} c={combo >= 2 ? '#f97316' : '#94a3b8'} />
       </HudRow>
       <TargetBar score={TOTAL_TARGETS - remaining} target={game.targetScore || TOTAL_TARGETS} label="TARGET TO WIN" />
 

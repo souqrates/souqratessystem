@@ -114,7 +114,7 @@ export default function FlickShot({ phase, setPhase, game, onScoreUpdate }) {
             <div style={{ width: 2, height: 20, background: '#f59e0b88' }} />
             <div style={{ width: 2, height: 20, background: '#f59e0b88' }} />
           </div>
-          <p style={{ color: '#f59e0b88', fontSize: 20, margin: 0 }}>🏀</p>
+          <p style={{ color: '#f59e0b88', fontSize: 20, margin: 0 }}>●</p>
         </div>
 
         {/* Ball */}

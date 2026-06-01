@@ -201,7 +201,7 @@ function SettlementPill({ status }) {
     failed: {
       bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.45)',
       color: '#f87171', icon: <AlertTriangle size={11} />,
-      text: '⚠️ Contact support — settlement did not complete',
+      text: 'Contact support — settlement did not complete',
     },
   }[status];
 

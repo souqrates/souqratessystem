@@ -198,7 +198,7 @@ export default function WallJump({ phase, setPhase, game, onScoreUpdate }) {
             <rect key={p.id} x={p.x} y={p.y} width={p.w} height={p.h} rx={3} fill="rgba(34,197,94,0.3)" stroke="#22c55e" strokeWidth={1.5} />
           ))}
           {coins.map(c => (
-            <text key={c.id} x={c.x} y={c.y + 6} textAnchor="middle" fontSize={16}>🪙</text>
+            <text key={c.id} x={c.x} y={c.y + 6} textAnchor="middle" fontSize={16} fill="#fbbf24">★</text>
           ))}
           <rect
             x={playerPos.x - PLAYER_W / 2}

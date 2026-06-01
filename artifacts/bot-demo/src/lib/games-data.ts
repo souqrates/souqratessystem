@@ -58,7 +58,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'نجوم الحظ', nameEn: 'Your Lucky Number',
     iconKey: 'Star',
     color1: '#78350f', color2: '#92400e', accent: '#fbbf24',
-    symbols: ['★', '✦', '⭐', '✧'],
+    symbols: ['★', '✦', '✶', '✧'],
     description: 'النجوم تقود طريقك للثروة',
     mechanicDescAr: 'احك رقمك المحظوظ — إذا ظهر في الأرقام الثمانية ربحت',
     mechanicDescEn: 'Scratch your lucky number — match it in 8 prize numbers to win',

@@ -64,7 +64,7 @@ export default function WhackMole({ phase, setPhase, onScoreUpdate, game }) {
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS},1fr)`, gap: 8, padding: 12, background: 'radial-gradient(ellipse at top,#1a0e02,#02010a)', borderRadius: 14, border: '1px solid rgba(255,204,0,0.18)' }}>
         {holes.map((h, i) => (
           <button key={i} onPointerDown={() => tap(i)} style={{ aspectRatio: '1', borderRadius: 999, border: '2px solid rgba(255,255,255,0.08)', background: 'radial-gradient(circle at center,#1a0c00,#000)', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-            {h && <div style={{ position: 'absolute', inset: 8, borderRadius: 999, background: h.type === 'mole' ? 'radial-gradient(circle,#a86b3a,#5a3010)' : 'radial-gradient(circle,#ff3355,#5a0a14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, animation: 'mole-pop 0.15s ease-out' }}>{h.type === 'mole' ? '🦔' : '💣'}</div>}
+            {h && <div style={{ position: 'absolute', inset: 8, borderRadius: 999, background: h.type === 'mole' ? 'radial-gradient(circle,#a86b3a,#5a3010)' : 'radial-gradient(circle,#ff3355,#5a0a14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, animation: 'mole-pop 0.15s ease-out' }}>{h.type === 'mole' ? '●' : '✦'}</div>}
           </button>
         ))}
       </div>

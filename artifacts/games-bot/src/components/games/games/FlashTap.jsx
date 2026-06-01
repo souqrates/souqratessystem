@@ -83,7 +83,7 @@ export default function FlashTap({ phase, setPhase, game, onScoreUpdate }) {
       beep({ freq: 600 + comboRef.current * 60, dur: 0.05, vol: 0.1 });
     }
     const pid = Date.now();
-    const label = comboRef.current >= 5 ? '🔥 ×3' : comboRef.current >= 3 ? '×2' : '+1';
+    const label = comboRef.current >= 5 ? '★ ×3' : comboRef.current >= 3 ? '×2' : '+1';
     setPopups(p => [...p, { id: pid, label }]);
     track(setTimeout(() => setPopups(p => p.filter(x => x.id !== pid)), 600));
   }, [track]);
@@ -114,7 +114,7 @@ export default function FlashTap({ phase, setPhase, game, onScoreUpdate }) {
       <HudRow>
         <Hud label="SCORE" v={score} c="#fbbf24" />
         <Hud label="TIME" v={timeLeft} c="#f97316" />
-        <Hud label="COMBO" v={combo >= 3 ? `×${combo >= 5 ? 3 : 2} 🔥` : `${combo}`} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
+        <Hud label="COMBO" v={combo >= 3 ? `×${combo >= 5 ? 3 : 2}` : `${combo}`} c={combo >= 3 ? '#f97316' : '#94a3b8'} />
       </HudRow>
       <TargetBar score={score} target={game.targetScore || 60} label="TARGET TO WIN" />
       <TimeBar totalTime={GAME_TIME} timeLeft={timeLeft} />
