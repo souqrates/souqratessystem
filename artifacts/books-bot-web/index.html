@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#07060d" />
     <meta name="color-scheme" content="dark" />
-    <style>html,body,#root{background:#07060d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}</style>
+    <style>html,body,#root{background:#07060d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}@keyframes skz-bar{0%,100%{width:22%}50%{width:72%}}</style>
     <title>SOUQRATES SOUQ — الكتب والمنتجات الرقمية</title>
     <meta name="description" content="SOUQRATES SOUQ — متجر الكتب والمنتجات الرقمية في تيليغرام. اشترِ، انشر، واربح بعملة SKZ ضمن منظومة SOUQRATES." />
     <meta name="robots" content="index, follow" />
@@ -41,7 +41,33 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="skz-pre" aria-hidden="true" style="
+        position:fixed;inset:0;z-index:9999;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:radial-gradient(ellipse at 50% 35%,#0d1a0f 0%,#060d07 55%,#020a03 100%);
+        pointer-events:none;user-select:none;gap:0;
+      ">
+        <img src="/souqrates-logo.webp" alt="" aria-hidden="true"
+          style="display:block;width:min(68vw,240px);height:auto;margin-bottom:24px;
+            filter:drop-shadow(0 8px 28px rgba(16,185,129,0.45)) drop-shadow(0 2px 10px rgba(245,158,11,0.3));" />
+        <div style="
+          font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(14px,4.5vw,20px);
+          letter-spacing:0.12em;margin-bottom:5px;
+          background:linear-gradient(180deg,#d1fae5 0%,#34d399 45%,#059669 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        ">SOUQRATES SOUQ</div>
+        <div style="font-size:11px;letter-spacing:0.1em;color:rgba(245,158,11,0.7);margin-bottom:28px;font-family:'Tajawal',sans-serif;">
+          الكتب والمنتجات الرقمية
+        </div>
+        <div style="width:180px;height:3px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
+          <div style="height:100%;border-radius:999px;
+            background:linear-gradient(90deg,#059669,#34d399 40%,#f59e0b 80%,#fcd34d 100%);
+            box-shadow:0 0 10px rgba(52,211,153,0.5);
+            animation:skz-bar 1.4s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -90,12 +90,16 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
   const [name, setName] = useState(bot.name);
   const [description, setDescription] = useState(bot.description ?? "");
   const [isActive, setIsActive] = useState(bot.isActive);
+  const [botUsername, setBotUsername] = useState((bot as Bot & { botUsername?: string }).botUsername ?? "");
+  const [miniAppName, setMiniAppName] = useState((bot as Bot & { miniAppName?: string }).miniAppName ?? "");
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     setName(bot.name);
     setDescription(bot.description ?? "");
     setIsActive(bot.isActive);
+    setBotUsername((bot as Bot & { botUsername?: string }).botUsername ?? "");
+    setMiniAppName((bot as Bot & { miniAppName?: string }).miniAppName ?? "");
   }, [bot.slug, bot.name, bot.description, bot.isActive]);
 
   const mut = useMutation({
@@ -104,6 +108,8 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
         name,
         description,
         isActive,
+        botUsername,
+        miniAppName,
       }),
     onSuccess: () => {
       setMsg({ kind: "ok", text: "تم الحفظ" });
@@ -111,6 +117,12 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
     },
     onError: (e) => setMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل الحفظ" }),
   });
+
+  const tmeLink = botUsername
+    ? miniAppName
+      ? `https://t.me/${botUsername}/${miniAppName}`
+      : `https://t.me/${botUsername}`
+    : null;
 
   return (
     <Card title="الإعدادات الأساسية" subtitle="اسم البوت ووصفه وحالة التفعيل">
@@ -126,6 +138,43 @@ function BotBasicCard({ bot, onSaved }: { bot: Bot; onSaved: () => void }) {
           </Field>
         </div>
       </div>
+
+      <div className="mt-4 border-t border-slate-200 pt-4">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">رابط Telegram Mini App</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="اسم البوت على تيليغرام (بدون @)">
+            <input
+              className={inputCls}
+              value={botUsername}
+              onChange={(e) => setBotUsername(e.target.value.replace(/^@/, ""))}
+              placeholder="مثال: SouqratesBot"
+              dir="ltr"
+            />
+          </Field>
+          <Field label="اسم الـ Mini App (اختياري)">
+            <input
+              className={inputCls}
+              value={miniAppName}
+              onChange={(e) => setMiniAppName(e.target.value)}
+              placeholder="مثال: scratchy"
+              dir="ltr"
+            />
+          </Field>
+        </div>
+        {tmeLink && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-slate-500">الرابط:</span>
+            <a href={tmeLink} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-indigo-600 hover:underline font-mono break-all">
+              {tmeLink}
+            </a>
+          </div>
+        )}
+        <p className="text-xs text-slate-400 mt-1">
+          يُستخدم هذا الرابط في بوابة البوتات داخل تطبيق SOUQRATES SYSTEM ليفتح البوت مباشرة في تيليغرام.
+        </p>
+      </div>
+
       <div className="mt-5 flex items-center gap-3">
         <button onClick={() => mut.mutate()} disabled={mut.isPending} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold">
           {mut.isPending ? "جارٍ الحفظ…" : "حفظ التغييرات"}

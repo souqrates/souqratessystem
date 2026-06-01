@@ -56,11 +56,13 @@ router.get("/superadmin/bots", requireSuperAdmin, async (_req, res): Promise<voi
 
 router.patch("/superadmin/bots/:slug", requireSuperAdmin, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
-  const { name, description, commissionRate, isActive } = req.body as {
+  const { name, description, commissionRate, isActive, botUsername, miniAppName } = req.body as {
     name?: string;
     description?: string;
     commissionRate?: string | number;
     isActive?: boolean;
+    botUsername?: string;
+    miniAppName?: string;
   };
 
   const [existing] = await db.select({ id: botsTable.id }).from(botsTable).where(eq(botsTable.slug, raw));
@@ -81,6 +83,8 @@ router.patch("/superadmin/bots/:slug", requireSuperAdmin, async (req, res): Prom
     updates.commissionRate = rate.toFixed(4);
   }
   if (typeof isActive === "boolean") updates.isActive = isActive;
+  if (typeof botUsername === "string") updates.botUsername = botUsername.trim().replace(/^@/, "") || null;
+  if (typeof miniAppName === "string") updates.miniAppName = miniAppName.trim() || null;
 
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "No fields to update" });

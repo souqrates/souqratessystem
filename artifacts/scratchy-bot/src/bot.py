@@ -98,14 +98,18 @@ def _resolve_api_key() -> str:
             logger.warning("HTTP fallback for SCRATCHY_BOT_API_KEY failed: %s", _exc)
 
     if not env_key:
-        logger.warning("SCRATCHY_BOT_API_KEY not set — API calls will fail auth")
-    else:
-        logger.error(
-            "SCRATCHY_BOT_API_KEY contains ':' (looks like a bot token) and "
-            "HTTP fallback also failed. Fix: set SCRATCHY_BOT_API_KEY to the "
-            "api_key from the bots table, not to the Telegram bot token."
+        raise RuntimeError(
+            "SCRATCHY_BOT_API_KEY is not set.\n"
+            "Fix: copy the api_key from the bots table (slug='scratchy-bot') "
+            "and set it as the SCRATCHY_BOT_API_KEY secret."
         )
-    return env_key
+    raise RuntimeError(
+        "SCRATCHY_BOT_API_KEY looks like a Telegram bot token (contains ':') "
+        "and the HTTP fallback via ADMIN_TOKEN also failed.\n"
+        "Fix: set SCRATCHY_BOT_API_KEY to the api_key from the bots table "
+        "(slug='scratchy-bot'), NOT to the Telegram bot token.\n"
+        "The api_key is a 64-char hex string with no colons."
+    )
 
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
 

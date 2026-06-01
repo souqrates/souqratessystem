@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#07070d" />
     <meta name="color-scheme" content="dark" />
-    <style>html,body,#root{background:#07070d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}</style>
+    <style>html,body,#root{background:#07070d !important;margin:0;padding:0;color-scheme:dark;}html{overflow:hidden;}@keyframes skz-bar{0%,100%{width:22%}50%{width:72%}}</style>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23eab308'/%3E%3Ctext x='50' y='72' font-size='72' text-anchor='middle' font-family='Arial' font-weight='900' fill='%23000'%3E%E2%98%85%3C/text%3E%3C/svg%3E" />
     <title>SOUQRATES STAGE — مسرح المسابقات</title>
     <meta name="description" content="مسرح المسابقات والتصويت الرسمي في منظومة SOUQRATES. تابع المسابقة الحالية وصَوِّت لمتسابقك المفضّل." />
@@ -34,7 +34,33 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="skz-pre" aria-hidden="true" style="
+        position:fixed;inset:0;z-index:9999;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:radial-gradient(ellipse at 50% 35%,#13091f 0%,#08050e 55%,#030208 100%);
+        pointer-events:none;user-select:none;gap:0;
+      ">
+        <img src="/souqrates-logo.webp" alt="" aria-hidden="true"
+          style="display:block;width:min(68vw,240px);height:auto;margin-bottom:24px;
+            filter:drop-shadow(0 8px 28px rgba(234,179,8,0.45)) drop-shadow(0 2px 10px rgba(168,85,247,0.3));" />
+        <div style="
+          font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(14px,4.5vw,20px);
+          letter-spacing:0.12em;margin-bottom:5px;
+          background:linear-gradient(180deg,#fef9c3 0%,#facc15 45%,#ca8a04 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        ">SOUQRATES STAGE</div>
+        <div style="font-size:11px;letter-spacing:0.1em;color:rgba(168,85,247,0.75);margin-bottom:28px;font-family:'Tajawal',sans-serif;">
+          مسرح المسابقات
+        </div>
+        <div style="width:180px;height:3px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
+          <div style="height:100%;border-radius:999px;
+            background:linear-gradient(90deg,#a855f7,#d946ef 40%,#eab308 80%,#fde047 100%);
+            box-shadow:0 0 10px rgba(234,179,8,0.5);
+            animation:skz-bar 1.4s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

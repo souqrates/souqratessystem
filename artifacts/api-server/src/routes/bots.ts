@@ -21,6 +21,23 @@ router.get("/bots", async (_req, res): Promise<void> => {
   });
 });
 
+// Public endpoint: returns bot hub info (slug, name, botUsername, miniAppName)
+// Used by mother-bot-web bots.html to build t.me links without auth.
+router.get("/public/bots-hub", async (_req, res): Promise<void> => {
+  const bots = await db
+    .select({
+      slug: botsTable.slug,
+      name: botsTable.name,
+      botUsername: botsTable.botUsername,
+      miniAppName: botsTable.miniAppName,
+      isActive: botsTable.isActive,
+    })
+    .from(botsTable)
+    .orderBy(botsTable.id);
+
+  res.json({ data: bots });
+});
+
 router.get("/bots/:slug", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
 

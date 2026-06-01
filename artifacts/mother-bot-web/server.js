@@ -51,6 +51,16 @@ http.createServer((req, res) => {
 
   if (url === '/' || url === '') { serveIndex(res); return; }
 
+  // Serve bots hub page at /bots
+  if (url === '/bots' || url === '/bots/') {
+    fs.readFile(path.join(PUBLIC, 'bots.html'), (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      res.end(data);
+    });
+    return;
+  }
+
   const filePath = path.join(PUBLIC, url);
 
   if (!filePath.startsWith(PUBLIC)) {

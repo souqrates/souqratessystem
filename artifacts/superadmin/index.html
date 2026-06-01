@@ -15,10 +15,38 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>@keyframes skz-bar{0%,100%{width:22%}50%{width:72%}}</style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="skz-pre" aria-hidden="true" style="
+        position:fixed;inset:0;z-index:9999;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:#0f172a;pointer-events:none;user-select:none;gap:0;
+      ">
+        <div style="
+          width:64px;height:64px;border-radius:16px;margin-bottom:20px;
+          background:linear-gradient(135deg,#6366f1,#a855f7);
+          display:flex;align-items:center;justify-content:center;
+          box-shadow:0 8px 24px rgba(99,102,241,0.4);
+          font-size:32px;
+        ">S</div>
+        <div style="
+          font-family:'Inter',sans-serif;font-weight:700;font-size:18px;
+          letter-spacing:0.05em;color:#f8fafc;margin-bottom:4px;
+        ">SOUQRATES ADMIN</div>
+        <div style="font-size:11px;color:rgba(148,163,184,0.7);letter-spacing:0.12em;margin-bottom:28px;">
+          لوحة المدير المركزية
+        </div>
+        <div style="width:160px;height:3px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;">
+          <div style="height:100%;border-radius:999px;
+            background:linear-gradient(90deg,#6366f1,#a855f7 50%,#22d3ee 100%);
+            box-shadow:0 0 10px rgba(99,102,241,0.5);
+            animation:skz-bar 1.4s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
