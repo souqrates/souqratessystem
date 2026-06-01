@@ -177,7 +177,7 @@ export default function JackpotCounter({ jackpot, coinTrigger, lang, participant
           textAlign: 'center',
         }}
       >
-        🏆 {isRtl ? 'الجائزة الكبرى' : 'JACKPOT PRIZE'}
+        {isRtl ? 'الجائزة الكبرى' : 'JACKPOT PRIZE'}
       </motion.div>
 
       {/* Giant rolling counter */}

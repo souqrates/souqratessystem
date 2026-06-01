@@ -235,7 +235,7 @@ export default function MyLibrary() {
       {!loading && !error && purchases.length === 0 && (
         <div className="rounded-2xl p-8 text-center"
           style={{ background: "rgba(34,211,238,0.03)", border: "1px solid rgba(34,211,238,0.1)" }}>
-          <div className="text-4xl mb-4">📚</div>
+          <BookOpen size={44} className="mx-auto mb-4" strokeWidth={1.4} style={{ color: 'rgba(34,211,238,0.35)' }} />
           <p className="font-bold text-sm text-white/70 mb-1">مكتبتك فارغة بعد</p>
           <p className="text-xs mb-5" style={{ color: "rgba(148,163,184,0.45)" }}>
             اشترِ أول كتاب وستظهر هنا فوراً

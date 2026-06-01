@@ -1,5 +1,6 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideProps } from "lucide-react";
+import type { ComponentType } from "react";
 import { findCategory } from "@/lib/catalog";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
@@ -14,13 +15,13 @@ const CAT_COLORS: Record<string, string> = {
   audio:              '#06b6d4',
 };
 
-const CAT_EMOJIS: Record<string, string> = {
-  religion:           '📖',
-  education:          '🎓',
-  literature:         '📜',
-  kids:               '🧒',
-  "self-development": '🧠',
-  audio:              '🎧',
+const CAT_ICONS: Record<string, ComponentType<LucideProps>> = {
+  religion:           BookOpen,
+  education:          GraduationCap,
+  literature:         ScrollText,
+  kids:               Baby,
+  "self-development": Brain,
+  audio:              Headphones,
 };
 
 export default function Category() {
@@ -30,7 +31,7 @@ export default function Category() {
   if (!cat) return <NotFound />;
   const books = all.filter((b) => b.category === cat.slug);
   const color = CAT_COLORS[cat.slug] || '#22d3ee';
-  const emoji = CAT_EMOJIS[cat.slug] || '📚';
+  const CatIcon = CAT_ICONS[cat.slug] ?? BookOpen;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -47,10 +48,10 @@ export default function Category() {
       <div className="rise mb-10">
         <div className="flex items-center gap-4 mb-4">
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
             style={{ background: `${color}12`, border: `1px solid ${color}25` }}
           >
-            {emoji}
+            <CatIcon size={28} color={color} strokeWidth={1.6} />
           </div>
           <div>
             <h1 className="font-orbitron font-black text-2xl text-white/90">{cat.name}</h1>
@@ -64,12 +65,12 @@ export default function Category() {
       {/* Books */}
       {loading ? (
         <div className="text-center py-24">
-          <div className="text-3xl mb-4">{emoji}</div>
+          <CatIcon size={36} className="mx-auto mb-4" strokeWidth={1.4} style={{ color: `${color}70` }} />
           <div className="font-bold text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</div>
         </div>
       ) : books.length === 0 ? (
         <div className="text-center py-24">
-          <div className="text-3xl mb-4">📭</div>
+          <BookOpen size={36} className="mx-auto mb-4" strokeWidth={1.4} style={{ color: 'rgba(148,163,184,0.3)' }} />
           <div className="font-bold text-sm mb-4" style={{ color: 'rgba(148,163,184,0.5)' }}>لا توجد كتب في هذا القسم بعد</div>
           <Link href="/library"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all"

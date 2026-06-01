@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, Star, Download, ShieldCheck, Clock, BookOpen } from "lucide-react";
+import { ArrowLeft, Star, Download, ShieldCheck, Clock, BookOpen, Headphones } from "lucide-react";
 import { findCategory } from "@/lib/catalog";
 import { useBooks } from "@/lib/api";
 import { BookCard } from "@/components/BookCard";
@@ -14,7 +14,7 @@ export default function Book() {
   if (loading) {
     return (
       <div className="text-center py-32">
-        <div className="text-3xl mb-4">📖</div>
+        <BookOpen size={36} className="mx-auto mb-4" strokeWidth={1.5} style={{ color: 'rgba(34,211,238,0.4)' }} />
         <p className="text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</p>
       </div>
     );
@@ -59,8 +59,11 @@ export default function Book() {
                   boxShadow: '0 20px 60px rgba(34,211,238,0.08)',
                 }}
               >
-                <div className="text-5xl mb-4">
-                  {book.category === 'audio' ? '🎧' : '📖'}
+                <div className="mb-4 flex items-center justify-center">
+                  {book.category === 'audio'
+                    ? <Headphones size={52} strokeWidth={1.4} style={{ color: 'rgba(34,211,238,0.6)' }} />
+                    : <BookOpen size={52} strokeWidth={1.4} style={{ color: 'rgba(34,211,238,0.6)' }} />
+                  }
                 </div>
                 <div className="text-center">
                   <div className="font-bold text-sm text-white/90 mb-2 leading-snug">{book.title}</div>

@@ -12,8 +12,8 @@ function Res({ prize, accent, onPlayAgain, lang }: { prize: number; accent: stri
   return (
     <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} style={{ textAlign:'center', paddingTop:4 }}>
       {prize > 0
-        ? <div style={{ fontFamily:'"Orbitron",sans-serif', fontSize:26, fontWeight:900, background:`linear-gradient(90deg,${accent},#22c55e)`, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>+{prize.toLocaleString()} SKZ 🎉</div>
-        : <div style={{ fontSize:13, color:'#475569', fontWeight:600 }}>{lang==='ar' ? 'حظاً أوفر المرة القادمة 🍀' : 'Better luck next time 🍀'}</div>
+        ? <div style={{ fontFamily:'"Orbitron",sans-serif', fontSize:26, fontWeight:900, background:`linear-gradient(90deg,${accent},#22c55e)`, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>+{prize.toLocaleString()} SKZ</div>
+        : <div style={{ fontSize:13, color:'#475569', fontWeight:600 }}>{lang==='ar' ? 'حظاً أوفر المرة القادمة' : 'Better luck next time'}</div>
       }
       <button onClick={onPlayAgain} style={{ marginTop:10, padding:'12px 0', borderRadius:12, border:`1px solid ${accent}44`, background:'rgba(15,25,15,0.6)', color:accent, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'"Tajawal",sans-serif', width:'100%' }}>
         {lang==='ar' ? 'العب مرة أخرى' : 'Play Again'}
@@ -159,7 +159,7 @@ export function PokerGame({ game, tier, lang, onResult, onPlayAgain }: GProps) {
         </div>
         {hn && (
           <motion.div initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} style={{ textAlign:'center', marginTop:10, fontSize:13, fontWeight:800, color: prize>0 ? game.accent : '#475569' }}>
-            {hn} {prize>0 ? '🏆' : ''}
+            {hn}
           </motion.div>
         )}
       </div>

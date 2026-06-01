@@ -1,3 +1,4 @@
+import { Gamepad2 } from 'lucide-react';
 import { isLowEnd, isMidEnd, isIOS } from '../lib/deviceProfile';
 import useAppStore from '../store/appStore';
 
@@ -19,7 +20,7 @@ export default function Navbar() {
 
         {/* Brand */}
         <div className="flex items-center gap-2">
-          <span className="text-lg">🎮</span>
+          <Gamepad2 size={18} color="rgba(34,211,238,0.85)" strokeWidth={1.8} />
           <span className="font-orbitron text-[11px] font-black tracking-widest text-white/90">
             SOUQRATES <span style={{ color: '#22d3ee' }}>SKILLZ</span>
           </span>

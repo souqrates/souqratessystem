@@ -18,7 +18,7 @@ export default function Contests() {
         <h1 className="font-orbitron text-base font-black text-white tracking-widest">Contests</h1>
       </motion.div>
       <motion.div variants={item} className="glass-card rounded-2xl p-10 text-center space-y-3">
-        <div style={{ fontSize: 40 }}>🏆</div>
+        <Trophy size={40} color="rgba(251,191,36,0.85)" strokeWidth={1.5} />
         <p className="font-orbitron text-sm font-black text-white">Coming Soon</p>
         <p className="text-xs" style={{ color: 'rgba(148,163,184,0.55)', lineHeight: 1.6 }}>
           Competitive contests with big prize pools are coming. Stay tuned!

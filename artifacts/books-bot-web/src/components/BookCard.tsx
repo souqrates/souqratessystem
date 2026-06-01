@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Star, Volume2 } from "lucide-react";
+import { Star, Volume2, BookOpen, Headphones } from "lucide-react";
 import type { Book } from "@/lib/catalog";
 import { findCategory } from "@/lib/catalog";
 
@@ -31,8 +31,11 @@ export function BookCard({ book }: { book: Book }) {
         </div>
 
         {/* Icon */}
-        <div className="text-3xl mb-3">
-          {isAudio ? '🎧' : '📖'}
+        <div className="mb-3 flex items-center justify-center">
+          {isAudio
+            ? <Headphones size={38} strokeWidth={1.4} style={{ color: 'rgba(34,211,238,0.55)' }} />
+            : <BookOpen size={38} strokeWidth={1.4} style={{ color: 'rgba(34,211,238,0.55)' }} />
+          }
         </div>
 
         {/* Title */}

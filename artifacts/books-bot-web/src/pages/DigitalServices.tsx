@@ -1,10 +1,47 @@
-import { useState } from "react";
-import { ArrowLeft, Zap, ExternalLink, Search } from "lucide-react";
-import { VOUCHER_BRANDS, VOUCHER_CATEGORY_META, vouchersByCategory, type VoucherCategory, type VoucherBrand } from "@/lib/vouchers";
+import { useState, type ComponentType } from "react";
+import {
+  ArrowLeft, Zap, ExternalLink, Search, Flame, Lightbulb, Rocket,
+  Gamepad2, Gamepad, Monitor, Crosshair, Leaf, ShoppingBag,
+  Music, Play, Tv, Radio, Film, Camera, Package, Smartphone, Globe, Users, CreditCard,
+  type LucideProps,
+} from "lucide-react";
+import { VOUCHER_BRANDS, VOUCHER_CATEGORY_META, type VoucherCategory, type VoucherBrand } from "@/lib/vouchers";
 import { TELEGRAM_BOT_URL } from "@/lib/constants";
+
+type IconComp = ComponentType<LucideProps>;
+
+/* ── Icon maps (emoji → Lucide) ── */
+const VOUCHER_ICONS: Record<string, IconComp> = {
+  'psn':             Gamepad2,
+  'xbox':            Gamepad,
+  'steam':           Monitor,
+  'fortnite':        Zap,
+  'pubg':            Crosshair,
+  'freefire':        Flame,
+  'razer-gold':      Leaf,
+  'apple-store':     ShoppingBag,
+  'itunes':          Music,
+  'google-play':     Play,
+  'youtube-premium': Tv,
+  'spotify':         Radio,
+  'netflix':         Film,
+  'shahid':          Film,
+  'snapchat':        Camera,
+  'amazon':          Package,
+};
+
+const CATEGORY_ICONS: Record<string, IconComp> = {
+  'gaming':        Gamepad2,
+  'apple':         Smartphone,
+  'google':        Globe,
+  'entertainment': Film,
+  'social':        Users,
+  'other':         CreditCard,
+};
 
 /* ── Voucher Card ── */
 function VoucherCard({ v }: { v: VoucherBrand }) {
+  const VIcon = VOUCHER_ICONS[v.id];
   return (
     <a
       href={TELEGRAM_BOT_URL}
@@ -17,11 +54,21 @@ function VoucherCard({ v }: { v: VoucherBrand }) {
       {/* Card body */}
       <div className="p-5" style={{ background: v.bgGradient, minHeight: 140 }}>
         <div className="flex items-start justify-between mb-3">
-          <div className="text-4xl">{v.emoji}</div>
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(255,255,255,0.12)' }}
+          >
+            {VIcon
+              ? <VIcon size={24} color={v.color} strokeWidth={1.8} />
+              : <span className="font-black text-lg" style={{ color: v.color }}>{v.name[0]}</span>
+            }
+          </div>
           {v.hot && (
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(239,68,68,0.25)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)' }}>
-              🔥 HOT
+            <span
+              className="flex items-center gap-0.5 text-[9px] font-black px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(239,68,68,0.25)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)' }}
+            >
+              <Flame size={8} strokeWidth={2.5} className="inline" />HOT
             </span>
           )}
         </div>
@@ -93,11 +140,14 @@ export default function DigitalServices() {
           </div>
         </div>
 
-        {/* Banner */}
+        {/* Info banner */}
         <div className="rounded-xl p-4 mt-4 flex items-center gap-3"
           style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)' }}>
-          <div className="text-2xl">💡</div>
-          <div className="text-xs leading-relaxed" style={{ color: 'rgba(148,163,184,0.7)' }}>
+          <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+            style={{ background: 'rgba(168,85,247,0.15)' }}>
+            <Lightbulb size={18} color="#a855f7" strokeWidth={1.8} />
+          </div>
+          <div className="text-xs leading-relaxed flex-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
             ستُضاف API متجر قريباً لشراء الـ Vouchers مباشرة. حالياً يمكنك الطلب عبر البوت على تيليغرام.
           </div>
           <a href={TELEGRAM_BOT_URL} target="_blank" rel="noopener noreferrer"
@@ -142,20 +192,24 @@ export default function DigitalServices() {
           >
             الكل
           </button>
-          {VOUCHER_CATEGORY_META.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all"
-              style={{
-                background: activeCategory === cat.id ? `${cat.color}18` : 'rgba(255,255,255,0.04)',
-                color: activeCategory === cat.id ? cat.color : 'rgba(148,163,184,0.6)',
-                border: `1px solid ${activeCategory === cat.id ? `${cat.color}35` : 'rgba(255,255,255,0.07)'}`,
-              }}
-            >
-              {cat.emoji} {cat.nameAr}
-            </button>
-          ))}
+          {VOUCHER_CATEGORY_META.map(cat => {
+            const CatIcon = CATEGORY_ICONS[cat.id];
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all"
+                style={{
+                  background: activeCategory === cat.id ? `${cat.color}18` : 'rgba(255,255,255,0.04)',
+                  color: activeCategory === cat.id ? cat.color : 'rgba(148,163,184,0.6)',
+                  border: `1px solid ${activeCategory === cat.id ? `${cat.color}35` : 'rgba(255,255,255,0.07)'}`,
+                }}
+              >
+                {CatIcon && <CatIcon size={13} strokeWidth={2} />}
+                {cat.nameAr}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -166,7 +220,7 @@ export default function DigitalServices() {
         </div>
       ) : (
         <div className="text-center py-20" style={{ color: 'rgba(148,163,184,0.4)' }}>
-          <div className="text-4xl mb-4">🔍</div>
+          <Search size={44} className="mx-auto mb-4" strokeWidth={1.4} />
           <div className="font-bold text-sm">لا توجد نتائج</div>
         </div>
       )}
@@ -174,8 +228,10 @@ export default function DigitalServices() {
       {/* Coming soon notice */}
       <div className="mt-10 rounded-xl p-6 text-center"
         style={{ background: 'rgba(34,211,238,0.04)', border: '1px solid rgba(34,211,238,0.12)' }}>
-        <div className="font-orbitron font-black text-sm mb-2" style={{ color: '#22d3ee' }}>
-          🚀 API متجر الـ Vouchers قريباً
+        <div className="flex items-center justify-center gap-2 font-orbitron font-black text-sm mb-2"
+          style={{ color: '#22d3ee' }}>
+          <Rocket size={15} strokeWidth={1.8} />
+          API متجر الـ Vouchers قريباً
         </div>
         <div className="text-xs leading-relaxed" style={{ color: 'rgba(148,163,184,0.55)' }}>
           ستتيح المنصة شراء وإرسال الـ Vouchers بشكل أوتوماتيكي مباشرة من داخل التطبيق.

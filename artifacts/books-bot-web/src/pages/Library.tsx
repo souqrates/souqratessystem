@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Search, BookMarked, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideIcon } from "lucide-react";
+import { Search, BookOpen, BookMarked, GraduationCap, ScrollText, Baby, Brain, Headphones, type LucideIcon } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import type { CategorySlug } from "@/lib/constants";
 import { useBooks } from "@/lib/api";
@@ -124,12 +124,12 @@ export default function Library() {
       {/* Grid */}
       {loading ? (
         <div className="text-center py-24" data-testid="loading">
-          <div className="text-3xl mb-4">📚</div>
+          <BookOpen size={36} className="mx-auto mb-4" strokeWidth={1.5} style={{ color: 'rgba(34,211,238,0.45)' }} />
           <div className="font-bold text-sm" style={{ color: 'rgba(148,163,184,0.5)' }}>جار التحميل...</div>
         </div>
       ) : list.length === 0 ? (
         <div className="text-center py-24" data-testid="empty-results">
-          <div className="text-3xl mb-4">🔍</div>
+          <Search size={36} className="mx-auto mb-4" strokeWidth={1.5} style={{ color: 'rgba(148,163,184,0.35)' }} />
           <div className="font-bold text-sm mb-4" style={{ color: 'rgba(148,163,184,0.5)' }}>
             لا توجد نتائج لـ "{q}"
           </div>

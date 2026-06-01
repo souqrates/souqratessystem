@@ -55,7 +55,7 @@ export default function Cards({ lang, balance, onDeduct, onCredit }: Props) {
   function handleResult(prize: number) {
     if (prize > 0) {
       onCredit(prize);
-      setToast(`${t('winMsg')} ${prize} SKZ 🎉`);
+      setToast(`${t('winMsg')} ${prize} SKZ`);
     } else {
       setToast(t('loseMsg'));
     }

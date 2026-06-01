@@ -185,7 +185,7 @@ export default function JackpotCup({
           fontFamily: '"Orbitron",sans-serif', fontWeight: 700,
           textShadow: '0 0 14px #f59e0baa', marginBottom: 4,
         }}>
-          {isRtl ? '🏆 الجائزة الكبرى' : '🏆 JACKPOT PRIZE'}
+          {isRtl ? 'الجائزة الكبرى' : 'JACKPOT PRIZE'}
         </div>
         <motion.div
           key={jackpot}
