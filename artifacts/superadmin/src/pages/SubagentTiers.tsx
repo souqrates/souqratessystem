@@ -34,7 +34,7 @@ export default function SubagentTiersPage() {
         {(data?.data ?? []).length < 7 && (
           <button onClick={() => seed.mutate()} disabled={seed.isPending}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl">
-            🌱 زرع المراتب الافتراضية
+            زرع المراتب الافتراضية
           </button>
         )}
       </header>
@@ -96,7 +96,7 @@ function TierRow({ tier }: { tier: Tier }) {
         </div>
         <button onClick={() => save.mutate()} disabled={save.isPending}
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm disabled:opacity-50">
-          {save.isPending ? "…" : "💾 حفظ"}
+          {save.isPending ? "…" : "حفظ"}
         </button>
       </div>
 

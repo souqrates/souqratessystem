@@ -34,7 +34,7 @@ export default function VotePacksPage() {
     <div className="p-8 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">🎟 باقات التصويت — SOUQRATES STAGE</h1>
+          <h1 className="text-3xl font-bold text-slate-900">باقات التصويت — SOUQRATES STAGE</h1>
           <p className="text-slate-500 mt-1">
             باقات قابلة لإعادة الاستخدام. كل باقة تمنح <b>عدد أصوات</b> + <b>أصوات إضافية</b> اختيارية. يمكن إرفاق <b>ملف مكافأة</b> (مثلًا PDF كتاب) ليتحوّل الباقة إلى عرض حُزمة.
           </p>
@@ -86,7 +86,7 @@ function PackCard({ p, onChanged }: { p: VotePack; onChanged: () => void }) {
         {p.coverUrl ? (
           <img src={p.coverUrl} alt="" className="w-full h-28 object-cover" />
         ) : (
-          <div className="w-full h-28 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl">🎟</div>
+          <div className="w-full h-28 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">◈</div>
         )}
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
@@ -115,7 +115,7 @@ function PackCard({ p, onChanged }: { p: VotePack; onChanged: () => void }) {
 
           {p.bonusFileUrl && (
             <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs">
-              <div className="font-bold text-purple-800">🎁 يتضمّن مكافأة</div>
+              <div className="font-bold text-purple-800">يتضمّن مكافأة</div>
               <div className="text-purple-700 truncate">{p.bonusFileName || "ملف"}</div>
               {p.bonusDescription && <div className="text-purple-600 text-[11px] mt-1">{p.bonusDescription}</div>}
             </div>
@@ -200,7 +200,7 @@ function PackModal({ mode, pack, onClose, onSaved }: { mode: "create" | "edit"; 
         </Field>
 
         <div className="mt-4 mb-2 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-          <div className="font-bold text-purple-800 mb-2">🎁 مكافأة الحُزمة (اختياري)</div>
+          <div className="font-bold text-purple-800 mb-2">مكافأة الحُزمة (اختياري)</div>
           <div className="text-xs text-purple-700 mb-3">عند ملء رابط الملف، تصبح الباقة عرض «حُزمة»: المستخدم يحصل على الأصوات + يمكنه تنزيل الملف (مثلًا PDF كتاب).</div>
           <Field label="رابط ملف المكافأة">
             <input value={bonusFileUrl} onChange={(e) => setBonusFileUrl(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-purple-300 font-mono text-sm" dir="ltr" placeholder="https://…/book.pdf" />

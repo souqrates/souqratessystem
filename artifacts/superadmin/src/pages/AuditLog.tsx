@@ -38,7 +38,7 @@ export default function AuditLogPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">📜 سجل تدقيق المدير</h1>
+        <h1 className="text-2xl font-bold text-slate-900">سجل تدقيق المدير</h1>
         <p className="text-slate-500 mt-1">
           كل فعل قام به المدير: من، متى، على ماذا. هذا هو الدفتر الرسمي للمسؤوليات.
         </p>
@@ -91,7 +91,7 @@ export default function AuditLogPage() {
       </div>
 
       <p className="mt-4 text-xs text-slate-500">
-        💡 يُكتب السجل تلقائياً من <code className="bg-slate-100 px-1 rounded" dir="ltr">logAdminAction()</code> في كل route سوبر-أدمن يغيّر بيانات.
+        يُكتب السجل تلقائياً من <code className="bg-slate-100 px-1 rounded" dir="ltr">logAdminAction()</code> في كل route سوبر-أدمن يغيّر بيانات.
       </p>
     </div>
   );

@@ -39,7 +39,7 @@ export default function SystemHealthPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">🩺 صحة النظام</h1>
+        <h1 className="text-2xl font-bold text-slate-900">صحة النظام</h1>
         <p className="text-slate-500 mt-1">
           نظرة لحظيّة على قاعدة البيانات، خادم التطبيق، والخدمات الخارجية. يُحدَّث تلقائياً.
         </p>
@@ -58,7 +58,7 @@ export default function SystemHealthPage() {
 
       <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-800">🔌 الخدمات الخارجية</h2>
+          <h2 className="font-bold text-slate-800">الخدمات الخارجية</h2>
           <span className="text-xs text-slate-500">
             {ints.filter((i) => i.enabled).length} مفعّلة من {ints.length}
           </span>
@@ -95,7 +95,7 @@ export default function SystemHealthPage() {
           </div>
         )}
         <p className="mt-4 text-xs text-slate-500">
-          💡 لإعادة الاختبار اذهب إلى <code className="bg-slate-100 px-1 rounded">/integrations</code> واضغط «اختبر الاتصال».
+          لإعادة الاختبار اذهب إلى <code className="bg-slate-100 px-1 rounded">/integrations</code> واضغط «اختبر الاتصال».
         </p>
       </section>
     </div>

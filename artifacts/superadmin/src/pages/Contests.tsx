@@ -91,9 +91,9 @@ export default function ContestsPage() {
         <div className="text-center py-12 text-slate-400">جارٍ التحميل…</div>
       ) : (
         <>
-          <Section title="🔴 نشطة الآن" tone="emerald" contests={grouped.active} empty="لا توجد مسابقة نشطة. أنشئ مسابقة وفعِّلها." />
-          <Section title="📝 مسوّدات" tone="slate" contests={grouped.draft} empty="لا توجد مسوّدات." />
-          <Section title="🏁 منتهية" tone="zinc" contests={grouped.ended} empty="لا توجد مسابقات منتهية بعد." />
+          <Section title="● نشطة الآن" tone="emerald" contests={grouped.active} empty="لا توجد مسابقة نشطة. أنشئ مسابقة وفعِّلها." />
+          <Section title="◈ مسوّدات" tone="slate" contests={grouped.draft} empty="لا توجد مسوّدات." />
+          <Section title="◼ منتهية" tone="zinc" contests={grouped.ended} empty="لا توجد مسابقات منتهية بعد." />
         </>
       )}
 
@@ -143,7 +143,7 @@ function ContestCard({ c }: { c: Contest }) {
           <div className="font-bold text-slate-900 truncate">{c.title}</div>
           <div className="text-xs text-slate-500 truncate mt-1">{c.description || "—"}</div>
           <div className="flex items-center justify-between mt-3 text-xs text-slate-600">
-            <span>🗳 {c.totalVotes.toLocaleString("en-US")} صوت</span>
+            <span>{c.totalVotes.toLocaleString("en-US")} صوت</span>
             <span className="text-indigo-600 font-semibold">إدارة ←</span>
           </div>
         </div>

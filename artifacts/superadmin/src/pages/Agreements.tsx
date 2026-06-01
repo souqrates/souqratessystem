@@ -24,7 +24,7 @@ export default function AgreementsPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto" dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">📜 الاتفاقيات</h1>
+        <h1 className="text-2xl font-bold text-slate-900">الاتفاقيات</h1>
         <p className="text-sm text-slate-500 mt-1">
           إدارة نصّ الاتفاقية الرسمية وعرض الموقّعين عليها.
         </p>
@@ -118,14 +118,14 @@ function AgreementTextEditor() {
                 disabled={saving || content.length < 10}
                 className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
               >
-                {saving ? "جاري الحفظ…" : "💾 حفظ"}
+                {saving ? "جاري الحفظ…" : "حفظ"}
               </button>
               <button
                 onClick={load}
                 disabled={loading}
                 className="px-4 py-2 rounded-md bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200"
               >
-                🔄 تحديث
+                ↺ تحديث
               </button>
               <span className="text-xs text-slate-500 ms-2">
                 يظهر فورًا على www.souqrates.com/agreement
@@ -318,7 +318,7 @@ function SignersList() {
           disabled={loading}
           className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium hover:bg-slate-200"
         >
-          🔄 تحديث
+          ↺ تحديث
         </button>
       </div>
       <div className="p-5">
@@ -353,7 +353,7 @@ function SignersList() {
                         onClick={() => openDetail(r.id)}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                       >
-                        👁️ فتح
+                        ↗ فتح
                       </button>
                     </td>
                   </tr>
@@ -375,7 +375,7 @@ function SignersList() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
-              <div className="font-semibold text-slate-900">📄 الاتفاقية الموقّعة</div>
+              <div className="font-semibold text-slate-900">الاتفاقية الموقّعة</div>
               <div className="flex items-center gap-2">
                 {selected && (
                   <button

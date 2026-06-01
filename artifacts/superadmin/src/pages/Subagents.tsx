@@ -197,11 +197,11 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
           <>
             <button onClick={() => recompute.mutate()} disabled={recompute.isPending}
                     className="w-full py-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-bold rounded-xl text-sm">
-              🔄 إعادة حساب المرتبة
+              ↺ إعادة حساب المرتبة
             </button>
             <button onClick={() => suspend.mutate()} disabled={suspend.isPending}
                     className="w-full py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl text-sm">
-              🚫 تعليق الحساب
+              ⊘ تعليق الحساب
             </button>
           </>
         )}
@@ -239,7 +239,7 @@ function NotesEditor({ initial, onSave, isSaving }: { initial: string; onSave: (
   return (
     <div className="text-xs mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="font-bold text-amber-800">📝 ملاحظات داخلية (لا تظهر للشريك)</div>
+        <div className="font-bold text-amber-800">ملاحظات داخلية (لا تظهر للشريك)</div>
         {dirty && (
           <button onClick={() => onSave(val)} disabled={isSaving}
                   className="text-xs px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md disabled:opacity-50">

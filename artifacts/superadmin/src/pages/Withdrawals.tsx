@@ -21,7 +21,7 @@ export default function WithdrawalsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">💳 طلبات السحب</h1>
+        <h1 className="text-2xl font-bold text-slate-900">طلبات السحب</h1>
         <p className="text-slate-500 mt-1">قبول / رفض طلبات السحب — يُخصم الرصيد تلقائياً عند القبول</p>
       </header>
 

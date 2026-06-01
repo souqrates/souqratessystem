@@ -79,7 +79,7 @@ export default function GamesPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">🎮 إدارة ألعاب SOUQRATES SKILLZ</h1>
+        <h1 className="text-3xl font-bold text-slate-900">إدارة ألعاب SOUQRATES SKILLZ</h1>
         <p className="text-slate-500 mt-1">
           التحكم الكامل في كل لعبة: السعر، المكافأة، السكور، النصوص، الصورة، الظهور — التعديلات تُحفظ كـ <b>مسودة</b> ولا تظهر للمستخدمين إلا بعد <b>النشر</b>.
         </p>

@@ -33,7 +33,7 @@ export default function BroadcastPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">📢 إشعار جماعي</h1>
+        <h1 className="text-2xl font-bold text-slate-900">إشعار جماعي</h1>
         <p className="text-slate-500 mt-1">أرسل رسالة عبر البوت الأم إلى مستخدمين محددين أو الجميع</p>
       </header>
 
@@ -75,7 +75,7 @@ export default function BroadcastPage() {
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">نص الرسالة (يدعم HTML)</label>
               <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6}
-                placeholder="مرحباً 👋 لدينا تحديث جديد…"
+                placeholder="مرحباً! لدينا تحديث جديد…"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-indigo-500" />
               <div className="text-xs text-slate-500 mt-1">{body.length} حرفاً</div>
             </div>
@@ -83,7 +83,7 @@ export default function BroadcastPage() {
             <button onClick={() => { setMsg(null); if (confirm("تأكيد الإرسال؟")) sendMut.mutate(); }}
               disabled={!canSend || sendMut.isPending}
               className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40">
-              {sendMut.isPending ? "جارٍ البدء…" : "إرسال 📤"}
+              {sendMut.isPending ? "جارٍ البدء…" : "إرسال"}
             </button>
 
             {msg && (

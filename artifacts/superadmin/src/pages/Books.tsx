@@ -43,10 +43,10 @@ export default function BooksPage() {
         <p className="text-sm text-slate-500 mt-1">مراجعة الكتب المرسلة، إدارة التصنيفات، ومتابعة المبيعات.</p>
       </div>
       <div className="flex gap-2 mb-4 border-b border-slate-200 flex-wrap">
-        <TabBtn active={tab === "products"}   onClick={() => setTab("products")}>📖 الكتب</TabBtn>
-        <TabBtn active={tab === "categories"} onClick={() => setTab("categories")}>🏷️ التصنيفات</TabBtn>
-        <TabBtn active={tab === "stats"}      onClick={() => setTab("stats")}>📊 الإحصاءات</TabBtn>
-        <TabBtn active={tab === "covers"}     onClick={() => setTab("covers")}>🎨 إنشاء غلاف</TabBtn>
+        <TabBtn active={tab === "products"}   onClick={() => setTab("products")}>الكتب</TabBtn>
+        <TabBtn active={tab === "categories"} onClick={() => setTab("categories")}>التصنيفات</TabBtn>
+        <TabBtn active={tab === "stats"}      onClick={() => setTab("stats")}>الإحصاءات</TabBtn>
+        <TabBtn active={tab === "covers"}     onClick={() => setTab("covers")}>إنشاء أغلفة</TabBtn>
       </div>
       {tab === "products"   && <ProductsTab />}
       {tab === "categories" && <CategoriesTab />}
@@ -54,7 +54,7 @@ export default function BooksPage() {
       {tab === "covers"     && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5">
           <div className="mb-4">
-            <div className="font-semibold text-slate-900 text-base">🎨 مولّد أغلفة الكتب</div>
+            <div className="font-semibold text-slate-900 text-base">مولّد أغلفة الكتب</div>
             <p className="text-sm text-slate-500 mt-1">
               اختر تصميماً من 10 قوالب جاهزة تناسب كل أنواع الكتب — اكتب العنوان وستظهر على جميع الأغلفة فوراً.
             </p>
@@ -114,7 +114,7 @@ function ProductsTab() {
   return (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
-        <div className="font-semibold text-slate-900">📖 الكتب ({rows.length})</div>
+        <div className="font-semibold text-slate-900">الكتب ({rows.length})</div>
         <div className="flex-1" />
         <select value={status} onChange={(e) => setStatus(e.target.value)}
           className="text-sm border border-slate-200 rounded-md px-3 py-1.5 bg-white">
@@ -126,7 +126,7 @@ function ProductsTab() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث…"
           className="text-sm border border-slate-200 rounded-md px-3 py-1.5 w-48"
           onKeyDown={(e) => e.key === "Enter" && load()} />
-        <button onClick={load} className="text-sm px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200">🔄</button>
+        <button onClick={load} className="text-sm px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200">↺</button>
       </div>
       <div className="p-5">
         {error && <p className="text-rose-600 text-sm mb-3">{error}</p>}
@@ -158,7 +158,7 @@ function ProductsTab() {
                     <td className="px-3 py-2 text-slate-500">{r.salesCount}</td>
                     <td className="px-3 py-2 text-slate-500 font-mono text-xs" dir="ltr">{r.publisherTelegramId}</td>
                     <td className="px-3 py-2">
-                      <button onClick={() => setSelected(r)} className="text-teal-700 hover:text-teal-900 text-sm font-medium">👁️ مراجعة</button>
+                      <button onClick={() => setSelected(r)} className="text-teal-700 hover:text-teal-900 text-sm font-medium">مراجعة</button>
                     </td>
                   </tr>
                 ))}
@@ -172,7 +172,7 @@ function ProductsTab() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" dir="rtl" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
-              <div className="font-semibold text-slate-900">📖 {selected.title}</div>
+              <div className="font-semibold text-slate-900">{selected.title}</div>
               <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-900 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4 text-sm">
@@ -210,7 +210,7 @@ function CategoriesTab() {
   const [rows, setRows] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ slug: "", nameAr: "", icon: "📚", sortOrder: 0 });
+  const [draft, setDraft] = useState({ slug: "", nameAr: "", icon: "◈", sortOrder: 0 });
 
   async function load() {
     setLoading(true);
@@ -222,7 +222,7 @@ function CategoriesTab() {
   async function create() {
     try {
       await api.post("/superadmin/books/categories", draft);
-      setDraft({ slug: "", nameAr: "", icon: "📚", sortOrder: 0 }); void load();
+      setDraft({ slug: "", nameAr: "", icon: "◈", sortOrder: 0 }); void load();
     } catch (e) { alert((e as Error).message); }
   }
   async function del(id: number) {
@@ -232,7 +232,7 @@ function CategoriesTab() {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-      <div className="px-5 py-4 border-b border-slate-100 font-semibold text-slate-900">🏷️ التصنيفات</div>
+      <div className="px-5 py-4 border-b border-slate-100 font-semibold text-slate-900">التصنيفات</div>
       <div className="p-5 space-y-4">
         <div className="flex flex-wrap gap-2 items-end p-3 bg-slate-50 rounded-md border border-slate-200">
           <Input label="Slug" value={draft.slug} onChange={(v) => setDraft({ ...draft, slug: v })} placeholder="religious" />
@@ -261,7 +261,7 @@ function CategoriesTab() {
                   <td className="px-3 py-2 font-medium">{c.nameAr}</td>
                   <td className="px-3 py-2 text-slate-500 font-mono text-xs" dir="ltr">{c.slug}</td>
                   <td className="px-3 py-2 text-slate-500">{c.sortOrder}</td>
-                  <td className="px-3 py-2"><button onClick={() => del(c.id)} className="text-rose-600 hover:text-rose-800 text-sm">🗑️</button></td>
+                  <td className="px-3 py-2"><button onClick={() => del(c.id)} className="text-rose-600 hover:text-rose-800 text-sm">×</button></td>
                 </tr>
               ))}
             </tbody>
@@ -284,15 +284,15 @@ function StatsTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="إجمالي الكتب" value={String(s.totalProducts)} icon="📚" />
+        <StatCard label="إجمالي الكتب" value={String(s.totalProducts)} icon="◈" />
         <StatCard label="قيد المراجعة" value={String(s.pendingCount)} icon="⏳" color="#f59e0b" />
         <StatCard label="معتمدة" value={String(s.approvedCount)} icon="✅" color="#10b981" />
-        <StatCard label="إجمالي المبيعات" value={String(s.totalPurchases)} icon="🛒" />
-        <StatCard label="حجم التداول (SKZ)" value={parseFloat(s.volumeSkz).toFixed(2)} icon="💰" color="#0F766E" />
-        <StatCard label="إجمالي العمولات (SKZ)" value={parseFloat(s.commissionSkz).toFixed(2)} icon="🏦" color="#D4AF37" />
+        <StatCard label="إجمالي المبيعات" value={String(s.totalPurchases)} icon="◆" />
+        <StatCard label="حجم التداول (SKZ)" value={parseFloat(s.volumeSkz).toFixed(2)} icon="◈" color="#0F766E" />
+        <StatCard label="إجمالي العمولات (SKZ)" value={parseFloat(s.commissionSkz).toFixed(2)} icon="◈" color="#D4AF37" />
       </div>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100 font-semibold">🏆 أفضل 5 ناشرين</div>
+        <div className="px-5 py-4 border-b border-slate-100 font-semibold">أفضل 5 ناشرين</div>
         <div className="p-5">
           {s.topPublishers.length === 0 ? <p className="text-slate-500 text-sm">لا توجد مبيعات بعد.</p> : (
             <table className="w-full text-sm">

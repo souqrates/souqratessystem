@@ -121,7 +121,7 @@ function AdjustForm({ tid, direction }: { tid: string; direction: "credit" | "de
   return (
     <div className={`bg-white border rounded-2xl p-5 shadow-sm ${isCredit ? "border-emerald-200" : "border-red-200"}`}>
       <h3 className={`font-bold mb-3 flex items-center gap-2 ${isCredit ? "text-emerald-700" : "text-red-700"}`}>
-        <span>{isCredit ? "💰" : "➖"}</span>
+        <span>{isCredit ? "+" : "-"}</span>
         {isCredit ? "إرسال SKZ يدوياً" : "خصم SKZ يدوياً"}
       </h3>
       <div className="space-y-3">

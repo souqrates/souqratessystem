@@ -77,7 +77,7 @@ export default function IntegrationsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">🔌 التكاملات الخارجية</h1>
+        <h1 className="text-2xl font-bold text-slate-900">التكاملات الخارجية</h1>
         <p className="text-slate-500 mt-1">
           الصق المفتاح، اضغط "اختبر الاتصال"، فعّل. كل شيء جاهز للملايين.
         </p>
@@ -195,7 +195,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
           ↗ التوثيق
         </a>
         <span>·</span>
-        <span className="text-slate-600">💰 {item.adapter.pricing}</span>
+        <span className="text-slate-600">{item.adapter.pricing}</span>
       </div>
 
       {item.lastTestAt && (
@@ -224,7 +224,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
           disabled={!item.configured || testMut.isPending}
           className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold disabled:opacity-40"
         >
-          {testMut.isPending ? "جاري الاختبار…" : "🔍 اختبر الاتصال"}
+          {testMut.isPending ? "جاري الاختبار…" : "اختبر الاتصال"}
         </button>
         <button
           onClick={toggleEnabled}
@@ -244,7 +244,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
             }}
             className="px-3 py-1.5 text-sm rounded-lg text-red-600 hover:bg-red-50 font-semibold"
           >
-            🗑 حذف الإعدادات
+            حذف الإعدادات
           </button>
         )}
       </div>
@@ -267,7 +267,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
               disabled={saveMut.isPending}
               className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40"
             >
-              {saveMut.isPending ? "جاري الحفظ…" : "💾 حفظ"}
+              {saveMut.isPending ? "جاري الحفظ…" : "حفظ"}
             </button>
             {saveMut.isError && (
               <span className="text-red-600 text-sm">{(saveMut.error as Error).message}</span>

@@ -103,7 +103,7 @@ export function Splash({ onDone }: SplashProps) {
         display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
         animation: "sqFadeIn 0.3s ease 0.38s both",
       }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 3, direction: "ltr" }}>
           <span style={{
             fontFamily: "'Orbitron','Space Grotesk',sans-serif",
             fontWeight: 900, fontSize: "clamp(44px,12vw,58px)",

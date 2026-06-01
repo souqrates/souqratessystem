@@ -90,7 +90,7 @@ export default function ContestDetailPage() {
               </div>
               <h1 className="text-2xl font-bold text-slate-900">{contest.title}</h1>
               <p className="text-sm text-slate-500 mt-1">{contest.description || "بدون وصف"}</p>
-              <div className="text-sm text-slate-700 mt-2">🗳 إجمالي الأصوات: <b>{contest.totalVotes.toLocaleString("en-US")}</b></div>
+              <div className="text-sm text-slate-700 mt-2">إجمالي الأصوات: <b>{contest.totalVotes.toLocaleString("en-US")}</b></div>
             </div>
           </div>
           <div className="flex flex-col gap-2">
@@ -101,7 +101,7 @@ export default function ContestDetailPage() {
             )}
             {contest.status === "active" && (
               <button onClick={() => { if (confirm("إنهاء المسابقة؟ لا يمكن التراجع.")) statusMut.mutate("ended"); }} disabled={statusMut.isPending} className="px-4 py-2 rounded-lg bg-zinc-700 text-white font-bold hover:bg-zinc-800 disabled:opacity-50">
-                🏁 إنهاء المسابقة
+                إنهاء المسابقة
               </button>
             )}
           </div>
@@ -110,7 +110,7 @@ export default function ContestDetailPage() {
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-slate-900">🏆 لوحة المتسابقين</h2>
+          <h2 className="text-lg font-bold text-slate-900">لوحة المتسابقين</h2>
           <button onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 text-sm">+ إضافة متسابق</button>
         </div>
         {contestants.length === 0 ? (
@@ -138,7 +138,7 @@ export default function ContestDetailPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-bold text-slate-900 mb-3">🧾 آخر 50 صوت (تدقيق)</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-3">آخر 50 صوت (تدقيق)</h2>
         {votes.length === 0 ? (
           <div className="text-sm text-slate-400 bg-white border border-dashed border-slate-200 rounded-xl p-6 text-center">لا توجد أصوات بعد.</div>
         ) : (
@@ -198,13 +198,13 @@ function ContestantRow({ c, rank, onChanged }: { c: Contestant; rank: number; on
   return (
     <>
       <tr className="border-t border-slate-100 hover:bg-slate-50/60">
-        <Td className="font-mono text-lg">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`}</Td>
+        <Td className="font-mono text-lg">{rank === 1 ? "#1" : rank === 2 ? "#2" : rank === 3 ? "#3" : `#${rank}`}</Td>
         <Td>
           <div className="flex items-center gap-3">
             {c.photoUrl ? (
               <img src={c.photoUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">👤</div>
+              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 font-bold text-sm">؟</div>
             )}
             <div>
               <div className={`font-semibold ${c.isDisqualified ? "text-rose-500 line-through" : "text-slate-900"}`}>{c.name}</div>

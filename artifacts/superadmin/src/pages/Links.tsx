@@ -24,7 +24,7 @@ export default function LinksPage() {
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">🔗 الروابط الخارجية و CDN</h1>
+          <h1 className="text-2xl font-bold text-slate-900">الروابط الخارجية و CDN</h1>
           <p className="text-slate-500 mt-1">قاعدة بيانات الروابط المستخدمة عبر كل البوتات (مرجع موحّد)</p>
         </div>
         <button onClick={() => setOpen((v) => !v)}

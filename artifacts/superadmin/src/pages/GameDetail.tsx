@@ -168,14 +168,14 @@ export default function GameDetailPage() {
           disabled={saveDraft.isPending || publish.isPending}
           className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-60 text-slate-900 font-semibold"
         >
-          {saveDraft.isPending ? "جارٍ الحفظ…" : "💾 حفظ كمسودة (Preview)"}
+          {saveDraft.isPending ? "جارٍ الحفظ…" : "حفظ كمسودة (Preview)"}
         </button>
         <button
           onClick={() => publish.mutate()}
           disabled={publish.isPending || saveDraft.isPending}
           className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-semibold"
         >
-          {publish.isPending ? "جارٍ النشر…" : "🚀 نشر للمستخدمين الآن (Publish)"}
+          {publish.isPending ? "جارٍ النشر…" : "نشر للمستخدمين الآن (Publish)"}
         </button>
         {g.hasUnpublishedChanges && (
           <button
@@ -294,7 +294,7 @@ export default function GameDetailPage() {
               </table>
             </div>
             <p className="text-xs text-slate-500 mt-3">
-              💡 الترتيب من الأرخص إلى الأغلى. يمكنك إعطاء أي خطة المكافأة التي تريد بصرف النظر عن السعر.
+              الترتيب من الأرخص إلى الأغلى. يمكنك إعطاء أي خطة المكافأة التي تريد بصرف النظر عن السعر.
             </p>
           </Card>
 

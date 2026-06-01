@@ -63,16 +63,16 @@ export default function OverviewPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto" dir="rtl">
-      <h1 className="text-3xl font-bold text-slate-900">📊 لوحة المعلومات</h1>
+      <h1 className="text-3xl font-bold text-slate-900">لوحة المعلومات</h1>
       <p className="text-slate-500 mt-1">نظرة مالية حيّة على منظومة سوقريتس — تحديث تلقائي كل 30 ثانية.</p>
 
       {/* Top KPI row — lifetime metrics that summarize the platform health. */}
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard label="المستخدمين" value={stats?.users ?? "—"} icon="👥" />
-        <StatCard label="إيرادات العمولة" value={fmt(stats?.totalRevenue)} suffix="SKZ" icon="💰" accent="emerald" />
-        <StatCard label="إجمالي المسحوب" value={fmt(stats?.totalWithdrawn)} suffix="SKZ" icon="📤" />
+        <StatCard label="المستخدمين" value={stats?.users ?? "—"} icon="◆" />
+        <StatCard label="إيرادات العمولة" value={fmt(stats?.totalRevenue)} suffix="SKZ" icon="◈" accent="emerald" />
+        <StatCard label="إجمالي المسحوب" value={fmt(stats?.totalWithdrawn)} suffix="SKZ" icon="▲" />
         <StatCard label="بانتظار المراجعة" value={stats?.pendingWithdrawals ?? "—"} icon="⏳" accent={stats?.pendingWithdrawals ? "amber" : "slate"} />
-        <StatCard label="البوتات المُسجَّلة" value={stats?.bots ?? "—"} icon="🤖" />
+        <StatCard label="البوتات المُسجَّلة" value={stats?.bots ?? "—"} icon="◉" />
         <StatCard label="استثناءات العمولة" value={stats?.overrides ?? "—"} icon="⚙️" />
       </div>
 

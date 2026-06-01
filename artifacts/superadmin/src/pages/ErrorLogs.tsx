@@ -70,7 +70,7 @@ export default function ErrorLogsPage() {
           <div className="py-10 text-center text-slate-400">جارٍ التحميل…</div>
         ) : (data?.data ?? []).length === 0 ? (
           <div className="py-10 text-center text-slate-400">
-            🟢 لا توجد أخطاء مسجّلة — كل شيء على ما يرام.
+            ✓ لا توجد أخطاء مسجّلة — كل شيء على ما يرام.
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -92,7 +92,7 @@ export default function ErrorLogsPage() {
       </div>
 
       <p className="mt-4 text-xs text-slate-500">
-        💡 لربط الأخطاء بهذا السجل تلقائياً، استدعِ <code className="bg-slate-100 px-1 rounded" dir="ltr">INSERT INTO error_logs (source, level, message, stack)</code> من البوتات/الخادم.
+        لربط الأخطاء بهذا السجل تلقائياً، استدعِ <code className="bg-slate-100 px-1 rounded" dir="ltr">INSERT INTO error_logs (source, level, message, stack)</code> من البوتات/الخادم.
       </p>
     </div>
   );
