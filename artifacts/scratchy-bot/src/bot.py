@@ -165,7 +165,8 @@ COMMANDS_EN: list[BotCommand] = [
     BotCommand(command="help",   description="❓ Help & game rules"),
 ]
 
-api = ScratchyBotClient(api_key=_resolve_api_key(), base_url=API_URL)
+API_KEY = _resolve_api_key()
+api = ScratchyBotClient(api_key=API_KEY, base_url=API_URL)
 router = Router()
 
 
