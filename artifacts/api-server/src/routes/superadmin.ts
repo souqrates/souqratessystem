@@ -406,6 +406,21 @@ router.delete("/superadmin/bot-texts/:id", requireSuperAdmin, async (req, res): 
   res.json({ ok: true });
 });
 
+// ── Bot-texts convenience: path-based slug endpoints ─────────────────────
+// GET /superadmin/bot-texts/:slug  — returns all texts for a bot by slug
+// Mirrors the query-param variant for clients that prefer path params.
+router.get("/superadmin/bot-texts/:slug", requireSuperAdmin, async (req, res): Promise<void> => {
+  const botSlug = String(req.params.slug ?? "").trim();
+  if (!botSlug) { res.status(400).json({ error: "slug is required" }); return; }
+  await ensureDefaultsFor(botSlug);
+  const rows = await db
+    .select()
+    .from(botTextsTable)
+    .where(eq(botTextsTable.botSlug, botSlug))
+    .orderBy(botTextsTable.id);
+  res.json({ data: rows });
+});
+
 // ── Users (search, view, block, manual SKZ credit/debit) ─────────────────
 
 router.get("/superadmin/users", requireSuperAdmin, async (req, res): Promise<void> => {

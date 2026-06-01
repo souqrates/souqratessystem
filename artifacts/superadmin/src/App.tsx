@@ -24,6 +24,7 @@ import IntegrationsPage from "@/pages/Integrations";
 import AuditLogPage from "@/pages/AuditLog";
 import SystemHealthPage from "@/pages/SystemHealth";
 import ReportsPage from "@/pages/Reports";
+import BotsPage from "@/pages/Bots";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -54,6 +55,8 @@ function AuthedRoutes() {
         <Route path="/subagents" component={SubagentsPage} />
         <Route path="/subagents/tiers" component={SubagentTiersPage} />
         <Route path="/audit-log" component={AuditLogPage} />
+        <Route path="/bots" component={BotsPage} />
+        <Route path="/health" component={SystemHealthPage} />
         <Route path="/system-health" component={SystemHealthPage} />
         <Route>
           <div className="p-8" dir="rtl">الصفحة غير موجودة</div>

@@ -57,7 +57,12 @@ export interface Bot {
   description: string | null;
   commissionRate: string;
   isActive: boolean;
+  botUsername: string | null;
+  miniAppName: string | null;
+  totalVolumeUsdt: string;
+  totalCommissionUsdt: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CommissionOverride {

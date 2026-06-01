@@ -161,7 +161,8 @@ export default function Sidebar() {
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon={<Megaphone size={16} />} label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon={<Link2 size={16} />} label="الروابط/CDN" />
         <SidebarLink href="/integrations" active={location.startsWith("/integrations")} icon={<Plug size={16} />} label="التكاملات الخارجية" sub="Redis, Sentry, Resend…" />
-        <SidebarLink href="/system-health" active={location.startsWith("/system-health")} icon={<Activity size={16} />} label="صحة النظام" sub="DB، الخادم، الخدمات الخارجية" />
+        <SidebarLink href="/bots" active={location === "/bots"} icon={<LayoutGrid size={16} />} label="البوتات" sub="قائمة كل البوتات وروابطها" />
+        <SidebarLink href="/health" active={location.startsWith("/health") || location.startsWith("/system-health")} icon={<Activity size={16} />} label="صحة النظام" sub="DB، الخادم، الخدمات الخارجية" />
         <SidebarLink href="/audit-log" active={location.startsWith("/audit-log")} icon={<ScrollText size={16} />} label="سجل تدقيق المدير" sub="من فعل ماذا ومتى" />
         <SidebarLink href="/error-logs" active={location.startsWith("/error-logs")} icon={<AlertTriangle size={16} />} label="سجل الأخطاء" />
 
