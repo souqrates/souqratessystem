@@ -83,12 +83,46 @@ async def _keep_webhook_deleted(bot: Any, slug: str, replit_domain: str) -> None
             logger.debug("%s: keep_webhook_deleted check error: %s", slug, exc)
 
 
+async def _heartbeat_loop(slug: str, interval: int = 30) -> None:
+    """Best-effort liveness ping to the central hub.
+
+    Posts to ``/internal/heartbeat`` every ``interval`` seconds so the
+    super-admin panel can show this out-of-process Python bot as online /
+    offline. Self-contained (no client import) so all five bot copies of this
+    file stay byte-identical. Never raises — a flaky network must never kill
+    the bot.
+
+    The API key is read from ``<SLUG>_API_KEY`` (e.g. ``MOTHER_BOT_API_KEY``)
+    derived from the slug, matching the secret each bot already uses.
+    """
+    import httpx
+
+    env_key = slug.upper().replace("-", "_") + "_API_KEY"
+    api_key = (os.getenv(env_key) or "").strip()
+    if not api_key:
+        logger.warning("%s: %s not set — heartbeat disabled", slug, env_key)
+        return
+    base = (os.getenv("MOTHER_API_URL") or "http://localhost:80/api").rstrip("/")
+    url = f"{base}/internal/heartbeat"
+    headers = {"X-Bot-Api-Key": api_key, "Content-Type": "application/json"}
+    while True:
+        try:
+            async with httpx.AsyncClient() as http:
+                await http.post(url, json={"status": "online"}, headers=headers, timeout=5.0)
+        except Exception as exc:
+            logger.debug("%s: heartbeat failed: %s", slug, exc)
+        await asyncio.sleep(interval)
+
+
 async def run_bot(bot: Any, dp: Any, slug: str) -> None:
     """Run `bot` under `dp` either as polling or webhook.
 
     Returns only when the bot is shut down (Ctrl-C / SIGTERM).
     """
     allowed = dp.resolve_used_update_types()
+
+    # Liveness heartbeat — runs in both polling and webhook modes.
+    asyncio.ensure_future(_heartbeat_loop(slug))
 
     if not _truthy(os.getenv("USE_WEBHOOK")):
         replit_domain = (os.getenv("REPLIT_DEV_DOMAIN") or "").strip()

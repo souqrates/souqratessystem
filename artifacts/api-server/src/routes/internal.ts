@@ -13,6 +13,7 @@ import {
   commissionOverridesTable,
   botTextsTable,
   gameConfigsTable,
+  botHeartbeatsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { perUserCreateLimiter } from "../lib/rate-limit";
@@ -55,6 +56,32 @@ async function requireBot(
 }
 
 // getSkzRates, getReferralRates, distributeReferralBonuses are imported from ../lib/finance
+
+/**
+ * POST /internal/heartbeat — each Python bot calls this on a short interval
+ * so the superadmin panel can show live up/down state for processes that run
+ * outside the API server. Upserts one row per calling bot (keyed by slug from
+ * its API key, never a client-supplied slug).
+ */
+router.post("/internal/heartbeat", async (req, res): Promise<void> => {
+  const bot = await requireBot(req, res);
+  if (!bot) return;
+
+  const body = (req.body ?? {}) as { version?: unknown; meta?: unknown; status?: unknown };
+  const version = typeof body.version === "string" ? body.version.slice(0, 64) : null;
+  const status = typeof body.status === "string" ? body.status.slice(0, 32) : "online";
+  const meta = body.meta && typeof body.meta === "object" ? body.meta : null;
+
+  await db
+    .insert(botHeartbeatsTable)
+    .values({ botSlug: bot.slug, status, version, meta, lastSeenAt: new Date() })
+    .onConflictDoUpdate({
+      target: botHeartbeatsTable.botSlug,
+      set: { status, version, meta, lastSeenAt: new Date() },
+    });
+
+  res.json({ ok: true });
+});
 
 /**
  * POST /internal/wallets/transfer-referral

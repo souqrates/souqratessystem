@@ -90,6 +90,41 @@ class MotherBotClient:
         """
         return BotTexts(self, bot_slug=bot_slug, ttl_seconds=ttl_seconds)
 
+    async def heartbeat(self, version: Optional[str] = None, status: str = "online") -> None:
+        """Report this bot as alive to the central hub.
+
+        Best-effort: never raises. The superadmin panel marks a bot offline if
+        no heartbeat has arrived within ~90s, so call this on a shorter
+        interval (e.g. every 30s) via start_heartbeat().
+        """
+        payload: dict = {"status": status}
+        if version is not None:
+            payload["version"] = version
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.base_url}/internal/heartbeat",
+                    json=payload,
+                    headers=self.headers,
+                    timeout=5.0,
+                )
+                resp.raise_for_status()
+        except Exception as exc:
+            _logger.warning("heartbeat failed: %s", exc)
+
+    def start_heartbeat(self, interval_seconds: int = 30, version: Optional[str] = None) -> "asyncio.Task":
+        """Spawn a background task that sends a heartbeat every `interval_seconds`.
+
+        Call once at bot startup and keep the returned task reference alive.
+        The loop swallows all errors so a flaky network never kills the bot.
+        """
+        async def _loop() -> None:
+            while True:
+                await self.heartbeat(version=version)
+                await asyncio.sleep(interval_seconds)
+
+        return asyncio.create_task(_loop())
+
     async def upsert_user(
         self,
         telegram_id: str,

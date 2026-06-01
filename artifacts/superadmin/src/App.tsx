@@ -23,6 +23,7 @@ import VotePacksPage from "@/pages/VotePacks";
 import IntegrationsPage from "@/pages/Integrations";
 import AuditLogPage from "@/pages/AuditLog";
 import SystemHealthPage from "@/pages/SystemHealth";
+import ReportsPage from "@/pages/Reports";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -37,6 +38,7 @@ function AuthedRoutes() {
         <Route path="/users" component={UsersPage} />
         <Route path="/users/:telegramId" component={UserDetailPage} />
         <Route path="/transactions" component={TransactionsPage} />
+        <Route path="/reports" component={ReportsPage} />
         <Route path="/withdrawals" component={WithdrawalsPage} />
         <Route path="/agreements" component={AgreementsPage} />
         <Route path="/games" component={GamesPage} />

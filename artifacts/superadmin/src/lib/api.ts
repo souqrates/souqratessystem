@@ -209,3 +209,41 @@ export interface ScratchyConfigResponse {
   config: ScratchyConfig;
   defaults: ScratchyConfig;
 }
+
+// ─── Referral rates (L1/L2/L3) ─────────────────────────────────
+export interface ReferralRates {
+  l1Percent: string;
+  l2Percent: string;
+  l3Percent: string;
+}
+
+// ─── Daily financial report ────────────────────────────────────
+export interface ReportDailyPoint {
+  day: string;
+  revenue: number;
+  deposits: number;
+  withdrawals: number;
+  newUsers: number;
+}
+
+export interface ReportDailyResponse {
+  from: string;
+  to: string;
+  series: ReportDailyPoint[];
+  totals: {
+    revenue: number;
+    deposits: number;
+    withdrawals: number;
+    newUsers: number;
+  };
+}
+
+// ─── Bot heartbeats (live up/down) ─────────────────────────────
+export interface BotHealth {
+  botSlug: string;
+  status: "online" | "offline";
+  reportedStatus: string | null;
+  version: string | null;
+  lastSeenAt: string | null;
+  ageSec: number;
+}

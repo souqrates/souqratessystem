@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Diamond, Triangle, BookOpen, Play, Radio, Crown, Star, Hexagon } from "lucide-react";
-import { api, type Bot, type CommissionOverride, type SkzRates, ApiError } from "@/lib/api";
+import { api, type Bot, type CommissionOverride, type SkzRates, type ReferralRates, ApiError } from "@/lib/api";
 import { botMeta, BOTS } from "@/lib/bots-meta";
 
 import BotTextsEditor from "@/components/BotTextsEditor";
@@ -75,6 +75,8 @@ function MotherBotPanel() {
       )}
 
       <SkzRatesCard />
+
+      <ReferralRatesCard />
 
       <AllBotsCommissionCard
         bots={botsResp?.data ?? []}
@@ -349,6 +351,66 @@ function SkzRatesCard() {
       <div className="mt-5 flex items-center gap-3">
         <button onClick={() => mut.mutate()} disabled={mut.isPending} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold">
           {mut.isPending ? "جارٍ الحفظ…" : "تحديث الأسعار"}
+        </button>
+        {msg && <span className="text-sm text-emerald-600">{msg}</span>}
+      </div>
+    </Card>
+  );
+}
+
+function ReferralRatesCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["superadmin", "referral-rates"],
+    queryFn: () => api.get<ReferralRates>("/superadmin/referral-rates"),
+  });
+  const [l1, setL1] = useState("");
+  const [l2, setL2] = useState("");
+  const [l3, setL3] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data) {
+      setL1(data.l1Percent);
+      setL2(data.l2Percent);
+      setL3(data.l3Percent);
+    }
+  }, [data]);
+
+  const mut = useMutation({
+    mutationFn: () =>
+      api.put<ReferralRates>("/superadmin/referral-rates", {
+        l1Percent: l1,
+        l2Percent: l2,
+        l3Percent: l3,
+      }),
+    onSuccess: () => {
+      setMsg("تم تحديث نسب الإحالة");
+      qc.invalidateQueries({ queryKey: ["superadmin", "referral-rates"] });
+      setTimeout(() => setMsg(null), 3000);
+    },
+    onError: (e) => setMsg(e instanceof Error ? e.message : "فشل التحديث"),
+  });
+
+  return (
+    <Card
+      title="نسب مكافآت الإحالة"
+      subtitle="النسبة المئوية من عمولة المنصة التي تُوزَّع على المُحيلين عند كل عملية — 3 مستويات (مباشر، الأب، الجد)"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Field label="المستوى 1 — المُحيل المباشر (%)">
+          <input className={inputCls} type="number" step="0.1" min={0} max={100} value={l1} onChange={(e) => setL1(e.target.value)} />
+        </Field>
+        <Field label="المستوى 2 — مُحيل المُحيل (%)">
+          <input className={inputCls} type="number" step="0.1" min={0} max={100} value={l2} onChange={(e) => setL2(e.target.value)} />
+        </Field>
+        <Field label="المستوى 3 (%)">
+          <input className={inputCls} type="number" step="0.1" min={0} max={100} value={l3} onChange={(e) => setL3(e.target.value)} />
+        </Field>
+      </div>
+      <div className="mt-5 flex items-center gap-3">
+        <button onClick={() => mut.mutate()} disabled={mut.isPending} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold">
+          {mut.isPending ? "جارٍ الحفظ…" : "تحديث نسب الإحالة"}
         </button>
         {msg && <span className="text-sm text-emerald-600">{msg}</span>}
       </div>

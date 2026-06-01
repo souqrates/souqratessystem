@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, type BotHealth } from "@/lib/api";
+import { botMeta } from "@/lib/bots-meta";
 
 type ReadyzResponse = {
   status: "ok" | "degraded" | "down";
@@ -33,8 +34,15 @@ export default function SystemHealthPage() {
     refetchInterval: 15000,
   });
 
+  const botsHealth = useQuery({
+    queryKey: ["superadmin", "bots-health"],
+    queryFn: () => api.get<{ data: BotHealth[] }>("/superadmin/bots-health"),
+    refetchInterval: 10000,
+  });
+
   const r = readyz.data;
   const ints = integrations.data?.data ?? [];
+  const bots = botsHealth.data?.data ?? [];
 
   return (
     <div className="p-6 max-w-6xl mx-auto" dir="rtl">
@@ -55,6 +63,50 @@ export default function SystemHealthPage() {
           tone={r?.pool && r.pool.waiting > 0 ? "warn" : "ok"}
           hint={r?.pool ? `مستخدَم/إجمالي · انتظار: ${r.pool.waiting}` : "—"} />
       </div>
+
+      <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800">بوتات تيليغرام</h2>
+          <span className="text-xs text-slate-500">
+            {bots.filter((b) => b.status === "online").length} متّصل من {bots.length}
+          </span>
+        </div>
+        {botsHealth.isLoading ? (
+          <div className="py-8 text-center text-slate-400">جارٍ التحميل…</div>
+        ) : bots.length === 0 ? (
+          <div className="py-8 text-center text-slate-400">لم يصل أي نبض من البوتات بعد.</div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {bots.map((b) => {
+              const m = botMeta(b.botSlug);
+              return (
+                <div key={b.botSlug} className="py-3 flex items-center gap-3">
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${b.status === "online" ? "bg-emerald-500" : "bg-red-500"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-slate-800">{m?.brand ?? b.botSlug}</div>
+                    <div className="text-xs text-slate-500">
+                      {m?.arName ? `${m.arName} · ` : ""}
+                      <span dir="ltr">{b.botSlug}</span>
+                      {b.version && <span dir="ltr"> · v{b.version}</span>}
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <div className={`text-sm font-bold ${b.status === "online" ? "text-emerald-600" : "text-red-600"}`}>
+                      {b.status === "online" ? "متّصل" : "غير متّصل"}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {b.lastSeenAt ? `آخر نبض: ${fmtAge(b.ageSec)}` : "لا يوجد"}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="mt-4 text-xs text-slate-500">
+          يُعتبر البوت «متّصلاً» إذا وصل نبضه خلال آخر 90 ثانية. تُرسل البوتات نبضاً كل 30 ثانية.
+        </p>
+      </section>
 
       <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
@@ -137,6 +189,15 @@ function fmtUptime(sec: number): string {
   if (d) return `${d}ي ${h}س`;
   if (h) return `${h}س ${m}د`;
   return `${m}د`;
+}
+function fmtAge(sec: number): string {
+  if (sec < 0) return "الآن";
+  if (sec < 60) return `قبل ${sec} ثانية`;
+  const m = Math.floor(sec / 60);
+  if (m < 60) return `قبل ${m} دقيقة`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `قبل ${h} ساعة`;
+  return `قبل ${Math.floor(h / 24)} يوم`;
 }
 function dotColor(i: IntegrationRow): string {
   if (!i.enabled) return "bg-slate-300";

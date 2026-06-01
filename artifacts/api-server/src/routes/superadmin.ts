@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, and, desc, or, ilike } from "drizzle-orm";
+import { eq, sql, and, desc, or, ilike, gte, lte, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   botsTable,
@@ -12,6 +12,8 @@ import {
   externalLinksTable,
   errorLogsTable,
   withdrawalsTable,
+  platformSettingsTable,
+  botHeartbeatsTable,
 } from "@workspace/db";
 import {
   requireSuperAdmin,
@@ -20,7 +22,7 @@ import {
 import { logAdminAction } from "../lib/audit-log";
 import { notifyUser } from "../lib/notify-user";
 import { capture } from "../lib/analytics";
-import { invalidateCommissionOverride } from "../lib/finance";
+import { invalidateCommissionOverride, invalidateFinanceCache, getSkzRates } from "../lib/finance";
 import {
   getScratchyConfig,
   saveScratchyConfig,
@@ -917,9 +919,29 @@ router.get("/superadmin/withdrawals", requireSuperAdmin, async (req, res): Promi
   const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10) || 50));
   const offset = (page - 1) * limit;
   const status = req.query.status as string | undefined;
+  const currency = req.query.currency as string | undefined;
+  const from = req.query.from as string | undefined;
+  const to = req.query.to as string | undefined;
+  const tgRaw = (req.query.telegramId as string | undefined)?.trim();
 
   const conds = [];
   if (status) conds.push(eq(withdrawalsTable.status, status));
+  if (currency) conds.push(eq(withdrawalsTable.currency, currency));
+  if (from) {
+    const d = new Date(from);
+    if (!isNaN(d.getTime())) conds.push(gte(withdrawalsTable.createdAt, d));
+  }
+  if (to) {
+    const d = new Date(to);
+    // Inclusive end-of-day so a date-only `to` covers the whole day.
+    if (!isNaN(d.getTime())) {
+      d.setHours(23, 59, 59, 999);
+      conds.push(lte(withdrawalsTable.createdAt, d));
+    }
+  }
+  if (tgRaw) {
+    try { conds.push(eq(usersTable.telegramId, BigInt(tgRaw))); } catch { /* ignore non-numeric */ }
+  }
   const where = conds.length ? and(...conds) : undefined;
 
   const [rows, count] = await Promise.all([
@@ -948,7 +970,11 @@ router.get("/superadmin/withdrawals", requireSuperAdmin, async (req, res): Promi
       .orderBy(desc(withdrawalsTable.createdAt))
       .limit(limit)
       .offset(offset),
-    db.select({ c: sql<number>`count(*)::int` }).from(withdrawalsTable).where(where),
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(withdrawalsTable)
+      .leftJoin(usersTable, eq(usersTable.id, withdrawalsTable.userId))
+      .where(where),
   ]);
   res.json({ data: rows, total: Number(count[0]?.c ?? 0), page, limit });
 });
@@ -1395,6 +1421,263 @@ router.put("/superadmin/scratchy-config", requireSuperAdmin, async (req, res): P
     req.log.error({ err }, "superadmin: save scratchy-config failed");
     res.status(500).json({ error: "Failed to save scratchy config" });
   }
+});
+
+// ── Referral rates (L1/L2/L3) ────────────────────────────────────────────
+// These are the CANONICAL keys read by finance.getReferralRates(). The older
+// /settings page wrote referral_bonus_percent for L1, which getReferralRates
+// never reads — so L1 edits there had no effect. This editor writes the keys
+// the money flow actually uses, and invalidates the finance cache so changes
+// apply on the next credit with no restart.
+const REFERRAL_KEYS = ["referral_l1_percent", "referral_l2_percent", "referral_l3_percent"] as const;
+const REFERRAL_DEFAULTS: Record<string, string> = {
+  referral_l1_percent: "5",
+  referral_l2_percent: "2",
+  referral_l3_percent: "1",
+};
+
+router.get("/superadmin/referral-rates", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(inArray(platformSettingsTable.key, [...REFERRAL_KEYS]));
+  const map: Record<string, string> = { ...REFERRAL_DEFAULTS };
+  for (const r of rows) map[r.key] = r.value;
+  res.json({
+    l1Percent: map["referral_l1_percent"],
+    l2Percent: map["referral_l2_percent"],
+    l3Percent: map["referral_l3_percent"],
+  });
+});
+
+router.put("/superadmin/referral-rates", requireSuperAdmin, async (req, res): Promise<void> => {
+  const body = req.body as { l1Percent?: unknown; l2Percent?: unknown; l3Percent?: unknown };
+  const fieldMap: Array<[keyof typeof body, string]> = [
+    ["l1Percent", "referral_l1_percent"],
+    ["l2Percent", "referral_l2_percent"],
+    ["l3Percent", "referral_l3_percent"],
+  ];
+
+  const updates: Array<[string, string]> = [];
+  for (const [field, key] of fieldMap) {
+    const raw = body[field];
+    if (raw === undefined || raw === null || String(raw).trim() === "") continue;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      res.status(400).json({ error: "كل نسبة يجب أن تكون بين 0 و 100" });
+      return;
+    }
+    updates.push([key, String(n)]);
+  }
+  if (updates.length === 0) {
+    res.status(400).json({ error: "لا توجد حقول صالحة للتحديث" });
+    return;
+  }
+
+  await Promise.all(
+    updates.map(([key, value]) =>
+      db
+        .insert(platformSettingsTable)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: platformSettingsTable.key, set: { value, updatedAt: new Date() } }),
+    ),
+  );
+  await invalidateFinanceCache();
+  await logAdminAction(req, "superadmin", {
+    action: "referral_rates.update",
+    targetType: "platform_settings",
+    payload: Object.fromEntries(updates),
+  });
+
+  const rows = await db
+    .select()
+    .from(platformSettingsTable)
+    .where(inArray(platformSettingsTable.key, [...REFERRAL_KEYS]));
+  const map: Record<string, string> = { ...REFERRAL_DEFAULTS };
+  for (const r of rows) map[r.key] = r.value;
+  res.json({
+    l1Percent: map["referral_l1_percent"],
+    l2Percent: map["referral_l2_percent"],
+    l3Percent: map["referral_l3_percent"],
+  });
+});
+
+// ── Daily financial report ───────────────────────────────────────────────
+// Bounded daily time-series for the reports page. Range defaults to the last
+// 30 days and is hard-capped at 180 days so the payload + query stay cheap.
+router.get("/superadmin/reports/daily", requireSuperAdmin, async (req, res): Promise<void> => {
+  const toRaw = req.query.to ? new Date(String(req.query.to)) : new Date();
+  const fromRaw = req.query.from ? new Date(String(req.query.from)) : new Date(Date.now() - 29 * 86400_000);
+  const to = isNaN(toRaw.getTime()) ? new Date() : toRaw;
+  let from = isNaN(fromRaw.getTime()) ? new Date(Date.now() - 29 * 86400_000) : fromRaw;
+  // Clamp window to 180 days.
+  const maxSpanMs = 180 * 86400_000;
+  if (to.getTime() - from.getTime() > maxSpanMs) from = new Date(to.getTime() - maxSpanMs);
+  // Inclusive end-of-day.
+  const toEnd = new Date(to);
+  toEnd.setHours(23, 59, 59, 999);
+
+  const fromIso = from.toISOString();
+  const toIso = toEnd.toISOString();
+
+  // Deposits and withdrawals are multi-currency (stars/ton/usdt/skz). Summing
+  // raw amounts would mix units, so normalize every row to its SKZ-equivalent
+  // using the current exchange rates before aggregating. Commission revenue is
+  // already denominated in SKZ. Rates are "current" (not historical), which is
+  // an acceptable approximation for a trend report — and far more correct than
+  // adding heterogeneous units together.
+  const rates = await getSkzRates();
+  const skzEquiv = (col: ReturnType<typeof sql>) => sql`
+    ${col} * (CASE currency
+      WHEN 'skz'   THEN 1
+      WHEN 'usdt'  THEN ${rates.perUsdt}
+      WHEN 'star'  THEN ${rates.perStar}
+      WHEN 'stars' THEN ${rates.perStar}
+      WHEN 'ton'   THEN ${rates.perTon}
+      ELSE 0
+    END)`;
+
+  const [revenue, deposits, withdrawalsAgg, newUsers] = await Promise.all([
+    db.execute(sql`
+      SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+             sum(commission_amount)::numeric(18,2) AS v
+      FROM commissions
+      WHERE status = 'settled' AND created_at BETWEEN ${fromIso} AND ${toIso}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+             sum(${skzEquiv(sql`amount`)})::numeric(18,2) AS v
+      FROM transactions
+      WHERE type = 'deposit' AND status = 'completed'
+            AND created_at BETWEEN ${fromIso} AND ${toIso}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+             sum(${skzEquiv(sql`amount`)})::numeric(18,2) AS v
+      FROM withdrawals
+      WHERE status = 'approved' AND created_at BETWEEN ${fromIso} AND ${toIso}
+      GROUP BY 1 ORDER BY 1
+    `),
+    db.execute(sql`
+      SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+             count(*)::int AS v
+      FROM users
+      WHERE created_at BETWEEN ${fromIso} AND ${toIso}
+      GROUP BY 1 ORDER BY 1
+    `),
+  ]);
+
+  // Densify: one row per day in range so charts have no gaps.
+  const dayMap = new Map<string, { day: string; revenue: number; deposits: number; withdrawals: number; newUsers: number }>();
+  const cursor = new Date(from);
+  cursor.setHours(0, 0, 0, 0);
+  const lastDay = new Date(toEnd);
+  while (cursor <= lastDay) {
+    const key = cursor.toISOString().slice(0, 10);
+    dayMap.set(key, { day: key, revenue: 0, deposits: 0, withdrawals: 0, newUsers: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  const apply = (rows: Array<Record<string, unknown>>, field: "revenue" | "deposits" | "withdrawals" | "newUsers") => {
+    for (const r of rows) {
+      const k = String(r.day);
+      const row = dayMap.get(k);
+      if (row) row[field] = Number(r.v) || 0;
+    }
+  };
+  apply(revenue.rows as Array<Record<string, unknown>>, "revenue");
+  apply(deposits.rows as Array<Record<string, unknown>>, "deposits");
+  apply(withdrawalsAgg.rows as Array<Record<string, unknown>>, "withdrawals");
+  apply(newUsers.rows as Array<Record<string, unknown>>, "newUsers");
+
+  const series = Array.from(dayMap.values());
+  res.json({
+    from: from.toISOString().slice(0, 10),
+    to: toEnd.toISOString().slice(0, 10),
+    series,
+    totals: {
+      revenue: series.reduce((s, r) => s + r.revenue, 0),
+      deposits: series.reduce((s, r) => s + r.deposits, 0),
+      withdrawals: series.reduce((s, r) => s + r.withdrawals, 0),
+      newUsers: series.reduce((s, r) => s + r.newUsers, 0),
+    },
+  });
+});
+
+// ── Bulk withdrawal actions ──────────────────────────────────────────────
+// Bulk REJECT only — bulk approve is intentionally not offered because each
+// approval deducts a real balance and needs a per-item on-chain txHash. Bulk
+// reject moves no money (balances were never deducted for pending rows).
+router.post("/superadmin/withdrawals/bulk-reject", requireSuperAdmin, async (req, res): Promise<void> => {
+  const body = req.body as { ids?: unknown; reason?: unknown };
+  const ids = Array.isArray(body.ids)
+    ? body.ids.map((x) => parseInt(String(x), 10)).filter((n) => Number.isFinite(n))
+    : [];
+  const reason = typeof body.reason === "string" ? body.reason : null;
+  if (ids.length === 0) { res.status(400).json({ error: "لا توجد طلبات محددة" }); return; }
+  if (ids.length > 200) { res.status(400).json({ error: "حد أقصى 200 طلب في المرة الواحدة" }); return; }
+
+  const updated = await db
+    .update(withdrawalsTable)
+    .set({ status: "rejected", rejectedReason: reason, processedAt: new Date() })
+    .where(and(inArray(withdrawalsTable.id, ids), eq(withdrawalsTable.status, "pending")))
+    .returning({ id: withdrawalsTable.id, userId: withdrawalsTable.userId, amount: withdrawalsTable.amount, currency: withdrawalsTable.currency });
+
+  await logAdminAction(req, "superadmin", {
+    action: "withdrawal.bulk_reject",
+    targetType: "withdrawal",
+    payload: { requested: ids.length, rejected: updated.length, reason },
+  });
+
+  // Detached notify per affected user — isolated so a notify failure can't
+  // turn into an unhandled rejection.
+  void (async () => {
+    for (const w of updated) {
+      try {
+        const [u] = await db.select({ tid: usersTable.telegramId }).from(usersTable).where(eq(usersTable.id, w.userId));
+        if (u) {
+          await notifyUser(
+            String(u.tid),
+            `❌ تم رفض طلب السحب #${w.id}\nالمبلغ: ${w.amount} ${w.currency.toUpperCase()}${reason ? `\nالسبب: ${reason}` : ""}\nالرصيد لم يُخصم من محفظتك.`,
+          );
+        }
+      } catch (err) {
+        req.log.warn({ err, withdrawalId: w.id }, "bulk-reject notify failed");
+      }
+    }
+  })();
+
+  res.json({ rejected: updated.length, ids: updated.map((u) => u.id) });
+});
+
+// ── Bot heartbeats (live up/down for the Python bots) ────────────────────
+// The five Python bots run as separate processes (aiogram) and emit a
+// heartbeat every 30s via /internal/heartbeat. We always render the full
+// expected set so a bot that has never pinged (new, crashed before first
+// ping, or misconfigured) shows as offline rather than vanishing.
+const HEARTBEAT_BOTS = ["mother-bot", "books-bot", "contests-bot", "scratchy-bot", "subagents-bot"] as const;
+router.get("/superadmin/bots-health", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(botHeartbeatsTable);
+  const bySlug = new Map(rows.map((r) => [r.botSlug, r]));
+  const now = Date.now();
+  const ONLINE_WINDOW_MS = 90_000;
+  // Union of expected bots and any unexpected slug that has reported.
+  const slugs = Array.from(new Set<string>([...HEARTBEAT_BOTS, ...rows.map((r) => r.botSlug)]));
+  const data = slugs.map((slug) => {
+    const r = bySlug.get(slug);
+    const lastSeenMs = r?.lastSeenAt ? new Date(r.lastSeenAt).getTime() : 0;
+    const ageSec = r ? Math.round((now - lastSeenMs) / 1000) : -1;
+    return {
+      botSlug: slug,
+      status: r && now - lastSeenMs <= ONLINE_WINDOW_MS ? "online" : "offline",
+      reportedStatus: r?.status ?? null,
+      version: r?.version ?? null,
+      lastSeenAt: r?.lastSeenAt ?? null,
+      ageSec,
+    };
+  });
+  res.json({ data });
 });
 
 export default router;

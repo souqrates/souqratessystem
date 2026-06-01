@@ -3,7 +3,7 @@ import {
   Shield, BarChart2, Users, ArrowLeftRight, CreditCard, ScrollText,
   Settings, LayoutGrid, Wallet, BookOpen, Trophy, Ticket,
   Megaphone, Link2, Plug, Activity, AlertTriangle, Star,
-  Diamond, Triangle, Play, Radio, Crown, Hexagon,
+  Diamond, Triangle, Play, Radio, Crown, Hexagon, LineChart,
 } from "lucide-react";
 import { BOTS } from "@/lib/bots-meta";
 import { clearToken } from "@/lib/api";
@@ -48,6 +48,7 @@ export default function Sidebar() {
         <SidebarLink href="/" active={location === "/"} icon={<BarChart2 size={16} />} label="نظرة عامة" />
         <SidebarLink href="/users" active={location.startsWith("/users")} icon={<Users size={16} />} label="المستخدمون" />
         <SidebarLink href="/transactions" active={location.startsWith("/transactions")} icon={<ArrowLeftRight size={16} />} label="سجل المعاملات" />
+        <SidebarLink href="/reports" active={location.startsWith("/reports")} icon={<LineChart size={16} />} label="التقارير المالية" sub="إيرادات، إيداعات، نمو" />
         <SidebarLink href="/withdrawals" active={location.startsWith("/withdrawals")} icon={<CreditCard size={16} />} label="طلبات السحب" />
         <SidebarLink href="/agreements" active={location.startsWith("/agreements")} icon={<ScrollText size={16} />} label="الاتفاقيات" sub="النص + الموقّعون" />
         <SidebarLink
