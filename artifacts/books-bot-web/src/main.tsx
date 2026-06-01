@@ -15,7 +15,7 @@ try { (window as any).Telegram?.WebApp?.expand?.(); } catch {}
 const _rk = "souq:chunk_reload_at";
 const _sr = () => { try { return Date.now() - Number(sessionStorage.getItem(_rk) || 0) > 30_000; } catch { return true; } };
 const _mr = () => { try { sessionStorage.setItem(_rk, String(Date.now())); } catch {} };
-const _ce = (e: unknown) => { const m = String((e as any)?.message || e || ""); return m.includes("Failed to fetch dynamically imported module") || m.includes("is not a valid JavaScript MIME type") || m.includes("'text/html' is not a valid JavaScript MIME"); };
+const _ce = (e: unknown) => { const m = String((e as any)?.message || e || ""); return m.includes("Failed to fetch dynamically imported module") || m.includes("is not a valid JavaScript MIME type") || m.includes("'text/html' is not a valid JavaScript MIME") || (m.includes("Unexpected token") && m.includes("<")); };
 const _re = (e: unknown) => { if (!_ce(e) || !_sr()) return false; _mr(); try { window.location.reload(); } catch {} return true; };
 window.addEventListener("vite:preloadError", (e) => { if (_re((e as any)?.payload)) e.preventDefault?.(); });
 window.addEventListener("unhandledrejection", (e) => { if (_re(e?.reason)) e.preventDefault?.(); });
