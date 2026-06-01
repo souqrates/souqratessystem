@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { tone, chord, noiseHit, hudColor } from './_groupKit';
+import { Square } from 'lucide-react';
 
 const DEFAULT_GAME_TIME = 90;
 const GRID = 4;
@@ -123,7 +124,7 @@ export default function ColorTapRush({ phase, setPhase, onScoreUpdate, game}) {
 
   if (phase === 'rules') return (
     <div style={{ padding: 24, color: '#cbd5e1', fontFamily: 'Orbitron,sans-serif', textAlign: 'center' }}>
-      <div style={{ fontSize: 44, marginBottom: 10 }}>■</div>
+      <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Square size={44} color="#ec4899" /></div>
       <h2 style={{ color: '#ec4899', fontSize: 22, margin: '8px 0 14px', textShadow: '0 0 18px #ec4899' }}>COLOR TAP RUSH</h2>
       <p style={{ fontSize: 14, lineHeight: 1.7 }}>{RULES}</p>
     </div>

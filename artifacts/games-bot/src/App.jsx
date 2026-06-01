@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Wrench } from 'lucide-react';
 import useAppStore from './store/appStore';
 import { GAMES } from './constants';
 import { initTelegramWebApp, getTelegramUser, verifyTelegramSession, getStartParam, getTelegramWebApp } from './lib/telegram';
@@ -36,7 +37,7 @@ function MaintenanceScreen({ appConfig }) {
   const title = appConfig?.app_title || 'Skill Games';
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#04030a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center', gap: 20 }}>
-      <div style={{ fontSize: 56 }}>■</div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Wrench size={56} color="rgba(245,158,11,0.9)" /></div>
       <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>{title}</h1>
       <p style={{ fontSize: 14, color: 'rgba(148,163,184,0.75)', lineHeight: 1.6, maxWidth: 280 }}>
         We are performing scheduled maintenance. We will be back shortly!

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { beep } from './_gameKit';
 import ResultOverlay from './ResultOverlay';
+import { ChevronUp } from 'lucide-react';
 import { loadGameConfig } from '../../../lib/gameConfig';
 import { getFrameInterval } from '../../../lib/canvasQuality';
 
@@ -204,7 +205,7 @@ export default function TimeHeist({ phase, setPhase, game, onScoreUpdate }) {
       {/* D-pad */}
       <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, justifyItems: 'center' }}>
         <div />
-        <Btn onClick={() => onMove(0, -1)}>▲</Btn>
+        <Btn onClick={() => onMove(0, -1)}><ChevronUp size={18} /></Btn>
         <div />
         <Btn onClick={() => onMove(-1, 0)}>◀</Btn>
         <Btn onClick={rewind} color={CYAN}>↺</Btn>

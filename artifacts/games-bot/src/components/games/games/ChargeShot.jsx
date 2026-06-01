@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Rules, Hud, HudRow, TimeBar, TargetBar } from './_shell';
 import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
+import { Zap } from 'lucide-react';
 import { triggerHaptic } from '../../../lib/telegram';
 
 const RULES = 'Hold the button to charge the power bar. Release EXACTLY when the bar is inside the green zone to score! The zone shrinks with each successful shot. Miss = score penalty. Reach the target score before time runs out to win!';
@@ -193,7 +194,7 @@ export default function ChargeShot({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'background 0.08s, border-color 0.08s, box-shadow 0.08s',
           }}
         >
-          <span style={{ fontSize: 42 }}>■</span>
+          <Zap size={42} color={isCharging ? barColor : 'rgba(255,255,255,0.4)'} />
           <span style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 10, color: isCharging ? barColor : 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>
             {isCharging ? 'CHARGING…' : 'HOLD'}
           </span>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { tone, chord, noiseHit, hudColor } from './_groupKit';
 import { getFrameInterval } from '../../../lib/canvasQuality';
+import { Activity } from 'lucide-react';
 
 const DEFAULT_GAME_TIME = 90;
 const RULES = 'PULSE DRIFT — A shrinking ring closes in on the target zone. Tap at the PERFECT moment for +60. Good window = +25. Miss = combo break. Chain perfects to unleash supernova bonuses. 90 seconds of pure timing.';
@@ -144,7 +145,7 @@ export default function PulseDrift({ phase, setPhase, onScoreUpdate, game}) {
   if (phase === 'rules') {
     return (
       <div style={{ padding: 24, color: '#cbd5e1', fontFamily: 'Orbitron,sans-serif', textAlign: 'center' }}>
-        <div style={{ fontSize: 44, marginBottom: 10 }}>◎</div>
+        <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Activity size={44} color="#22d3ee" /></div>
         <h2 style={{ color: '#22d3ee', fontSize: 22, margin: '8px 0 14px', textShadow: '0 0 18px #22d3ee' }}>PULSE DRIFT</h2>
         <p style={{ fontSize: 14, lineHeight: 1.7 }}>{RULES}</p>
       </div>
