@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, Zap, ChevronRight } from 'lucide-react';
+import { X, RotateCcw, Zap, ChevronRight, AlertTriangle } from 'lucide-react';
 import { GameIcon } from '../../lib/game-icons';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { triggerHaptic, exitFullscreen, refreshSession } from '../../lib/telegram';
@@ -580,7 +580,7 @@ export default function GameModal({ game, onClose, prefetchedTiers = null }) {
                           gap: 8,
                         }}
                       >
-                        <span style={{ fontSize: 18 }}>⚠️</span>
+                        <AlertTriangle size={18} />
                         <span>{entryError}</span>
                       </motion.div>
                     )}

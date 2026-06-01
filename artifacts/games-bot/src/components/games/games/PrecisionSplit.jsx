@@ -270,7 +270,7 @@ export default function PrecisionSplit({ phase, setPhase, game, onScoreUpdate })
           <div style={{ position: 'absolute', bottom: 4, left: '50%', width: 1, height: 8, background: EMERALD, marginLeft: -0.5 }} />
           <div style={{ position: 'absolute', left: 4, top: '50%', height: 1, width: 8, background: EMERALD, marginTop: -0.5 }} />
           <div style={{ position: 'absolute', right: 4, top: '50%', height: 1, width: 8, background: EMERALD, marginTop: -0.5 }} />
-          <span style={{ fontSize: 22, lineHeight: 1 }}>✂</span>
+          <span style={{ fontSize: 22, lineHeight: 1 }}>✂</span>  // game-symbol
           <span style={{ fontSize: 13, letterSpacing: '0.24em' }}>SPLIT</span>
         </motion.button>
 

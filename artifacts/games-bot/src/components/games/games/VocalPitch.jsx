@@ -195,7 +195,7 @@ export default function VocalPitch({ phase, setPhase, game, onScoreUpdate }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: note.color, fontFamily: 'Orbitron, sans-serif', fontWeight: 900, fontSize: 11,
                   }}>
-                    {i < seqIdx ? '✓' : '?'}
+                    {i < seqIdx ? '✓' : '?'}  // game-symbol
                   </div>
                 ))}
               </div>

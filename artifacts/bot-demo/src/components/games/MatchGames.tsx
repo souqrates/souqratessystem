@@ -135,7 +135,7 @@ export function SlotScratch({ game, tier, lang, onResult, onPlayAgain }: GProps)
       const top = tier.prizes[tier.prizes.length-1];
       const ratio = p / top;
       if (ratio >= 0.9) return [p, ['7','7','7'], isRtl ? 'ثلاثة 7 — جاكبوت!' : 'Triple 7 — JACKPOT!'];
-      if (ratio >= 0.6) return [p, ['⭐','⭐','⭐'], isRtl ? 'ثلاثة نجوم!' : 'Triple Stars!'];
+      if (ratio >= 0.6) return [p, ['⭐','⭐','⭐'], isRtl ? 'ثلاثة نجوم!' : 'Triple Stars!']; // game-symbol: slot reel outcome
       if (ratio >= 0.35) return [p, ['◈','◈','◈'], isRtl ? 'ثلاثة رموز!' : 'Triple Symbols!'];
       return [p, ['★','★','★'], isRtl ? 'ثلاثة نجمات!' : 'Triple Stars!'];
     }

@@ -248,7 +248,7 @@ function CommissionRow({
       return api.patch<Bot>(`/superadmin/bots/${slug}`, { commissionRate: rate.toFixed(4) });
     },
     onSuccess: () => {
-      setMsg("✓");
+      setMsg("تم");
       setTimeout(() => setMsg(null), 1500);
       onSaved();
     },

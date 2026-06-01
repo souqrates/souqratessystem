@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Clock, CheckCircle, ShoppingCart, TrendingUp, Coins, Pause, Download, X } from "lucide-react";
+import { BookOpen, Clock, CheckCircle, ShoppingCart, TrendingUp, Coins, Pause, Download, X, Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { BookCoverPicker } from "@/components/BookCoverPicker";
 
@@ -174,7 +174,7 @@ function ProductsTab() {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" dir="rtl" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
               <div className="font-semibold text-slate-900">{selected.title}</div>
-              <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-900 text-xl">✕</button>
+              <button onClick={() => setSelected(null)} className="text-slate-500 hover:text-slate-900 flex items-center justify-center"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4 text-sm">
               {selected.coverUrl && <img src={selected.coverUrl} alt="cover" className="max-h-60 rounded-md border border-slate-200" />}
@@ -241,7 +241,7 @@ function CategoriesTab() {
           <Input label="أيقونة" value={draft.icon} onChange={(v) => setDraft({ ...draft, icon: v })} className="w-20" />
           <Input label="ترتيب" value={String(draft.sortOrder)} onChange={(v) => setDraft({ ...draft, sortOrder: parseInt(v, 10) || 0 })} className="w-20" />
           <button onClick={create} disabled={!draft.slug || !draft.nameAr}
-            className="px-4 py-2 rounded-md bg-teal-700 text-white text-sm font-medium hover:bg-teal-800 disabled:bg-slate-300">➕ إضافة</button>
+            className="px-4 py-2 rounded-md bg-teal-700 text-white text-sm font-medium hover:bg-teal-800 disabled:bg-slate-300 flex items-center gap-1"><Plus size={13} /> إضافة</button>
         </div>
         {error && <p className="text-rose-600 text-sm">{error}</p>}
         {loading ? <p className="text-slate-500 text-sm">جاري التحميل…</p> : (

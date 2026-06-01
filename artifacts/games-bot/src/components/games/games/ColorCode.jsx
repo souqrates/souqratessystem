@@ -89,7 +89,7 @@ export default function ColorCode({ phase, setPhase, game, onScoreUpdate }) {
       setScore(scoreRef.current);
       chord([523, 659, 784], 0.06, 0.15, 'triangle');
       triggerHaptic('success');
-      setFeedback({ label: '✓ CORRECT!', color: '#10b981', id: Date.now() });
+      setFeedback({ label: '✓ CORRECT!', color: '#10b981', id: Date.now() });  // game-symbol
       const newSeq = [...seqRef.current, Math.floor(Math.random() * 4)];
       setTimeout(() => startRound(newSeq), 700);
       setMode('watch');

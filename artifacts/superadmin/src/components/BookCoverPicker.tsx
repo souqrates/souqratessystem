@@ -3,7 +3,7 @@
  * User types title + optional author → live preview → download as PNG.
  */
 import { useRef, useState } from "react";
-import { Heart, Star, Download } from "lucide-react";
+import { Heart, Star, Download, Check } from "lucide-react";
 import html2canvas from "html2canvas";
 
 export type CoverStyle = {
@@ -365,8 +365,8 @@ function CoverHeritage({ title, author }: { title: string; author: string }) {
         </svg>
       ))}
       {/* Top/bottom scroll dividers */}
-      <div style={{ position: "absolute", top: 44, left: 24, right: 24, textAlign: "center", color: "#c4985070", fontSize: 11 }}>❦</div>
-      <div style={{ position: "absolute", bottom: 44, left: 24, right: 24, textAlign: "center", color: "#c4985070", fontSize: 11 }}>❧</div>
+      <div style={{ position: "absolute", top: 44, left: 24, right: 24, textAlign: "center", color: "#c4985070", fontSize: 11 }}>— ✦ —</div>
+      <div style={{ position: "absolute", bottom: 44, left: 24, right: 24, textAlign: "center", color: "#c4985070", fontSize: 11 }}>— ✦ —</div>
       {/* Brand */}
       <div style={{ position: "absolute", top: 20, left: 0, right: 0, textAlign: "center", fontSize: 7, letterSpacing: 3, color: "#c4985080", textTransform: "uppercase" }}>SOUQRATES SOUQ</div>
       {/* Title */}
@@ -521,7 +521,7 @@ export function BookCoverPicker() {
                 </div>
                 {isSelected && (
                   <div className="absolute inset-0 flex items-center justify-center bg-teal-500/10">
-                    <div className="bg-teal-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg shadow-lg">✓</div>
+                    <div className="bg-teal-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"><Check size={16} /></div>
                   </div>
                 )}
               </div>

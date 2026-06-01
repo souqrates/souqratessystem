@@ -116,7 +116,7 @@ export function PirateMap({ game, tier, lang, onResult, onPlayAgain }: GProps) {
                 <div style={{ width:80, height:74, display:'flex', alignItems:'center', justifyContent:'center', background: isFoundX?'#0a1a0a':'#060d14', borderRadius:10, border: isFoundX?`2px solid ${game.accent}`:'1px solid rgba(255,255,255,0.04)', boxShadow: isFoundX?`0 0 16px ${game.accent}66`:'none' }}>
                   {rev[i]
                     ? (isX&&prize>0
-                      ? <div style={{ fontSize:26, fontWeight:900, color:game.accent }}>✕</div>
+                      ? <div style={{ fontSize:26, fontWeight:900, color:game.accent }}>✕</div> /* game-symbol: scratch result X marker */
                       : <div style={{ fontSize:14, color:'#1e3a5f' }}>~</div>)
                     : <div style={{ fontSize:11, color:'#0f2030', fontWeight:700 }}>?</div>
                   }
@@ -196,7 +196,7 @@ export function GemLadder({ game, tier, lang, onResult, onPlayAgain }: GProps) {
               </ScratchZone>
               <div style={{ width:20, textAlign:'center' }}>
                 {reached && <div style={{ fontSize:12, color:game.accent }}>✓</div>}
-                {isFail && <div style={{ fontSize:12, color:'#7f1d1d' }}>✕</div>}
+                {isFail && <div style={{ fontSize:12, color:'#7f1d1d' }}>✕</div>} {/* game-symbol */}
               </div>
             </div>
           );
@@ -310,7 +310,7 @@ export function ShadowReveal({ game, tier, lang, onResult, onPlayAgain }: GProps
                   {revealed && <div style={{ fontFamily:'"Orbitron",sans-serif', fontSize:16, fontWeight:900, color:game.accent, marginTop:2 }}>+{portals[i]} SKZ</div>}
                   {!revealed && <div style={{ fontSize:10, color:'#1e293b' }}>????</div>}
                 </div>
-                {revealed && <div style={{ color:game.accent, fontSize:16 }}>✓</div>}
+                {revealed && <div style={{ color:game.accent, fontSize:16 }}>✓</div>} {/* game-symbol */}
               </div>
             </ScratchZone>
           );

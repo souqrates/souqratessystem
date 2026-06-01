@@ -220,10 +220,10 @@ export default function BubbleBurstArena({ phase, setPhase, onScoreUpdate, game 
           }}>
           {/* game-symbol: gold/trap bubble type indicators */}
           {b.kind === 'gold' && (
-            <span style={{ fontSize: 18, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#fff', textShadow: '0 0 8px #f59e0b' }}>★</span>
+            <span style={{ fontSize: 18, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#fff', textShadow: '0 0 8px #f59e0b' }}>★</span>  // game-symbol
           )}
           {b.kind === 'trap' && (
-            <span style={{ fontSize: 16, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#fff', textShadow: '0 0 6px #000' }}>✕</span>
+            <span style={{ fontSize: 16, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#fff', textShadow: '0 0 6px #000' }}>✕</span>  // game-symbol
           )}
           <div style={{
             position: 'absolute', top: '14%', left: '20%', width: '34%', height: '22%',

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Crown, Settings, RotateCcw, X } from "lucide-react";
+import { Crown, Settings, RotateCcw, X, CheckCircle } from "lucide-react";
 import { api, getToken } from "@/lib/api";
 import { Link } from "wouter";
 
@@ -152,7 +152,7 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-lg">#{a.id} — {a.fullName}</h3>
-        <button onClick={onClose} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200">✕</button>
+        <button onClick={onClose} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"><X size={14} /></button>
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs mb-4">
         <Info label="الحالة" value={<StatusBadge status={a.status} />} />
@@ -183,7 +183,7 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
           <>
             <button onClick={() => approve.mutate()} disabled={approve.isPending}
                     className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm disabled:opacity-50">
-              ✅ موافقة وإصدار اللوحة
+              <CheckCircle size={14} className="inline mr-1" /> موافقة وإصدار اللوحة
             </button>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)}
                       placeholder="سبب الرفض (مطلوب للرفض)" rows={2}

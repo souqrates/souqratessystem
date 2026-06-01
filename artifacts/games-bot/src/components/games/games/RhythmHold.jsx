@@ -64,7 +64,7 @@ export default function RhythmHold({ phase, setPhase, game, onScoreUpdate }) {
           setScore(scoreRef.current);
           beep({ freq: 660 + (i % 5) * 60, dur: 0.06, vol: 0.09 });
           triggerHaptic('light');
-          setFeedback({ label: '✓', color: '#10b981', id: Date.now() });
+          setFeedback({ label: '✓', color: '#10b981', id: Date.now() });  // game-symbol
           if (scoreRef.current >= (game.targetScore || TARGET)) endGame();
         }
       }

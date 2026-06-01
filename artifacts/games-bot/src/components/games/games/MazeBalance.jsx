@@ -165,7 +165,7 @@ export default function MazeBalance({ phase, setPhase, game, onScoreUpdate }) {
                   <g key={`${r}-${c}`}>
                     {cell.hole && <rect x={x + 4} y={y + 4} width={CELL - 8} height={CELL - 8} fill="rgba(239,68,68,0.3)" rx={4} />}
                     {isGoal && <rect x={x + 4} y={y + 4} width={CELL - 8} height={CELL - 8} fill="rgba(251,191,36,0.25)" rx={4} />}
-                    {isGoal && <text x={x + CELL / 2} y={y + CELL / 2 + 6} textAnchor="middle" fontSize={20}>⭐</text>}
+                    {isGoal && <text x={x + CELL / 2} y={y + CELL / 2 + 6} textAnchor="middle" fontSize={20}>⭐</text>}  // game-symbol
                     {cell.walls.T && <line x1={x} y1={y} x2={x + CELL} y2={y} stroke="rgba(148,163,184,0.4)" strokeWidth={1.5} />}
                     {cell.walls.R && <line x1={x + CELL} y1={y} x2={x + CELL} y2={y + CELL} stroke="rgba(148,163,184,0.4)" strokeWidth={1.5} />}
                     {cell.walls.B && <line x1={x} y1={y + CELL} x2={x + CELL} y2={y + CELL} stroke="rgba(148,163,184,0.4)" strokeWidth={1.5} />}

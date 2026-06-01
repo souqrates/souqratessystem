@@ -194,7 +194,7 @@ function TextRow({ row, botSlug }: { row: BotText; botSlug: string }) {
         >
           استعادة المنشور
         </button>
-        {savedFlash && <span className="text-emerald-600 text-sm">✓ تم الحفظ</span>}
+        {savedFlash && <span className="text-emerald-600 text-sm">تم الحفظ</span>}
         <button
           onClick={() => {
             if (confirm(`حذف "${row.label}"؟`)) delMut.mutate();
@@ -215,7 +215,7 @@ function TelegramPreview({ text }: { text: string }) {
         <div className="text-sm text-slate-800 whitespace-pre-wrap break-words">
           {text || <span className="text-slate-400 italic">(فارغ)</span>}
         </div>
-        <div className="text-[10px] text-slate-400 text-left mt-1">10:30 ✓✓</div>
+        <div className="text-[10px] text-slate-400 text-left mt-1">10:30</div>
       </div>
     </div>
   );

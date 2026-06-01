@@ -126,7 +126,7 @@ export default function RopeSlice({ phase, setPhase, game, onScoreUpdate }) {
             <path d="M80,185 Q130,195 180,185 L175,165 Q130,175 85,165 Z" fill="rgba(245,158,11,0.3)" stroke="#f59e0b" strokeWidth="2" />
 
             {/* Star */}
-            <text x="130" y="50" textAnchor="middle" fontSize="32" style={{ userSelect: 'none' }}>⭐</text>
+            <text x="130" y="50" textAnchor="middle" fontSize="32" style={{ userSelect: 'none' }}>⭐</text>  {/* game-symbol */}  // game-symbol
 
             {/* Ropes */}
             {Array.from({ length: puzzle.ropeCount }, (_, i) => {
@@ -142,7 +142,7 @@ export default function RopeSlice({ phase, setPhase, game, onScoreUpdate }) {
                     <>
                       <line x1="130" y1="55" x2={x} y2="100" stroke="#ef444488" strokeWidth="3" strokeDasharray="4,4" />
                       <line x1={x} y1="100" x2={x} y2="165" stroke="#ef444488" strokeWidth="3" strokeDasharray="4,4" />
-                      <text x={x} y="108" textAnchor="middle" fontSize="14">✂️</text>
+                      <text x={x} y="108" textAnchor="middle" fontSize="14">✂️</text>  // game-symbol
                     </>
                   )}
                   {!isCut && (

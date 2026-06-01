@@ -219,7 +219,7 @@ function GameRow({ g, onChanged }: { g: GameConfigRow; onChanged: () => void }) 
           }`}
           title="نقرة واحدة = إخفاء/إظهار فوري للمستخدمين"
         >
-          {toggleMut.isPending ? "…" : g.published.isVisible ? "✓ ظاهرة" : "✗ مخفية"}
+          {toggleMut.isPending ? "…" : g.published.isVisible ? "ظاهرة" : "مخفية"}
         </button>
       </Td>
       <Td>

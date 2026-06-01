@@ -71,7 +71,7 @@ export default function ErrorLogsPage() {
           <div className="py-10 text-center text-slate-400">جارٍ التحميل…</div>
         ) : (data?.data ?? []).length === 0 ? (
           <div className="py-10 text-center text-slate-400">
-            ✓ لا توجد أخطاء مسجّلة — كل شيء على ما يرام.
+            لا توجد أخطاء مسجّلة — كل شيء على ما يرام.
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -136,7 +136,7 @@ function ErrorRow({ log, onResolve, onDelete }: { log: SuperErrorLog; onResolve:
         </div>
         <div className="flex flex-col gap-1 shrink-0">
           {!log.resolved && (
-            <button onClick={onResolve} className="text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded">✓ حل</button>
+            <button onClick={onResolve} className="text-xs px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded">حل</button>
           )}
           <button onClick={onDelete} className="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded">حذف</button>
         </div>

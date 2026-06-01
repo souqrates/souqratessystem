@@ -77,6 +77,7 @@ export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) 
           <div style={{ fontSize:18, fontWeight:900, color:'#475569' }}>VS</div>
           {yourR && dealerR && (
             <motion.div initial={{ scale:0 }} animate={{ scale:1 }} style={{ fontSize:11, fontWeight:800, color: prize>0 ? game.accent : '#f87171', textAlign:'center' }}>
+              {/* game-symbol: ✓ win / ✗ lose indicators */}
               {prize>0 ? (isRtl ? 'فزت! ✓' : 'You Win! ✓') : (isRtl ? 'خسرت ✗' : 'Lost ✗')}
             </motion.div>
           )}

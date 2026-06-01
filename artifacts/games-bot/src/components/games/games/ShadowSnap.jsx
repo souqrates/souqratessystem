@@ -92,7 +92,7 @@ export default function ShadowSnap({ phase, setPhase, game, onScoreUpdate }) {
       setScore(scoreRef.current);
       chord([523, 659], 0.06, 0.12, 'triangle');
       triggerHaptic('success');
-      const label = speedBonus === 3 ? `★ FAST +${speedBonus}` : speedBonus === 2 ? `✓ QUICK +${speedBonus}` : `✓ +${speedBonus}`;
+      const label = speedBonus === 3 ? `★ FAST +${speedBonus}` : speedBonus === 2 ? `✓ QUICK +${speedBonus}` : `✓ +${speedBonus}`;  // game-symbol
       setFeedback({ label, color: speedBonus === 3 ? '#fbbf24' : '#10b981', id: Date.now() });
       setTimeout(nextRound, 550);
     } else {

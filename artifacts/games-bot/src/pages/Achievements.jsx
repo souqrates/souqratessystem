@@ -268,7 +268,7 @@ export default function Achievements() {
                           {unlocked && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black"
                               style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}>
-                              ✓ UNLOCKED
+                              UNLOCKED
                             </span>
                           )}
                         </div>

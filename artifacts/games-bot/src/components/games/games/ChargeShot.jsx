@@ -78,7 +78,7 @@ export default function ChargeShot({ phase, setPhase, game, onScoreUpdate }) {
       setZoneEnd(newEnd);
       chord([660, 990, 1320], 0.07, 0.14, 'sine');
       triggerHaptic('success');
-      setFeedback({ label: '✓ PERFECT!', color: '#10b981' });
+      setFeedback({ label: '✓ PERFECT!', color: '#10b981' });  // game-symbol
     } else {
       scoreRef.current = Math.max(0, scoreRef.current - 2);
       setScore(scoreRef.current);

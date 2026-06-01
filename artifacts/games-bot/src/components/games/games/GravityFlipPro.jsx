@@ -236,7 +236,7 @@ export default function GravityFlipPro({ phase, setPhase, game, onScoreUpdate })
             <animate attributeName="opacity" values="0.7;0.05;0.7" dur="1.4s" repeatCount="indefinite" />
           </circle>
           <circle cx={50} cy={playerY} r={PLAYER_SIZE / 2} fill="url(#gravPlayer)" filter="url(#gravGlow)" />
-          <text x={50} y={playerY + 5} textAnchor="middle" fontSize={14} fill="#fff" style={{ fontWeight: 900 }}>{gravDown ? '⬇' : '⬆'}</text>
+          <text x={50} y={playerY + 5} textAnchor="middle" fontSize={14} fill="#fff" style={{ fontWeight: 900 }}>{gravDown ? '⬇' : '⬆'}</text>  // game-symbol
         </svg>
 
         <p style={{ color: 'rgba(167,139,250,0.7)', fontSize: 11, letterSpacing: '0.25em', fontFamily: 'Orbitron, sans-serif' }}>TAP TO REVERSE GRAVITY</p>

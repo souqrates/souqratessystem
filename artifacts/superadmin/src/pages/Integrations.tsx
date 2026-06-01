@@ -118,18 +118,18 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
 
   const status = useMemo(() => {
     if (!item.configured) {
-      return { color: "bg-slate-100 text-slate-600 border-slate-200", label: "غير معدّ", icon: "○" };
+      return { color: "bg-slate-100 text-slate-600 border-slate-200", label: "غير معدّ" };
     }
     if (item.lastTestStatus === "ok" && item.enabled) {
-      return { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "نشط ومتصل", icon: "●" };
+      return { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "نشط ومتصل" };
     }
     if (item.lastTestStatus === "ok" && !item.enabled) {
-      return { color: "bg-amber-100 text-amber-700 border-amber-200", label: "متصل لكن موقوف", icon: "◐" };
+      return { color: "bg-amber-100 text-amber-700 border-amber-200", label: "متصل لكن موقوف" };
     }
     if (item.lastTestStatus === "failed") {
-      return { color: "bg-red-100 text-red-700 border-red-200", label: "فشل الاختبار", icon: "✕" };
+      return { color: "bg-red-100 text-red-700 border-red-200", label: "فشل الاختبار" };
     }
-    return { color: "bg-slate-100 text-slate-600 border-slate-200", label: "بانتظار الاختبار", icon: "?" };
+    return { color: "bg-slate-100 text-slate-600 border-slate-200", label: "بانتظار الاختبار" };
   }, [item]);
 
   const saveMut = useMutation({
@@ -184,7 +184,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
           <p className="text-sm text-slate-600 leading-snug">{item.adapter.description}</p>
         </div>
         <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full border font-semibold ${status.color}`}>
-          {status.icon} {status.label}
+          {status.label}
         </span>
       </div>
 

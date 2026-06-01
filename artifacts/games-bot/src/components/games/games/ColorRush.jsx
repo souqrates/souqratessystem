@@ -63,7 +63,7 @@ export default function ColorRush({ phase, setPhase, game, onScoreUpdate }) {
       setCombo(comboRef.current);
       beep({ freq: 660 + comboRef.current * 30, dur: 0.07, vol: 0.1 });
       triggerHaptic('success');
-      const label = comboRef.current >= 5 ? `★×${comboRef.current} +${bonus}` : '✓ CORRECT';
+      const label = comboRef.current >= 5 ? `★×${comboRef.current} +${bonus}` : '✓ CORRECT';  // game-symbol
       setFeedback({ label, color: '#10b981', id: Date.now() });
       setTimeout(nextRound, 380);
     } else {

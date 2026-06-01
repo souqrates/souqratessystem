@@ -38,7 +38,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'كنز الفراعنة', nameEn: "Pharaoh's Treasure",
     iconKey: 'Crown',
     color1: '#92400e', color2: '#78350f', accent: '#f59e0b',
-    symbols: ['𓂀', '☥', '◈', '✦'],
+    symbols: ['𓂀', '☥', '◈', '✦'], // game-symbol
     description: 'أسرار الفراعنة الخالدة',
     mechanicDescAr: 'احك ٣ مناطق — طابق الرموز الثلاثة لتفوز',
     mechanicDescEn: 'Scratch 3 zones — match all 3 symbols to win',
@@ -48,7 +48,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'الجوهرة الزرقاء', nameEn: 'Lucky Lines',
     iconKey: 'Gem',
     color1: '#1e3a8a', color2: '#1e40af', accent: '#60a5fa',
-    symbols: ['◆', '✦', '◈', '◇'],
+    symbols: ['◆', '✦', '◈', '◇'], // game-symbol
     description: 'جواهر نادرة من أعماق الأرض',
     mechanicDescAr: 'احك شبكة ٣×٣ — أكمل خطاً كاملاً من الرموز',
     mechanicDescEn: 'Scratch 3×3 grid — complete any line of matching symbols',
@@ -58,7 +58,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'نجوم الحظ', nameEn: 'Your Lucky Number',
     iconKey: 'Star',
     color1: '#78350f', color2: '#92400e', accent: '#fbbf24',
-    symbols: ['★', '✦', '✶', '✧'],
+    symbols: ['★', '✦', '✶', '✧'], // game-symbol
     description: 'النجوم تقود طريقك للثروة',
     mechanicDescAr: 'احك رقمك المحظوظ — إذا ظهر في الأرقام الثمانية ربحت',
     mechanicDescEn: 'Scratch your lucky number — match it in 8 prize numbers to win',
@@ -68,7 +68,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'تنين الثروة', nameEn: 'Triple Dice',
     iconKey: 'Swords',
     color1: '#7f1d1d', color2: '#991b1b', accent: '#f87171',
-    symbols: ['◈', '✦', '★', '◆'],
+    symbols: ['◈', '✦', '★', '◆'], // game-symbol
     description: 'قوة التنين الأسطورية بيدك',
     mechanicDescAr: 'احك ٣ نرد — التوليفة المثالية تجلب الجائزة الكبرى',
     mechanicDescEn: 'Scratch 3 dice — the perfect combo wins the jackpot',
@@ -78,7 +78,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'بينغو المجرة', nameEn: 'Galaxy Bingo',
     iconKey: 'Sparkles',
     color1: '#0c4a6e', color2: '#0e7490', accent: '#38bdf8',
-    symbols: ['✦', '◉', '★', '◈'],
+    symbols: ['✦', '◉', '★', '◈'], // game-symbol
     description: 'كنوز الكون اللامتناهية',
     mechanicDescAr: 'احك بطاقتك — أكمل صفاً أو عموداً لتفوز',
     mechanicDescEn: 'Scratch your card — complete a line to win',
@@ -88,7 +88,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'كنز البحار', nameEn: 'Cash Bags',
     iconKey: 'Waves',
     color1: '#134e4a', color2: '#0f766e', accent: '#2dd4bf',
-    symbols: ['⚓', '◆', '◈', '✦'],
+    symbols: ['⚓', '◆', '◈', '✦'], // game-symbol
     description: 'كنوز مخفية في أعماق البحر',
     mechanicDescAr: 'احك ٥ أكياس — اجمع مبالغها للحصول على جائزتك',
     mechanicDescEn: 'Scratch 5 bags — sum their amounts to get your prize',
@@ -98,7 +98,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'تحدي الجليد', nameEn: 'Beat the Dealer',
     iconKey: 'Snowflake',
     color1: '#0f4c75', color2: '#1e40af', accent: '#93c5fd',
-    symbols: ['❄', '◆', '✦', '◈'],
+    symbols: ['❄', '◆', '✦', '◈'], // game-symbol
     description: 'بلورات الجليد الملكية النادرة',
     mechanicDescAr: 'احك بطاقتك وبطاقة الخصم — الأعلى يفوز',
     mechanicDescEn: 'Scratch your card and dealer\'s — highest wins',
@@ -108,7 +108,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'الظروف المشتعلة', nameEn: 'Lucky Envelopes',
     iconKey: 'Flame',
     color1: '#7c2d12', color2: '#9a3412', accent: '#fb923c',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'لهيب الحظ يشعل طريقك',
     mechanicDescAr: 'احك ٣ ظروف من ٩ — مجموع ما بداخلها هو جائزتك',
     mechanicDescEn: 'Scratch 3 envelopes from 9 — their sum is your prize',
@@ -118,7 +118,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'مضاعف القمر', nameEn: 'Multiplier Magic',
     iconKey: 'Moon',
     color1: '#1e1b4b', color2: '#312e81', accent: '#c4b5fd',
-    symbols: ['☽', '✦', '◈', '★'],
+    symbols: ['☽', '✦', '◈', '★'], // game-symbol
     description: 'سحر القمر يكشف الكنوز',
     mechanicDescAr: 'احك منطقتين — الجائزة الأساسية × المضاعف = جائزتك',
     mechanicDescEn: 'Scratch 2 zones — base prize × multiplier = your prize',
@@ -128,7 +128,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'بوكر الصاعقة', nameEn: 'Poker Scratch',
     iconKey: 'Zap',
     color1: '#713f12', color2: '#92400e', accent: '#fde047',
-    symbols: ['⚡', '★', '◆', '✦'],
+    symbols: ['⚡', '★', '◆', '✦'], // game-symbol
     description: 'سرعة الصاعقة تجلب الثروة',
     mechanicDescAr: 'احك ٥ أوراق — أفضل تشكيلة بوكر تفوز',
     mechanicDescEn: 'Scratch 5 cards — best poker hand wins',
@@ -138,7 +138,7 @@ export const GAMES: GameDef[] = [
     nameAr: '٧ سوبر ذهبي', nameEn: 'Super Sevens',
     iconKey: 'Shield',
     color1: '#064e3b', color2: '#065f46', accent: '#f59e0b',
-    symbols: ['◈', '★', '✦', '◆'],
+    symbols: ['◈', '★', '✦', '◆'], // game-symbol
     description: 'ملك الغابة يحرس كنوزه',
     mechanicDescAr: 'احك ٣ مناطق بالتسلسل — كل ٧ يضاعف جائزتك',
     mechanicDescEn: 'Scratch 3 zones in sequence — each 7 multiplies your prize',
@@ -148,7 +148,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'مطابقة الرموز', nameEn: 'Symbol Match',
     iconKey: 'Leaf',
     color1: '#052e16', color2: '#14532d', accent: '#4ade80',
-    symbols: ['✿', '◆', '★', '✦'],
+    symbols: ['✿', '◆', '★', '✦'], // game-symbol
     description: 'ثمار الحظ الناضجة في انتظارك',
     mechanicDescAr: 'احك رموزك الثلاثة — ابحث عنها في نافذة الفائزين',
     mechanicDescEn: 'Scratch your 3 symbols — find them in the winning window',
@@ -158,7 +158,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'صيد الكنز', nameEn: 'Treasure Hunt',
     iconKey: 'Eye',
     color1: '#4a044e', color2: '#701a75', accent: '#e879f9',
-    symbols: ['◆', '✦', '◈', '★'],
+    symbols: ['◆', '✦', '◈', '★'], // game-symbol
     description: 'ألغاز الليل تخفي ثروات عظيمة',
     mechanicDescAr: 'احك ٥ مواقع من ٩ — اجمع المسكوكات والجواهر',
     mechanicDescEn: 'Scratch 5 spots from 9 — collect coins and gems',
@@ -168,7 +168,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'سلوت الملوك', nameEn: 'Royal Slots',
     iconKey: 'Target',
     color1: '#0f172a', color2: '#1e293b', accent: '#94a3b8',
-    symbols: ['⚔', '◈', '✦', '◆'],
+    symbols: ['⚔', '◈', '✦', '◆'], // game-symbol
     description: 'شجاعة الملوك تفتح أبواب الثروة',
     mechanicDescAr: 'احك ٣ بكرات — التوليفات الرابحة تجلب الجوائز',
     mechanicDescEn: 'Scratch 3 reels — winning combos bring prizes',
@@ -178,7 +178,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'هرم الجوائز', nameEn: 'Prize Pyramid',
     iconKey: 'Layers',
     color1: '#7c3aed', color2: '#6d28d9', accent: '#fb923c',
-    symbols: ['✦', '◆', '★', '◈'],
+    symbols: ['✦', '◆', '★', '◈'], // game-symbol
     description: 'خفة الفراشة تحمل بشارة الفوز',
     mechanicDescAr: 'احك طبقات الهرم من الأسفل — كل طبقة تضاعف المكافأة',
     mechanicDescEn: 'Scratch pyramid layers from bottom — each layer multiplies reward',
@@ -189,7 +189,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'كاسر الخزنة', nameEn: 'Safe Cracker',
     iconKey: 'Lock',
     color1: '#0f172a', color2: '#1e293b', accent: '#e94560',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'اكسر رمز الخزنة السرية',
     mechanicDescAr: 'احك ٤ أقراص — طابق الرمز السري لكسر الخزنة',
     mechanicDescEn: 'Scratch 4 dials — match the secret code to crack the vault',
@@ -199,7 +199,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'حمى الذهب', nameEn: 'Gold Rush',
     iconKey: 'Pickaxe',
     color1: '#422006', color2: '#78350f', accent: '#fcd34d',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'اكشف عروق الذهب المدفونة',
     mechanicDescAr: 'احك ١٦ حجراً — اجمع ٤ ذهبات أو أكثر لتفوز',
     mechanicDescEn: 'Scratch 16 stones — find 4+ gold nuggets to win',
@@ -209,7 +209,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'عجلة الحظ', nameEn: 'Fortune Wheel',
     iconKey: 'RotateCcw',
     color1: '#2d1b69', color2: '#4c1d95', accent: '#a78bfa',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'الحظ يدور على عجلة الثروة',
     mechanicDescAr: 'احك ٨ قطاعات — أعلى قيمة مكشوفة هي جائزتك',
     mechanicDescEn: 'Scratch 8 wheel sectors — highest revealed value is your prize',
@@ -219,7 +219,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'تطابق الكريستال', nameEn: 'Crystal Match',
     iconKey: 'Hexagon',
     color1: '#042f2e', color2: '#134e4a', accent: '#2dd4bf',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'بلورات نادرة تحمل أسرار الثروة',
     mechanicDescAr: 'احك ٦ بلورات — اعثر على ٣ بنفس اللون لتفوز',
     mechanicDescEn: 'Scratch 6 crystals — find 3 matching colors to win',
@@ -229,7 +229,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'خزنة النيون', nameEn: 'Neon Vault',
     iconKey: 'LayoutGrid',
     color1: '#0f0f1a', color2: '#1a1a3e', accent: '#818cf8',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'أضواء النيون تكشف الثروات الخفية',
     mechanicDescAr: 'احك ٣ لوحات نيون — التوليفات الرابحة تُضيء الخزنة',
     mechanicDescEn: 'Scratch 3 neon panels — winning combos light up the vault',
@@ -239,7 +239,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'عملات التنين', nameEn: 'Dragon Coins',
     iconKey: 'Coins',
     color1: '#450a0a', color2: '#7f1d1d', accent: '#fca5a5',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'عملات التنين الذهبية تحت حراسته',
     mechanicDescAr: 'احك ٦ عملات — اجمع قيمها للحصول على جائزتك',
     mechanicDescEn: 'Scratch 6 coins — sum their values for your prize',
@@ -249,7 +249,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'ضربة العاصفة', nameEn: 'Storm Strike',
     iconKey: 'CloudLightning',
     color1: '#0a0e1a', color2: '#0f172a', accent: '#38bdf8',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'قوة العاصفة تكسر الظلام',
     mechanicDescAr: 'احك شبكة ٣×٣ — صواعق في خط واحد = جائزة كبرى',
     mechanicDescEn: 'Scratch 3×3 grid — lightning bolts in a line = jackpot',
@@ -259,7 +259,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'سلسلة الكاتانا', nameEn: 'Katana Chain',
     iconKey: 'Scissors',
     color1: '#111827', color2: '#1f2937', accent: '#e2e8f0',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'السيف الياباني يقطع طريق الثروة',
     mechanicDescAr: 'احك ٣ أهداف بالتسلسل — كل هدف يضاعف المكافأة',
     mechanicDescEn: 'Scratch 3 targets in sequence — each multiplies the reward',
@@ -269,7 +269,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'طلاسم الروني', nameEn: 'Rune Combo',
     iconKey: 'Scan',
     color1: '#052e16', color2: '#064e3b', accent: '#86efac',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'طلاسم قديمة تخفي أسرار الثروة',
     mechanicDescAr: 'احك ٤ أحجار — الزوج المتطابق يفتح الكنز',
     mechanicDescEn: 'Scratch 4 rune stones — matching pair unlocks the treasure',
@@ -279,7 +279,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'خريطة القراصنة', nameEn: 'Pirate Map',
     iconKey: 'Map',
     color1: '#0c2340', color2: '#1e3a5f', accent: '#fbbf24',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'X يحدد المكان — أين الكنز؟',
     mechanicDescAr: 'احك ٩ مناطق — الـ X يعني الكنز الكبير',
     mechanicDescEn: 'Scratch 9 map zones — X marks the big treasure',
@@ -289,7 +289,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'سلم الجواهر', nameEn: 'Gem Ladder',
     iconKey: 'TrendingUp',
     color1: '#022c22', color2: '#064e3b', accent: '#6ee7b7',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'كل درجة تُقربك من القمة',
     mechanicDescAr: 'احك ٥ درجات من الأسفل — كل درجة ترفع جائزتك',
     mechanicDescEn: 'Scratch 5 rungs from bottom — each step raises your prize',
@@ -299,7 +299,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'جاكبوت النيون', nameEn: 'Neon Jackpot',
     iconKey: 'Cpu',
     color1: '#3b0764', color2: '#4a044e', accent: '#f0abfc',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'أضواء الجاكبوت تعشق الفائزين',
     mechanicDescAr: 'احك ٥ لوحات — طابق ٣ رموز أو أكثر للجاكبوت',
     mechanicDescEn: 'Scratch 5 panels — match 3+ symbols for jackpot',
@@ -309,7 +309,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'كشف الظلام', nameEn: 'Shadow Reveal',
     iconKey: 'EyeOff',
     color1: '#030712', color2: '#0f172a', accent: '#c026d3',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'خلف الظلام تختبئ أعظم الكنوز',
     mechanicDescAr: 'احك ٤ بوابات بالترتيب — الترتيب الصحيح يفتح الكنز',
     mechanicDescEn: 'Scratch 4 portals in order — correct sequence unlocks treasure',
@@ -319,7 +319,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'خدش الوقت', nameEn: 'Time Scratch',
     iconKey: 'Clock',
     color1: '#0c0a09', color2: '#1c1917', accent: '#fdba74',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'الوقت المناسب يجلب الحظ الكبير',
     mechanicDescAr: 'احك ٦ قطاعات — مجموع الساعات المحظوظة = مضاعفك',
     mechanicDescEn: 'Scratch 6 clock sectors — sum of lucky hours = your multiplier',
@@ -329,7 +329,7 @@ export const GAMES: GameDef[] = [
     nameAr: 'اندفاع البركان', nameEn: 'Volcano Rush',
     iconKey: 'Mountain',
     color1: '#450a0a', color2: '#771d1d', accent: '#f97316',
-    symbols: ['◆', '★', '✦', '◈'],
+    symbols: ['◆', '★', '✦', '◈'], // game-symbol
     description: 'الحمم تخفي ذهباً لمن يجرؤ',
     mechanicDescAr: 'احك ٦ شقوق — كل ذهبة تضاعف ما قبلها',
     mechanicDescEn: 'Scratch 6 cracks — each gold found multiplies the previous',

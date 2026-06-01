@@ -69,7 +69,7 @@ export default function RingDodge({ phase, setPhase, game, onScoreUpdate }) {
         speedRef.current = Math.max(700, speedRef.current - 80);
         setSpeed(speedRef.current);
       }
-      const label = dist < 8 ? '◆ PERFECT' : dist < 14 ? '✓ GREAT' : 'GOOD';
+      const label = dist < 8 ? '◆ PERFECT' : dist < 14 ? '✓ GREAT' : 'GOOD';  // game-symbol
       const color = dist < 8 ? '#10b981' : dist < 14 ? '#22d3ee' : '#fbbf24';
       setFeedback({ label, color });
       chord([550, 820], 0.05, 0.1, 'sine');

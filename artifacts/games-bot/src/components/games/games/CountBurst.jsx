@@ -81,7 +81,7 @@ export default function CountBurst({ phase, setPhase, game, onScoreUpdate }) {
       setCombo(comboRef.current);
       chord([523, 659], 0.06, 0.1, 'triangle');
       triggerHaptic('success');
-      setFeedback({ label: comboRef.current >= 3 ? `★×${comboRef.current} CORRECT!` : '✓ CORRECT', color: '#10b981', id: Date.now() });
+      setFeedback({ label: comboRef.current >= 3 ? `★×${comboRef.current} CORRECT!` : '✓ CORRECT', color: '#10b981', id: Date.now() });  // game-symbol
       setTimeout(nextRound, 500);
     } else {
       comboRef.current = 0;

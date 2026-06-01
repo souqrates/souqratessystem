@@ -5,14 +5,14 @@ import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
 
-const RULES = 'Targets flash on a grid:\nGOLD ★ = +3 points\nCYAN ◆ = +1 point\nRED ✕ = -2 points\nTap targets before they vanish! Each target stays for 600ms. Reach 40 points to win!';
+const RULES = 'Targets flash on a grid:\nGOLD ★ = +3 points\nCYAN ◆ = +1 point\nRED ✕ = -2 points\nTap targets before they vanish! Each target stays for 600ms. Reach 40 points to win!';  // game-symbol
 const DEFAULT_GAME_TIME = 45;
 const TARGET_SCORE = 55;
 const GRID = 16;
 const TYPES = [
   { type: 'gold', symbol: '★', pts: 3,  color: '#fbbf24' },
   { type: 'cyan', symbol: '◆', pts: 1,  color: '#06b6d4' },
-  { type: 'red',  symbol: '✕', pts: -2, color: '#ef4444' },
+  { type: 'red',  symbol: '✕', pts: -2, color: '#ef4444' },  // game-symbol
 ];
 
 let _gid = 0;

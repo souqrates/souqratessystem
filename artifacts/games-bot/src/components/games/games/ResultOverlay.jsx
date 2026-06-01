@@ -191,12 +191,12 @@ function SettlementPill({ status }) {
     credited: {
       bg: 'rgba(16,185,129,0.18)', border: 'rgba(16,185,129,0.55)',
       color: '#34d399', icon: <CheckCircle2 size={12} />,
-      text: '✅ Prize added to your wallet',
+      text: 'Prize added to your wallet',
     },
     refunded: {
       bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.45)',
       color: '#fbbf24', icon: <RefreshCw size={11} />,
-      text: '↩︎ Entry fee refunded to your wallet',
+      text: 'Entry fee refunded to your wallet',
     },
     failed: {
       bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.45)',

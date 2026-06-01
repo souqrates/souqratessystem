@@ -98,7 +98,7 @@ export default function BroadcastPage() {
             <div className="inline-block max-w-full bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
               <div className="text-xs text-indigo-700 font-bold mb-1">SOUQRATES SYSTEM</div>
               <div className="text-sm text-slate-800 whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: escapeAllowBR(body) || "<span class='text-slate-400 italic'>(فارغ)</span>" }} />
-              <div className="text-[10px] text-slate-400 text-left mt-1">10:30 ✓✓</div>
+              <div className="text-[10px] text-slate-400 text-left mt-1">10:30</div>
             </div>
           </div>
         </section>

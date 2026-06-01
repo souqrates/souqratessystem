@@ -110,7 +110,7 @@ function AdjustForm({ tid, direction }: { tid: string; direction: "credit" | "de
     }),
     onSuccess: () => {
       setAmount(""); setReason("");
-      setMsg({ type: "ok", text: direction === "credit" ? "تمت إضافة الرصيد ✓" : "تم خصم الرصيد ✓" });
+      setMsg({ type: "ok", text: direction === "credit" ? "تمت إضافة الرصيد" : "تم خصم الرصيد" });
       qc.invalidateQueries({ queryKey: ["superadmin", "user", tid] });
       qc.invalidateQueries({ queryKey: ["superadmin", "users"] });
       qc.invalidateQueries({ queryKey: ["superadmin", "transactions"] });

@@ -77,7 +77,7 @@ export default function LaneNotes({ phase, setPhase, game, onScoreUpdate }) {
         chord([LANE_FREQS[lane] * 2, LANE_FREQS[lane] * 3], 0.06, 0.12, 'triangle');
         triggerHaptic('success');
       } else {
-        label = '✓ GOOD';
+        label = '✓ GOOD';  // game-symbol
         color = '#fbbf24';
         beep({ freq: LANE_FREQS[lane], dur: 0.07, vol: 0.1 });
         triggerHaptic('light');

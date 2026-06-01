@@ -92,7 +92,7 @@ export default function ContestsPage() {
         <div className="text-center py-12 text-slate-400">جارٍ التحميل…</div>
       ) : (
         <>
-          <Section title="● نشطة الآن" tone="emerald" contests={grouped.active} empty="لا توجد مسابقة نشطة. أنشئ مسابقة وفعِّلها." />
+          <Section title="نشطة الآن" tone="emerald" contests={grouped.active} empty="لا توجد مسابقة نشطة. أنشئ مسابقة وفعِّلها." />
           <Section title="مسوّدات" tone="slate" contests={grouped.draft} empty="لا توجد مسوّدات." />
           <Section title="منتهية" tone="zinc" contests={grouped.ended} empty="لا توجد مسابقات منتهية بعد." />
         </>

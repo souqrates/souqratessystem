@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PenLine, Download } from "lucide-react";
+import { PenLine, Download, X } from "lucide-react";
 import { api } from "@/lib/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -399,7 +399,7 @@ function SignersList() {
                   onClick={() => setSelected(null)}
                   className="text-slate-500 hover:text-slate-900 text-xl leading-none"
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
             </div>

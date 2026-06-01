@@ -16,7 +16,7 @@ const WORDS_HARD = ['MASTER', 'TURBO', 'ROCKET', 'STRIKE', 'REFLEX', 'DRAGON', '
 const KEYBOARD = [
   ['Q','W','E','R','T','Y','U','I','O','P'],
   ['A','S','D','F','G','H','J','K','L'],
-  ['Z','X','C','V','B','N','M','⌫'],
+  ['Z','X','C','V','B','N','M','⌫'],  // game-symbol
 ];
 
 export default function TypeSpeedPro({ phase, setPhase, game, onScoreUpdate }) {
@@ -49,7 +49,7 @@ export default function TypeSpeedPro({ phase, setPhase, game, onScoreUpdate }) {
 
   const keyPress = useCallback((key) => {
     if (!activeRef.current) return;
-    if (key === '⌫') {
+    if (key === '⌫') {  // game-symbol
       setTyped(prev => prev.slice(0, -1));
       return;
     }
@@ -147,14 +147,14 @@ export default function TypeSpeedPro({ phase, setPhase, game, onScoreUpdate }) {
                   whileTap={{ scale: 0.85 }}
                   onPointerDown={() => keyPress(key)}
                   style={{
-                    width: key === '⌫' ? 42 : 28,
+                    width: key === '⌫' ? 42 : 28,  // game-symbol
                     height: 36,
                     borderRadius: 6,
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: key === '⌫' ? '#ef4444' : '#cbd5e1',
+                    color: key === '⌫' ? '#ef4444' : '#cbd5e1',  // game-symbol
                     fontFamily: 'Orbitron, sans-serif',
-                    fontWeight: 700, fontSize: key === '⌫' ? 14 : 11,
+                    fontWeight: 700, fontSize: key === '⌫' ? 14 : 11,  // game-symbol
                     cursor: 'pointer',
                   }}
                 >

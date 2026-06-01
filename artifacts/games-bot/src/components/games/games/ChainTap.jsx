@@ -85,7 +85,7 @@ export default function ChainTap({ phase, setPhase, game, onScoreUpdate }) {
       setScore(scoreRef.current);
       chord([523, 659, 784], 0.06, 0.14, 'triangle');
       triggerHaptic('success');
-      setFeedback({ label: `✓ CHAIN COMPLETE!`, color: '#10b981', id: Date.now() });
+      setFeedback({ label: `✓ CHAIN COMPLETE!`, color: '#10b981', id: Date.now() });  // game-symbol
       const next = Math.min(8, chainLenRef.current + (scoreRef.current % 4 === 0 ? 1 : 0));
       setTimeout(() => nextChain(next), 600);
     }

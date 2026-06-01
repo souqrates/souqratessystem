@@ -52,7 +52,7 @@ export default function PressureLock({ phase, setPhase, game, onScoreUpdate }) {
     const dist = Math.min(Math.abs(a - 180), 360 - Math.abs(a - 180));
     let pts, label, color;
     if (dist < 8) { pts = 12; label = '◆ BULLSEYE'; color = '#10b981'; chord([880, 1320, 1760], 0.08, 0.15, 'triangle'); triggerHaptic('success'); }
-    else if (dist < 18) { pts = 9; label = '✓ PERFECT'; color = '#22d3ee'; beep({ freq: 660, dur: 0.08, vol: 0.1 }); triggerHaptic('success'); }
+    else if (dist < 18) { pts = 9; label = '✓ PERFECT'; color = '#22d3ee'; beep({ freq: 660, dur: 0.08, vol: 0.1 }); triggerHaptic('success'); }  // game-symbol
     else if (dist < 35) { pts = 6; label = 'GREAT'; color = '#fbbf24'; beep({ freq: 480, dur: 0.07, vol: 0.08 }); triggerHaptic('light'); }
     else if (dist < 60) { pts = 3; label = 'GOOD'; color = '#94a3b8'; beep({ freq: 360, dur: 0.06, vol: 0.07 }); triggerHaptic('light'); }
     else { pts = 0; label = 'MISS'; color = '#ef4444'; beep({ freq: 200, dur: 0.15, type: 'sawtooth', vol: 0.12 }); triggerHaptic('error'); }
@@ -166,7 +166,7 @@ export default function PressureLock({ phase, setPhase, game, onScoreUpdate }) {
             boxShadow: isHolding ? '0 0 24px rgba(251,191,36,0.3)' : 'none',
           }}
         >
-          {locked ? '⏸ LOCKED' : isHolding ? '— HOLD —' : '⊙ HOLD + RELEASE'}
+          {locked ? '⏸ LOCKED' : isHolding ? '— HOLD —' : '⊙ HOLD + RELEASE'}  // game-symbol
         </motion.button>
       </div>
     </div>

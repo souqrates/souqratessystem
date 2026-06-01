@@ -49,10 +49,10 @@ export default function PulseStrike({ phase, setPhase, game, onScoreUpdate }) {
     const dist = Math.abs(v - 0.9);
     let label, pts, color;
     if (dist < 0.04) { label = '◆ PERFECT'; pts = 3; color = '#00f5a0'; chord([880, 1320, 1760], 0.06, 0.14, 'triangle'); triggerHaptic('success'); }
-    else if (dist < 0.1) { label = '✓ GREAT'; pts = 2; color = '#fbbf24'; beep({ freq: 660, dur: 0.07, vol: 0.1 }); triggerHaptic('light'); }
+    else if (dist < 0.1) { label = '✓ GREAT'; pts = 2; color = '#fbbf24'; beep({ freq: 660, dur: 0.07, vol: 0.1 }); triggerHaptic('light'); }  // game-symbol
     else if (dist < 0.18) { label = 'GOOD'; pts = 1; color = '#94a3b8'; beep({ freq: 440, dur: 0.06, vol: 0.08 }); triggerHaptic('light'); }
     else {
-      label = '✗ MISS'; pts = 0; color = '#ef4444';
+      label = '✗ MISS'; pts = 0; color = '#ef4444';  // game-symbol
       beep({ freq: 200, dur: 0.15, type: 'sawtooth', vol: 0.12 });
       triggerHaptic('error');
       livesRef.current = Math.max(0, livesRef.current - 1);

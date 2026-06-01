@@ -166,6 +166,7 @@ export function Envelopes({ game, tier, lang, onResult, onPlayAgain }: GProps) {
                   </div>
                 </motion.div>
               ) : (
+                // ✉ game-symbol: collectible envelope item
                 <div style={{ fontSize:22, color:`${game.accent}55` }}>✉</div>
               )}
             </div>

@@ -69,7 +69,7 @@ export default function CalcBlitz({ phase, setPhase, game, onScoreUpdate }) {
       setCombo(comboRef.current);
       beep({ freq: 660 + comboRef.current * 40, dur: 0.07, vol: 0.1 });
       triggerHaptic('success');
-      const label = comboRef.current >= 4 ? `★×${comboRef.current} +${bonus}` : `✓ +${bonus}`;
+      const label = comboRef.current >= 4 ? `★×${comboRef.current} +${bonus}` : `✓ +${bonus}`;  // game-symbol
       setFeedback({ label, color: comboRef.current >= 4 ? '#fbbf24' : '#10b981', id: Date.now() });
       setTimeout(nextQuestion, 420);
     } else {

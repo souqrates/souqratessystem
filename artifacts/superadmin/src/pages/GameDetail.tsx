@@ -122,7 +122,7 @@ export default function GameDetailPage() {
       return api.post<{ data: GameConfigRow }>(`/superadmin/games/${gameId}/publish`);
     },
     onSuccess: () => {
-      setMsg({ kind: "ok", text: "✓ تم النشر — التغييرات وصلت للمستخدمين الآن" });
+      setMsg({ kind: "ok", text: "تم النشر — التغييرات وصلت للمستخدمين الآن" });
       qc.invalidateQueries({ queryKey: ["superadmin", "games"] });
       qc.invalidateQueries({ queryKey: ["superadmin", "games", gameId] });
       setTimeout(() => setMsg(null), 5000);
@@ -315,7 +315,7 @@ export default function GameDetailPage() {
                 <input className={inputCls} type="number" min={0} value={scorePerWrong} onChange={(e) => setScorePerWrong(e.target.value)} />
               </Field>
               <Field
-                label="⏱ وقت الجولة (بالثواني)"
+                label="وقت الجولة (بالثواني)"
                 hint="مدة الجولة الواحدة. مثلاً 60 = دقيقة. يُستخدم كعداد داخل اللعبة وأيضاً كحد أدنى زمني لمنع التلاعب على السيرفر (نصف هذه المدة على الأقل قبل قبول الفوز). 0 = بلا حد."
               >
                 <input

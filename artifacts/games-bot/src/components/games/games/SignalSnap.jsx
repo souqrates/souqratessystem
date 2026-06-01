@@ -74,7 +74,7 @@ export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
       setLives(livesRef.current);
       beep({ freq: 200, dur: 0.2, type: 'sawtooth', vol: 0.15 });
       triggerHaptic('error');
-      setFeedback({ label: '✗ WRONG!', color: '#ef4444' });
+      setFeedback({ label: '✗ WRONG!', color: '#ef4444' });  // game-symbol
       setCurrent(null); currentRef.current = null;
       if (livesRef.current <= 0) { endGame(); return; }
       setTimeout(nextSignal, 900);
@@ -99,7 +99,7 @@ export default function SignalSnap({ phase, setPhase, game, onScoreUpdate }) {
         setScore(scoreRef.current);
         chord([440, 660], 0.05, 0.1, 'triangle');
         triggerHaptic('success');
-        setFeedback({ label: '✓✓ DOUBLE!', color: '#f59e0b' });
+        setFeedback({ label: '✓✓ DOUBLE!', color: '#f59e0b' });  // game-symbol
         setCurrent(null); currentRef.current = null;
         setTimeout(nextSignal, 600);
       } else {

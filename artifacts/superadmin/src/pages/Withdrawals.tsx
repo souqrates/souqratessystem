@@ -192,7 +192,7 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
           {w.status === "processing" && (
             <div className="flex gap-1 flex-wrap items-center">
               <span className="text-xs text-blue-600" title="بانتظار تأكيد على الشبكة">
-                ⏳ قيد التحويل
+                قيد التحويل
               </span>
               <button
                 onClick={() => { setErr(null); setActionOpen(actionOpen === "force_reject" ? null : "force_reject"); }}
