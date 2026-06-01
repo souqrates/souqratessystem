@@ -56,6 +56,12 @@ export function useBalance(): BalanceState {
       const res = await fetch(`${API_BASE}/api/users/${telegramId}`, {
         headers: { 'Accept': 'application/json' },
       });
+      // 404 = user not yet registered (will be created on first play) — treat as 0 balance
+      if (res.status === 404) {
+        setSkz(0);
+        setError(null);
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const balance = parseFloat(data?.wallet?.balanceSkz ?? data?.user?.balanceSkz ?? '0');

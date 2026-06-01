@@ -4,6 +4,15 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { transactionsTable, walletsTable, usersTable } from "@workspace/db";
 
+interface TelegramUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+}
+
 const router: IRouter = Router();
 
 const JACKPOT_BASE = 5_000;
@@ -75,7 +84,7 @@ router.get("/scratchy/stats", async (req, res): Promise<void> => {
 const INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 type InitDataResult =
-  | { telegramId: string }
+  | { telegramId: string; tgUser: TelegramUser }
   | { error: string; status: 400 | 403 | 503 };
 
 function validateInitData(initData: string): InitDataResult {
@@ -133,12 +142,43 @@ function validateInitData(initData: string): InitDataResult {
     return { error: "initData has no user field", status: 403 };
   }
   try {
-    const u = JSON.parse(userStr) as { id?: number };
-    if (!u.id) return { error: "initData user has no id", status: 403 };
-    return { telegramId: String(u.id) };
+    const tgUser = JSON.parse(userStr) as TelegramUser;
+    if (!tgUser.id) return { error: "initData user has no id", status: 403 };
+    return { telegramId: String(tgUser.id), tgUser };
   } catch {
     return { error: "initData user field is not valid JSON", status: 400 };
   }
+}
+
+// ── User upsert helper ────────────────────────────────────────────────────────
+// Auto-creates or updates the user + wallet row from initData fields.
+// This means the user never needs to press /start in the bot before playing.
+async function getOrUpsertScratchyUser(telegramId: string, tgUser: TelegramUser) {
+  const tid = BigInt(telegramId);
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      telegramId:   tid,
+      username:     tgUser.username      ?? null,
+      firstName:    tgUser.first_name    ?? "Player",
+      lastName:     tgUser.last_name     ?? null,
+      languageCode: tgUser.language_code ?? "en",
+      isPremium:    tgUser.is_premium    ?? false,
+    })
+    .onConflictDoUpdate({
+      target: usersTable.telegramId,
+      set: {
+        username:  tgUser.username   ?? null,
+        firstName: tgUser.first_name ?? "Player",
+        lastName:  tgUser.last_name  ?? null,
+        isPremium: tgUser.is_premium ?? false,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+  // Ensure wallet exists (no-op if already present).
+  await db.insert(walletsTable).values({ userId: user.id }).onConflictDoNothing();
+  return user;
 }
 
 // ── Server-side prize roll ────────────────────────────────────────────────────
@@ -179,7 +219,7 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
     res.status(authResult.status).json({ error: authResult.error });
     return;
   }
-  const { telegramId } = authResult;
+  const { telegramId, tgUser } = authResult;
 
   const tier = SCRATCH_TIERS.find((t) => t.id === tierId);
   if (!tier) {
@@ -187,15 +227,8 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.telegramId, BigInt(telegramId)));
-
-  if (!user) {
-    res.status(404).json({ error: "User not found — open the bot and press Start first" });
-    return;
-  }
+  // Auto-create or refresh user row — no need to press /start in the bot first.
+  const user = await getOrUpsertScratchyUser(telegramId, tgUser);
 
   if (user.isBlocked) {
     res.status(403).json({ error: "Account is blocked" });
@@ -286,6 +319,34 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
   );
 
   res.json({ ok: true, prize, won: prize > 0 });
+});
+
+// POST /api/scratchy/upsert-user — called by the Mini App on startup to register
+// the user before any play attempt. Returns user + wallet so the frontend can
+// bootstrap balance without a separate /api/users/:id call.
+router.post("/scratchy/upsert-user", async (req, res): Promise<void> => {
+  const { initData } = req.body as { initData?: string };
+  if (!initData) {
+    res.status(400).json({ error: "initData is required" });
+    return;
+  }
+  const authResult = validateInitData(initData);
+  if ("error" in authResult) {
+    req.log.warn({ reason: authResult.error }, "scratchy/upsert-user: initData validation failed");
+    res.status(authResult.status).json({ error: authResult.error });
+    return;
+  }
+  try {
+    const user = await getOrUpsertScratchyUser(authResult.telegramId, authResult.tgUser);
+    const [wallet] = await db
+      .select()
+      .from(walletsTable)
+      .where(eq(walletsTable.userId, user.id));
+    res.json({ user, wallet: wallet ?? null });
+  } catch (err) {
+    req.log.error({ err }, "scratchy/upsert-user failed");
+    res.status(500).json({ error: "Failed to register user" });
+  }
 });
 
 export default router;

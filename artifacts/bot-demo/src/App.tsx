@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getLang, setLang, type Lang } from './lib/i18n';
-import { useBalance } from './lib/useBalance';
+import { useBalance, getTelegramUserId } from './lib/useBalance';
 import { useJackpotStats } from './lib/useJackpotStats';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -32,6 +32,27 @@ export default function App() {
     } catch {
       // not in Telegram — dev mode
     }
+  }, []);
+
+  // Register / refresh user row on startup so the user never hits "User not found"
+  // when they open the app without having pressed /start in the bot first.
+  useEffect(() => {
+    const initData = (window as Window & { Telegram?: { WebApp?: { initData?: string } } })
+      .Telegram?.WebApp?.initData;
+    const telegramId = getTelegramUserId();
+    if (!initData || !telegramId) return; // not in Telegram (dev mode) — skip
+
+    const BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') || '/scratchy-bot-web';
+    const API_BASE = BASE.replace('/scratchy-bot-web', '') || '';
+
+    fetch(`${API_BASE}/api/scratchy/upsert-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    }).catch(() => {
+      // Fire-and-forget — if this fails the user can still play;
+      // /play will also auto-upsert on the first game attempt.
+    });
   }, []);
 
   const toggleLang = useCallback(() => {
