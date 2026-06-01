@@ -1,4 +1,4 @@
-import { ArrowLeft, Upload, Coins, ShieldCheck, TrendingUp, Globe2, Zap, BarChart2 } from "lucide-react";
+import { ArrowLeft, Upload, Coins, ShieldCheck, TrendingUp, Globe2, Zap, BarChart2, PenLine } from "lucide-react";
 import { Link } from "wouter";
 import { TELEGRAM_PUBLISH_URL } from "@/lib/constants";
 
@@ -53,7 +53,7 @@ export default function Publish() {
 
       {/* Hero */}
       <div className="text-center mb-14 rise">
-        <div className="text-5xl mb-6">✍️</div>
+        <div className="mb-6" style={{ color: '#a855f7', display: 'flex', justifyContent: 'center' }}><PenLine size={48} strokeWidth={1.3} /></div>
         <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full"
           style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
           <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#a855f7' }}>

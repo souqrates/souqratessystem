@@ -798,7 +798,20 @@ export default function App() {
       <Confetti burstKey={confettiKey} />
       <main className="flex-1">
         {!loaded && (
-          <div className="max-w-6xl mx-auto px-4 py-20 text-center text-stage-mute">{t("loading")}</div>
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="panel rounded-2xl overflow-hidden animate-pulse">
+                  <div style={{ height: 180, background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ height: 14, background: 'rgba(255,255,255,0.07)', borderRadius: 6, width: '75%' }} />
+                    <div style={{ height: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 6, width: '50%' }} />
+                    <div style={{ height: 32, background: 'rgba(255,255,255,0.06)', borderRadius: 10, marginTop: 4 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
         {loaded && error && !data && (
           <div className="max-w-6xl mx-auto px-4 py-20 text-center">

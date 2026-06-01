@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Star, Volume2, BookOpen, Headphones } from "lucide-react";
+import { Star, Volume2, BookOpen, Headphones, Clock } from "lucide-react";
 import type { Book } from "@/lib/catalog";
 import { findCategory } from "@/lib/catalog";
 
@@ -55,7 +55,9 @@ export function BookCard({ book }: { book: Book }) {
       <div className="p-4">
         <h3 className="font-bold text-sm text-white/90 mb-1 truncate">{book.title}</h3>
         <p className="text-xs mb-3" style={{ color: 'rgba(148,163,184,0.55)' }}>
-          {isAudio && book.duration ? `⏱ ${book.duration}` : book.author}
+          {isAudio && book.duration
+            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Clock size={10} strokeWidth={2} />{book.duration}</span>
+            : book.author}
         </p>
         <div className="flex items-center justify-between">
           <div className="font-orbitron text-xs font-black" style={{ color: '#22d3ee' }}>

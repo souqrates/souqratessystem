@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Zap, ShieldCheck, Globe2, Wallet, Headphones, GraduationCap, ScrollText, Baby, Brain, BookMarked, Gamepad2, Smartphone, Users, CreditCard, Music2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Zap, ShieldCheck, Globe2, Wallet, Headphones, GraduationCap, ScrollText, Baby, Brain, BookMarked, Gamepad2, Smartphone, Users, CreditCard, Music2, PenLine } from "lucide-react";
 import { Link } from "wouter";
 import { CATEGORIES } from "@/lib/catalog";
 import { hotVouchers } from "@/lib/vouchers";
@@ -310,7 +310,7 @@ function PublishCTA() {
             style={{ border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 60px rgba(168,85,247,0.08) inset' }} />
 
           <div className="relative">
-            <div className="text-4xl mb-4">✍️</div>
+            <div className="mb-4" style={{ color: '#a855f7', display: 'flex', justifyContent: 'center' }}><PenLine size={40} strokeWidth={1.4} /></div>
             <div className="eyebrow mb-3" style={{ color: '#a855f7', fontSize: 9 }}>FOR AUTHORS</div>
             <h2 className="font-orbitron font-black text-xl md:text-2xl text-white/90 mb-4">
               انشر كتابك عبر SOUQRATES SOUQ

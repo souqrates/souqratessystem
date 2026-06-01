@@ -33,7 +33,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { err: Error |
   render() {
     if (this.state.err) return (
       <div style={{ padding: 24, textAlign: "center", fontFamily: "sans-serif", background: "#0f172a", minHeight: "100vh", color: "#f1f5f9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <h2 style={{ margin: "0 0 8px" }}>حدث خطأ غير متوقع</h2>
         <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 20px" }}>{this.state.err.message}</p>
         <button onClick={() => window.location.reload()} style={{ padding: "10px 24px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>إعادة تحميل</button>

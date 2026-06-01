@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, BookOpen, Clock, AlertCircle, ShoppingBag, Loader2, ExternalLink } from "lucide-react";
+import { Download, BookOpen, Clock, AlertCircle, ShoppingBag, Lock, Loader2, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { TELEGRAM_BOT_URL } from "@/lib/constants";
 
@@ -203,9 +203,18 @@ export default function MyLibrary() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex flex-col items-center py-20 gap-3">
-          <Loader2 size={28} color="#22d3ee" className="animate-spin" />
-          <p className="text-sm" style={{ color: "rgba(148,163,184,0.5)" }}>جار تحميل مكتبتك…</p>
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden flex gap-3 p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="skel-pulse rounded-xl flex-shrink-0" style={{ width: 64, height: 80, background: 'rgba(34,211,238,0.06)' }} />
+              <div className="flex-1 flex flex-col gap-2 justify-center">
+                <div className="skel-pulse rounded-lg" style={{ height: 11, width: '70%', background: 'rgba(255,255,255,0.08)' }} />
+                <div className="skel-pulse rounded-lg" style={{ height: 9, width: '45%', background: 'rgba(255,255,255,0.05)' }} />
+                <div className="skel-pulse rounded-lg" style={{ height: 9, width: '30%', background: 'rgba(255,255,255,0.04)' }} />
+              </div>
+              <div className="skel-pulse rounded-xl flex-shrink-0" style={{ width: 80, height: 32, alignSelf: 'center', background: 'rgba(34,211,238,0.06)' }} />
+            </div>
+          ))}
         </div>
       )}
 
@@ -213,7 +222,7 @@ export default function MyLibrary() {
       {!loading && error && (
         <div className="rounded-2xl p-6 text-center"
           style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
-          <div className="text-3xl mb-3">🔒</div>
+          <div className="mb-3" style={{ color: 'rgba(239,68,68,0.7)', display: 'flex', justifyContent: 'center' }}><Lock size={30} strokeWidth={1.5} /></div>
           <p className="font-bold text-sm text-white/80 mb-1">{error}</p>
           <p className="text-xs mb-5" style={{ color: "rgba(148,163,184,0.5)" }}>
             افتح البوت ثم اضغط على "مكتبتي" للوصول إلى كتبك

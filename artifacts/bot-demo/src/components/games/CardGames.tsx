@@ -229,7 +229,7 @@ export function SuperSevens({ game, tier, lang, onResult, onPlayAgain }: GProps)
                   ZONE {i+1} • {zoneBase[i].toLocaleString()} SKZ
                 </div>
                 <ScratchZone width={82} height={82} c1={game.color1} c2={game.color2}
-                  label={isActive ? (isRtl?'احك':'Scratch') : (isLocked ? '🔒' : undefined)}
+                  label={isActive ? (isRtl?'احك':'Scratch') : (isLocked ? (isRtl?'مقفل':'LOCKED') : undefined)}
                   disabled={isLocked || done || (i>0 && !revealed[i-1])}
                   onScratched={() => scratch(i)}
                 >
