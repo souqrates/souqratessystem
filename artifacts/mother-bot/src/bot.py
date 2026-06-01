@@ -334,8 +334,8 @@ async def cb_menu(callback: CallbackQuery):
         data = None
 
     wallet    = (data or {}).get("wallet") if isinstance(data, dict) else None
-    skz_bal   = float(wallet["balanceSkz"])  if wallet else 0.0
-    usdt_bal  = float(wallet["balanceUsdt"])  if wallet else 0.0
+    skz_bal   = float(wallet.get("balanceSkz",  "0")) if wallet else 0.0
+    usdt_bal  = float(wallet.get("balanceUsdt", "0")) if wallet else 0.0
 
     lang = await get_user_lang(tg_id, MOTHER_API_URL, MOTHER_BOT_API_KEY)
     text = t(
@@ -426,15 +426,15 @@ async def cb_wallet(callback: CallbackQuery):
         await callback.answer(t(lang, "err_no_wallet"), show_alert=True)
         return
 
-    wallet = data["wallet"]
+    wallet = data.get("wallet") or {}
     user_obj = data.get("user") or {}
-    skz       = float(wallet["balanceSkz"])
+    skz       = float(wallet.get("balanceSkz",        "0"))
     ref_skz   = float(wallet.get("referralBalanceSkz", "0"))
-    usdt      = float(wallet["balanceUsdt"])
-    stars     = int(float(wallet["balanceStars"]))
-    ton       = float(wallet["balanceTon"])
-    earned    = float(wallet["totalEarned"])
-    withdrawn = float(wallet["totalWithdrawn"])
+    usdt      = float(wallet.get("balanceUsdt",        "0"))
+    stars     = int(float(wallet.get("balanceStars",   "0")))
+    ton       = float(wallet.get("balanceTon",         "0"))
+    earned    = float(wallet.get("totalEarned",        "0"))
+    withdrawn = float(wallet.get("totalWithdrawn",     "0"))
     xp        = int(user_obj.get("xp", 0))
     level     = int(user_obj.get("level", 1))
     played    = int(user_obj.get("totalGamesPlayed", 0))
@@ -1111,12 +1111,12 @@ async def cmd_balance(message: Message):
         if not data:
             await message.answer(t(lang, "err_no_wallet_start"))
             return
-        w = data["wallet"]
+        w = data.get("wallet") or {}
         await message.answer(
-            f"⚡ SKZ: {float(w['balanceSkz']):,.2f}\n"
-            f"💵 USDT: {float(w['balanceUsdt']):.4f}\n"
-            f"⭐ Stars: {int(float(w['balanceStars'])):,}\n"
-            f"💎 TON: {float(w['balanceTon']):.4f}",
+            f"⚡ SKZ: {float(w.get('balanceSkz',  '0')):,.2f}\n"
+            f"💵 USDT: {float(w.get('balanceUsdt', '0')):.4f}\n"
+            f"⭐ Stars: {int(float(w.get('balanceStars', '0'))):,}\n"
+            f"💎 TON: {float(w.get('balanceTon',  '0')):.4f}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text=t(lang, "btn_open_full_app"), web_app=WebAppInfo(url=MINI_APP_URL))
             ]])

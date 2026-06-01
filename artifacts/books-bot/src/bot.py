@@ -486,9 +486,13 @@ PAGE_SIZE = 5
 @router.callback_query(F.data.startswith("cat:"))
 async def cb_cat(cb: CallbackQuery):
     lang = await _get_lang(cb.from_user.id)
-    _, cid_s, page_s = cb.data.split(":")
-    cid = int(cid_s) or None
-    page = int(page_s)
+    try:
+        _, cid_s, page_s = cb.data.split(":")
+        cid = int(cid_s) or None
+        page = int(page_s)
+    except (ValueError, IndexError):
+        await cb.answer()
+        return
     resp = await api.list_products(category_id=cid, limit=PAGE_SIZE, offset=page * PAGE_SIZE)
     rows = resp.get("data", [])
     total = resp.get("total", 0)
@@ -539,13 +543,22 @@ async def cb_product(cb: CallbackQuery):
     await cb.answer()
 
 
+# Per (user_id, product_id) in-flight guard — prevents double-tap purchase
+_buy_in_flight: set[tuple[int, int]] = set()
+
 @router.callback_query(F.data.startswith("buy:"))
 async def cb_buy(cb: CallbackQuery):
     lang = await _get_lang(cb.from_user.id)
     pid = int(cb.data.split(":")[1])
+    _bkey = (cb.from_user.id, pid)
+    if _bkey in _buy_in_flight:
+        await cb.answer("جاري المعالجة… يرجى الانتظار", show_alert=True)
+        return
+    _buy_in_flight.add(_bkey)
     try:
         r = await api.purchase(str(cb.from_user.id), pid)
     except Exception as e:
+        _buy_in_flight.discard(_bkey)
         # Surface server reason if HTTPStatusError.
         msg = str(e)
         if hasattr(e, "response") and e.response is not None:  # type: ignore[attr-defined]
@@ -599,6 +612,7 @@ async def cb_buy(cb: CallbackQuery):
             t(lang, "buy_doc_failed"),
             reply_markup=link_kb,
         )
+    _buy_in_flight.discard(_bkey)
     await cb.answer(t(lang, "buy_answer_ok"))
 
 

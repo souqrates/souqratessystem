@@ -578,7 +578,7 @@ router.post("/superadmin/users/:telegramId/credit", requireSuperAdmin, async (re
       payload: { amountSkz: amt, reason: reason.trim() },
       success: false, errorMessage: err.message,
     });
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: (err.status && err.status < 500) ? err.message : "Internal server error" });
   }
 });
 
@@ -606,7 +606,7 @@ router.post("/superadmin/users/:telegramId/debit", requireSuperAdmin, async (req
       payload: { amountSkz: amt, reason: reason.trim() },
       success: false, errorMessage: err.message,
     });
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: (err.status && err.status < 500) ? err.message : "Internal server error" });
   }
 });
 
@@ -1118,7 +1118,7 @@ router.post("/superadmin/withdrawals/:id/approve", requireSuperAdmin, async (req
       errorMessage: err instanceof Error ? err.message : "Approval failed",
     });
     req.log.error({ err, id }, "superadmin withdrawal approve failed");
-    res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -8,12 +8,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
+import { transactionsTable } from "./transactions";
 
 export const commissionsTable = pgTable("commissions", {
   id: serial("id").primaryKey(),
-  transactionId: integer("transaction_id").notNull(),
+  transactionId: integer("transaction_id").notNull().references(() => transactionsTable.id, { onDelete: "restrict" }),
   botSlug: text("bot_slug").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "restrict" }),
   gameId: integer("game_id"),
   grossAmount: numeric("gross_amount", { precision: 18, scale: 9 }).notNull(),
   commissionRate: numeric("commission_rate", { precision: 5, scale: 4 }).notNull(),

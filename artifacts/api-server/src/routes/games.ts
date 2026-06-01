@@ -29,6 +29,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { getSkzRates } from "../lib/finance";
+import { perUserCreateLimiter } from "../lib/rate-limit";
 
 const router: IRouter = Router();
 
@@ -464,7 +465,7 @@ router.get("/games/gamification", requireTelegramAuth, async (req: Request, res:
  * Body: { won: boolean, difficulty: "Easy" | "Medium" | "Hard" }
  * Returns: { ok, xpAwarded, newXp, newLevel }
  */
-router.post("/games/award-xp", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/games/award-xp", requireTelegramAuth, perUserCreateLimiter, async (req: Request, res: Response): Promise<void> => {
   const { telegramId, tgUser } = req as AuthedRequest;
   const { won, difficulty } = req.body as { won?: boolean; difficulty?: string };
   try {
@@ -490,7 +491,7 @@ router.post("/games/award-xp", requireTelegramAuth, async (req: Request, res: Re
  * Claim the daily streak (once per day). Awards XP based on streak length.
  * Returns: { ok, streakDays, longestStreak, xpAwarded, newXp, newLevel }
  */
-router.post("/games/claim-streak", requireTelegramAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/games/claim-streak", requireTelegramAuth, perUserCreateLimiter, async (req: Request, res: Response): Promise<void> => {
   const { telegramId, tgUser } = req as AuthedRequest;
   try {
     const { user } = await getOrUpsertUser(telegramId, tgUser);

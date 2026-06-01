@@ -244,7 +244,7 @@ router.post("/withdrawals/:id/approve", requireAdmin, async (req, res): Promise<
       errorMessage: err instanceof Error ? err.message : "Approval failed",
     });
     req.log.error({ err, id }, "Withdrawal approve failed");
-    res.status(500).json({ error: err instanceof Error ? err.message : "Approval failed" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

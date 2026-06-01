@@ -3,6 +3,7 @@ import { eq, ilike, or, sql, desc, and } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { usersTable, walletsTable, commissionsTable, botsTable, gameConfigsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { perUserCreateLimiter } from "../lib/rate-limit";
 
 const router: IRouter = Router();
 
@@ -64,7 +65,7 @@ router.get("/users/:telegramId", async (req, res): Promise<void> => {
  * PATCH /api/users/:telegramId/profile
  * Update display name and/or avatar URL for a user (non-financial, no auth required).
  */
-router.patch("/users/:telegramId/profile", async (req, res): Promise<void> => {
+router.patch("/users/:telegramId/profile", perUserCreateLimiter, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.telegramId)
     ? req.params.telegramId[0]
     : req.params.telegramId;

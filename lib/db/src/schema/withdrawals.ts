@@ -10,10 +10,11 @@ import {
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
 
 export const withdrawalsTable = pgTable("withdrawals", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "restrict" }),
   currency: text("currency").notNull(),
   amount: numeric("amount", { precision: 18, scale: 9 }).notNull(),
   fee: numeric("fee", { precision: 18, scale: 9 }).notNull().default("0"),

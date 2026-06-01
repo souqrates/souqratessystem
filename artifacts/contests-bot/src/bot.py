@@ -406,6 +406,9 @@ async def cb_vote_menu(cb: CallbackQuery):
     await cb.answer()
 
 
+# Per (user_id, contest_id, contestant_id) in-flight guard — prevents double-tap vote
+_vote_in_flight: set[tuple[int, int, int]] = set()
+
 @router.callback_query(F.data.startswith("v:"))
 async def cb_vote(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None or cb.data is None:
@@ -422,6 +425,11 @@ async def cb_vote(cb: CallbackQuery):
         await cb.answer(t(lang, "err_bad_data"), show_alert=True)
         return
 
+    _vkey = (cb.from_user.id, contest_id, contestant_id)
+    if _vkey in _vote_in_flight:
+        await cb.answer("جاري التصويت… يرجى الانتظار", show_alert=True)
+        return
+    _vote_in_flight.add(_vkey)
     try:
         result = await api.cast_vote(str(cb.from_user.id), contest_id, contestant_id, vote_count=1)
         breakdown = result.get("breakdown", [])
@@ -452,6 +460,8 @@ async def cb_vote(cb: CallbackQuery):
         else:
             logger.error(f"vote failed [{status}]: {err}")
             await cb.answer(t(lang, "err_vote_generic"), show_alert=True)
+    finally:
+        _vote_in_flight.discard(_vkey)
 
 
 @router.callback_query(F.data == "packs")

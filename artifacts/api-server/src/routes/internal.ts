@@ -873,6 +873,9 @@ router.post("/internal/debit", perUserCreateLimiter, async (req, res): Promise<v
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// In-flight guard for charge-entry — prevents identical (telegramId, gameId, amount) within 5 s
+const _chargeEntryInFlight = new Map<string, number>();
+
 // POST /internal/game/charge-entry — debit for game entry with game metadata
 // ─────────────────────────────────────────────────────────────────────────────
 /**
@@ -903,6 +906,16 @@ router.post("/internal/game/charge-entry", perUserCreateLimiter, async (req, res
     res.status(400).json({ error: "Invalid amount" });
     return;
   }
+
+  // ── Double-tap guard: block identical requests within 5 s ─────────────────
+  const _ifKey = `${telegramId}:${gameId}:${amountNum}`;
+  const _ifLast = _chargeEntryInFlight.get(_ifKey);
+  if (_ifLast !== undefined && Date.now() - _ifLast < 5_000) {
+    res.status(429).json({ error: "duplicate_request", message: "طلب مكرر — يرجى الانتظار قليلاً" });
+    return;
+  }
+  _chargeEntryInFlight.set(_ifKey, Date.now());
+  setTimeout(() => _chargeEntryInFlight.delete(_ifKey), 5_000);
 
   // ── Validate amount against per-game published tiers (from super-admin) ──
   // Priority order:
@@ -2364,7 +2377,7 @@ router.post("/internal/game/refund-entry", async (req, res): Promise<void> => {
     });
   } catch (err) {
     req.log.error({ err, chargeId }, "Refund failed");
-    res.status(500).json({ error: err instanceof Error ? err.message : "Refund failed" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

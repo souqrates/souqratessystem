@@ -4,10 +4,13 @@ Used by child bots to interact with the central financial hub.
 Copy this file to each child bot project.
 """
 import httpx
+import logging
 import os
 import time
 import asyncio
 from typing import Optional
+
+_logger = logging.getLogger(__name__)
 
 
 class BotTexts:
@@ -52,9 +55,10 @@ class BotTexts:
                 fresh = data.get("texts", {}) or {}
                 self._cache = fresh
                 self._fetched_at = time.time()
-        except Exception:
+        except Exception as exc:
             # Keep last good cache on failure; do not raise — bot must keep running.
             # Bump fetched_at so we don't hammer the API during an outage.
+            _logger.warning("BotTexts._refresh failed for slug=%s: %s", self._bot_slug, exc)
             self._fetched_at = time.time()
 
     async def get(self, key: str, default: str = "") -> str:
