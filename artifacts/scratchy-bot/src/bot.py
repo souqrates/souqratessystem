@@ -434,6 +434,28 @@ async def main():
         except Exception as e:
             logger.warning(f"set_chat_menu_button failed: {e}")
 
+    # Global safety net: any unhandled exception inside any handler (malformed
+    # callback data, network failure on an API call, int parse error,
+    # None-dereference, etc.) is caught here so a single bad update can never
+    # crash the bot. The user gets a friendly notice; the traceback is logged.
+    from aiogram.types import ErrorEvent
+
+    async def _on_error(event: ErrorEvent) -> bool:
+        logger.exception(f"unhandled handler error: {event.exception!r}")
+        upd = event.update
+        try:
+            if upd.callback_query is not None:
+                await upd.callback_query.answer(
+                    "⚠️ حدث خطأ مؤقت. حاول مرة أخرى.", show_alert=True
+                )
+            elif upd.message is not None:
+                await upd.message.answer("⚠️ حدث خطأ مؤقت. حاول مرة أخرى لاحقاً.")
+        except Exception:
+            pass
+        return True
+
+    dp.errors.register(_on_error)
+
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "scratchy-bot")
 

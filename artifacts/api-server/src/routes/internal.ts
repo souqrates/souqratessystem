@@ -236,18 +236,23 @@ router.get("/internal/bot-texts", async (req, res): Promise<void> => {
   }
   const slug = bot.slug;
 
-  const rows = await db
-    .select({ key: botTextsTable.key, value: botTextsTable.publishedValue })
-    .from(botTextsTable)
-    .where(eq(botTextsTable.botSlug, slug));
+  try {
+    const rows = await db
+      .select({ key: botTextsTable.key, value: botTextsTable.publishedValue })
+      .from(botTextsTable)
+      .where(eq(botTextsTable.botSlug, slug));
 
-  const texts: Record<string, string> = {};
-  for (const r of rows) {
-    // Only expose published, non-empty values. Empty published → use Python default.
-    if (r.value && r.value.length > 0) texts[r.key] = r.value;
+    const texts: Record<string, string> = {};
+    for (const r of rows) {
+      // Only expose published, non-empty values. Empty published → use Python default.
+      if (r.value && r.value.length > 0) texts[r.key] = r.value;
+    }
+
+    res.json({ botSlug: slug, texts });
+  } catch (err) {
+    req.log.error({ err }, "bot-texts fetch failed");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json({ botSlug: slug, texts });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

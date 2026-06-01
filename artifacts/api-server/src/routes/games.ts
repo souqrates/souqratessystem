@@ -470,6 +470,10 @@ router.post("/games/award-xp", requireTelegramAuth, perUserCreateLimiter, async 
   const { won, difficulty } = req.body as { won?: boolean; difficulty?: string };
   try {
     const { user } = await getOrUpsertUser(telegramId, tgUser);
+    if (user.isBlocked === true) {
+      res.status(403).json({ error: "هذا المستخدم محظور" });
+      return;
+    }
     const xpAmount = xpRewardFor(difficulty ?? "medium", !!won);
     const { newXp, newLevel } = await addXpToUser(user.id, xpAmount);
     // Update game counters
@@ -495,6 +499,10 @@ router.post("/games/claim-streak", requireTelegramAuth, perUserCreateLimiter, as
   const { telegramId, tgUser } = req as AuthedRequest;
   try {
     const { user } = await getOrUpsertUser(telegramId, tgUser);
+    if (user.isBlocked === true) {
+      res.status(403).json({ error: "هذا المستخدم محظور" });
+      return;
+    }
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
     const lastClaim = user.streakLastClaimAt;

@@ -1232,6 +1232,47 @@ async def main():
     except Exception as e:
         logger.warning(f"info-texts seed step failed (non-fatal): {e}")
 
+    # Global safety net: any unhandled exception inside any handler (malformed
+    # callback data, network failure on an API call, int/float parse error,
+    # None-dereference, etc.) is caught here so a single bad update can never
+    # crash the bot. The user gets a friendly notice; the traceback is logged.
+    from aiogram.types import ErrorEvent
+
+    async def _on_error(event: ErrorEvent) -> bool:
+        upd = event.update
+        msg = getattr(upd, "message", None)
+        cbq = getattr(upd, "callback_query", None)
+        # Structured metadata for fast incident triage.
+        meta = {
+            "update_type": "callback" if cbq else ("message" if msg else "other"),
+            "user_id": (
+                getattr(getattr(cbq, "from_user", None), "id", None)
+                if cbq else getattr(getattr(msg, "from_user", None), "id", None)
+            ),
+            "data": getattr(cbq, "data", None),
+        }
+        logger.exception(f"unhandled handler error: {event.exception!r} | {meta}")
+
+        # Payment safety: NEVER silently acknowledge a failure on a
+        # `successful_payment` update. The dedicated handler already catches its
+        # own network/HTTP errors, so reaching here means an unexpected failure
+        # around a real charge. Let it surface (return False = unhandled) instead
+        # of swallowing — stars-confirm is idempotent server-side, so any
+        # retry/reconciliation is safe and must not be hidden.
+        if msg is not None and getattr(msg, "successful_payment", None) is not None:
+            return False
+
+        try:
+            if cbq is not None:
+                await cbq.answer("⚠️ حدث خطأ مؤقت. حاول مرة أخرى.", show_alert=True)
+            elif msg is not None:
+                await msg.answer("⚠️ حدث خطأ مؤقت. حاول مرة أخرى لاحقاً.")
+        except Exception:
+            pass
+        return True
+
+    dp.errors.register(_on_error)
+
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "mother-bot")
 
