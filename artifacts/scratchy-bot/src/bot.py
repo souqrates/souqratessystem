@@ -63,9 +63,15 @@ def _resolve_api_key() -> str:
     Priority:
     1. SCRATCHY_BOT_API_KEY env var — accepted only if it contains no colon
        (a Telegram token always has "1234567890:AAG..." format).
-    2. HTTP fallback via GET /api/bots + ADMIN_TOKEN — pure-Python urllib,
-       no external driver needed.  Works in Replit and on Contabo alike.
+    2. HTTP fallback via GET /api/superadmin/bots/scratchy-bot/api-key +
+       ADMIN_TOKEN — pure-Python urllib, no external driver needed.
+       Retries 3× with 2-second back-off to survive the API-server startup
+       race condition (bots and API server start in parallel on Replit).
     """
+    import urllib.request as _ureq
+    import json as _json
+    import time as _time
+
     env_key = os.getenv("SCRATCHY_BOT_API_KEY", "").strip()
     if env_key and ":" not in env_key and len(env_key) >= 20:
         return env_key
@@ -73,42 +79,63 @@ def _resolve_api_key() -> str:
     if env_key and ":" in env_key:
         logger.warning(
             "SCRATCHY_BOT_API_KEY looks like a Telegram bot token — "
-            "trying HTTP fallback via /api/bots"
+            "trying HTTP fallback via /api/superadmin/bots"
+        )
+    elif env_key:
+        logger.warning(
+            "SCRATCHY_BOT_API_KEY is too short or invalid — "
+            "trying HTTP fallback via /api/superadmin/bots"
         )
 
-    # HTTP fallback: fetch the raw API key from the superadmin reveal endpoint.
+    # HTTP fallback with retry: fetch raw API key from the superadmin endpoint.
     # Requires ADMIN_TOKEN (always present in production and Replit).
+    # Retries handle the race where bots start before the API server is ready.
     admin_token = os.getenv("ADMIN_TOKEN", "").strip()
     api_url = os.getenv("MOTHER_API_URL", "http://localhost:80/api").rstrip("/")
     if admin_token:
-        try:
-            import urllib.request as _ureq
-            import json as _json
-            _request = _ureq.Request(
-                f"{api_url}/superadmin/bots/scratchy-bot/api-key",
-                headers={"Authorization": f"Bearer {admin_token}"},
-            )
-            with _ureq.urlopen(_request, timeout=5) as _resp:
-                _data = _json.loads(_resp.read())
-                _key = _data.get("apiKey") or ""
-                if _key and ":" not in _key and len(_key) >= 20:
-                    logger.info("SCRATCHY_BOT_API_KEY resolved via superadmin HTTP fallback")
-                    return _key
-        except Exception as _exc:
-            logger.warning("HTTP fallback for SCRATCHY_BOT_API_KEY failed: %s", _exc)
+        _max_attempts = 3
+        for _attempt in range(1, _max_attempts + 1):
+            try:
+                _request = _ureq.Request(
+                    f"{api_url}/superadmin/bots/scratchy-bot/api-key",
+                    headers={"Authorization": f"Bearer {admin_token}"},
+                )
+                with _ureq.urlopen(_request, timeout=8) as _resp:
+                    _data = _json.loads(_resp.read())
+                    _key = (_data.get("apiKey") or "").strip()
+                    if _key and ":" not in _key and len(_key) >= 20:
+                        logger.info(
+                            "SCRATCHY_BOT_API_KEY resolved via HTTP fallback (attempt %d/%d)",
+                            _attempt, _max_attempts,
+                        )
+                        return _key
+                    logger.warning(
+                        "HTTP fallback attempt %d/%d: endpoint returned unexpected key shape",
+                        _attempt, _max_attempts,
+                    )
+            except Exception as _exc:
+                logger.warning(
+                    "HTTP fallback attempt %d/%d failed: %s",
+                    _attempt, _max_attempts, _exc,
+                )
+            if _attempt < _max_attempts:
+                _time.sleep(_attempt * 2)  # 2 s, 4 s
 
     if not env_key:
         raise RuntimeError(
-            "SCRATCHY_BOT_API_KEY is not set.\n"
-            "Fix: copy the api_key from the bots table (slug='scratchy-bot') "
-            "and set it as the SCRATCHY_BOT_API_KEY secret."
+            "SCRATCHY_BOT_API_KEY is not set and HTTP fallback failed.\n"
+            "Fix: set SCRATCHY_BOT_API_KEY to the api_key from the bots table "
+            "(slug='scratchy-bot') in the Replit Secrets panel.\n"
+            "The api_key is a hex string with no colons (visible in the "
+            "superadmin panel under the scratchy-bot settings)."
         )
     raise RuntimeError(
-        "SCRATCHY_BOT_API_KEY looks like a Telegram bot token (contains ':') "
+        "SCRATCHY_BOT_API_KEY is invalid (contains ':' — looks like a bot token) "
         "and the HTTP fallback via ADMIN_TOKEN also failed.\n"
         "Fix: set SCRATCHY_BOT_API_KEY to the api_key from the bots table "
-        "(slug='scratchy-bot'), NOT to the Telegram bot token.\n"
-        "The api_key is a 64-char hex string with no colons."
+        "(slug='scratchy-bot'), NOT the Telegram bot token.\n"
+        "The api_key is a hex string with no colons (visible in the "
+        "superadmin panel under the scratchy-bot settings)."
     )
 
 MOTHER_BOT_USERNAME = os.getenv("MOTHER_BOT_USERNAME", "souqrates_system_bot")
