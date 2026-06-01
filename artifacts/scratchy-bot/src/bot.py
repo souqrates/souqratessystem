@@ -381,8 +381,9 @@ async def cb_lang_menu(cb: CallbackQuery):
 async def cb_lang_set(cb: CallbackQuery):
     if cb.from_user is None or cb.message is None or cb.data is None:
         return
-    new_lang = cb.data.split(":", 1)[1]
-    if new_lang not in LANGS:
+    _parts = cb.data.split(":", 1)
+    new_lang = _parts[1] if len(_parts) == 2 else ""
+    if not new_lang or new_lang not in LANGS:
         await cb.answer("❌", show_alert=False)
         return
     tg_id = str(cb.from_user.id)

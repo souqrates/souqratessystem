@@ -36,7 +36,7 @@ from aiogram.types import (
     Message,
     WebAppInfo,
 )
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from dotenv import load_dotenv
 
 from i18n import (
@@ -599,7 +599,11 @@ _buy_in_flight: set[tuple[int, int]] = set()
 @router.callback_query(F.data.startswith("buy:"))
 async def cb_buy(cb: CallbackQuery):
     lang = await _get_lang(cb.from_user.id)
-    pid = int(cb.data.split(":")[1])
+    try:
+        pid = int(cb.data.split(":")[1])
+    except (ValueError, IndexError):
+        await cb.answer("⚠️ بيانات غير صحيحة", show_alert=True)
+        return
     _bkey = (cb.from_user.id, pid)
     if _bkey in _buy_in_flight:
         await cb.answer("جاري المعالجة… يرجى الانتظار", show_alert=True)
@@ -652,16 +656,19 @@ async def cb_buy(cb: CallbackQuery):
             caption=t(lang, "buy_doc_caption", title=title),
             parse_mode="HTML",
         )
-    except Exception as e:
+    except (TelegramForbiddenError, TelegramBadRequest, Exception) as e:
         logger.warning(f"sendDocument failed for purchase {r.get('purchaseId')}: {e}")
         link_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=t(lang, "btn_download_book"), url=file_url)],
             [InlineKeyboardButton(text=t(lang, "btn_back_arrow"), callback_data="menu")],
         ])
-        await cb.message.answer(
-            t(lang, "buy_doc_failed"),
-            reply_markup=link_kb,
-        )
+        try:
+            await cb.message.answer(
+                t(lang, "buy_doc_failed"),
+                reply_markup=link_kb,
+            )
+        except (TelegramForbiddenError, TelegramBadRequest):
+            pass
     _buy_in_flight.discard(_bkey)
     await cb.answer(t(lang, "buy_answer_ok"))
 
@@ -708,7 +715,11 @@ async def pub_desc(m: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("pubcat:"), Publish.category)
 async def pub_cat(cb: CallbackQuery, state: FSMContext):
     lang = await _get_lang(cb.from_user.id)
-    cid = int(cb.data.split(":")[1])
+    try:
+        cid = int(cb.data.split(":")[1])
+    except (ValueError, IndexError):
+        await cb.answer("⚠️ بيانات غير صحيحة", show_alert=True)
+        return
     await state.update_data(categoryId=cid)
     await state.set_state(Publish.price)
     await cb.message.edit_text(t(lang, "pub_ask_price"), parse_mode="HTML")
@@ -918,6 +929,7 @@ async def pub_confirm(cb: CallbackQuery, state: FSMContext):
             except Exception:
                 pass
         await cb.answer(t(lang, "buy_err_alert", msg=msg[:180]), show_alert=True)
+        return
     await cb.answer()
 
 

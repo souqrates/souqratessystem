@@ -37,7 +37,7 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from client import ContestsBotClient
 from i18n import (
     t,

@@ -27,7 +27,7 @@ const CAT_ICONS: Record<string, ComponentType<LucideProps>> = {
 export default function Category() {
   const params = useParams<{ slug: string }>();
   const cat = findCategory(params.slug ?? "");
-  const { books: all, loading } = useBooks();
+  const { books: all, loading, apiError } = useBooks();
   if (!cat) return <NotFound />;
   const books = all.filter((b) => b.category === cat.slug);
   const color = CAT_COLORS[cat.slug] || '#22d3ee';
@@ -61,6 +61,13 @@ export default function Category() {
         {/* Accent line */}
         <div className="h-px w-full" style={{ background: `linear-gradient(90deg, ${color}50, transparent)` }} />
       </div>
+
+      {apiError && (
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <span>⚠️</span>
+          <span>تعذّر الاتصال بالخادم — يتم عرض الكتالوج المحلي. / Could not reach server — showing local catalog.</span>
+        </div>
+      )}
 
       {/* Books */}
       {loading ? (

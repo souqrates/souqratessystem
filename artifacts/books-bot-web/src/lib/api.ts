@@ -18,6 +18,7 @@ type ApiProduct = {
   coverUrl: string | null;
   categoryId: number | null;
   priceUsdt: string;
+  priceSkz?: number;
   salesCount: number;
   rating: string;
   ratingCount: number;
@@ -43,8 +44,9 @@ async function loadCategoryMap(): Promise<void> {
   }
 }
 
-// 1 USDT ≈ 1000 SKZ (display only — real conversion happens server-side)
-const SKZ_PER_USDT = 1000;
+// 1 USDT ≈ 100 SKZ fallback — real conversion (perUsdt) is returned by the API
+// in the priceSkz field; this constant is only used when priceSkz is absent.
+const SKZ_PER_USDT = 100;
 
 function mapProduct(p: ApiProduct, fallback?: Book): Book {
   const slug =
@@ -56,7 +58,7 @@ function mapProduct(p: ApiProduct, fallback?: Book): Book {
     title: p.title,
     author: fallback?.author ?? "—",
     category: slug,
-    priceSkz: Math.max(1, Math.round(parseFloat(p.priceUsdt) * SKZ_PER_USDT)),
+    priceSkz: Math.max(1, p.priceSkz != null ? Math.round(p.priceSkz) : Math.round(parseFloat(p.priceUsdt) * SKZ_PER_USDT)),
     pages: fallback?.pages,
     duration: fallback?.duration,
     year: new Date(p.createdAt).getFullYear() || 2026,

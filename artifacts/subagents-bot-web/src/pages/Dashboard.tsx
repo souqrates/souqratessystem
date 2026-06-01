@@ -53,7 +53,24 @@ export default function DashboardPage() {
       </div>
     );
   }
-  if (!me) return null;
+  if (!me) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <div className="text-5xl">⚠️</div>
+          <p className="font-bold text-lg">{t("dashboard.loadError") || "تعذّر تحميل البيانات"}</p>
+          <p className="text-sm text-muted-foreground">{t("dashboard.loadErrorHint") || "تأكد من الاتصال بالإنترنت ثم أعد المحاولة"}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm transition-transform active:scale-95"
+          >
+            {t("dashboard.retry") || "إعادة المحاولة"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const agent = me.agent;
   const wallet = me.wallet;
