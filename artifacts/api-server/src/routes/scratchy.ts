@@ -65,14 +65,33 @@ router.get("/scratchy/stats", async (req, res): Promise<void> => {
 
 // ── Telegram initData validation ──────────────────────────────────────────────
 // Validates HMAC-SHA256 signature per Telegram WebApp docs.
-// Returns the telegramId (string) on success, null on failure.
-function validateInitData(initData: string): string | null {
+// Returns { telegramId } on success or { error, status } on failure.
+//
+// TTL is 24 hours — matches games.ts. initData is set ONCE when the Mini App
+// opens and never auto-refreshes; a 1-hour TTL would break every session that
+// runs longer than 60 minutes.
+
+/** Maximum age of a valid Telegram initData payload (24 hours). */
+const INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60;
+
+type InitDataResult =
+  | { telegramId: string }
+  | { error: string; status: 400 | 403 | 503 };
+
+function validateInitData(initData: string): InitDataResult {
   const token = process.env.SCRATCHY_BOT_TOKEN;
-  if (!token) return null;
+  if (!token) {
+    return {
+      error: "SCRATCHY_BOT_TOKEN not configured — scratchy games are disabled on this server",
+      status: 503,
+    };
+  }
 
   const params = new URLSearchParams(initData);
   const hash = params.get("hash");
-  if (!hash) return null;
+  if (!hash) {
+    return { error: "initData is missing hash field", status: 403 };
+  }
 
   params.delete("hash");
   const checkString = [...params.entries()]
@@ -86,24 +105,39 @@ function validateInitData(initData: string): string | null {
   const expectedBuf = Buffer.from(expected, "hex");
   const hashBuf     = Buffer.from(hash, "hex");
   if (expectedBuf.length !== hashBuf.length || !timingSafeEqual(expectedBuf, hashBuf)) {
-    return null;
+    return {
+      error: "Invalid Telegram initData signature — open this app from inside Telegram",
+      status: 403,
+    };
   }
 
-  // Freshness gate (1h TTL) — without this, a stolen initData string is
-  // replayable forever. Mirrors the TTL enforced in games/books/subagents.
+  // Freshness gate — reject replayed initData older than 24 hours.
   const authDateStr = params.get("auth_date");
-  const authDate = authDateStr ? parseInt(authDateStr, 10) : NaN;
-  if (isNaN(authDate) || Date.now() / 1000 - authDate > 3600) {
-    return null;
+  if (!authDateStr) {
+    return { error: "initData is missing auth_date", status: 403 };
+  }
+  const authDate = parseInt(authDateStr, 10);
+  if (isNaN(authDate)) {
+    return { error: "initData has invalid auth_date", status: 403 };
+  }
+  const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
+  if (ageSeconds > INIT_DATA_MAX_AGE_SECONDS) {
+    return {
+      error: "initData has expired — close and reopen the Mini App to refresh",
+      status: 403,
+    };
   }
 
   const userStr = params.get("user");
-  if (!userStr) return null;
+  if (!userStr) {
+    return { error: "initData has no user field", status: 403 };
+  }
   try {
     const u = JSON.parse(userStr) as { id?: number };
-    return u.id ? String(u.id) : null;
+    if (!u.id) return { error: "initData user has no id", status: 403 };
+    return { telegramId: String(u.id) };
   } catch {
-    return null;
+    return { error: "initData user field is not valid JSON", status: 400 };
   }
 }
 
@@ -139,11 +173,13 @@ router.post("/scratchy/play", async (req, res): Promise<void> => {
     return;
   }
 
-  const telegramId = validateInitData(initData);
-  if (!telegramId) {
-    res.status(403).json({ error: "Invalid Telegram initData — open this app from inside Telegram" });
+  const authResult = validateInitData(initData);
+  if ("error" in authResult) {
+    req.log.warn({ reason: authResult.error, status: authResult.status }, "scratchy/play: initData validation failed");
+    res.status(authResult.status).json({ error: authResult.error });
     return;
   }
+  const { telegramId } = authResult;
 
   const tier = SCRATCH_TIERS.find((t) => t.id === tierId);
   if (!tier) {
