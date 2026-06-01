@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 
 export interface PriceTier { label: string; entryFee: number; winAmount: number }
@@ -224,7 +225,7 @@ function GameRow({ g, onChanged }: { g: GameConfigRow; onChanged: () => void }) 
       <Td>
         {g.hasUnpublishedChanges ? (
           <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
-            ⚠ مسودة غير منشورة
+            <AlertTriangle size={12} className="inline mr-1" /> مسودة غير منشورة
           </span>
         ) : (
           <span className="text-xs text-emerald-600">منشورة</span>

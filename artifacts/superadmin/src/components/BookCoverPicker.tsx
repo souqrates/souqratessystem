@@ -3,6 +3,7 @@
  * User types title + optional author → live preview → download as PNG.
  */
 import { useRef, useState } from "react";
+import { Heart, Star, Download } from "lucide-react";
 import html2canvas from "html2canvas";
 
 export type CoverStyle = {
@@ -169,7 +170,7 @@ function CoverRomance({ title, author }: { title: string; author: string }) {
       {/* Brand */}
       <div style={{ position: "absolute", top: 16, left: 0, right: 0, textAlign: "center", fontSize: 7, letterSpacing: 3, color: "#ffffff80", textTransform: "uppercase" }}>SOUQRATES SOUQ</div>
       {/* Small heart */}
-      <div style={{ marginBottom: 12, fontSize: 18, opacity: 0.8 }}>♥</div>
+      <div style={{ marginBottom: 12, opacity: 0.8 }}><Heart size={18} fill="currentColor" /></div>
       {/* Title */}
       <div style={{ padding: "0 24px", textAlign: "center", zIndex: 1 }}>
         <div style={{ color: "#fff", fontSize: title.length > 20 ? 17 : title.length > 12 ? 21 : 26, fontWeight: 700, lineHeight: 1.4, fontStyle: "italic", textShadow: "0 2px 20px #00000040" }}>
@@ -407,7 +408,7 @@ function CoverEnergy({ title, author }: { title: string; author: string }) {
       {/* Brand */}
       <div style={{ position: "absolute", top: 18, left: 0, right: 0, textAlign: "center", fontSize: 7, letterSpacing: 4, color: "#00000050", textTransform: "uppercase" }}>SOUQRATES SOUQ</div>
       {/* Exclamation/energy mark */}
-      <div style={{ fontSize: 28, color: "#ffffff40", marginBottom: 8 }}>★</div>
+      <div style={{ color: "#ffffff40", marginBottom: 8 }}><Star size={28} fill="currentColor" /></div>
       {/* Title */}
       <div style={{ padding: "0 20px", textAlign: "center", zIndex: 1 }}>
         <div style={{ color: "#1a0000", fontSize: title.length > 20 ? 18 : title.length > 12 ? 22 : 28, fontWeight: 900, lineHeight: 1.15, textTransform: "uppercase", letterSpacing: 1, textShadow: "0 2px 0 #ffffff40" }}>
@@ -536,7 +537,7 @@ export function BookCoverPicker() {
                   disabled={downloading || !title.trim()}
                   className="w-full py-1.5 rounded-md bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {downloading ? "جاري التحميل…" : "⬇️ تحميل PNG"}
+                  {downloading ? "جاري التحميل…" : <><Download size={12} className="inline mr-1" />تحميل PNG</>}
                 </button>
               )}
             </div>

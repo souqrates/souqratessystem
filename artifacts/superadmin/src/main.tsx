@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Component, type ReactNode, type ErrorInfo } from "react";
+import { AlertTriangle } from "lucide-react";
 import App from "./App";
 import "./index.css";
 
@@ -38,7 +39,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { err: Error |
   render() {
     if (this.state.err) return (
       <div style={{ padding: 32, textAlign: "center", fontFamily: "sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#1e293b", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <div style={{ fontSize: 48, marginBottom: 16, display: "flex", justifyContent: "center" }}><AlertTriangle size={48} color="#f59e0b" /></div>
         <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>حدث خطأ غير متوقع</h2>
         <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 4px" }}>{this.state.err.message}</p>
         <p style={{ fontSize: 11, color: "#94a3b8", margin: "0 0 24px", fontFamily: "monospace", maxWidth: 500 }}>

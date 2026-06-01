@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 
 interface VotePack {
@@ -86,7 +87,7 @@ function PackCard({ p, onChanged }: { p: VotePack; onChanged: () => void }) {
         {p.coverUrl ? (
           <img src={p.coverUrl} alt="" className="w-full h-28 object-cover" />
         ) : (
-          <div className="w-full h-28 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">◈</div>
+          <div className="w-full h-28 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"><Star size={36} color="#fff" fill="#fff" /></div>
         )}
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">

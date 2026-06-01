@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Crosshair } from 'lucide-react';
 
 // QUANTUM LOCK — cyberpunk cyan/violet rebrand. Same mechanic: stop the
 // indicator inside the lock window. New identity: hex-edged track, energy
@@ -224,12 +225,12 @@ export default function StopTheBar({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'box-shadow 0.1s ease',
           }}
         >
-          <span style={{ fontSize: 28, lineHeight: 1 }}>◈</span>
+          <Crosshair size={28} />
           <span style={{ fontSize: 14, letterSpacing: '0.22em' }}>LOCK</span>
         </motion.button>
 
         <p style={{ color: `${CYAN}aa`, fontSize: 11, letterSpacing: '0.22em', fontFamily: 'Orbitron, sans-serif' }}>
-          ◆ ENGAGE INSIDE THE VIOLET WINDOW ◆
+          ENGAGE INSIDE THE VIOLET WINDOW
         </p>
       </div>
     </div>

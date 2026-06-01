@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Square } from 'lucide-react';
 
 const RULES = 'Tap hexagons to fill them with your color. Fill more than 60% to win the board = +100. Opponent auto-fills adjacent hexes every 1.5s. Wrong tap (already filled) = -150. Board resets after win. Reach 1000 in 180s!';
 const DEFAULT_GAME_TIME = 180;
@@ -190,8 +191,8 @@ export default function HexFill({ phase, setPhase, game, onScoreUpdate }) {
         </svg>
 
         <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>
-          <span style={{ color: '#10b981' }}>■ YOU</span>
-          <span style={{ color: '#ef4444' }}>■ BOT</span>
+          <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 3 }}><Square size={10} fill="#10b981" /> YOU</span>
+          <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 3 }}><Square size={10} fill="#ef4444" /> BOT</span>
           <span>FILL 60% TO WIN</span>
         </div>
       </div>

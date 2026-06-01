@@ -52,7 +52,7 @@ export function CashBags({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   }
 
   const BONUS_IDX = prize>0 ? bags.indexOf(Math.max(...bags)) : -1;
-  const BAG_LABELS = ['◆','★','◈','✦','◆'];
+  const BAG_LABELS = ['◆','★','◈','✦','◆']; // game-symbol: collect-bag face labels
 
   return (
     <div style={{ width:'100%', padding:'0 12px', display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
@@ -178,7 +178,7 @@ export function Envelopes({ game, tier, lang, onResult, onPlayAgain }: GProps) {
 }
 
 // ── GAME 12: SYMBOL MATCH ────────────────────────────────────────────────────
-const ALL_SYMS = ['★','◆','✦','◈','☽','⚡','✿','⭐','♦','▲'];
+const ALL_SYMS = ['★','◆','✦','◈','☽','⚡','✿','⭐','♦','▲']; // game-symbol: symbol-match face values
 
 export function SymbolMatch({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';

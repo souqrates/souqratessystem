@@ -23,8 +23,8 @@ function Res({ prize, accent, onPlayAgain, lang }: { prize: number; accent: stri
 }
 
 const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-const SUITS = ['♠','♥','♦','♣'];
-const SUIT_COLORS: Record<string,string> = { '♠':'#e2e8f0', '♣':'#e2e8f0', '♥':'#f87171', '♦':'#f87171' };
+const SUITS = ['♠','♥','♦','♣']; // game-symbol: standard playing card suits
+const SUIT_COLORS: Record<string,string> = { '♠':'#e2e8f0', '♣':'#e2e8f0', '♥':'#f87171', '♦':'#f87171' }; // game-symbol
 
 // ── GAME 7: BEAT THE DEALER ──────────────────────────────────────────────────
 export function BeatDealer({ game, tier, lang, onResult, onPlayAgain }: GProps) {
@@ -171,7 +171,7 @@ export function PokerGame({ game, tier, lang, onResult, onPlayAgain }: GProps) {
 // ── GAME 9: SUPER SEVENS ─────────────────────────────────────────────────────
 export function SuperSevens({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';
-  const NON_SEVEN = ['★','◆','✦','◈','☽','⭐','✿'];
+  const NON_SEVEN = ['★','◆','✦','◈','☽','⭐','✿']; // game-symbol: non-7 slot symbols
 
   const [[prize, zones]] = useState<[number, string[]]>(() => {
     const p = roll(tier);

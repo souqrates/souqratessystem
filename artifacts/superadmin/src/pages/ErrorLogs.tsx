@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { api, type SuperErrorLog } from "@/lib/api";
 
 export default function ErrorLogsPage() {
@@ -35,7 +36,7 @@ export default function ErrorLogsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">⚠️ سجل الأخطاء</h1>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><AlertTriangle size={22} className="text-amber-500" /> سجل الأخطاء</h1>
         <p className="text-slate-500 mt-1">أخطاء وقعت في البوتات أو الخادم — مع إمكانية وضع علامة "تم الحل"</p>
       </header>
 

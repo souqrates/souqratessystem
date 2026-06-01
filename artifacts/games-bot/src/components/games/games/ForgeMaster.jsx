@@ -269,7 +269,7 @@ export default function ForgeMaster({ phase, setPhase, onScoreUpdate, game }) {
               textShadow: `0 0 26px currentColor, 0 0 8px #fff8`,
               letterSpacing: '0.1em',
             }}>
-            {flash.perfect ? <>◆ MASTERWORK ◆<br /><span style={{ fontSize: 18 }}>+{flash.pts}</span></> : <>+{flash.pts}<br /><span style={{ fontSize: 12 }}>HEAT {flash.acc}%</span></>}
+            {flash.perfect ? <>MASTERWORK<br /><span style={{ fontSize: 18 }}>+{flash.pts}</span></> : <>+{flash.pts}<br /><span style={{ fontSize: 12 }}>HEAT {flash.acc}%</span></>}
           </motion.div>
         )}
       </AnimatePresence>

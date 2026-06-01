@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { getFrameInterval, applyShadow, clearShadow, scaleParticles } from '../../../lib/canvasQuality';
 import { playTone, playNoise } from '../../../lib/audioPool';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Star } from 'lucide-react';
 
 const RULES = 'ASTEROID FIELD — Pilot your ship through the asteroid belt! Rotate and shoot to destroy asteroids. Large=10, Medium=15, Small=30 pts. Asteroids split when shot! 3 lives — score as high as possible in 90 seconds. The universe is watching!';
 
@@ -563,7 +563,7 @@ export default function AsteroidField({ phase, setPhase, onScoreUpdate, game}) {
           onPointerLeave={() => clearInterval(thrustIntervalRef.current)}
           whileTap={{ scale: 0.88 }}
           style={ctrlBtnStyle('#f43f5e')}>
-          <span style={{ fontSize: 20 }}>★</span>
+          <Star size={20} color="rgba(244,63,94,0.9)" />
           <span style={{ fontSize: 9, color: 'rgba(244,63,94,0.7)' }}>FIRE</span>
         </motion.button>
 

@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const RULES = 'Tap LEFT or RIGHT to dodge incoming spikes. Each spike dodged = +100. Getting hit = -150. Spikes speed up every 200 pts. Reach 2000 in 60 seconds!';
 const DEFAULT_GAME_TIME = 60;
@@ -178,7 +179,7 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
               pointerEvents: 'none',
             }}>
-              ▼
+              <ChevronDown size={30} />
             </div>
           ))}
 
@@ -200,12 +201,12 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
               color: '#fff',
               textShadow: `0 0 6px ${VOLT_CYAN}`,
             }}>
-            ●
+            <Circle size={16} color={VOLT_CYAN} />
           </motion.div>
         </div>
 
         <div style={{ display: 'flex', gap: 16 }}>
-          {[['◀', -1], ['▶', 1]].map(([label, dir]) => (
+          {[[-1], [1]].map(([dir]) => (
             <motion.button
               key={dir}
               whileTap={{ scale: 0.85 }}
@@ -220,7 +221,7 @@ export default function DodgeSpikes({ phase, setPhase, game, onScoreUpdate }) {
                 fontFamily: 'Orbitron, sans-serif', fontWeight: 900,
               }}
             >
-              {label}
+              {dir < 0 ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
             </motion.button>
           ))}
         </div>

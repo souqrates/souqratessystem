@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronUp, ChevronLeft, ChevronDown, ChevronRight } from 'lucide-react';
 
 const RULES = 'Navigate the maze to the EXIT. Tap arrow buttons or swipe. Reach exit = +100. Hit a wall = -150. After 400 pts maze grows 7×7 → 11×11. Reach 1000 in 90 seconds!';
 const DEFAULT_GAME_TIME = 90;
@@ -171,7 +172,7 @@ export default function MazeRunPro({ phase, setPhase, game, onScoreUpdate }) {
 
         {/* Controls */}
         <div style={{ display: 'grid', gridTemplateColumns: '48px 48px 48px', gridTemplateRows: '48px 48px', gap: 4 }}>
-          {[['▲', 'T', 0, 1], ['◀', 'L', 1, 0], ['▼', 'B', 1, 2], ['▶', 'R', 1, 2]].map(([label, dir, gr]) => (
+          {['T', 'L', 'B', 'R'].map((dir) => (
             <motion.button
               key={dir}
               whileTap={{ scale: 0.85 }}
@@ -186,7 +187,7 @@ export default function MazeRunPro({ phase, setPhase, game, onScoreUpdate }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {label}
+              {dir==='T'?<ChevronUp size={20}/>:dir==='L'?<ChevronLeft size={20}/>:dir==='B'?<ChevronDown size={20}/>:<ChevronRight size={20}/>}
             </motion.button>
           ))}
         </div>

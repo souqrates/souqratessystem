@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar } from './_shell';
 import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronUp } from 'lucide-react';
 
 const RULES = 'Swipe LEFT or RIGHT to switch lanes. Dodge red cars and collect green boost pads for bonus points! Survive the full 30 seconds. Collect 25 boost pads to win!';
 const DEFAULT_GAME_TIME = 30;
@@ -171,7 +172,7 @@ export default function DriftRacer({ phase, setPhase, game, onScoreUpdate }) {
             filter: crashed ? 'drop-shadow(0 0 16px rgba(239,68,68,1))' : 'drop-shadow(0 0 10px rgba(16,185,129,0.6))',
           }}
         >
-          ▲
+          <ChevronUp size={36} color={crashed ? '#ef4444' : '#22c55e'} />
         </motion.div>
 
         {/* Swipe hint */}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { tone, chord, noiseHit, hudColor } from './_groupKit';
 import { getFrameInterval } from '../../../lib/canvasQuality';
+import { Circle } from 'lucide-react';
 
 const GAME_TIME = 90;
 const RULES = 'BUBBLE BURST ARENA — Iridescent bubbles drift up from below. Tap to pop. Blue = +10, Green = +20, Gold = +50 + slowmo, RED TRAP = -30. Density and speed escalate. Chain pops for combos. 90 seconds of pop-storm chaos.';
@@ -168,7 +169,7 @@ export default function BubbleBurstArena({ phase, setPhase, onScoreUpdate, game 
 
   if (phase === 'rules') return (
     <div style={{ padding: 24, color: '#cbd5e1', fontFamily: 'Orbitron,sans-serif', textAlign: 'center' }}>
-      <div style={{ fontSize: 44, marginBottom: 10 }}>●</div>
+      <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Circle size={44} color="#22d3ee" /></div>
       <h2 style={{ color: '#22d3ee', fontSize: 22, margin: '8px 0 14px', textShadow: '0 0 18px #22d3ee' }}>BUBBLE BURST ARENA</h2>
       <p style={{ fontSize: 14, lineHeight: 1.7 }}>{RULES}</p>
     </div>
@@ -217,6 +218,7 @@ export default function BubbleBurstArena({ phase, setPhase, onScoreUpdate, game 
             cursor: 'pointer', zIndex: 5, padding: 0,
             outline: 'none',
           }}>
+          {/* game-symbol: gold/trap bubble type indicators */}
           {b.kind === 'gold' && (
             <span style={{ fontSize: 18, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#fff', textShadow: '0 0 8px #f59e0b' }}>★</span>
           )}

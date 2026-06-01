@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Star, Play } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { Contest } from "./Contests";
 
@@ -78,7 +79,7 @@ export default function ContestDetailPage() {
             {contest.coverUrl ? (
               <img src={contest.coverUrl} alt="" className="w-24 h-24 rounded-xl object-cover" />
             ) : (
-              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center text-white text-3xl">★</div>
+              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center"><Star size={32} color="#fff" fill="#fff" /></div>
             )}
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -96,7 +97,7 @@ export default function ContestDetailPage() {
           <div className="flex flex-col gap-2">
             {contest.status === "draft" && (
               <button onClick={() => statusMut.mutate("active")} disabled={statusMut.isPending} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 disabled:opacity-50">
-                ▶ تفعيل (ستُنهَى أي مسابقة نشطة أخرى)
+                <Play size={14} className="inline mr-1" /> تفعيل (ستُنهَى أي مسابقة نشطة أخرى)
               </button>
             )}
             {contest.status === "active" && (
@@ -188,7 +189,7 @@ function ContestantRow({ c, rank, onChanged }: { c: Contestant; rank: number; on
     onSuccess: onChanged,
     onError: (e) => {
       if (e instanceof ApiError && e.status === 409) {
-        alert("⚠ هذا المتسابق له أصوات مسجّلة. استخدم زر «استبعاد» للحفاظ على سجل التصويت.");
+        alert("تحذير: هذا المتسابق له أصوات مسجّلة. استخدم زر «استبعاد» للحفاظ على سجل التصويت.");
       } else {
         alert("تعذّر الحذف");
       }

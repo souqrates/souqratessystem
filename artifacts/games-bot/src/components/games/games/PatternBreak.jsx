@@ -169,7 +169,7 @@ export default function PatternBreak({ phase, setPhase, game, onScoreUpdate }) {
               filter: isBreak ? 'brightness(1.5)' : 'none',
             }}
           >
-            {current || '●'}
+            {current || '●' /* game-symbol: pattern tile fallback */}
           </motion.div>
         </AnimatePresence>
 

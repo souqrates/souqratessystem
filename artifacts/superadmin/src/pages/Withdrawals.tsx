@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, X } from "lucide-react";
 import { api, type SuperWithdrawal, ApiError } from "@/lib/api";
 
 export default function WithdrawalsPage() {
@@ -213,7 +214,7 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
                   : "text-red-600"
               }`}
             >
-              {isInsufficient && "⚠️ "}
+              {isInsufficient && <AlertTriangle size={12} className="inline mr-1 text-amber-500" />}
               {err}
             </div>
           )}
@@ -247,7 +248,7 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
                     : "bg-red-50 text-red-700 border border-red-200"
                 }`}
               >
-                {isInsufficient ? "⚠️ " : "❌ "}{err}
+                {isInsufficient ? <AlertTriangle size={12} className="inline mr-1 text-amber-500" /> : <X size={12} className="inline mr-1" />}{err}
                 {isInsufficient && (
                   <button
                     onClick={() => { setActionOpen("reject"); setErr(null); setIsInsufficient(false); setReason("رصيد غير كافٍ عند الموافقة"); }}
@@ -267,7 +268,7 @@ function WithdrawalRow({ w }: { w: SuperWithdrawal }) {
           <td colSpan={8} className="px-4 py-3">
             {actionOpen === "force_reject" && (
               <p className="text-xs text-orange-600 mb-2 font-medium">
-                ⚠️ رفض قسري — يُستخدم عند تعذّر إتمام التحويل. سيُعاد الطلب إلى حالة "مرفوضة" وسيُخطر المستخدم.
+                <AlertTriangle size={13} className="inline mr-1 text-orange-600" /> رفض قسري — يُستخدم عند تعذّر إتمام التحويل. سيُعاد الطلب إلى حالة "مرفوضة" وسيُخطر المستخدم.
               </p>
             )}
             <div className="flex items-center gap-2">

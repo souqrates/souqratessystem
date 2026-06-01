@@ -21,7 +21,7 @@ function Res({ prize, accent, onPlayAgain, lang }: { prize: number; accent: stri
   );
 }
 
-const SYMS = ['★','◆','✦','◈','☽','⚡','✿','⭐'];
+const SYMS = ['★','◆','✦','◈','☽','⚡','✿','⭐']; // game-symbol: match card face values
 
 // ── GAME 1: CLASSIC MATCH ────────────────────────────────────────────────────
 export function ClassicMatch({ game, tier, lang, onResult, onPlayAgain }: GProps) {
@@ -124,7 +124,7 @@ export function LuckyLines({ game, tier, lang, onResult, onPlayAgain }: GProps) 
 }
 
 // ── GAME 3: SLOT SCRATCH (3 REELS) ──────────────────────────────────────────
-const SLOT_SYMS = ['★','⭐','7','◆','BAR','◈'];
+const SLOT_SYMS = ['★','⭐','7','◆','BAR','◈']; // game-symbol: slot reel face values
 
 export function SlotScratch({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';

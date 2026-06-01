@@ -4,6 +4,7 @@ import { triggerHaptic } from '../../../lib/telegram';
 import { beep } from './_gameKit';
 import ResultOverlay from './ResultOverlay';
 import { loadGameConfig } from '../../../lib/gameConfig';
+import { Star } from 'lucide-react';
 
 const RULES = 'TUG OF WAR RUNE — Rapid-tap to pull the magical rope toward your side. Reach 100 taps before time runs out. Anti-cheat: super-uniform taps detected as bots.';
 
@@ -137,7 +138,7 @@ export default function TugOfWarRune({ phase, setPhase, game, onScoreUpdate }) {
             boxShadow: `0 0 30px ${GOLD}, 0 0 60px ${GOLD}88`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 18,
-          }}>★</motion.div>
+          }}><Star size={18} fill={GOLD} color={GOLD} /></motion.div>
 
         {/* Sparkles */}
         <AnimatePresence>

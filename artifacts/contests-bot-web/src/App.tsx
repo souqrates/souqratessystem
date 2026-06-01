@@ -364,8 +364,8 @@ function RankDelta({ meta }: { meta: RowMeta }) {
   if (meta.prevRank === null) return <span className="delta-flat">—</span>;
   const delta = meta.prevRank - meta.rank;
   if (delta === 0) return <span className="delta-flat">{t("flat_stable")}</span>;
-  if (delta > 0) return <span className="delta-up">▲ {delta}</span>;
-  return <span className="delta-down">▼ {Math.abs(delta)}</span>;
+  if (delta > 0) return <span className="delta-up">+{delta}</span>;
+  return <span className="delta-down">-{Math.abs(delta)}</span>;
 }
 
 function ContestantRow({

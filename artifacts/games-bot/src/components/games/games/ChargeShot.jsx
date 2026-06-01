@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Rules, Hud, HudRow, TimeBar, TargetBar } from './_shell';
 import ResultOverlay from './ResultOverlay';
 import { beep, chord } from './_gameKit';
-import { Zap } from 'lucide-react';
+import { Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { triggerHaptic } from '../../../lib/telegram';
 
 const RULES = 'Hold the button to charge the power bar. Release EXACTLY when the bar is inside the green zone to score! The zone shrinks with each successful shot. Miss = score penalty. Reach the target score before time runs out to win!';
@@ -156,7 +156,7 @@ export default function ChargeShot({ phase, setPhase, game, onScoreUpdate }) {
           {/* Zone labels */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
             <span style={{ fontSize: 9, color: 'rgba(148,163,184,0.3)' }}>EMPTY</span>
-            <span style={{ fontSize: 9, color: '#10b981', fontWeight: 700 }}>◀ ZONE ▶</span>
+            <span style={{ fontSize: 9, color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}><ChevronLeft size={9} />ZONE<ChevronRight size={9} /></span>
             <span style={{ fontSize: 9, color: 'rgba(148,163,184,0.3)' }}>OVERCHARGE</span>
           </div>
         </div>

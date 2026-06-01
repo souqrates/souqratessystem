@@ -239,7 +239,7 @@ export default function GravityFlipPro({ phase, setPhase, game, onScoreUpdate })
           <text x={50} y={playerY + 5} textAnchor="middle" fontSize={14} fill="#fff" style={{ fontWeight: 900 }}>{gravDown ? '⬇' : '⬆'}</text>
         </svg>
 
-        <p style={{ color: 'rgba(167,139,250,0.7)', fontSize: 11, letterSpacing: '0.25em', fontFamily: 'Orbitron, sans-serif' }}>◆ TAP TO REVERSE GRAVITY ◆</p>
+        <p style={{ color: 'rgba(167,139,250,0.7)', fontSize: 11, letterSpacing: '0.25em', fontFamily: 'Orbitron, sans-serif' }}>TAP TO REVERSE GRAVITY</p>
       </div>
     </div>
   );

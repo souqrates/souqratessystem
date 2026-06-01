@@ -208,8 +208,8 @@ export function GemLadder({ game, tier, lang, onResult, onPlayAgain }: GProps) {
 }
 
 // ── NEON JACKPOT (5 panels, 3+ match) ────────────────────────────────────────
-const JPOT_SYMS = ['7','★','◆','BAR','◈'];
-const JPOT_COLORS: Record<string, string> = {'7':'#f87171','★':'#fde047','◆':'#60a5fa','BAR':'#4ade80','◈':'#a78bfa'};
+const JPOT_SYMS = ['7','★','◆','BAR','◈']; // game-symbol: jackpot reel face values
+const JPOT_COLORS: Record<string, string> = {'7':'#f87171','★':'#fde047','◆':'#60a5fa','BAR':'#4ade80','◈':'#a78bfa'}; // game-symbol
 
 export function NeonJackpot({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';

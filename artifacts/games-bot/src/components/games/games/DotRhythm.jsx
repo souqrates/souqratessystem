@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Circle } from 'lucide-react';
 
 const RULES = 'Dots appear on a grid in rhythm. Tap each dot before it disappears. Perfect timing = +100. Miss/early = -150. More dots appear after 400 pts. Reach 1000 in 60 seconds!';
 const DEFAULT_GAME_TIME = 60;
@@ -161,7 +162,7 @@ export default function DotRhythm({ phase, setPhase, game, onScoreUpdate }) {
                         fontSize: 24,
                       }}
                     >
-                      ●
+                      <Circle size={20} fill="currentColor" />
                     </motion.div>
                   )}
                 </AnimatePresence>

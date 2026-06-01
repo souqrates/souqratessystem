@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Star, Trophy } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 
 export interface Contest {
@@ -60,7 +61,7 @@ export default function ContestsPage() {
     <div className="p-8 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">★ مسابقات SOUQRATES STAGE</h1>
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2"><Trophy size={24} className="text-amber-500" /> مسابقات SOUQRATES STAGE</h1>
           <p className="text-slate-500 mt-1">
             مسابقة واحدة <b>نشطة</b> في كل وقت. كل مستخدم له <b>صوت مجاني واحد يوميًّا</b> (UTC) عبر المنصّة كلّها — والباقي يُشترى عبر باقات.
           </p>
@@ -92,8 +93,8 @@ export default function ContestsPage() {
       ) : (
         <>
           <Section title="● نشطة الآن" tone="emerald" contests={grouped.active} empty="لا توجد مسابقة نشطة. أنشئ مسابقة وفعِّلها." />
-          <Section title="◈ مسوّدات" tone="slate" contests={grouped.draft} empty="لا توجد مسوّدات." />
-          <Section title="◼ منتهية" tone="zinc" contests={grouped.ended} empty="لا توجد مسابقات منتهية بعد." />
+          <Section title="مسوّدات" tone="slate" contests={grouped.draft} empty="لا توجد مسوّدات." />
+          <Section title="منتهية" tone="zinc" contests={grouped.ended} empty="لا توجد مسابقات منتهية بعد." />
         </>
       )}
 
@@ -133,7 +134,7 @@ function ContestCard({ c }: { c: Contest }) {
         {c.coverUrl ? (
           <img src={c.coverUrl} alt="" className="w-full h-32 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
-          <div className="w-full h-32 bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center text-white text-4xl">★</div>
+          <div className="w-full h-32 bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center"><Star size={40} color="#fff" fill="#fff" /></div>
         )}
         <div className="p-4">
           <div className="flex items-center justify-between mb-1">
@@ -183,7 +184,7 @@ function CreateContestModal({ onClose, onCreated }: { onClose: () => void; onCre
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()} dir="rtl">
-        <h3 className="text-xl font-bold mb-4">★ مسابقة جديدة</h3>
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Star size={18} className="text-amber-500" /> مسابقة جديدة</h3>
         <Field label="العنوان">
           <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" placeholder="مثال: ملك الكاميرا — مايو 2026" />
         </Field>

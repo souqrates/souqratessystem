@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const RULES = 'Tap LEFT or RIGHT to switch lanes and dodge obstacles. Collect stars for +100. Hit obstacle = -150. Speed increases every 200 pts. Reach 1200 in 60 seconds!';
 const DEFAULT_GAME_TIME = 60;
@@ -168,13 +169,13 @@ export default function LaneSwitcher({ phase, setPhase, game, onScoreUpdate }) {
               boxShadow: '0 0 16px rgba(34,197,94,0.5)',
             }}
           >
-            ▲
+            <ChevronUp size={22} color="#22c55e" />
           </motion.div>
         </div>
 
         {/* Controls */}
         <div style={{ display: 'flex', gap: 16 }}>
-          {[['◀', -1], ['▶', 1]].map(([label, dir]) => (
+          {[[-1], [1]].map(([dir]) => (
             <motion.button
               key={dir}
               whileTap={{ scale: 0.85 }}
@@ -186,7 +187,7 @@ export default function LaneSwitcher({ phase, setPhase, game, onScoreUpdate }) {
                 color: '#4ade80', fontSize: 24, cursor: 'pointer',
               }}
             >
-              {label}
+              {dir < 0 ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
             </motion.button>
           ))}
         </div>

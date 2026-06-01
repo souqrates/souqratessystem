@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Circle } from 'lucide-react';
 
 const RULES = '10 balls total. Swipe UP to shoot! Land in the basket = +100, Swish (perfect arc) = +150, Miss = -150. Wind increases after 400 pts. You need at least 7 baskets from 10 shots to win!';
 const TARGET = 1000;
@@ -114,7 +115,7 @@ export default function FlickShot({ phase, setPhase, game, onScoreUpdate }) {
             <div style={{ width: 2, height: 20, background: '#f59e0b88' }} />
             <div style={{ width: 2, height: 20, background: '#f59e0b88' }} />
           </div>
-          <p style={{ color: '#f59e0b88', fontSize: 20, margin: 0 }}>●</p>
+          <Circle size={20} color="rgba(245,158,11,0.53)" />
         </div>
 
         {/* Ball */}

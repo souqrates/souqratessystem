@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Circle, ChevronDown } from 'lucide-react';
 
 const RULES = 'Shoot balls from the cannon. Balls with the same number merge and double! +points = merged value × 100. Ball falls off = -150. Reach 2048 pts before 120 seconds. Merge 128 = huge combo!';
 const DEFAULT_GAME_TIME = 120;
@@ -146,7 +147,7 @@ export default function CannonMerge({ phase, setPhase, game, onScoreUpdate }) {
                 fontSize: 18,
               }}
             >
-              {cannonX === c ? '◎' : '▼'}
+              {cannonX === c ? <Circle size={14} /> : <ChevronDown size={14} />}
             </motion.button>
           ))}
         </div>

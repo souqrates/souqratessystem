@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Play } from 'lucide-react';
 
 const RULES = 'Listen to the note played. Then tap the matching note on the keyboard. Correct note = +100. Wrong = -150. Sequence gets longer after 400 pts. Reach 1000 in 90 seconds!';
 const DEFAULT_GAME_TIME = 90;
@@ -231,7 +232,7 @@ export default function VocalPitch({ phase, setPhase, game, onScoreUpdate }) {
           onPointerDown={replay}
           style={{ padding: '8px 20px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(148,163,184,0.6)', fontSize: 10, cursor: 'pointer', letterSpacing: '0.1em' }}
         >
-          ▶ REPLAY
+          <Play size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> REPLAY
         </motion.button>
       </div>
     </div>

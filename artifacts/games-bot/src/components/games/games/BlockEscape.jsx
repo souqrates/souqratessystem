@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronRight } from 'lucide-react';
 
 const RULES = 'Slide blocks to free the RED block to the exit (right side). Every move costs 1 move. Solve in MIN moves = +100. Extra moves = -20 each. Wrong direction drag = -150. Reach 800 in 180 seconds!';
 const DEFAULT_GAME_TIME = 180;
@@ -225,7 +226,7 @@ export default function BlockEscape({ phase, setPhase, game, onScoreUpdate }) {
             borderRadius: '0 4px 4px 0',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 8, color: '#fff', fontWeight: 900,
-          }}>▶</div>
+          }}><ChevronRight size={12} color="#fff" /></div>
 
           {/* Blocks */}
           {blocks.map(b => (
@@ -250,7 +251,7 @@ export default function BlockEscape({ phase, setPhase, game, onScoreUpdate }) {
                 touchAction: 'none',
               }}
             >
-              {b.id === 'red' && <span style={{ fontSize: 18, fontWeight: 900, color: '#ef4444' }}>▶</span>}
+              {b.id === 'red' && <ChevronRight size={18} color="#ef4444" />}
             </motion.div>
           ))}
         </div>

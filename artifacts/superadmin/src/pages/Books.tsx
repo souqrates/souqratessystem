@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BookOpen, Clock, CheckCircle, ShoppingCart, TrendingUp, Coins, Pause, Download, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { BookCoverPicker } from "@/components/BookCoverPicker";
 
@@ -39,7 +40,7 @@ export default function BooksPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: "#0F766E" }}>❖ SOUQRATES SOUQ — الكتب والمنتجات الرقمية</h1>
+        <h1 className="text-2xl font-bold" style={{ color: "#0F766E" }}>SOUQRATES SOUQ — الكتب والمنتجات الرقمية</h1>
         <p className="text-sm text-slate-500 mt-1">مراجعة الكتب المرسلة، إدارة التصنيفات، ومتابعة المبيعات.</p>
       </div>
       <div className="flex gap-2 mb-4 border-b border-slate-200 flex-wrap">
@@ -188,14 +189,14 @@ function ProductsTab() {
               {selected.rejectionReason && <Field label="سبب الرفض" value={selected.rejectionReason} multiline />}
               <div className="flex gap-2 pt-3 border-t border-slate-100 flex-wrap">
                 <button onClick={() => setProductStatus(selected.id, "approved")}
-                  className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">✅ اعتماد</button>
+                  className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 flex items-center gap-1"><CheckCircle size={13} /> اعتماد</button>
                 <button onClick={() => {
                   const r = prompt("سبب الرفض:") ?? ""; if (r.trim()) setProductStatus(selected.id, "rejected", r);
-                }} className="px-4 py-2 rounded-md bg-rose-600 text-white text-sm font-medium hover:bg-rose-700">❌ رفض</button>
+                }} className="px-4 py-2 rounded-md bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 flex items-center gap-1"><X size={13} /> رفض</button>
                 <button onClick={() => setProductStatus(selected.id, "disabled")}
-                  className="px-4 py-2 rounded-md bg-slate-600 text-white text-sm font-medium hover:bg-slate-700">⏸️ تعطيل</button>
+                  className="px-4 py-2 rounded-md bg-slate-600 text-white text-sm font-medium hover:bg-slate-700 flex items-center gap-1"><Pause size={13} /> تعطيل</button>
                 <a href={selected.fileUrl} target="_blank" rel="noreferrer"
-                  className="px-4 py-2 rounded-md bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200">⬇️ فتح الملف</a>
+                  className="px-4 py-2 rounded-md bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200 flex items-center gap-1"><Download size={13} /> فتح الملف</a>
               </div>
             </div>
           </div>
@@ -210,7 +211,7 @@ function CategoriesTab() {
   const [rows, setRows] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ slug: "", nameAr: "", icon: "◈", sortOrder: 0 });
+  const [draft, setDraft] = useState({ slug: "", nameAr: "", icon: "", sortOrder: 0 });
 
   async function load() {
     setLoading(true);
@@ -222,7 +223,7 @@ function CategoriesTab() {
   async function create() {
     try {
       await api.post("/superadmin/books/categories", draft);
-      setDraft({ slug: "", nameAr: "", icon: "◈", sortOrder: 0 }); void load();
+      setDraft({ slug: "", nameAr: "", icon: "", sortOrder: 0 }); void load();
     } catch (e) { alert((e as Error).message); }
   }
   async function del(id: number) {
@@ -284,12 +285,12 @@ function StatsTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="إجمالي الكتب" value={String(s.totalProducts)} icon="◈" />
-        <StatCard label="قيد المراجعة" value={String(s.pendingCount)} icon="⏳" color="#f59e0b" />
-        <StatCard label="معتمدة" value={String(s.approvedCount)} icon="✅" color="#10b981" />
-        <StatCard label="إجمالي المبيعات" value={String(s.totalPurchases)} icon="◆" />
-        <StatCard label="حجم التداول (SKZ)" value={parseFloat(s.volumeSkz).toFixed(2)} icon="◈" color="#0F766E" />
-        <StatCard label="إجمالي العمولات (SKZ)" value={parseFloat(s.commissionSkz).toFixed(2)} icon="◈" color="#D4AF37" />
+        <StatCard label="إجمالي الكتب" value={String(s.totalProducts)} icon={<BookOpen size={22} />} />
+        <StatCard label="قيد المراجعة" value={String(s.pendingCount)} icon={<Clock size={22} />} color="#f59e0b" />
+        <StatCard label="معتمدة" value={String(s.approvedCount)} icon={<CheckCircle size={22} />} color="#10b981" />
+        <StatCard label="إجمالي المبيعات" value={String(s.totalPurchases)} icon={<ShoppingCart size={22} />} />
+        <StatCard label="حجم التداول (SKZ)" value={parseFloat(s.volumeSkz).toFixed(2)} icon={<TrendingUp size={22} />} color="#0F766E" />
+        <StatCard label="إجمالي العمولات (SKZ)" value={parseFloat(s.commissionSkz).toFixed(2)} icon={<Coins size={22} />} color="#D4AF37" />
       </div>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100 font-semibold">أفضل 5 ناشرين</div>
@@ -320,12 +321,12 @@ function StatsTab() {
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: string; icon: string; color?: string }) {
+function StatCard({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color?: string }) {
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
       <div className="text-xs text-slate-500 mb-1">{label}</div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl">{icon}</span>
+      <div className="flex items-center gap-2">
+        <span className="opacity-60" style={color ? { color } : undefined}>{icon}</span>
         <span className="text-2xl font-bold" style={color ? { color } : undefined}>{value}</span>
       </div>
     </div>

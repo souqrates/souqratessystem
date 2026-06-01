@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
+import { Diamond, Triangle, BookOpen, Play, Radio, Crown, Star, Hexagon } from "lucide-react";
 import { api, type Bot, type CommissionOverride, type SkzRates, ApiError } from "@/lib/api";
 import { botMeta, BOTS } from "@/lib/bots-meta";
+
 import BotTextsEditor from "@/components/BotTextsEditor";
+
+const BOT_ICON_BS: Record<string, React.ReactNode> = {
+  "mother-bot":    <Diamond size={32} />,
+  "games-bot":     <Triangle size={32} />,
+  "books-bot":     <BookOpen size={32} />,
+  "video-bot":     <Play size={32} />,
+  "voice-bot":     <Radio size={32} />,
+  "subagents-bot": <Crown size={32} />,
+  "contests-bot":  <Star size={32} />,
+  "scratchy-bot":  <Hexagon size={32} />,
+};
 
 export default function BotSettingsPage() {
   const [, params] = useRoute<{ slug: string }>("/bots/:slug");
@@ -17,7 +30,7 @@ export default function BotSettingsPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto" dir="rtl">
       <header className="flex items-center gap-4 mb-8">
-        <div className="text-5xl">{meta.icon}</div>
+        <div className="opacity-70" style={{ color: meta.color }}>{BOT_ICON_BS[slug] ?? <Diamond size={40} />}</div>
         <div>
           <h1 className="text-3xl font-bold text-slate-900">{meta.brand}</h1>
           <p className="text-slate-500 mt-1">{meta.arName} · <code className="text-xs">{slug}</code></p>
@@ -198,7 +211,7 @@ function AllBotsCommissionCard({ bots, onSaved }: { bots: Bot[]; onSaved: () => 
     >
       <div className="space-y-3">
         {ordered.map(({ meta, bot }) => (
-          <CommissionRow key={meta.slug} slug={meta.slug} label={meta.brand} sub={meta.arName} icon={meta.icon} bot={bot} onSaved={onSaved} />
+          <CommissionRow key={meta.slug} slug={meta.slug} label={meta.brand} sub={meta.arName} icon={BOT_ICON_BS[meta.slug]} bot={bot} onSaved={onSaved} />
         ))}
       </div>
     </Card>
@@ -216,7 +229,7 @@ function CommissionRow({
   slug: string;
   label: string;
   sub: string;
-  icon: string;
+  icon: React.ReactNode;
   bot?: Bot;
   onSaved: () => void;
 }) {

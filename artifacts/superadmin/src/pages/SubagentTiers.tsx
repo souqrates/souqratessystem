@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Crown } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface Tier {
@@ -28,7 +29,7 @@ export default function SubagentTiersPage() {
     <div className="p-6 max-w-5xl mx-auto" dir="rtl">
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">♛ مراتب الشركاء (Sub-Agent Tiers)</h1>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Crown size={20} className="text-amber-600" /> مراتب الشركاء (Sub-Agent Tiers)</h1>
           <p className="text-slate-500 mt-1">سُلّم 7 مراتب — حدّد الحد الأدنى للترقية ونسبة الخصم لكل مرتبة</p>
         </div>
         {(data?.data ?? []).length < 7 && (

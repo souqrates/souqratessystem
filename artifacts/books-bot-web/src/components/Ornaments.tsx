@@ -50,8 +50,8 @@ export function Monogram({ size = 44 }: { size?: number }) {
         className="absolute"
         style={{ inset: 4, border: "1px solid var(--gold-line)" }}
       />
-      <span className="font-display text-lg leading-none" style={{ color: "var(--emerald)" }}>
-        ❖
+      <span className="font-display text-lg leading-none" style={{ color: "var(--emerald)", letterSpacing: 2 }}>
+        S
       </span>
     </div>
   );

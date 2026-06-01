@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { X } from 'lucide-react';
 
 // SAMURAI BLADE — dark katana theme. Same mechanic as before (tap when the
 // sweeping marker is inside the strike zone) but a fully new visual identity:
@@ -216,7 +217,7 @@ export default function PerfectCut({ phase, setPhase, game, onScoreUpdate }) {
             transition: 'box-shadow 0.1s ease',
           }}
         >
-          <span style={{ fontSize: 22, lineHeight: 1 }}>×</span>
+          <X size={22} />
           STRIKE
         </motion.button>
 

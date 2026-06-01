@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { api, type SuperWallet, type SuperTransaction, ApiError } from "@/lib/api";
 
 interface UserData {
@@ -57,7 +58,7 @@ export default function UserDetailPage() {
             {user.username && <span dir="ltr">@{user.username}</span>}
             <span className="font-mono text-xs" dir="ltr">{String(user.telegramId)}</span>
             <span className="text-xs">{new Date(user.createdAt).toLocaleString("ar-EG")}</span>
-            {user.isPremium && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">⭐ بريميوم</span>}
+            {user.isPremium && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full inline-flex items-center gap-1"><Star size={10} fill="currentColor" /> بريميوم</span>}
           </div>
         </div>
         <button

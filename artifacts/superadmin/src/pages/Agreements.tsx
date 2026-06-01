@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PenLine, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -312,7 +313,7 @@ function SignersList() {
   return (
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div className="font-semibold text-slate-900">✍️ الموقّعون ({total})</div>
+        <div className="font-semibold text-slate-900 flex items-center gap-1.5"><PenLine size={15} /> الموقّعون ({total})</div>
         <button
           onClick={load}
           disabled={loading}
@@ -390,7 +391,7 @@ function SignersList() {
                         جاري الإنشاء…
                       </>
                     ) : (
-                      <>⬇️ تحميل PDF</>
+                      <><Download size={13} className="inline mr-1" /> تحميل PDF</>
                     )}
                   </button>
                 )}
@@ -448,7 +449,7 @@ function SignersList() {
                           جاري إنشاء الـ PDF…
                         </>
                       ) : (
-                        <>⬇️ تحميل الاتفاقية كـ PDF</>
+                        <><Download size={13} className="inline mr-1" /> تحميل الاتفاقية كـ PDF</>
                       )}
                     </button>
                   </div>

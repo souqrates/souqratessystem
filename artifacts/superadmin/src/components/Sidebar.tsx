@@ -3,9 +3,21 @@ import {
   Shield, BarChart2, Users, ArrowLeftRight, CreditCard, ScrollText,
   Settings, LayoutGrid, Wallet, BookOpen, Trophy, Ticket,
   Megaphone, Link2, Plug, Activity, AlertTriangle, Star,
+  Diamond, Triangle, Play, Radio, Crown, Hexagon,
 } from "lucide-react";
 import { BOTS } from "@/lib/bots-meta";
 import { clearToken } from "@/lib/api";
+
+const SIDEBAR_BOT_ICON: Record<string, React.ReactNode> = {
+  "mother-bot":    <Diamond size={16} />,
+  "games-bot":     <Triangle size={16} />,
+  "books-bot":     <BookOpen size={16} />,
+  "video-bot":     <Play size={16} />,
+  "voice-bot":     <Radio size={16} />,
+  "subagents-bot": <Crown size={16} />,
+  "contests-bot":  <Star size={16} />,
+  "scratchy-bot":  <Hexagon size={16} />,
+};
 
 export default function Sidebar() {
   const [location, navigate] = useLocation();
@@ -68,7 +80,7 @@ export default function Sidebar() {
 
         {/* SOUQRATES SOUQ */}
         <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#0F766E" }}>
-          ❖ SOUQRATES SOUQ
+          SOUQRATES SOUQ
           <div className="text-[10px] font-normal text-slate-500 normal-case">الكتب والمنتجات الرقمية</div>
         </div>
         <SidebarLink
@@ -88,7 +100,7 @@ export default function Sidebar() {
 
         {/* SOUQRATES STAGE */}
         <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#eab308" }}>
-          ★ SOUQRATES STAGE
+          SOUQRATES STAGE
           <div className="text-[10px] font-normal text-slate-500 normal-case">المسابقات والتصويت</div>
         </div>
         <SidebarLink
@@ -115,7 +127,7 @@ export default function Sidebar() {
 
         {/* SOUQRATES SUB-AGENTS */}
         <div className="px-3 mt-5 mb-2 text-[11px] font-bold tracking-wider" style={{ color: "#D4AF37" }}>
-          ♛ SOUQRATES SUB-AGENTS
+          SOUQRATES SUB-AGENTS
           <div className="text-[10px] font-normal text-slate-500 normal-case">برنامج الشركاء والموزّعين</div>
         </div>
         <SidebarLink
@@ -161,7 +173,7 @@ export default function Sidebar() {
               key={b.slug}
               href={href}
               active={location === href}
-              icon={<span className="text-base font-bold leading-none">{b.icon}</span>}
+              icon={SIDEBAR_BOT_ICON[b.slug] ?? <Diamond size={16} />}
               label={b.brand}
               sub={b.arName}
               color={b.color}

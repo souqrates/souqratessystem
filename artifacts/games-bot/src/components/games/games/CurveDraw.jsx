@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { Circle, Target } from 'lucide-react';
 
 const RULES = 'Draw a curve that passes through all target dots. Hit all dots = +100. Miss a dot = -20. Hit a red zone = -150. More dots and zones after 400 pts. Reach 1000 in 90 seconds!';
 const DEFAULT_GAME_TIME = 90;
@@ -191,8 +192,8 @@ export default function CurveDraw({ phase, setPhase, game, onScoreUpdate }) {
         </svg>
 
         <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>
-          <span style={{ color: '#06b6d4' }}>● HIT DOTS</span>
-          <span style={{ color: '#ef4444' }}>◎ AVOID ZONES</span>
+          <span style={{ color: '#06b6d4', display: 'flex', alignItems: 'center', gap: 3 }}><Circle size={10} fill="#06b6d4" /> HIT DOTS</span>
+          <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 3 }}><Target size={10} /> AVOID ZONES</span>
         </div>
       </div>
     </div>

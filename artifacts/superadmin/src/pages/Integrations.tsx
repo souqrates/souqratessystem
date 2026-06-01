@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pause, Play } from "lucide-react";
 import { api } from "@/lib/api";
 
 // ─── Types mirroring the backend public view ────────────────────────────
@@ -235,7 +236,7 @@ function IntegrationCard({ item }: { item: IntegrationView }) {
               : "bg-emerald-600 hover:bg-emerald-500 text-white"
           }`}
         >
-          {item.enabled ? "⏸ إيقاف" : "▶ تفعيل"}
+          {item.enabled ? <><Pause size={12} className="inline mr-1" />إيقاف</> : <><Play size={12} className="inline mr-1" />تفعيل</>}
         </button>
         {item.configured && (
           <button

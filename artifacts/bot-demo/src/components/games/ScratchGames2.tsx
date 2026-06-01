@@ -244,8 +244,8 @@ export function CrystalMatch({ game, tier, lang, onResult, onPlayAgain }: GProps
 }
 
 // ── NEON VAULT (3 reels, enhanced) ───────────────────────────────────────────
-const NEON_SYMS = ['7','★','◆','BAR','◈'];
-const NEON_COLORS: Record<string, string> = { '7':'#f87171','★':'#fde047','◆':'#60a5fa','BAR':'#4ade80','◈':'#a78bfa' };
+const NEON_SYMS = ['7','★','◆','BAR','◈']; // game-symbol: slot reel face values
+const NEON_COLORS: Record<string, string> = { '7':'#f87171','★':'#fde047','◆':'#60a5fa','BAR':'#4ade80','◈':'#a78bfa' }; // game-symbol
 
 export function NeonVault({ game, tier, lang, onResult, onPlayAgain }: GProps) {
   const isRtl = lang === 'ar';

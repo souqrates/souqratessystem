@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Crown, Settings, RotateCcw, X } from "lucide-react";
 import { api, getToken } from "@/lib/api";
 import { Link } from "wouter";
 
@@ -37,10 +38,10 @@ export default function SubagentsPage() {
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">♛ SOUQRATES SUB-AGENTS</h1>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><Crown size={20} className="text-amber-600" /> SOUQRATES SUB-AGENTS</h1>
           <p className="text-slate-500 mt-1">إدارة الشركاء المعتمدين وطلبات الانضمام</p>
         </div>
-        <Link href="/subagents/tiers"><a className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl">⚙️ إدارة المراتب</a></Link>
+        <Link href="/subagents/tiers"><a className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl flex items-center gap-1.5"><Settings size={14} /> إدارة المراتب</a></Link>
       </header>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm flex flex-wrap gap-2 items-center">
@@ -189,7 +190,7 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg" />
             <button onClick={() => reject.mutate()} disabled={reject.isPending || !reason.trim()}
                     className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm disabled:opacity-30">
-              ❌ رفض الطلب
+              <X size={14} className="inline mr-1" /> رفض الطلب
             </button>
           </>
         )}
@@ -208,7 +209,7 @@ function DetailPanel({ id, onClose }: { id: number; onClose: () => void }) {
         {(a.status === "suspended" || a.status === "rejected") && (
           <button onClick={() => reactivate.mutate()} disabled={reactivate.isPending}
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm disabled:opacity-50">
-            ♻️ إعادة تفعيل الحساب
+            <RotateCcw size={14} className="inline mr-1" /> إعادة تفعيل الحساب
           </button>
         )}
       </div>

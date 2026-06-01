@@ -3,6 +3,10 @@ import { api, type Bot } from "@/lib/api";
 import { BOTS } from "@/lib/bots-meta";
 import { Link } from "wouter";
 import {
+  Users, TrendingUp, TrendingDown, Clock, Server, Settings,
+  Diamond, Triangle, BookOpen, Play, Radio, Crown, Star, Hexagon,
+} from "lucide-react";
+import {
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -68,12 +72,12 @@ export default function OverviewPage() {
 
       {/* Top KPI row — lifetime metrics that summarize the platform health. */}
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard label="المستخدمين" value={stats?.users ?? "—"} icon="◆" />
-        <StatCard label="إيرادات العمولة" value={fmt(stats?.totalRevenue)} suffix="SKZ" icon="◈" accent="emerald" />
-        <StatCard label="إجمالي المسحوب" value={fmt(stats?.totalWithdrawn)} suffix="SKZ" icon="▲" />
-        <StatCard label="بانتظار المراجعة" value={stats?.pendingWithdrawals ?? "—"} icon="⏳" accent={stats?.pendingWithdrawals ? "amber" : "slate"} />
-        <StatCard label="البوتات المُسجَّلة" value={stats?.bots ?? "—"} icon="◉" />
-        <StatCard label="استثناءات العمولة" value={stats?.overrides ?? "—"} icon="⚙️" />
+        <StatCard label="المستخدمين" value={stats?.users ?? "—"} icon={<Users size={28} />} />
+        <StatCard label="إيرادات العمولة" value={fmt(stats?.totalRevenue)} suffix="SKZ" icon={<TrendingUp size={28} />} accent="emerald" />
+        <StatCard label="إجمالي المسحوب" value={fmt(stats?.totalWithdrawn)} suffix="SKZ" icon={<TrendingDown size={28} />} />
+        <StatCard label="بانتظار المراجعة" value={stats?.pendingWithdrawals ?? "—"} icon={<Clock size={28} />} accent={stats?.pendingWithdrawals ? "amber" : "slate"} />
+        <StatCard label="البوتات المُسجَّلة" value={stats?.bots ?? "—"} icon={<Server size={28} />} />
+        <StatCard label="استثناءات العمولة" value={stats?.overrides ?? "—"} icon={<Settings size={28} />} />
       </div>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -169,7 +173,7 @@ export default function OverviewPage() {
               <a className="block bg-white rounded-2xl border border-slate-200 p-5 hover:border-indigo-400 hover:shadow-md transition">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="text-3xl">{meta.icon}</div>
+                    <div className="text-3xl opacity-80">{BOT_ICON_MAP[meta.slug] ?? <Diamond size={28} />}</div>
                     <div>
                       <div className="font-bold text-slate-900">{meta.brand}</div>
                       <div className="text-xs text-slate-500">{meta.arName}</div>
@@ -202,7 +206,18 @@ function fmt(v: string | undefined): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
-function StatCard({ label, value, icon, suffix, accent = "slate" }: { label: string; value: number | string; icon: string; suffix?: string; accent?: "slate" | "emerald" | "amber" }) {
+const BOT_ICON_MAP: Record<string, React.ReactNode> = {
+  "mother-bot":    <Diamond size={28} />,
+  "games-bot":     <Triangle size={28} />,
+  "books-bot":     <BookOpen size={28} />,
+  "video-bot":     <Play size={28} />,
+  "voice-bot":     <Radio size={28} />,
+  "subagents-bot": <Crown size={28} />,
+  "contests-bot":  <Star size={28} />,
+  "scratchy-bot":  <Hexagon size={28} />,
+};
+
+function StatCard({ label, value, icon, suffix, accent = "slate" }: { label: string; value: number | string; icon: React.ReactNode; suffix?: string; accent?: "slate" | "emerald" | "amber" }) {
   const accentCls = accent === "emerald" ? "text-emerald-700" : accent === "amber" ? "text-amber-700" : "text-slate-900";
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4">

@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const RULES = 'Keep the balance beam perfectly level by tapping LEFT or RIGHT side to add weight. Stay within ±5° for 3 seconds = +100. Tip beyond ±20° = -150 and reset. Reach 2000 in 60 seconds!';
 const DEFAULT_GAME_TIME = 60;
@@ -170,7 +171,7 @@ export default function ZenBalance({ phase, setPhase, game, onScoreUpdate }) {
         </div>
 
         <div style={{ display: 'flex', gap: 20 }}>
-          {[['ADD LEFT ◀', 'left', '#3b82f6'], ['▶ ADD RIGHT', 'right', '#ef4444']].map(([label, side, color]) => (
+          {[['left', '#3b82f6'], ['right', '#ef4444']].map(([side, color]) => (
             <motion.button
               key={side}
               whileTap={{ scale: 0.88 }}
@@ -183,7 +184,7 @@ export default function ZenBalance({ phase, setPhase, game, onScoreUpdate }) {
                 letterSpacing: '0.06em', cursor: 'pointer',
               }}
             >
-              {label}
+              {side === 'left' ? <><ChevronLeft size={14} /> ADD</> : <>ADD <ChevronRight size={14} /></>}
             </motion.button>
           ))}
         </div>

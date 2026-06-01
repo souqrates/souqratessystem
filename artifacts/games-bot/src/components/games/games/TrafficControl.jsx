@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronRight } from 'lucide-react';
 
 const RULES = 'Tap cars in the order they arrive to clear the intersection. Correct order = +100. Wrong car = -150. More cars appear after 400 pts. Reach 2000 in 60 seconds!';
 const DEFAULT_GAME_TIME = 60;
@@ -135,7 +136,7 @@ export default function TrafficControl({ phase, setPhase, game, onScoreUpdate })
                 boxShadow: i === 0 ? `0 0 16px ${car.color}55` : 'none',
               }}
             >
-              <span style={{ fontSize: 16, fontWeight: 900 }}>▶</span>
+              <ChevronRight size={16} strokeWidth={3} />
               <span style={{ fontSize: 14, color: car.color }}>{car.dir}</span>
             </motion.button>
           ))}

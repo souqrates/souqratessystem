@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { ArrowUp } from 'lucide-react';
 
 export function Hud({ label, v, c = '#fff' }) {
   return (
@@ -176,8 +177,8 @@ export function VsBar({ myScore, oppScore, myColor = '#00f5a0', oppColor = '#ff3
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: '50%', marginLeft: -1, width: 2, background: 'rgba(255,255,255,0.2)' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: 'rgba(148,163,184,0.5)', letterSpacing: '0.2em' }}>
-        <span style={{ color: ahead ? myColor : 'rgba(148,163,184,0.4)' }}>YOU{ahead ? ' ▲' : ''}</span>
-        <span style={{ color: !ahead ? oppColor : 'rgba(148,163,184,0.4)' }}>{!ahead ? '▲ ' : ''}OPP</span>
+        <span style={{ color: ahead ? myColor : 'rgba(148,163,184,0.4)', display: 'flex', alignItems: 'center', gap: 2 }}>YOU{ahead ? <ArrowUp size={8} /> : ''}</span>
+        <span style={{ color: !ahead ? oppColor : 'rgba(148,163,184,0.4)', display: 'flex', alignItems: 'center', gap: 2 }}>{!ahead ? <ArrowUp size={8} /> : ''}OPP</span>
       </div>
     </div>
   );

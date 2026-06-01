@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic } from '../../../lib/telegram';
 import { beep } from './_gameKit';
 import ResultOverlay from './ResultOverlay';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { loadGameConfig } from '../../../lib/gameConfig';
 import { getFrameInterval } from '../../../lib/canvasQuality';
 
@@ -207,11 +207,11 @@ export default function TimeHeist({ phase, setPhase, game, onScoreUpdate }) {
         <div />
         <Btn onClick={() => onMove(0, -1)}><ChevronUp size={18} /></Btn>
         <div />
-        <Btn onClick={() => onMove(-1, 0)}>◀</Btn>
+        <Btn onClick={() => onMove(-1, 0)}><ChevronLeft size={18} /></Btn>
         <Btn onClick={rewind} color={CYAN}>↺</Btn>
-        <Btn onClick={() => onMove(1, 0)}>▶</Btn>
+        <Btn onClick={() => onMove(1, 0)}><ChevronRight size={18} /></Btn>
         <div />
-        <Btn onClick={() => onMove(0, 1)}>▼</Btn>
+        <Btn onClick={() => onMove(0, 1)}><ChevronDown size={18} /></Btn>
         <div />
       </div>
     </div>

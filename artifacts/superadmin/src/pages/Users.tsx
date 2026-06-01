@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { api, type SuperUser } from "@/lib/api";
 
 export default function UsersPage() {
@@ -66,7 +67,7 @@ export default function UsersPage() {
                     {u.isBlocked
                       ? <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">محظور</span>
                       : <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">نشط</span>}
-                    {u.isPremium && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full mr-1">⭐ بريميوم</span>}
+                    {u.isPremium && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full mr-1 inline-flex items-center gap-1"><Star size={10} fill="currentColor" /> بريميوم</span>}
                   </td>
                   <td className="px-4 py-3">
                     <Link href={`/users/${u.telegramId}`}>

@@ -4,6 +4,7 @@ import { Rules, Hud, HudRow, TimeBar, TargetBar, MomentumFlash } from './_shell'
 import ResultOverlay from './ResultOverlay';
 import { beep, chord, noise } from './_gameKit';
 import { triggerHaptic } from '../../../lib/telegram';
+import { ChevronUp, ChevronLeft, ChevronDown, ChevronRight } from 'lucide-react';
 
 const RULES = 'Tilt the ball through the maze by tapping arrows. Reach the gold star = +100. Fall in a hole = -150. Maze complexity grows every 200 pts. Reach 1000 in 90 seconds!';
 const DEFAULT_GAME_TIME = 90;
@@ -185,7 +186,7 @@ export default function MazeBalance({ phase, setPhase, game, onScoreUpdate }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '48px 48px 48px', gridTemplateRows: '48px 48px', gap: 4 }}>
-          {[['▲', 'T', 1, 2], ['◀', 'L', 2, 1], ['▼', 'B', 2, 2], ['▶', 'R', 2, 3]].map(([label, dir, row, col]) => (
+          {[['T', 1, 2], ['L', 2, 1], ['B', 2, 2], ['R', 2, 3]].map(([dir, row, col]) => (
             <motion.button
               key={dir}
               whileTap={{ scale: 0.85 }}
@@ -199,7 +200,7 @@ export default function MazeBalance({ phase, setPhase, game, onScoreUpdate }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {label}
+              {dir==='T'?<ChevronUp size={20}/>:dir==='L'?<ChevronLeft size={20}/>:dir==='B'?<ChevronDown size={20}/>:<ChevronRight size={20}/>}
             </motion.button>
           ))}
         </div>

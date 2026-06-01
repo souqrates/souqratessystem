@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { api, getToken } from "@/lib/api";
 import type { GameConfigRow, PriceTier } from "./Games";
 
@@ -156,7 +157,7 @@ export default function GameDetailPage() {
         </div>
         {g.hasUnpublishedChanges && (
           <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-sm font-bold">
-            ⚠ مسودة غير منشورة
+            <AlertTriangle size={13} className="inline mr-1" /> مسودة غير منشورة
           </span>
         )}
       </header>
@@ -454,7 +455,7 @@ function PreviewBox({
       <div className="text-center mt-2 text-[10px] text-slate-500">
         السكور للفوز: <span className="font-bold text-slate-700">{Number(targetScore) || "—"}</span>
       </div>
-      {!isVisible && <div className="mt-3 text-center text-xs font-bold text-rose-700">⚠ مخفية</div>}
+      {!isVisible && <div className="mt-3 text-center text-xs font-bold text-rose-700 flex items-center justify-center gap-1"><AlertTriangle size={12} /> مخفية</div>}
     </div>
   );
 }

@@ -17,18 +17,17 @@ export interface BotMeta {
   brand: string;
   arName: string;
   color: string;
-  icon: string;
 }
 
 export const BOTS: BotMeta[] = [
-  { slug: "mother-bot",    brand: "SOUQRATES SYSTEM",     arName: "البوت الأم",          color: "#6366f1", icon: "◆" },
-  { slug: "games-bot",     brand: "SOUQRATES SKILLZ",     arName: "الألعاب",              color: "#f97316", icon: "▲" },
-  { slug: "books-bot",     brand: "SOUQRATES SOUQ",       arName: "الكتب والمنتجات",      color: "#0F766E", icon: "❖" },
-  { slug: "video-bot",     brand: "SOUQRATES SCENE",      arName: "الفيديوهات",           color: "#ec4899", icon: "▶" },
-  { slug: "voice-bot",     brand: "SOUQRATES STREAM",     arName: "الغرف الصوتية",        color: "#8b5cf6", icon: "◉" },
-  { slug: "subagents-bot", brand: "SOUQRATES SUB-AGENTS", arName: "برنامج الشركاء",       color: "#D4AF37", icon: "♛" },
-  { slug: "contests-bot",  brand: "SOUQRATES STAGE",      arName: "المسابقات والتصويت",   color: "#eab308", icon: "★" },
-  { slug: "scratchy-bot",  brand: "SOUQRATES SCRATCHY",   arName: "الحك واربح",            color: "#22c55e", icon: "◈" },
+  { slug: "mother-bot",    brand: "SOUQRATES SYSTEM",     arName: "البوت الأم",          color: "#6366f1" },
+  { slug: "games-bot",     brand: "SOUQRATES SKILLZ",     arName: "الألعاب",              color: "#f97316" },
+  { slug: "books-bot",     brand: "SOUQRATES SOUQ",       arName: "الكتب والمنتجات",      color: "#0F766E" },
+  { slug: "video-bot",     brand: "SOUQRATES SCENE",      arName: "الفيديوهات",           color: "#ec4899" },
+  { slug: "voice-bot",     brand: "SOUQRATES STREAM",     arName: "الغرف الصوتية",        color: "#8b5cf6" },
+  { slug: "subagents-bot", brand: "SOUQRATES SUB-AGENTS", arName: "برنامج الشركاء",       color: "#D4AF37" },
+  { slug: "contests-bot",  brand: "SOUQRATES STAGE",      arName: "المسابقات والتصويت",   color: "#eab308" },
+  { slug: "scratchy-bot",  brand: "SOUQRATES SCRATCHY",   arName: "الحك واربح",            color: "#22c55e" },
 ];
 
 export function botMeta(slug: string): BotMeta | undefined {
