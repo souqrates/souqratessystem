@@ -456,6 +456,8 @@ async def main():
 
     dp.errors.register(_on_error)
 
+    api.start_heartbeat(interval_seconds=30, version="2.0-scratchy")
+
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "scratchy-bot")
 

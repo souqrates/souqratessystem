@@ -244,6 +244,8 @@ async def main() -> None:
         except Exception as e:
             logger.warning(f"set_chat_menu_button failed: {e}")
 
+    api.start_heartbeat(interval_seconds=30, version="2.0-subagents")
+
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "subagents-bot")
 

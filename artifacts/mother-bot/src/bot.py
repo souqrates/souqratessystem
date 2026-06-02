@@ -1273,6 +1273,8 @@ async def main():
 
     dp.errors.register(_on_error)
 
+    _mother_client.start_heartbeat(interval_seconds=30, version="2.0-mother")
+
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "mother-bot")
 
