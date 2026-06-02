@@ -36,7 +36,7 @@ type Stats = {
 };
 
 export default function BooksPage() {
-  const [tab, setTab] = useState<"products" | "categories" | "stats" | "covers">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "stats" | "covers" | "shop">("products");
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
       <div className="mb-6">
@@ -46,11 +46,13 @@ export default function BooksPage() {
       <div className="flex gap-2 mb-4 border-b border-slate-200 flex-wrap">
         <TabBtn active={tab === "products"}   onClick={() => setTab("products")}>الكتب</TabBtn>
         <TabBtn active={tab === "categories"} onClick={() => setTab("categories")}>التصنيفات</TabBtn>
+        <TabBtn active={tab === "shop"}       onClick={() => setTab("shop")}>🛍️ المتجر</TabBtn>
         <TabBtn active={tab === "stats"}      onClick={() => setTab("stats")}>الإحصاءات</TabBtn>
         <TabBtn active={tab === "covers"}     onClick={() => setTab("covers")}>إنشاء أغلفة</TabBtn>
       </div>
       {tab === "products"   && <ProductsTab />}
       {tab === "categories" && <CategoriesTab />}
+      {tab === "shop"       && <ShopTab />}
       {tab === "stats"      && <StatsTab />}
       {tab === "covers"     && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5">
@@ -317,6 +319,198 @@ function StatsTab() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Shop Products Tab ───────────────────────────────────────────────────────
+type ShopProduct = {
+  id: number;
+  categorySlug: string;
+  nameAr: string;
+  nameEn: string | null;
+  descriptionAr: string | null;
+  priceSkz: string;
+  coverUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+};
+
+function ShopTab() {
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Partial<ShopProduct> | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await api.get<{ data: ShopProduct[]; total: number }>("/superadmin/books/shop?limit=200");
+      setProducts(res.data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function save() {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      if (editing.id) {
+        await api.patch<ShopProduct>(`/superadmin/books/shop/${editing.id}`, editing);
+      } else {
+        await api.post<ShopProduct>("/superadmin/books/shop", editing);
+      }
+      setEditing(null);
+      await load();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "خطأ في الحفظ");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleActive(p: ShopProduct) {
+    await api.patch(`/superadmin/books/shop/${p.id}`, { isActive: !p.isActive });
+    await load();
+  }
+
+  async function remove(id: number) {
+    if (!confirm("هل أنت متأكد من الحذف؟")) return;
+    await api.del(`/superadmin/books/shop/${id}`);
+    await load();
+  }
+
+  const CATEGORY_LABELS: Record<string, string> = { books: "📚 كتب", cups: "☕ كوسات" };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="font-semibold text-slate-700">منتجات المتجر ({products.length})</div>
+        <button
+          onClick={() => setEditing({ categorySlug: "books", isActive: true, sortOrder: 0 })}
+          className="px-4 py-1.5 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 flex items-center gap-1"
+        >
+          <Plus size={14} /> منتج جديد
+        </button>
+      </div>
+
+      {editing && (
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-5 mb-5 space-y-3">
+          <div className="font-semibold text-teal-800 text-sm mb-2">
+            {editing.id ? "تعديل منتج" : "إضافة منتج جديد"}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-xs text-slate-500 mb-1">التصنيف</div>
+              <select value={editing.categorySlug ?? "books"}
+                onChange={e => setEditing({ ...editing, categorySlug: e.target.value })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full">
+                <option value="books">📚 كتب</option>
+                <option value="cups">☕ كوسات</option>
+              </select>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1">السعر (SKZ)</div>
+              <input type="number" value={editing.priceSkz ?? ""} step="0.01"
+                onChange={e => setEditing({ ...editing, priceSkz: e.target.value })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1">الاسم (عربي)</div>
+              <input value={editing.nameAr ?? ""}
+                onChange={e => setEditing({ ...editing, nameAr: e.target.value })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1">الاسم (إنجليزي)</div>
+              <input value={editing.nameEn ?? ""}
+                onChange={e => setEditing({ ...editing, nameEn: e.target.value })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full" dir="ltr" />
+            </div>
+            <div className="col-span-2">
+              <div className="text-xs text-slate-500 mb-1">الوصف (عربي)</div>
+              <textarea value={editing.descriptionAr ?? ""}
+                onChange={e => setEditing({ ...editing, descriptionAr: e.target.value })}
+                rows={2} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full resize-none" />
+            </div>
+            <div className="col-span-2">
+              <div className="text-xs text-slate-500 mb-1">رابط الصورة</div>
+              <input value={editing.coverUrl ?? ""} dir="ltr"
+                onChange={e => setEditing({ ...editing, coverUrl: e.target.value })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full font-mono text-xs" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500 mb-1">الترتيب</div>
+              <input type="number" value={editing.sortOrder ?? 0}
+                onChange={e => setEditing({ ...editing, sortOrder: parseInt(e.target.value) || 0 })}
+                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm w-full" />
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <input type="checkbox" checked={editing.isActive ?? true}
+                onChange={e => setEditing({ ...editing, isActive: e.target.checked })}
+                className="w-4 h-4" id="is-active-chk" />
+              <label htmlFor="is-active-chk" className="text-sm text-slate-700">مفعّل</label>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={save} disabled={saving}
+              className="px-5 py-1.5 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 disabled:opacity-50">
+              {saving ? "جاري الحفظ…" : "حفظ"}
+            </button>
+            <button onClick={() => setEditing(null)}
+              className="px-5 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-sm hover:bg-slate-200">
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center text-slate-400 py-8 text-sm">جاري التحميل…</div>
+      ) : (
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right text-xs text-slate-500 border-b border-slate-200 bg-slate-50">
+                <th className="px-4 py-3">المنتج</th>
+                <th className="px-4 py-3">التصنيف</th>
+                <th className="px-4 py-3">السعر (SKZ)</th>
+                <th className="px-4 py-3">الحالة</th>
+                <th className="px-4 py-3">الترتيب</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-slate-400">لا توجد منتجات</td></tr>
+              ) : products.map(p => (
+                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="px-4 py-2.5 font-medium">{p.nameAr}</td>
+                  <td className="px-4 py-2.5 text-xs text-slate-500">{CATEGORY_LABELS[p.categorySlug] ?? p.categorySlug}</td>
+                  <td className="px-4 py-2.5 font-semibold text-teal-700" dir="ltr">{parseFloat(p.priceSkz).toFixed(2)}</td>
+                  <td className="px-4 py-2.5">
+                    <button onClick={() => void toggleActive(p)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                      {p.isActive ? "مفعّل" : "معطّل"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-400 text-xs">{p.sortOrder}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditing(p)} className="text-xs text-indigo-600 hover:underline">تعديل</button>
+                      <button onClick={() => void remove(p.id)} className="text-xs text-red-500 hover:underline">حذف</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

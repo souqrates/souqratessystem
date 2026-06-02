@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   botsTable,
   commissionOverridesTable,
+  commissionsTable,
   usersTable,
   botTextsTable,
   walletsTable,
@@ -251,6 +252,70 @@ router.delete("/superadmin/commission-overrides/:id", requireSuperAdmin, async (
     payload: { telegramId: deletedRow?.telegramId?.toString?.(), botSlug: deletedRow?.botSlug },
   });
   res.json({ ok: true });
+});
+
+// ── Commission Analytics ───────────────────────────────────────────────────
+// GET /superadmin/commissions?botSlug=&telegramId=&from=&to=&limit=&offset=
+router.get("/superadmin/commissions", requireSuperAdmin, async (req, res): Promise<void> => {
+  const { botSlug, telegramId, from, to } = req.query as Record<string, string | undefined>;
+  const limit = Math.min(parseInt((req.query.limit as string) ?? "50", 10) || 50, 200);
+  const offset = parseInt((req.query.offset as string) ?? "0", 10) || 0;
+
+  const conds: ReturnType<typeof eq>[] = [];
+  if (botSlug) conds.push(eq(commissionsTable.botSlug, botSlug));
+  if (telegramId && /^\d+$/.test(telegramId)) {
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable)
+      .where(eq(usersTable.telegramId, BigInt(telegramId)));
+    if (user) conds.push(eq(commissionsTable.userId, user.id));
+    else { res.json({ data: [], total: 0, summary: { totalCommission: "0", byBot: [] } }); return; }
+  }
+  if (from) conds.push(gte(commissionsTable.createdAt, new Date(from)));
+  if (to) {
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+    conds.push(lte(commissionsTable.createdAt, toDate));
+  }
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, countRow, summaryRows] = await Promise.all([
+    db.select({
+      id: commissionsTable.id,
+      botSlug: commissionsTable.botSlug,
+      userId: commissionsTable.userId,
+      telegramId: usersTable.telegramId,
+      username: usersTable.username,
+      grossAmount: commissionsTable.grossAmount,
+      commissionRate: commissionsTable.commissionRate,
+      commissionAmount: commissionsTable.commissionAmount,
+      netAmount: commissionsTable.netAmount,
+      currency: commissionsTable.currency,
+      status: commissionsTable.status,
+      createdAt: commissionsTable.createdAt,
+    }).from(commissionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, commissionsTable.userId))
+      .where(where)
+      .orderBy(desc(commissionsTable.createdAt))
+      .limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(commissionsTable).where(where),
+    db.select({
+      botSlug: commissionsTable.botSlug,
+      total: sql<string>`coalesce(sum(${commissionsTable.commissionAmount}),0)::numeric(18,4)`,
+      count: sql<number>`count(*)::int`,
+    }).from(commissionsTable).where(where).groupBy(commissionsTable.botSlug)
+      .orderBy(desc(sql`sum(${commissionsTable.commissionAmount})`)),
+  ]);
+
+  const totalCommission = summaryRows.reduce((s, r) => s + parseFloat(r.total), 0);
+
+  res.json({
+    data: rows.map(r => ({ ...r, telegramId: r.telegramId?.toString() })),
+    total: countRow[0]?.count ?? 0,
+    summary: {
+      totalCommission: totalCommission.toFixed(4),
+      byBot: summaryRows.map(r => ({ botSlug: r.botSlug, total: r.total, count: r.count })),
+    },
+  });
 });
 
 // ── Bot Texts (draft/publish editable copy) ──────────────────────────────

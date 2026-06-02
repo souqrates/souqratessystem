@@ -81,6 +81,7 @@ router.get("/superadmin/subagents/:id/id-photo", requireSuperAdmin, async (req, 
   const [agent] = await db.select({ idPhotoPath: subAgentsTable.idPhotoPath })
     .from(subAgentsTable).where(eq(subAgentsTable.id, id));
   if (!agent) { res.status(404).json({ error: "not_found" }); return; }
+  if (!agent.idPhotoPath) { res.status(404).json({ error: "no_photo" }); return; }
   const { ObjectStorageService, ObjectNotFoundError } = await import("../lib/objectStorage");
   const storage = new ObjectStorageService();
   try {

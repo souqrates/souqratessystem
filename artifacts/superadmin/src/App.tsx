@@ -26,6 +26,7 @@ import SystemHealthPage from "@/pages/SystemHealth";
 import ReportsPage from "@/pages/Reports";
 import BotsPage from "@/pages/Bots";
 import ScratchCardsPage from "@/pages/ScratchCards";
+import CommissionsPage from "@/pages/Commissions";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -41,6 +42,7 @@ function AuthedRoutes() {
         <Route path="/users/:telegramId" component={UserDetailPage} />
         <Route path="/transactions" component={TransactionsPage} />
         <Route path="/reports" component={ReportsPage} />
+        <Route path="/commissions" component={CommissionsPage} />
         <Route path="/withdrawals" component={WithdrawalsPage} />
         <Route path="/agreements" component={AgreementsPage} />
         <Route path="/games" component={GamesPage} />

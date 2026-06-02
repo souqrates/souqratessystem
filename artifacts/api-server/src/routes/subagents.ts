@@ -91,12 +91,7 @@ const applyBodySchema = z.object({
   phone: z.string().min(5).max(40),
   email: z.string().email().nullish(),
   address: z.string().min(5).max(500),
-  idPhotoPath: z.string()
-    .min(ID_PHOTO_PATH_PREFIX.length + 1)
-    .max(400)
-    .refine((p) => p.startsWith(ID_PHOTO_PATH_PREFIX), {
-      message: `idPhotoPath must start with ${ID_PHOTO_PATH_PREFIX}`,
-    }),
+  idPhotoPath: z.string().max(400).optional(),
 });
 
 const sellBodySchema = z.object({
@@ -239,7 +234,7 @@ router.post("/subagents/apply", requireTelegramAuth, async (req, res): Promise<v
     const [u] = await db.update(subAgentsTable).set({
       fullName: data.fullName, dob: data.dob, country: data.country,
       phone: data.phone, email: data.email ?? null, address: data.address,
-      idPhotoPath: data.idPhotoPath,
+      idPhotoPath: data.idPhotoPath ?? null,
       status: "pending",
       rejectedAt: null, rejectedReason: null,
     }).where(eq(subAgentsTable.id, existing.id)).returning();
@@ -250,7 +245,7 @@ router.post("/subagents/apply", requireTelegramAuth, async (req, res): Promise<v
     telegramId: tg,
     fullName: data.fullName, dob: data.dob, country: data.country,
     phone: data.phone, email: data.email ?? null, address: data.address,
-    idPhotoPath: data.idPhotoPath,
+    idPhotoPath: data.idPhotoPath ?? null,
   }).returning();
   req.log.info({ subAgentId: created.id }, "subagent application submitted");
   res.json({ ok: true, status: created.status, id: created.id });

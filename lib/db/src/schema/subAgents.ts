@@ -44,7 +44,7 @@ export const subAgentsTable = pgTable(
     phone: text("phone").notNull(),
     email: text("email"),
     address: text("address").notNull(),
-    idPhotoPath: text("id_photo_path").notNull(), // object storage path
+    idPhotoPath: text("id_photo_path"), // object storage path (optional)
 
     // Status: pending | approved | rejected | suspended
     status: text("status").notNull().default("pending"),

@@ -16,3 +16,4 @@
 - [Replit DB override](replit-db-override.md) — Replit locks DATABASE_URL to its internal Helium DB; use POSTGRES_URL to override (checked first in lib/db/src/index.ts).
 - [Mother-bot-web cache headers](mother-bot-web-cache.md) — HTML must be no-store; hashed /assets/* are immutable; security headers on every response.
 - [Pre-launch audit fixes](pre-launch-audit-fixes.md) — H3–H5/M1–M7/L1–L3 done; FK+CHECK applied via executeSql (not drizzle push); orphan wallet id=297 deleted; L2/L3 were already present.
+- [Lib rebuild required for nullable column](lib-rebuild-nullable.md) — making a lib/db column nullable needs `pnpm run typecheck:libs` before api-server typecheck passes; skip this and leaf typechecks show false "null not assignable" errors.

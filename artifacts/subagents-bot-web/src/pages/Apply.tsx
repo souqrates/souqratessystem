@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useApplySubAgent, useGetSubAgentIdPhotoUploadUrl } from "@workspace/api-client-react";
-import { Loader2, UploadCloud, FileImage, ShieldCheck } from "lucide-react";
+import { useApplySubAgent } from "@workspace/api-client-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -10,7 +10,6 @@ export default function ApplyPage() {
   const t = useT();
   const [, setLocation] = useLocation();
   const applyMutation = useApplySubAgent();
-  const getUploadUrlMutation = useGetSubAgentIdPhotoUploadUrl();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -21,60 +20,6 @@ export default function ApplyPage() {
     address: "",
   });
 
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
-  const [objectPath, setObjectPath] = useState<string>("");
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (!selected) return;
-
-    if (!["image/jpeg", "image/png", "image/webp"].includes(selected.type)) {
-      toast.error(t("apply.err.format"));
-      return;
-    }
-
-    if (selected.size > 8 * 1024 * 1024) {
-      toast.error(t("apply.err.size"));
-      return;
-    }
-
-    setFile(selected);
-    setObjectPath("");
-    setUploadStatus("idle");
-  };
-
-  const uploadPhoto = async () => {
-    if (!file) return false;
-
-    setUploadStatus("uploading");
-    try {
-      const { uploadUrl, objectPath: path } = await getUploadUrlMutation.mutateAsync({
-        data: {
-          contentType: file.type,
-          sizeBytes: file.size,
-        }
-      });
-
-      const res = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-
-      setObjectPath(path);
-      setUploadStatus("success");
-      return path;
-    } catch (err) {
-      console.error(err);
-      setUploadStatus("error");
-      toast.error(t("apply.err.uploadFail"));
-      return false;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName || !form.dob || !form.country || !form.phone || !form.address) {
@@ -82,18 +27,11 @@ export default function ApplyPage() {
       return;
     }
 
-    let finalPath = objectPath;
-    if (!finalPath) {
-      const uploaded = await uploadPhoto();
-      if (!uploaded) return;
-      finalPath = uploaded as string;
-    }
-
     try {
       await applyMutation.mutateAsync({
         data: {
           ...form,
-          idPhotoPath: finalPath,
+          idPhotoPath: "",
         }
       });
       toast.success(t("apply.success"));
@@ -186,56 +124,13 @@ export default function ApplyPage() {
           </div>
         </div>
 
-        <div className="bg-card p-5 rounded-2xl border shadow-sm space-y-4">
-          <label className="block text-sm font-medium">{t("apply.idPhoto")}</label>
-
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              disabled={uploadStatus === "uploading" || uploadStatus === "success"}
-            />
-            <div className={`w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-3 transition-colors ${
-              uploadStatus === "success" ? "border-green-500 bg-green-50/50 dark:bg-green-900/10" :
-              uploadStatus === "error" ? "border-red-500 bg-red-50/50 dark:bg-red-900/10" :
-              "border-input hover:bg-accent/50 bg-background"
-            }`}>
-              {uploadStatus === "success" ? (
-                <>
-                  <ShieldCheck className="w-8 h-8 text-green-500" />
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">{t("apply.uploadSuccess")}</span>
-                </>
-              ) : uploadStatus === "uploading" ? (
-                <>
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <span className="text-sm font-medium text-muted-foreground">{t("apply.uploading")}</span>
-                </>
-              ) : file ? (
-                <>
-                  <FileImage className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">{t("apply.clickToChange")}</span>
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">{t("apply.clickToSelect")}</span>
-                  <span className="text-xs text-muted-foreground">{t("apply.maxSize")}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         <div className="pt-4 pb-8">
           <Button
             type="submit"
             className="w-full h-12 text-base font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            disabled={!file || applyMutation.isPending || uploadStatus === "uploading"}
+            disabled={applyMutation.isPending}
           >
-            {applyMutation.isPending || uploadStatus === "uploading" ? (
+            {applyMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : t("apply.submitBtn")}
           </Button>
