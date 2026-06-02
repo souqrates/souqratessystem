@@ -23,7 +23,9 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
+    WebAppInfo,
 )
 from aiogram.exceptions import TelegramBadRequest
 
@@ -43,6 +45,25 @@ from i18n import (
 BOT_TOKEN = os.getenv("BOOKS_BOT_TOKEN")
 API_URL   = os.getenv("MOTHER_API_URL", "http://localhost:80/api")
 PAGE_SIZE = 6
+
+
+def _resolve_web_app_url() -> str:
+    """Return the Mini App URL for this bot.
+    Priority:
+      1. BOOKS_WEB_APP_URL — explicit override (set on production server)
+      2. REPLIT_DOMAINS   — auto-derive from Replit dev domain
+    """
+    explicit = (os.getenv("BOOKS_WEB_APP_URL") or "").strip()
+    if explicit.startswith("https://"):
+        return explicit
+    replit_domains = (os.getenv("REPLIT_DOMAINS") or "").strip()
+    if replit_domains:
+        first = replit_domains.split(",")[0].strip()
+        return f"https://{first}/books-bot-web/"
+    return ""
+
+
+WEB_APP_URL = _resolve_web_app_url()
 
 # ── Shop strings (extend i18n) ─────────────────────────────────────────────────
 update_translations({
@@ -130,7 +151,13 @@ def _cat_by_slug(slug: str) -> dict | None:
 # ── Keyboards ──────────────────────────────────────────────────────────────────
 def main_kb(lang: str) -> InlineKeyboardMarkup:
     ar = lang == "ar"
-    return InlineKeyboardMarkup(inline_keyboard=[
+    rows = []
+    if WEB_APP_URL.startswith("https://"):
+        rows.append([InlineKeyboardButton(
+            text="❖ " + ("افتح متجر SOUQRATES SOUQ" if ar else "Open SOUQRATES SOUQ Store"),
+            web_app=WebAppInfo(url=WEB_APP_URL),
+        )])
+    rows += [
         [InlineKeyboardButton(text=t(lang, "btn_browse"), callback_data="browse")],
         [
             InlineKeyboardButton(text=t(lang, "btn_wallet"), callback_data="wallet"),
@@ -140,7 +167,8 @@ def main_kb(lang: str) -> InlineKeyboardMarkup:
             text="🌐 " + ("اللغة" if ar else "Language"),
             callback_data="langmenu",
         )],
-    ])
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def categories_kb(lang: str) -> InlineKeyboardMarkup:
@@ -478,6 +506,15 @@ async def main() -> None:
     )
 
     _client.start_heartbeat(interval_seconds=30, version="2.0-shop")
+
+    if WEB_APP_URL.startswith("https://") and os.getenv("USE_WEBHOOK"):
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="❖ SOUQRATES SOUQ", web_app=WebAppInfo(url=WEB_APP_URL))
+            )
+            logger.info("books-bot: menu button set to WebApp → %s", WEB_APP_URL)
+        except Exception as e:
+            logger.warning("books-bot: set_chat_menu_button failed: %s", e)
 
     from webhook_runtime import run_bot
     await run_bot(bot, dp, "books-bot")

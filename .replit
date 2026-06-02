@@ -24,6 +24,10 @@ args = "mother-bot: SOUQRATES SYSTEM"
 task = "workflow.run"
 args = "artifacts/mother-bot-web: web"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/books-bot: books-bot"
+
 [[workflows.workflow]]
 name = "mother-bot: SOUQRATES SYSTEM"
 author = "agent"
@@ -45,6 +49,17 @@ args = "pnpm --filter @workspace/mother-bot-web run dev"
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "artifacts/books-bot: books-bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 artifacts/books-bot/src/bot.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"
