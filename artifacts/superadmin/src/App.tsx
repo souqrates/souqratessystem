@@ -27,6 +27,7 @@ import ReportsPage from "@/pages/Reports";
 import BotsPage from "@/pages/Bots";
 import ScratchCardsPage from "@/pages/ScratchCards";
 import CommissionsPage from "@/pages/Commissions";
+import BotTextsPage from "@/pages/BotTexts";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -60,6 +61,8 @@ function AuthedRoutes() {
         <Route path="/audit-log" component={AuditLogPage} />
         <Route path="/bots" component={BotsPage} />
         <Route path="/scratch-cards" component={ScratchCardsPage} />
+        <Route path="/scratchy-games" component={ScratchCardsPage} />
+        <Route path="/bot-texts" component={BotTextsPage} />
         <Route path="/health" component={SystemHealthPage} />
         <Route path="/system-health" component={SystemHealthPage} />
         <Route>

@@ -1874,6 +1874,101 @@ router.post("/superadmin/withdrawals/bulk-reject", requireSuperAdmin, async (req
   res.json({ rejected: updated.length, ids: updated.map((u) => u.id) });
 });
 
+// ── Approve ALL pending withdrawals (global, not page-limited) ───────────
+// Fetches every pending withdrawal and processes them sequentially.
+// The per-item DB transaction is identical to bulk-approve. Returns a
+// summary {approved, failed, total} plus per-item errors.
+router.post("/superadmin/withdrawals/approve-all-pending", requireSuperAdmin, async (req, res): Promise<void> => {
+  const pending = await db
+    .select({ id: withdrawalsTable.id })
+    .from(withdrawalsTable)
+    .where(eq(withdrawalsTable.status, "pending"))
+    .limit(500); // safety ceiling — practically there won't be >500 at once
+
+  if (pending.length === 0) {
+    res.json({ approved: 0, failed: 0, total: 0, errors: [] });
+    return;
+  }
+
+  const results: { id: number; ok: boolean; error?: string }[] = [];
+
+  for (const { id } of pending) {
+    try {
+      await db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(withdrawalsTable)
+          .set({ status: "approved", txHash: null, processedAt: new Date() })
+          .where(and(eq(withdrawalsTable.id, id), eq(withdrawalsTable.status, "pending")))
+          .returning();
+        if (!updated) throw new Error("ليس في حالة انتظار");
+
+        const amt = parseFloat(updated.amount);
+        let walletUpdated: typeof walletsTable.$inferSelect | undefined;
+        if (updated.currency === "stars") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceStars:   sql`${walletsTable.balanceStars}   - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceStars} >= ${amt}`)).returning();
+        } else if (updated.currency === "usdt") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceUsdt:    sql`${walletsTable.balanceUsdt}    - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceUsdt} >= ${amt}`)).returning();
+        } else if (updated.currency === "ton") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceTon:     sql`${walletsTable.balanceTon}     - ${amt}`,
+            totalWithdrawn: sql`${walletsTable.totalWithdrawn} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceTon} >= ${amt}`)).returning();
+        } else if (updated.currency === "skz") {
+          [walletUpdated] = await tx.update(walletsTable).set({
+            balanceSkz:        sql`${walletsTable.balanceSkz}        - ${amt}`,
+            totalWithdrawnSkz: sql`${walletsTable.totalWithdrawnSkz} + ${amt}`,
+          }).where(and(eq(walletsTable.userId, updated.userId), sql`${walletsTable.balanceSkz} >= ${amt}`)).returning();
+        } else {
+          throw new Error(`عملة غير مدعومة: ${updated.currency}`);
+        }
+        if (!walletUpdated) throw new Error("رصيد غير كافٍ");
+
+        await tx.insert(transactionsTable).values({
+          userId:      updated.userId,
+          type:        "withdrawal",
+          currency:    updated.currency,
+          amount:      String((parseFloat(updated.amount) * -1).toFixed(2)),
+          status:      "completed",
+          sourceBot:   updated.sourceBot ?? "superadmin",
+          referenceId: `withdrawal_${updated.id}`,
+          description: `سحب #${updated.id} عبر ${updated.method}`,
+          metadata: JSON.stringify({
+            withdrawalId: updated.id,
+            method: updated.method,
+            address: updated.address,
+            txHash: null,
+            approvedBy: "superadmin-approve-all",
+          }),
+        });
+      });
+      results.push({ id, ok: true });
+    } catch (err) {
+      results.push({ id, ok: false, error: err instanceof Error ? err.message : "فشل" });
+    }
+  }
+
+  const approved = results.filter((r) => r.ok).length;
+  const failed   = results.filter((r) => !r.ok).length;
+
+  await logAdminAction(req, "superadmin", {
+    action: "withdrawal.approve_all_pending", targetType: "withdrawal", targetId: 0,
+    payload: { total: pending.length, approved, failed }, success: approved > 0,
+  });
+
+  res.json({
+    total: pending.length,
+    approved,
+    failed,
+    errors: results.filter((r) => !r.ok).map((r) => ({ id: r.id, error: r.error })),
+  });
+});
+
 // ── Scratch Cards catalogue (CRUD) ───────────────────────────────────────
 // Admins manage the full catalogue of scratch-and-win card types here.
 // Each row has: slug, name, isActive, buyPriceSKZ, winRate, maxPrizeSKZ, jackpotValueSKZ.
@@ -1954,6 +2049,83 @@ router.delete("/superadmin/scratch-cards/:id", requireSuperAdmin, async (req, re
   const [deleted] = await db.delete(scratchCardsTable).where(eq(scratchCardsTable.id, id)).returning();
   if (!deleted) { res.status(404).json({ error: "Card not found" }); return; }
   await logAdminAction(req, "superadmin", { action: "scratch_card.delete", targetType: "scratch_card", targetId: id, payload: { slug: deleted.slug } });
+  res.json({ ok: true });
+});
+
+// ── Scratchy Games alias (/scratchy-games → same scratch_cards data) ──────
+// The route contract requested by the task uses the "scratchy-games" path;
+// the underlying table remains scratch_cards (unchanged data model).
+
+router.get("/superadmin/scratchy-games", requireSuperAdmin, async (_req, res): Promise<void> => {
+  const cards = await db
+    .select()
+    .from(scratchCardsTable)
+    .orderBy(scratchCardsTable.displayOrder, scratchCardsTable.id);
+  res.json({ data: cards });
+});
+
+router.post("/superadmin/scratchy-games", requireSuperAdmin, async (req, res): Promise<void> => {
+  const b = req.body as Record<string, unknown>;
+  const slug = String(b.slug ?? "").trim().toLowerCase().replace(/\s+/g, "-");
+  const name = String(b.name ?? "").trim();
+  if (!slug || !name) { res.status(400).json({ error: "slug and name are required" }); return; }
+  const buyPrice = parseFloat(String(b.buyPriceSKZ ?? "10"));
+  const winRate  = parseFloat(String(b.winRate ?? "0.3"));
+  const maxPrize = parseFloat(String(b.maxPrizeSKZ ?? "100"));
+  const jackpot  = parseFloat(String(b.jackpotValueSKZ ?? "1000"));
+  if (!Number.isFinite(buyPrice) || buyPrice <= 0) { res.status(400).json({ error: "buyPriceSKZ must be > 0" }); return; }
+  if (!Number.isFinite(winRate) || winRate < 0 || winRate > 1) { res.status(400).json({ error: "winRate must be 0–1" }); return; }
+  const [card] = await db.insert(scratchCardsTable).values({
+    slug, name,
+    description: typeof b.description === "string" ? b.description : null,
+    isActive: b.isActive !== false,
+    buyPriceSKZ: buyPrice.toFixed(6),
+    winRate: winRate.toFixed(4),
+    maxPrizeSKZ: maxPrize.toFixed(6),
+    jackpotValueSKZ: jackpot.toFixed(6),
+    displayOrder: typeof b.displayOrder === "number" ? b.displayOrder : 0,
+  }).returning();
+  await logAdminAction(req, "superadmin", { action: "scratchy_game.create", targetType: "scratchy_game", targetId: card.id, payload: { slug } });
+  res.status(201).json(card);
+});
+
+router.patch("/superadmin/scratchy-games/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const b = req.body as Record<string, unknown>;
+  const updates: Partial<typeof scratchCardsTable.$inferInsert> = { updatedAt: new Date() };
+  if (typeof b.name === "string" && b.name.trim()) updates.name = b.name.trim();
+  if (typeof b.description === "string") updates.description = b.description.trim() || null;
+  if (typeof b.isActive === "boolean") updates.isActive = b.isActive;
+  if (b.displayOrder !== undefined) updates.displayOrder = Number(b.displayOrder);
+  for (const [field, col] of [
+    ["buyPriceSKZ", "buyPriceSKZ"] as const,
+    ["maxPrizeSKZ", "maxPrizeSKZ"] as const,
+    ["jackpotValueSKZ", "jackpotValueSKZ"] as const,
+  ] as Array<[string, "buyPriceSKZ" | "maxPrizeSKZ" | "jackpotValueSKZ"]>) {
+    if (b[field] !== undefined) {
+      const v = parseFloat(String(b[field]));
+      if (!Number.isFinite(v) || v < 0) { res.status(400).json({ error: `${field} must be >= 0` }); return; }
+      updates[col] = v.toFixed(6);
+    }
+  }
+  if (b.winRate !== undefined) {
+    const v = parseFloat(String(b.winRate));
+    if (!Number.isFinite(v) || v < 0 || v > 1) { res.status(400).json({ error: "winRate must be 0–1" }); return; }
+    updates.winRate = v.toFixed(4);
+  }
+  const [card] = await db.update(scratchCardsTable).set(updates).where(eq(scratchCardsTable.id, id)).returning();
+  if (!card) { res.status(404).json({ error: "Game not found" }); return; }
+  await logAdminAction(req, "superadmin", { action: "scratchy_game.update", targetType: "scratchy_game", targetId: id, payload: updates });
+  res.json(card);
+});
+
+router.delete("/superadmin/scratchy-games/:id", requireSuperAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [deleted] = await db.delete(scratchCardsTable).where(eq(scratchCardsTable.id, id)).returning();
+  if (!deleted) { res.status(404).json({ error: "Game not found" }); return; }
+  await logAdminAction(req, "superadmin", { action: "scratchy_game.delete", targetType: "scratchy_game", targetId: id, payload: { slug: deleted.slug } });
   res.json({ ok: true });
 });
 

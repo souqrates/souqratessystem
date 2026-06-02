@@ -3,7 +3,7 @@ import {
   Shield, BarChart2, Users, ArrowLeftRight, CreditCard, ScrollText,
   Settings, LayoutGrid, Wallet, BookOpen, Trophy, Ticket,
   Megaphone, Link2, Plug, Activity, AlertTriangle, Star,
-  Diamond, Triangle, Play, Radio, Crown, Hexagon, LineChart, Percent,
+  Diamond, Triangle, Play, Radio, Crown, Hexagon, LineChart, Percent, MessageSquare,
 } from "lucide-react";
 import { BOTS } from "@/lib/bots-meta";
 import { clearToken } from "@/lib/api";
@@ -159,7 +159,8 @@ export default function Sidebar() {
 
         {/* أدوات عامة */}
         <div className="px-3 mt-5 mb-2 text-[11px] uppercase tracking-wider text-slate-500">أدوات</div>
-        <SidebarLink href="/scratch-cards" active={location.startsWith("/scratch-cards")} icon={<Hexagon size={16} />} label="بطاقات الحك واربح" sub="كتالوج البطاقات وإعداداتها" />
+        <SidebarLink href="/scratchy-games" active={location.startsWith("/scratchy-games") || location.startsWith("/scratch-cards")} icon={<Hexagon size={16} />} label="ألعاب SCRATCHY" sub="كتالوج بطاقات الحك واربح" />
+        <SidebarLink href="/bot-texts" active={location.startsWith("/bot-texts")} icon={<MessageSquare size={16} />} label="نصوص البوتات" sub="تحرير نصوص كل بوت" />
         <SidebarLink href="/broadcast" active={location.startsWith("/broadcast")} icon={<Megaphone size={16} />} label="إشعار جماعي" />
         <SidebarLink href="/links" active={location.startsWith("/links")} icon={<Link2 size={16} />} label="الروابط/CDN" />
         <SidebarLink href="/integrations" active={location.startsWith("/integrations")} icon={<Plug size={16} />} label="التكاملات الخارجية" sub="Redis, Sentry, Resend…" />

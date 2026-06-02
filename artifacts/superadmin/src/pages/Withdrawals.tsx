@@ -94,9 +94,14 @@ export default function WithdrawalsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">طلبات السحب</h1>
-        <p className="text-slate-500 mt-1">قبول / رفض طلبات السحب — يُخصم الرصيد تلقائياً عند القبول</p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">طلبات السحب</h1>
+          <p className="text-slate-500 mt-1">قبول / رفض طلبات السحب — يُخصم الرصيد تلقائياً عند القبول</p>
+        </div>
+        {status === "pending" && (
+          <ApproveAllButton onDone={invalidate} setBulkMsg={setBulkMsg} />
+        )}
       </header>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm flex gap-2 flex-wrap">
@@ -248,6 +253,65 @@ export default function WithdrawalsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ApproveAllButton({
+  onDone,
+  setBulkMsg,
+}: {
+  onDone: () => void;
+  setBulkMsg: (m: { kind: "ok" | "warn" | "err"; text: string } | null) => void;
+}) {
+  const { data: pendingCount } = useQuery({
+    queryKey: ["superadmin", "withdrawals-pending-count"],
+    queryFn: async () => {
+      const r = await api.get<{ total: number }>(
+        "/superadmin/withdrawals?status=pending&limit=1&page=1",
+      );
+      return r.total;
+    },
+    refetchInterval: 8000,
+  });
+
+  const mut = useMutation({
+    mutationFn: () =>
+      api.post<{ total: number; approved: number; failed: number; errors: { id: number; error: string }[] }>(
+        "/superadmin/withdrawals/approve-all-pending",
+        {},
+      ),
+    onSuccess: (res) => {
+      const msg =
+        res.failed > 0
+          ? `تم قبول ${res.approved} طلب من ${res.total} — فشل ${res.failed} (رصيد غير كافٍ)`
+          : `تمت الموافقة على جميع ${res.approved} طلب بنجاح`;
+      setBulkMsg({ kind: res.failed > 0 ? "warn" : "ok", text: msg });
+      onDone();
+      setTimeout(() => setBulkMsg(null), 6000);
+    },
+    onError: (e) =>
+      setBulkMsg({ kind: "err", text: e instanceof Error ? e.message : "فشل قبول الكل" }),
+  });
+
+  const n = pendingCount ?? 0;
+  if (n === 0) return null;
+
+  return (
+    <button
+      onClick={() => {
+        if (
+          !window.confirm(
+            `الموافقة على جميع ${n} طلب سحب معلق؟\nسيُخصم الرصيد فوراً من محافظ المستخدمين.\nالطلبات التي يقل رصيد صاحبها ستُرفض تلقائياً.`,
+          )
+        )
+          return;
+        mut.mutate();
+      }}
+      disabled={mut.isPending}
+      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-bold rounded-xl shadow-sm whitespace-nowrap"
+    >
+      {mut.isPending ? "جارٍ القبول…" : `✅ قبول جميع المعلقة (${n})`}
+    </button>
   );
 }
 
